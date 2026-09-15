@@ -1,1 +1,6 @@
-<template><h1>About</h1></template>
+<script setup lang="ts">
+  const title = 'About'
+</script>
+<template>
+  <h1>{{ title }}</h1>
+</template>
