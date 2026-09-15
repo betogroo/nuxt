@@ -2,5 +2,8 @@
   const title = 'About'
 </script>
 <template>
-  <h1>{{ title }}</h1>
+  <div>
+    <h1>{{ title }}</h1>
+    <h2>Testando pre push</h2>
+  </div>
 </template>
