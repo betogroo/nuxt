@@ -1,6 +1,6 @@
 <script setup></script>
 <template>
-  <v-app>
+  <v-app app>
     <v-app-bar>
       <v-app-bar-title>Nuxt</v-app-bar-title>
       <v-spacer />

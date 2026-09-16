@@ -1,8 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  alias: {
+    cookie: 'cookie-es',
+  },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  modules: ['@nuxt/eslint', 'vuetify-nuxt-module'],
+  modules: ['@nuxt/eslint', 'vuetify-nuxt-module', '@nuxtjs/supabase'],
+  supabase: { redirect: false },
   vuetify: {
     vuetifyOptions: {
       theme: {
