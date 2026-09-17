@@ -8,15 +8,10 @@ export const useThemeManager = (): ThemeManager => {
   const { $vuetify } = useNuxtApp()
 
   const current = useState<ThemeName>('theme-manager:current', () => {
-    return (
-      (import.meta.client ? (localStorage.getItem(STORAGE_KEY) as ThemeName) : null) ?? 'system'
-    )
+    return (import.meta.client ? (localStorage.getItem(STORAGE_KEY) as ThemeName) : null) ?? 'light'
   })
 
   const isDark = computed(() => {
-    if (current.value === 'system') {
-      return $vuetify.theme.global.current.value.dark
-    }
     return current.value === 'dark'
   })
 
