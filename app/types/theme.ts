@@ -1,5 +1,5 @@
 // app/types/theme.ts
-export type ThemeName = 'light' | 'dark' | 'system'
+export type ThemeName = 'light' | 'dark'
 
 export interface ThemeManager {
   current: Ref<ThemeName>

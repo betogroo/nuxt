@@ -1,5 +1,6 @@
 <script setup lang="ts">
   const title = 'Home'
+  useHead({ title })
 </script>
 <template>
   <div>

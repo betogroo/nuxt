@@ -1,75 +1,111 @@
-# Nuxt Minimal Starter
+# Nuxt + Supabase Auth
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Sistema de autenticação construído com [Nuxt 4](https://nuxt.com/), [Vuetify](https://vuetifyjs.com/) e [Supabase](https://supabase.com/).
+
+## Pré-requisitos
+
+- [Node.js](https://nodejs.org/) (v20+)
+- [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) (para desenvolvimento local)
+- [Docker](https://www.docker.com/) (necessário para o Supabase local)
 
 ## Setup
 
-Make sure to install dependencies:
+### 1. Instalar dependências
 
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+### 2. Iniciar o Supabase local
 
 ```bash
-# npm
+npx supabase start
+```
+
+Copie a `anon key` exibida no terminal e configure o arquivo `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` e cole a chave:
+
+```env
+NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NUXT_PUBLIC_SUPABASE_KEY=<sua-anon-key>
+```
+
+### 3. Aplicar migrations
+
+```bash
+npx supabase db reset
+```
+
+### 4. Gerar tipos do banco (opcional)
+
+```bash
+npx supabase gen types typescript --local > app/types/database.types.ts
+```
+
+## Desenvolvimento
+
+```bash
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+O servidor estará disponível em `http://127.0.0.1:3000`.
 
-Build the application for production:
+## Scripts disponíveis
 
-```bash
-# npm
-npm run build
+| Comando              | Descrição                         |
+| -------------------- | --------------------------------- |
+| `npm run dev`        | Servidor de desenvolvimento       |
+| `npm run build`      | Build de produção                 |
+| `npm run preview`    | Preview do build                  |
+| `npm run lint`       | Verificar código com ESLint       |
+| `npm run lint:fix`   | Corrigir código com ESLint        |
+| `npm run format`     | Verificar formatação com Prettier |
+| `npm run format:fix` | Corrigir formatação com Prettier  |
+| `npm run typecheck`  | Verificar tipos com TypeScript    |
 
-# pnpm
-pnpm build
+## Estrutura do projeto
 
-# yarn
-yarn build
+```
+app/
+├── components/theme/   # Componente de alternância de tema
+├── composables/        # useThemeManager
+├── layouts/            # Layout padrão com navbar
+├── pages/              # Páginas (login, registro, confirm, home, about)
+└── types/              # Tipos TypeScript (theme, database)
 
-# bun
-bun run build
+supabase/
+├── config.toml         # Configuração do Supabase local
+└── migrations/         # Migrations SQL
 ```
 
-Locally preview production build:
+## Fluxo de autenticação
 
-```bash
-# npm
-npm run preview
+1. **Registro** (`/register`) — Cria conta com e-mail e senha
+2. **Login** (`/login`) — Duas opções: senha ou magic link
+3. **Confirmação** (`/confirm`) — Callback de confirmação de e-mail/magic link
+4. **Home** (`/`) — Página protegida (requer autenticação)
 
-# pnpm
-pnpm preview
+## Banco de dados
 
-# yarn
-yarn preview
+### Tabela `profiles`
 
-# bun
-bun run preview
-```
+Criada automaticamente via trigger quando um novo usuário é registrado no `auth.users`.
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+| Coluna       | Tipo          | Descrição                              |
+| ------------ | ------------- | -------------------------------------- |
+| `id`         | uuid (PK, FK) | Referencia `auth.users.id`             |
+| `created_at` | timestamptz   | Data de criação                        |
+| `updated_at` | timestamptz   | Data de atualização (auto via trigger) |
+| `name`       | text          | Nome do usuário                        |
+| `avatar_url` | text          | URL do avatar                          |
+| `role`       | user_role     | `'user'` (padrão) ou `'admin'`         |
+
+### RLS (Row Level Security)
+
+- Usuários podem **ler** e **editar** apenas seu próprio perfil
+- Admins podem ler todos os perfis

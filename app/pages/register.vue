@@ -5,6 +5,7 @@
   const password = ref('')
   const loading = ref(false)
   const message = ref('')
+  useHead({ title: 'Registrar' })
 
   // Redireciona se já estiver logado
   watchEffect(() => {
@@ -54,6 +55,11 @@
             <v-btn block color="primary" :loading="loading" @click="signUp"> Registrar </v-btn>
           </v-card-text>
         </v-card>
+
+        <p class="text-center mt-4">
+          Já tem uma conta?
+          <NuxtLink to="/login">Entrar</NuxtLink>
+        </p>
       </v-col>
     </v-row>
   </v-container>

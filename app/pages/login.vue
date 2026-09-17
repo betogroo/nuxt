@@ -10,6 +10,7 @@
   })
 
   const tab = ref<'password' | 'magic'>('password')
+  useHead({ title: 'Entrar' })
 
   // Login com senha
   const emailPassword = ref('')
@@ -46,7 +47,7 @@
     const { error } = await supabase.auth.signInWithOtp({
       email: emailMagic.value,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: false,
         emailRedirectTo: `${window.location.origin}/confirm`,
       },
     })
@@ -126,6 +127,11 @@
             </template>
           </v-card-text>
         </v-card>
+
+        <p class="text-center mt-4">
+          Não tem uma conta?
+          <NuxtLink to="/register">Registre-se</NuxtLink>
+        </p>
       </v-col>
     </v-row>
   </v-container>

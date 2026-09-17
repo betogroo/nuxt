@@ -1,4 +1,5 @@
 <script setup lang="ts">
+  useHead({ title: 'Confirmando...' })
   const user = useSupabaseUser()
 
   // Vigia o estado do usuário. Assim que ele for preenchido (login concluído),
