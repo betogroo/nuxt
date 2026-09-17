@@ -6,7 +6,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxt/eslint', 'vuetify-nuxt-module', '@nuxtjs/supabase'],
-  supabase: { redirect: false },
+  supabase: {
+    redirect: true,
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirm',
+      exclude: ['/about', '/confirm'],
+    },
+  },
   vuetify: {
     vuetifyOptions: {
       theme: {
