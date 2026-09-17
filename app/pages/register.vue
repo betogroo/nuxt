@@ -1,9 +1,17 @@
 <script setup lang="ts">
   const supabase = useSupabaseClient()
+  const user = useSupabaseUser()
   const email = ref('')
   const password = ref('')
   const loading = ref(false)
   const message = ref('')
+
+  // Redireciona se já estiver logado
+  watchEffect(() => {
+    if (user.value) {
+      navigateTo('/')
+    }
+  })
 
   const signUp = async () => {
     loading.value = true
