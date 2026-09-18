@@ -13,7 +13,10 @@
     "format": "prettier --check .",
     "format:fix": "prettier --write .",
     "prepare": "husky",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "gen-types": "supabase gen types typescript --local --schema public > app/types/database.types.ts",
+    "gen-types-remote": "supabase gen types typescript --linked --schema public > app/types/database.types.ts",
+    "db-reset": "supabase db reset & npm run gen-types"
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.10",
