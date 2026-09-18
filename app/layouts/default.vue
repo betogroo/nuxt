@@ -37,10 +37,13 @@
         </template>
         <v-list>
           <v-list-item>
-            <v-list-item-title>{{ user.email }}</v-list-item-title>
+            <v-list-item-title class="text-caption text-grey">{{ user.email }}</v-list-item-title>
           </v-list-item>
           <v-divider />
-          <v-list-item @click="signOut">
+          <v-list-item prepend-icon="mdi-account-edit" to="/profile">
+            <v-list-item-title>Meu Perfil</v-list-item-title>
+          </v-list-item>
+          <v-list-item color="error" prepend-icon="mdi-logout" @click="signOut">
             <v-list-item-title>Sair</v-list-item-title>
           </v-list-item>
         </v-list>
