@@ -13,6 +13,7 @@
       <v-app-bar-title>Nuxt</v-app-bar-title>
       <v-spacer />
       <v-btn color="primary" to="/">Home</v-btn>
+      <v-btn color="primary" to="/users">Usuários</v-btn>
       <v-btn color="primary" to="/about">About</v-btn>
       <ThemeToggle />
       <!-- Menu do usuário -->
