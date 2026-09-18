@@ -32,6 +32,9 @@
   const isSaving = ref(false)
   const saveError = ref('')
 
+  const { profile: loggedProfile } = useProfile()
+  const isSelf = computed(() => editingUser.value?.id === loggedProfile.value?.id)
+
   const openEditModal = (user: ProfileRow) => {
     // Clonamos o objeto para não alterar a tabela antes de salvar
     editingUser.value = { ...user }
@@ -163,7 +166,12 @@
           <v-select
             v-model="editingUser.role"
             density="comfortable"
-            hint="Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel."
+            :disabled="isSelf"
+            :hint="
+              isSelf
+                ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
+                : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
+            "
             :items="['user', 'admin']"
             label="Cargo (Role)"
             persistent-hint
