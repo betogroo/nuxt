@@ -23,6 +23,48 @@
     if (error) throw error
     return data
   })
+
+  // 3. Lógica de Edição de Usuário
+  type ProfileRow = Database['public']['Tables']['profiles']['Row']
+
+  const isEditModalOpen = ref(false)
+  const editingUser = ref<ProfileRow | null>(null)
+  const isSaving = ref(false)
+  const saveError = ref('')
+
+  const openEditModal = (user: ProfileRow) => {
+    // Clonamos o objeto para não alterar a tabela antes de salvar
+    editingUser.value = { ...user }
+    saveError.value = ''
+    isEditModalOpen.value = true
+  }
+
+  const closeEditModal = () => {
+    isEditModalOpen.value = false
+    editingUser.value = null
+  }
+
+  const saveUser = async () => {
+    if (!editingUser.value) return
+    isSaving.value = true
+    saveError.value = ''
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: editingUser.value.name,
+        role: editingUser.value.role,
+      })
+      .eq('id', editingUser.value.id)
+
+    if (error) {
+      saveError.value = error.message
+    } else {
+      await refresh() // Recarrega a tabela para mostrar os novos dados
+      closeEditModal()
+    }
+    isSaving.value = false
+  }
 </script>
 
 <template>
@@ -47,6 +89,7 @@
                 <th class="text-left">Usuário</th>
                 <th class="text-left">Cargo</th>
                 <th class="text-left">Membro desde</th>
+                <th class="text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -75,6 +118,15 @@
                 <td>
                   {{ new Date(user.created_at).toLocaleDateString() }}
                 </td>
+                <td class="text-right">
+                  <v-btn
+                    color="primary"
+                    icon="mdi-pencil"
+                    size="small"
+                    variant="text"
+                    @click="openEditModal(user)"
+                  />
+                </td>
               </tr>
             </tbody>
           </v-table>
@@ -86,5 +138,48 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Modal de Edição -->
+    <v-dialog v-model="isEditModalOpen" max-width="500px">
+      <v-card v-if="editingUser">
+        <v-card-title class="pa-4"> Editar Usuário </v-card-title>
+
+        <v-divider />
+
+        <v-card-text class="pa-4">
+          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+            {{ saveError }}
+          </v-alert>
+
+          <v-text-field
+            v-model="editingUser.name"
+            class="mb-3"
+            density="comfortable"
+            label="Nome"
+            placeholder="Nome do usuário"
+            variant="outlined"
+          />
+
+          <v-select
+            v-model="editingUser.role"
+            density="comfortable"
+            hint="Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel."
+            :items="['user', 'admin']"
+            label="Cargo (Role)"
+            persistent-hint
+            variant="outlined"
+          />
+        </v-card-text>
+
+        <v-divider />
+
+        <v-card-actions class="px-4 py-3 justify-end">
+          <v-btn :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</v-btn>
+          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveUser"
+            >Salvar Alterações</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
