@@ -36,8 +36,5 @@
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.11",
     "vuetify": "^4.2.1"
-  },
-  "overrides": {
-    "cookie": "1.0.2"
   }
 }

@@ -11,11 +11,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/eslint', 'vuetify-nuxt-module', '@nuxtjs/supabase'],
   supabase: {
-    redirect: true,
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
-      exclude: ['/about', '/confirm', '/register'],
+      exclude: ['/about', '/register'],
     },
   },
   vuetify: {
