@@ -47,6 +47,8 @@
     editingUser.value = null
   }
 
+  const { logAction } = useLogger()
+
   const saveUser = async () => {
     if (!editingUser.value) return
     isSaving.value = true
@@ -63,6 +65,10 @@
     if (error) {
       saveError.value = error.message
     } else {
+      await logAction(
+        'ADMIN_UPDATE_USER',
+        `Administrador atualizou o usuário: ${editingUser.value.id}`,
+      )
       await refresh() // Recarrega a tabela para mostrar os novos dados
       closeEditModal()
     }

@@ -35,6 +35,8 @@
     }
   })
 
+  const { logAction } = useLogger()
+
   const saveProfile = async () => {
     if (!profile.value) return
     isSaving.value = true
@@ -54,6 +56,7 @@
       saveError.value = 'Erro ao salvar o perfil: ' + error.message
     } else {
       saveMessage.value = 'Perfil atualizado com sucesso!'
+      await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.')
       await fetchProfile() // Sincroniza a memória global novamente
     }
     isSaving.value = false

@@ -14,7 +14,12 @@
     }
   })
 
+  const { logAction } = useLogger()
+
   const signOut = async () => {
+    if (user.value) {
+      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
+    }
     await supabase.auth.signOut()
     navigateTo('/login')
   }
@@ -26,6 +31,7 @@
       <v-spacer />
       <v-btn color="primary" to="/">Home</v-btn>
       <v-btn v-if="profile?.role === 'admin'" color="primary" to="/users">Usuários</v-btn>
+      <v-btn v-if="profile?.role === 'admin'" color="primary" to="/logs">Registros</v-btn>
       <v-btn color="primary" to="/about">About</v-btn>
       <ThemeToggle />
       <!-- Menu do usuário -->

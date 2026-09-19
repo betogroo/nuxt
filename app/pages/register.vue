@@ -14,6 +14,8 @@
     }
   })
 
+  const { logAction } = useLogger()
+
   const signUp = async () => {
     loading.value = true
     message.value = ''
@@ -31,6 +33,11 @@
       message.value = error.message
     } else if (data.session) {
       // Ambiente local: confirmação de e-mail desligada, session existe → login automático
+      await logAction(
+        'REGISTER',
+        'Novo usuário registrado no sistema (login automático)',
+        data.session.user.id,
+      )
       return navigateTo('/')
     } else {
       // Produção: confirmação de e-mail ligada, usuário precisa clicar no link

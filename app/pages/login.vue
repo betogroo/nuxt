@@ -18,17 +18,21 @@
   const loadingPassword = ref(false)
   const errorPassword = ref('')
 
+  const { logAction } = useLogger()
+
   const signInWithPassword = async () => {
     loadingPassword.value = true
     errorPassword.value = ''
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: emailPassword.value,
       password: password.value,
     })
 
     if (error) {
       errorPassword.value = error.message
+    } else if (data.user) {
+      await logAction('LOGIN', 'Acesso via senha', data.user.id)
     }
     loadingPassword.value = false
   }
