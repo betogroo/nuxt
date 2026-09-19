@@ -59,6 +59,7 @@
       .update({
         name: editingUser.value.name,
         role: editingUser.value.role,
+        is_active: editingUser.value.is_active,
       })
       .eq('id', editingUser.value.id)
 
@@ -99,6 +100,7 @@
                 <th class="text-left">Usuário</th>
                 <th class="text-left">Cargo</th>
                 <th class="text-left">Membro desde</th>
+                <th class="text-left">Status</th>
                 <th class="text-right">Ações</th>
               </tr>
             </thead>
@@ -127,6 +129,11 @@
                 </td>
                 <td>
                   {{ new Date(user.created_at).toLocaleDateString() }}
+                </td>
+                <td>
+                  <v-chip :color="user.is_active ? 'success' : 'error'" size="small" variant="flat">
+                    {{ user.is_active ? 'ATIVO' : 'INATIVO' }}
+                  </v-chip>
                 </td>
                 <td class="text-right">
                   <v-btn
@@ -183,6 +190,16 @@
             label="Cargo (Role)"
             persistent-hint
             variant="outlined"
+          />
+
+          <v-switch
+            v-model="editingUser.is_active"
+            class="mt-3"
+            color="success"
+            :disabled="isSelf"
+            hint="Se desmarcado, o usuário não poderá acessar o sistema"
+            label="Usuário Ativo"
+            persistent-hint
           />
         </v-card-text>
 

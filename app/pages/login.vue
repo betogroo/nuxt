@@ -12,6 +12,9 @@
   const tab = ref<'password' | 'magic'>('password')
   useHead({ title: 'Entrar' })
 
+  const route = useRoute()
+  const inactiveError = computed(() => route.query.error === 'inactive')
+
   // Login com senha
   const emailPassword = ref('')
   const password = ref('')
@@ -76,6 +79,10 @@
             <v-tab value="password">Email e Senha</v-tab>
             <v-tab value="magic">Link Mágico</v-tab>
           </v-tabs>
+
+          <v-alert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
+            Sua conta foi desativada por um administrador.
+          </v-alert>
 
           <v-card-text class="pt-4">
             <!-- ABA: SENHA -->
