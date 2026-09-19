@@ -68,6 +68,7 @@
       await logAction(
         'ADMIN_UPDATE_USER',
         `Administrador atualizou o usuário: ${editingUser.value.id}`,
+        loggedProfile.value?.id,
       )
       await refresh() // Recarrega a tabela para mostrar os novos dados
       closeEditModal()

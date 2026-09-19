@@ -56,7 +56,7 @@
       saveError.value = 'Erro ao salvar o perfil: ' + error.message
     } else {
       saveMessage.value = 'Perfil atualizado com sucesso!'
-      await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.')
+      await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.', user.value?.id)
       await fetchProfile() // Sincroniza a memória global novamente
     }
     isSaving.value = false
