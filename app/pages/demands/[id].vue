@@ -258,13 +258,13 @@
         {{ demand.name }}
       </template>
       <v-row>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="3">
           <div class="text-caption text-grey">Tipo</div>
           <div class="text-body-1 font-weight-medium">
             {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
           </div>
         </v-col>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="3">
           <div class="text-caption text-grey">Data da Disputa</div>
           <div class="text-body-1">
             {{
@@ -274,7 +274,20 @@
             }}
           </div>
         </v-col>
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="3">
+          <div class="text-caption text-grey">Abertura de Ofertas</div>
+          <div class="text-body-1">
+            {{
+              demand.offer_opening_date
+                ? new Date(demand.offer_opening_date).toLocaleString([], {
+                    dateStyle: 'short',
+                    timeStyle: 'short',
+                  })
+                : 'Não informada'
+            }}
+          </div>
+        </v-col>
+        <v-col cols="12" sm="3">
           <div class="text-caption text-grey">ID</div>
           <div class="text-caption font-weight-mono">{{ demand.id.split('-')[0] }}</div>
         </v-col>

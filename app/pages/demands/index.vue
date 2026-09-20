@@ -36,6 +36,7 @@
     name: '',
     type: 'consumption' as const,
     dispute_date: null,
+    offer_opening_date: null as string | null,
   }
 
   const editingDemand = ref<Partial<DemandRow>>({ ...defaultDemand })
@@ -43,6 +44,10 @@
   const openModal = (demand?: DemandRow) => {
     if (demand) {
       editingDemand.value = { ...demand }
+      // Convert timestamptz to datetime-local format if present
+      if (editingDemand.value.offer_opening_date) {
+        editingDemand.value.offer_opening_date = editingDemand.value.offer_opening_date.slice(0, 16)
+      }
     } else {
       editingDemand.value = { ...defaultDemand }
     }
@@ -70,10 +75,18 @@
     try {
       const isEditing = !!editingDemand.value.id
 
+      // Formatar date-time-local string to ISO para o Supabase (timestamptz)
+      let offerOpening = editingDemand.value.offer_opening_date || null
+      if (offerOpening && offerOpening.length === 16) {
+        // Se vier do datetime-local type YYYY-MM-DDThh:mm, converte pra ISO
+        offerOpening = new Date(offerOpening).toISOString()
+      }
+
       const payload = {
         name: editingDemand.value.name!,
         type: editingDemand.value.type!,
         dispute_date: editingDemand.value.dispute_date || null,
+        offer_opening_date: offerOpening,
         user_id: profile.value!.id,
       }
 
@@ -218,6 +231,13 @@
           clearable
           label="Data da Disputa"
           type="date"
+        />
+
+        <UiInput
+          v-model="editingDemand.offer_opening_date"
+          clearable
+          label="Abertura das Ofertas"
+          type="datetime-local"
         />
 
         <template #actions>

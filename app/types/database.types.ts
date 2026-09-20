@@ -1,6 +1,31 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       demand_products: {
@@ -54,6 +79,7 @@ export type Database = {
           dispute_date: string | null
           id: string
           name: string
+          offer_opening_date: string | null
           type: Database['public']['Enums']['demand_type']
           updated_at: string
           user_id: string
@@ -63,6 +89,7 @@ export type Database = {
           dispute_date?: string | null
           id?: string
           name: string
+          offer_opening_date?: string | null
           type: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id: string
@@ -72,6 +99,7 @@ export type Database = {
           dispute_date?: string | null
           id?: string
           name?: string
+          offer_opening_date?: string | null
           type?: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id?: string
@@ -347,6 +375,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       demand_type: ['consumption', 'permanent'],
