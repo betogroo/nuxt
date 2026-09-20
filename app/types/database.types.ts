@@ -73,33 +73,63 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          material_category: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          material_category: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          material_category?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           id: string
+          is_active: boolean
           name: string | null
           role: Database['public']['Enums']['user_role']
           updated_at: string
-          is_active: boolean
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           id: string
+          is_active?: boolean
           name?: string | null
           role?: Database['public']['Enums']['user_role']
           updated_at?: string
-          is_active?: boolean
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           id?: string
+          is_active?: boolean
           name?: string | null
           role?: Database['public']['Enums']['user_role']
           updated_at?: string
-          is_active?: boolean
         }
         Relationships: []
       }

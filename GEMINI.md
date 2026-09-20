@@ -9,3 +9,7 @@ Whenever a new feature is implemented, use the `logAction` function to record th
 # Database Naming
 
 All database table names, column names, functions, triggers, and any other database artifacts MUST be written in English. Use English for enum types and values as well (e.g., use 'consumption' instead of 'consumo').
+
+# Planning
+
+Always show what will be done before applying changes. Create an implementation plan and wait for the user's approval before executing modifications or creating new features.

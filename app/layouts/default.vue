@@ -31,6 +31,7 @@
       <v-spacer />
       <v-btn color="primary" to="/">Home</v-btn>
       <v-btn v-if="user" color="primary" to="/demands">Demandas</v-btn>
+      <v-btn v-if="user" color="primary" to="/products">Produtos</v-btn>
       <v-btn v-if="profile?.role === 'admin'" color="primary" to="/users">Usuários</v-btn>
       <v-btn v-if="profile?.role === 'admin'" color="primary" to="/logs">Registros</v-btn>
       <v-btn color="primary" to="/about">About</v-btn>
