@@ -32,8 +32,24 @@
       <v-btn color="primary" to="/">Home</v-btn>
       <v-btn v-if="user" color="primary" to="/demands">Demandas</v-btn>
       <v-btn v-if="user" color="primary" to="/products">Produtos</v-btn>
-      <v-btn v-if="profile?.role === 'admin'" color="primary" to="/users">Usuários</v-btn>
-      <v-btn v-if="profile?.role === 'admin'" color="primary" to="/logs">Registros</v-btn>
+      <v-menu v-if="profile?.role === 'admin'">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" append-icon="mdi-chevron-down" color="primary">
+            Administração
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item prepend-icon="mdi-account-group" to="/users">
+            <v-list-item-title>Usuários</v-list-item-title>
+          </v-list-item>
+          <v-list-item prepend-icon="mdi-format-list-bulleted-type" to="/logs">
+            <v-list-item-title>Registros (Logs)</v-list-item-title>
+          </v-list-item>
+          <v-list-item prepend-icon="mdi-shape" to="/admin/categories">
+            <v-list-item-title>Categorias de Produtos</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn color="primary" to="/about">About</v-btn>
       <ThemeToggle />
       <!-- Menu do usuário -->

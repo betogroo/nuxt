@@ -7,11 +7,15 @@
   const productId = route.params.id as string
 
   const { data: product, pending } = useAsyncData(`product-${productId}`, async () => {
-    const { data, error } = await supabase.from('products').select('*').eq('id', productId).single()
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, product_categories(id, name)')
+      .eq('id', productId)
+      .single()
 
     if (error) {
       console.error(error)
-      throw error
+      return null
     }
     return data
   })
@@ -55,7 +59,7 @@
               </v-col>
               <v-col cols="12" sm="6">
                 <div class="text-caption text-grey mb-1">Categoria de Material</div>
-                <div class="text-body-1">{{ product.material_category }}</div>
+                <div class="text-body-1">{{ product.product_categories?.name || '-' }}</div>
               </v-col>
 
               <v-col cols="12" sm="6">

@@ -50,7 +50,7 @@
     async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_categories(id, name)')
         .eq('is_active', true)
         .order('name', { ascending: true })
 
@@ -61,6 +61,16 @@
       return data
     },
   )
+
+  const { data: categories } = useAsyncData('active-categories', async () => {
+    const { data, error } = await supabase
+      .from('product_categories')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
+    if (error) return []
+    return data
+  })
 
   // Modal State
   const isModalOpen = ref(false)
@@ -76,7 +86,7 @@
 
   // New Product Form state
   const newProductName = ref('')
-  const newProductCategory = ref('')
+  const newProductCategoryId = ref<string | null>(null)
 
   const openAddModal = () => {
     selectedProductId.value = null
@@ -84,7 +94,7 @@
     searchProductText.value = ''
     isNewProductMode.value = false
     newProductName.value = ''
-    newProductCategory.value = ''
+    newProductCategoryId.value = null
     saveError.value = ''
     isModalOpen.value = true
   }
@@ -107,7 +117,7 @@
 
       // Create new product if in new product mode
       if (isNewProductMode.value) {
-        if (!newProductName.value || !newProductCategory.value) {
+        if (!newProductName.value || !newProductCategoryId.value) {
           throw new Error('Nome e Categoria são obrigatórios para novo produto.')
         }
 
@@ -115,7 +125,7 @@
           .from('products')
           .insert({
             name: newProductName.value,
-            material_category: newProductCategory.value,
+            category_id: newProductCategoryId.value,
             is_active: true,
           })
           .select()
@@ -304,7 +314,7 @@
                 {{ item.product?.name || 'Produto desconhecido' }}
               </NuxtLink>
             </td>
-            <td>{{ item.product?.material_category || '-' }}</td>
+            <td>{{ item.product?.product_categories?.name || '-' }}</td>
             <td class="text-center">
               <v-chip class="cursor-pointer" size="small" @click="updateQuantity(item)">
                 {{ item.quantity }}
@@ -401,9 +411,12 @@
               label="Nome do Produto"
               variant="outlined"
             />
-            <v-text-field
-              v-model="newProductCategory"
+            <v-select
+              v-model="newProductCategoryId"
               density="comfortable"
+              item-title="name"
+              item-value="id"
+              :items="categories"
               label="Categoria de Material"
               variant="outlined"
             />

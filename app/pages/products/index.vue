@@ -7,23 +7,28 @@
   const user = useSupabaseUser()
   const { logAction } = useLogger()
 
-  type ProductRow = Database['public']['Tables']['products']['Row']
+  type ProductRow = Database['public']['Tables']['products']['Row'] & {
+    product_categories?: { id: string; name: string } | null
+  }
 
   // Pagination & Filter State
   const currentPage = ref(1)
   const itemsPerPage = ref(10)
   const totalItems = ref(0)
+  // selectedCategory will now hold category_id instead of material_category string
   const selectedCategory = ref<string | null>(null)
 
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   // Fetch unique categories for the filter
   const { data: categories } = useAsyncData('product-categories', async () => {
-    // Light fetch of all products to extract unique categories
-    const { data, error } = await supabase.from('products').select('material_category')
+    const { data, error } = await supabase
+      .from('product_categories')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
     if (error) return []
-    const unique = [...new Set(data.map((p) => p.material_category))]
-    return unique.sort()
+    return data
   })
 
   // Fetch Products with Pagination and Filter
@@ -39,12 +44,12 @@
 
       let query = supabase
         .from('products')
-        .select('*', { count: 'exact' })
+        .select('*, product_categories(id, name)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to)
 
       if (selectedCategory.value) {
-        query = query.eq('material_category', selectedCategory.value)
+        query = query.eq('category_id', selectedCategory.value)
       }
 
       const { data, count, error } = await query
@@ -77,7 +82,7 @@
   const defaultForm = {
     id: '',
     name: '',
-    material_category: '',
+    category_id: '',
     is_active: true,
   }
   const form = ref({ ...defaultForm })
@@ -101,7 +106,7 @@
   }
 
   const saveProduct = async () => {
-    if (!form.value.name || !form.value.material_category) {
+    if (!form.value.name || !form.value.category_id) {
       saveError.value = 'Nome e Categoria são obrigatórios.'
       return
     }
@@ -116,7 +121,7 @@
           .from('products')
           .update({
             name: form.value.name,
-            material_category: form.value.material_category,
+            category_id: form.value.category_id,
             is_active: form.value.is_active,
           })
           .eq('id', form.value.id)
@@ -128,7 +133,7 @@
         // Create Product
         const { error } = await supabase.from('products').insert({
           name: form.value.name,
-          material_category: form.value.material_category,
+          category_id: form.value.category_id,
           is_active: form.value.is_active,
         })
 
@@ -201,6 +206,8 @@
                   clearable
                   density="compact"
                   hide-details
+                  item-title="name"
+                  item-value="id"
                   :items="categories"
                   label="Filtrar por Categoria"
                   variant="outlined"
@@ -230,7 +237,7 @@
                     {{ product.name }}
                   </NuxtLink>
                 </td>
-                <td>{{ product.material_category }}</td>
+                <td>{{ product.product_categories?.name || '-' }}</td>
                 <td>
                   <v-chip
                     class="cursor-pointer"
@@ -293,10 +300,13 @@
             variant="outlined"
           />
 
-          <v-text-field
-            v-model="form.material_category"
+          <v-select
+            v-model="form.category_id"
             class="mb-3"
             density="comfortable"
+            item-title="name"
+            item-value="id"
+            :items="categories"
             label="Categoria de Material"
             variant="outlined"
           />
