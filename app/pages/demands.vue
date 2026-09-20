@@ -2,7 +2,7 @@
   import type { Database } from '~/types/database.types'
 
   definePageMeta({
-    middleware: ['auth'], // Any logged in user
+    // O @nuxtjs/supabase já protege todas as rotas globalmente por padrão.
   })
   useHead({ title: 'Demandas' })
 
