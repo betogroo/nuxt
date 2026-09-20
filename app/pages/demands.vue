@@ -162,7 +162,7 @@
                   }}
                 </td>
                 <td class="text-caption text-grey">
-                  {{ demand.profiles?.name || 'Desconhecido' }}
+                  {{ demand.profiles?.name || `Usuário (${demand.user_id.split('-')[0]})` }}
                 </td>
                 <td class="text-right">
                   <v-btn
