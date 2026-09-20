@@ -39,6 +39,9 @@
           </v-btn>
         </template>
         <v-list>
+          <v-list-item prepend-icon="mdi-view-dashboard" to="/admin">
+            <v-list-item-title>Painel de Controle</v-list-item-title>
+          </v-list-item>
           <v-list-item prepend-icon="mdi-account-group" to="/users">
             <v-list-item-title>Usuários</v-list-item-title>
           </v-list-item>
