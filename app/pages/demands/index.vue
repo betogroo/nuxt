@@ -146,7 +146,14 @@
             </thead>
             <tbody>
               <tr v-for="demand in demands" :key="demand.id">
-                <td>{{ demand.name }}</td>
+                <td>
+                  <NuxtLink
+                    class="text-decoration-none text-primary font-weight-bold"
+                    :to="`/demands/${demand.id}`"
+                  >
+                    {{ demand.name }}
+                  </NuxtLink>
+                </td>
                 <td>
                   <v-chip
                     :color="demand.type === 'consumption' ? 'info' : 'warning'"
@@ -166,8 +173,15 @@
                 </td>
                 <td class="text-right">
                   <v-btn
-                    v-if="canEdit(demand)"
                     color="primary"
+                    icon="mdi-arrow-right"
+                    size="small"
+                    :to="`/demands/${demand.id}`"
+                    variant="text"
+                  />
+                  <v-btn
+                    v-if="canEdit(demand)"
+                    color="grey"
                     icon="mdi-pencil"
                     size="small"
                     variant="text"

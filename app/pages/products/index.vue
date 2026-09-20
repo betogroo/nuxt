@@ -1,7 +1,6 @@
 <script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
-  definePageMeta({})
   useHead({ title: 'Produtos' })
 
   const supabase = useSupabaseClient<Database>()
