@@ -136,14 +136,14 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title class="d-flex align-center bg-primary text-white pa-4">
+        <UiCard>
+          <template #header>
             Categorias de Produtos
             <v-spacer />
-            <v-btn color="white" prepend-icon="mdi-plus" variant="elevated" @click="openAddModal">
+            <UiButton color="white" prepend-icon="mdi-plus" @click="openAddModal">
               Nova Categoria
-            </v-btn>
-            <v-btn
+            </UiButton>
+            <UiButton
               class="ml-2"
               color="white"
               icon="mdi-refresh"
@@ -151,93 +151,73 @@
               variant="text"
               @click="refresh"
             />
-          </v-card-title>
+          </template>
 
-          <v-table hover>
-            <thead>
-              <tr>
-                <th class="text-left">Nome da Categoria</th>
-                <th class="text-left">Status</th>
-                <th class="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="cat in categories" :key="cat.id">
-                <td class="font-weight-medium">{{ cat.name }}</td>
-                <td>
-                  <v-chip :color="cat.is_active ? 'success' : 'error'" size="small" variant="flat">
-                    {{ cat.is_active ? 'ATIVO' : 'INATIVO' }}
-                  </v-chip>
-                </td>
-                <td class="text-right">
-                  <v-btn
-                    color="primary"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openEditModal(cat)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-
-          <v-card-text v-if="!categories?.length && !pending" class="text-center text-grey">
-            Nenhuma categoria encontrada.
-          </v-card-text>
+          <UiTable
+            :headers="[
+              { text: 'Nome da Categoria', value: 'name' },
+              { text: 'Status', value: 'is_active' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="categories || []"
+          >
+            <template v-if="!categories?.length && !pending" #empty>
+              Nenhuma categoria encontrada.
+            </template>
+            <template #item-name="{ item }">
+              <span class="font-weight-medium">{{ item.name }}</span>
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip :color="item.is_active ? 'success' : 'error'" size="small" variant="flat">
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
 
           <!-- Paginação -->
-          <v-card-actions v-if="totalPages > 1" class="justify-center py-4">
+          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
               density="comfortable"
               :length="totalPages"
               :total-visible="7"
             />
-          </v-card-actions>
-        </v-card>
+          </div>
+        </UiCard>
       </v-col>
     </v-row>
 
     <!-- Modal Form -->
     <v-dialog v-model="isModalOpen" max-width="500px">
-      <v-card>
-        <v-card-title class="pa-4">
-          {{ isEditing ? 'Editar Categoria' : 'Nova Categoria' }}
-        </v-card-title>
-        <v-divider />
+      <UiCard :title="isEditing ? 'Editar Categoria' : 'Nova Categoria'" transparent-header>
+        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ saveError }}
+        </v-alert>
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ saveError }}
-          </v-alert>
+        <UiInput v-model="form.name" label="Nome da Categoria (Ex: Papelaria)" />
 
-          <v-text-field
-            v-model="form.name"
-            class="mb-3"
-            density="comfortable"
-            label="Nome da Categoria (Ex: Papelaria)"
-            variant="outlined"
-          />
+        <v-switch
+          v-model="form.is_active"
+          color="success"
+          hint="Determina se os usuários podem escolher esta categoria ao cadastrar novos produtos"
+          label="Categoria Ativa"
+          persistent-hint
+        />
 
-          <v-switch
-            v-model="form.is_active"
-            color="success"
-            hint="Determina se os usuários podem escolher esta categoria ao cadastrar novos produtos"
-            label="Categoria Ativa"
-            persistent-hint
-          />
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isSaving" variant="text" @click="closeModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveCategory">
-            Salvar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveCategory"> Salvar </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
   </v-container>
 </template>
