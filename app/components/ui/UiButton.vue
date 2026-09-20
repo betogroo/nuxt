@@ -4,7 +4,7 @@
     variant?: 'elevated' | 'flat' | 'text' | 'outlined' | 'tonal'
     loading?: boolean
     disabled?: boolean
-    icon?: string | boolean
+    icon?: string
     prependIcon?: string
     block?: boolean
     size?: string
