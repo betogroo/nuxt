@@ -133,20 +133,14 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <!-- Cabeçalho da Tabela -->
-          <v-card-title class="d-flex align-center bg-primary text-white pa-4">
+        <UiCard>
+          <template #header>
             Usuários do Sistema
             <v-spacer />
-            <v-btn
-              color="white"
-              prepend-icon="mdi-account-plus"
-              variant="elevated"
-              @click="openAddModal"
-            >
+            <UiButton color="white" prepend-icon="mdi-account-plus" @click="openAddModal">
               Novo Usuário
-            </v-btn>
-            <v-btn
+            </UiButton>
+            <UiButton
               class="ml-2"
               color="white"
               icon="mdi-refresh"
@@ -154,191 +148,144 @@
               variant="text"
               @click="refresh"
             />
-          </v-card-title>
+          </template>
 
-          <v-divider />
-
-          <!-- Tabela de Listagem -->
-          <v-table hover>
-            <thead>
-              <tr>
-                <th class="text-left">ID</th>
-                <th class="text-left">Usuário</th>
-                <th class="text-left">Cargo</th>
-                <th class="text-left">Membro desde</th>
-                <th class="text-left">Status</th>
-                <th class="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="user in users" :key="user.id">
-                <td class="text-grey text-caption font-weight-mono">
-                  {{ user.id.split('-')[0] }}
-                </td>
-                <td>
-                  <div class="d-flex align-center py-2">
-                    <v-avatar class="mr-3" color="surface-variant" size="32">
-                      <v-img v-if="user.avatar_url" :src="user.avatar_url" />
-                      <v-icon v-else>mdi-account</v-icon>
-                    </v-avatar>
-                    <span>{{ user.name || 'Sem nome' }}</span>
-                  </div>
-                </td>
-                <td>
-                  <v-chip
-                    :color="user.role === 'admin' ? 'primary' : 'grey'"
-                    size="small"
-                    :variant="user.role === 'admin' ? 'flat' : 'outlined'"
-                  >
-                    {{ user.role.toUpperCase() }}
-                  </v-chip>
-                </td>
-                <td>
-                  {{ new Date(user.created_at).toLocaleDateString() }}
-                </td>
-                <td>
-                  <v-chip :color="user.is_active ? 'success' : 'error'" size="small" variant="flat">
-                    {{ user.is_active ? 'ATIVO' : 'INATIVO' }}
-                  </v-chip>
-                </td>
-                <td class="text-right">
-                  <v-btn
-                    color="primary"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openEditModal(user)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-
-          <!-- Estado Vazio / Loading -->
-          <v-card-text v-if="!users?.length && !pending" class="text-center text-grey">
-            Nenhum usuário encontrado.
-          </v-card-text>
-        </v-card>
+          <UiTable
+            :headers="[
+              { text: 'ID', value: 'id' },
+              { text: 'Usuário', value: 'name' },
+              { text: 'Cargo', value: 'role' },
+              { text: 'Membro desde', value: 'created_at' },
+              { text: 'Status', value: 'is_active' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="users || []"
+          >
+            <template v-if="!users?.length && !pending" #empty>
+              Nenhum usuário encontrado.
+            </template>
+            <template #item-id="{ item }">
+              <span class="text-grey text-caption font-weight-mono">
+                {{ item.id.split('-')[0] }}
+              </span>
+            </template>
+            <template #item-name="{ item }">
+              <div class="d-flex align-center py-2">
+                <v-avatar class="mr-3" color="surface-variant" size="32">
+                  <v-img v-if="item.avatar_url" :src="item.avatar_url" />
+                  <v-icon v-else>mdi-account</v-icon>
+                </v-avatar>
+                <span>{{ item.name || 'Sem nome' }}</span>
+              </div>
+            </template>
+            <template #item-role="{ item }">
+              <v-chip
+                :color="item.role === 'admin' ? 'primary' : 'grey'"
+                size="small"
+                :variant="item.role === 'admin' ? 'flat' : 'outlined'"
+              >
+                {{ item.role.toUpperCase() }}
+              </v-chip>
+            </template>
+            <template #item-created_at="{ item }">
+              {{ new Date(item.created_at).toLocaleDateString() }}
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip :color="item.is_active ? 'success' : 'error'" size="small" variant="flat">
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
+        </UiCard>
       </v-col>
     </v-row>
 
     <!-- Modal de Edição -->
     <v-dialog v-model="isEditModalOpen" max-width="500px">
-      <v-card v-if="editingUser">
-        <v-card-title class="pa-4"> Editar Usuário </v-card-title>
+      <UiCard v-if="editingUser" title="Editar Usuário" transparent-header>
+        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ saveError }}
+        </v-alert>
 
-        <v-divider />
+        <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ saveError }}
-          </v-alert>
+        <!-- Using native v-select for disabled prop since UiSelect doesnt have it yet, actually I should add it -->
+        <v-select
+          v-model="editingUser.role"
+          class="mb-3"
+          density="comfortable"
+          :disabled="isSelf"
+          :hint="
+            isSelf
+              ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
+              : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
+          "
+          :items="['user', 'admin']"
+          label="Cargo (Role)"
+          persistent-hint
+          variant="outlined"
+        />
 
-          <v-text-field
-            v-model="editingUser.name"
-            class="mb-3"
-            density="comfortable"
-            label="Nome"
-            placeholder="Nome do usuário"
-            variant="outlined"
-          />
+        <v-switch
+          v-model="editingUser.is_active"
+          class="mt-3"
+          color="success"
+          :disabled="isSelf"
+          hint="Se desmarcado, o usuário não poderá acessar o sistema"
+          label="Usuário Ativo"
+          persistent-hint
+        />
 
-          <v-select
-            v-model="editingUser.role"
-            density="comfortable"
-            :disabled="isSelf"
-            :hint="
-              isSelf
-                ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
-                : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
-            "
-            :items="['user', 'admin']"
-            label="Cargo (Role)"
-            persistent-hint
-            variant="outlined"
-          />
-
-          <v-switch
-            v-model="editingUser.is_active"
-            class="mt-3"
-            color="success"
-            :disabled="isSelf"
-            hint="Se desmarcado, o usuário não poderá acessar o sistema"
-            label="Usuário Ativo"
-            persistent-hint
-          />
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveUser"
-            >Salvar Alterações</v-btn
-          >
-        </v-card-actions>
-      </v-card>
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveUser">
+            Salvar Alterações
+          </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
 
     <!-- Modal de Adição (Novo Usuário) -->
     <v-dialog v-model="isAddModalOpen" max-width="500px">
-      <v-card>
-        <v-card-title class="pa-4"> Criar Novo Usuário </v-card-title>
+      <UiCard title="Criar Novo Usuário" transparent-header>
+        <v-alert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ createError }}
+        </v-alert>
 
-        <v-divider />
+        <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ createError }}
-          </v-alert>
+        <UiInput
+          v-model="newUserForm.email"
+          label="E-mail"
+          placeholder="email@exemplo.com"
+          type="email"
+        />
 
-          <v-text-field
-            v-model="newUserForm.name"
-            class="mb-3"
-            density="comfortable"
-            label="Nome Completo"
-            placeholder="Nome do usuário"
-            variant="outlined"
-          />
+        <UiInput
+          v-model="newUserForm.password"
+          label="Senha (Inicial)"
+          placeholder="Pelo menos 6 caracteres"
+          type="password"
+        />
 
-          <v-text-field
-            v-model="newUserForm.email"
-            class="mb-3"
-            density="comfortable"
-            label="E-mail"
-            placeholder="email@exemplo.com"
-            type="email"
-            variant="outlined"
-          />
+        <UiSelect v-model="newUserForm.role" :items="['user', 'admin']" label="Cargo (Role)" />
 
-          <v-text-field
-            v-model="newUserForm.password"
-            class="mb-3"
-            density="comfortable"
-            label="Senha (Inicial)"
-            placeholder="Pelo menos 6 caracteres"
-            type="password"
-            variant="outlined"
-          />
-
-          <v-select
-            v-model="newUserForm.role"
-            density="comfortable"
-            :items="['user', 'admin']"
-            label="Cargo (Role)"
-            variant="outlined"
-          />
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isCreating" variant="flat" @click="createUser">
+        <template #actions>
+          <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isCreating" @click="createUser">
             Criar Usuário
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+          </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
   </v-container>
 </template>

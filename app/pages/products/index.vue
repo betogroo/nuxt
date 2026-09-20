@@ -179,156 +179,129 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title class="d-flex align-center">
+        <UiCard>
+          <template #header>
             Produtos
             <v-spacer />
-            <v-btn color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            <UiButton color="white" prepend-icon="mdi-plus" @click="openAddModal">
               Novo Produto
-            </v-btn>
-            <v-btn
+            </UiButton>
+            <UiButton
               class="ml-2"
+              color="white"
               icon="mdi-refresh"
               :loading="pending"
               variant="text"
               @click="refresh"
             />
-          </v-card-title>
-
-          <v-divider />
+          </template>
 
           <!-- Barra de Filtro -->
-          <v-card-text class="bg-grey-lighten-4 py-3">
-            <v-row align="center">
+          <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
+            <v-row align="center" no-gutters>
               <v-col cols="12" md="4" sm="6">
-                <v-select
+                <UiSelect
                   v-model="selectedCategory"
+                  class="mb-0"
                   clearable
-                  density="compact"
                   hide-details
                   item-title="name"
                   item-value="id"
-                  :items="categories"
+                  :items="categories || []"
                   label="Filtrar por Categoria"
-                  variant="outlined"
                 />
               </v-col>
             </v-row>
-          </v-card-text>
+          </div>
 
-          <v-divider />
-
-          <v-table hover>
-            <thead>
-              <tr>
-                <th class="text-left">Nome</th>
-                <th class="text-left">Categoria (Material)</th>
-                <th class="text-left">Status</th>
-                <th class="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="product in products" :key="product.id">
-                <td>
-                  <NuxtLink
-                    class="text-decoration-none text-primary font-weight-bold"
-                    :to="`/products/${product.id}`"
-                  >
-                    {{ product.name }}
-                  </NuxtLink>
-                </td>
-                <td>{{ product.product_categories?.name || '-' }}</td>
-                <td>
-                  <v-chip
-                    class="cursor-pointer"
-                    :color="product.is_active ? 'success' : 'error'"
-                    size="small"
-                    variant="flat"
-                    @click="toggleStatus(product)"
-                  >
-                    {{ product.is_active ? 'ATIVO' : 'INATIVO' }}
-                  </v-chip>
-                </td>
-                <td class="text-right">
-                  <v-btn
-                    color="primary"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openEditModal(product)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-
-          <v-card-text v-if="!products?.length && !pending" class="text-center text-grey">
-            Nenhum produto encontrado.
-          </v-card-text>
+          <UiTable
+            :headers="[
+              { text: 'Nome', value: 'name' },
+              { text: 'Categoria (Material)', value: 'category' },
+              { text: 'Status', value: 'is_active' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="products || []"
+          >
+            <template v-if="!products?.length && !pending" #empty>
+              Nenhum produto encontrado.
+            </template>
+            <template #item-name="{ item }">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/products/${item.id}`"
+              >
+                {{ item.name }}
+              </NuxtLink>
+            </template>
+            <template #item-category="{ item }">
+              {{ item.product_categories?.name || '-' }}
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
 
           <!-- Paginação -->
-          <v-card-actions v-if="totalPages > 1" class="justify-center py-4">
+          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
               density="comfortable"
               :length="totalPages"
               :total-visible="7"
             />
-          </v-card-actions>
-        </v-card>
+          </div>
+        </UiCard>
       </v-col>
     </v-row>
 
     <!-- Modal Form -->
     <v-dialog v-model="isModalOpen" max-width="500px">
-      <v-card>
-        <v-card-title class="pa-4">
-          {{ isEditing ? 'Editar Produto' : 'Novo Produto' }}
-        </v-card-title>
-        <v-divider />
+      <UiCard :title="isEditing ? 'Editar Produto' : 'Novo Produto'" transparent-header>
+        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ saveError }}
+        </v-alert>
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ saveError }}
-          </v-alert>
+        <UiInput v-model="form.name" label="Nome do Produto" />
 
-          <v-text-field
-            v-model="form.name"
-            class="mb-3"
-            density="comfortable"
-            label="Nome do Produto"
-            variant="outlined"
-          />
+        <UiSelect
+          v-model="form.category_id"
+          item-title="name"
+          item-value="id"
+          :items="categories || []"
+          label="Categoria de Material"
+        />
 
-          <v-select
-            v-model="form.category_id"
-            class="mb-3"
-            density="comfortable"
-            item-title="name"
-            item-value="id"
-            :items="categories"
-            label="Categoria de Material"
-            variant="outlined"
-          />
+        <v-switch
+          v-model="form.is_active"
+          color="success"
+          hint="Indica se o produto está disponível para uso"
+          label="Produto Ativo"
+          persistent-hint
+        />
 
-          <v-switch
-            v-model="form.is_active"
-            color="success"
-            hint="Indica se o produto está disponível para uso"
-            label="Produto Ativo"
-            persistent-hint
-          />
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isSaving" variant="text" @click="closeModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveProduct">
-            Salvar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveProduct"> Salvar </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
   </v-container>
 </template>

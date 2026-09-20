@@ -175,7 +175,7 @@
             </v-list>
 
             <v-card-actions class="justify-center bg-grey-lighten-4">
-              <v-btn color="primary" to="/logs" variant="text">Ver Todos os Registros</v-btn>
+              <UiButton color="primary" to="/logs" variant="text">Ver Todos os Registros</UiButton>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -190,7 +190,7 @@
             <v-divider />
 
             <v-card-text class="pa-4">
-              <v-btn
+              <UiButton
                 block
                 class="mb-3 justify-start"
                 color="primary"
@@ -199,9 +199,9 @@
                 to="/users"
               >
                 Gerenciar Usuários
-              </v-btn>
+              </UiButton>
 
-              <v-btn
+              <UiButton
                 block
                 class="mb-3 justify-start"
                 color="deep-purple"
@@ -210,9 +210,9 @@
                 to="/admin/categories"
               >
                 Categorias de Produtos
-              </v-btn>
+              </UiButton>
 
-              <v-btn
+              <UiButton
                 block
                 class="mb-3 justify-start"
                 color="info"
@@ -221,9 +221,9 @@
                 to="/products"
               >
                 Ver Produtos
-              </v-btn>
+              </UiButton>
 
-              <v-btn
+              <UiButton
                 block
                 class="justify-start text-white"
                 color="blue-grey"
@@ -232,7 +232,7 @@
                 to="/logs"
               >
                 Auditoria de Logs
-              </v-btn>
+              </UiButton>
             </v-card-text>
           </v-card>
         </v-col>
