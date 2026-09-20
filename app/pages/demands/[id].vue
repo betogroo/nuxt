@@ -269,7 +269,7 @@
           <div class="text-body-1">
             {{
               demand.dispute_date
-                ? new Date(demand.dispute_date).toLocaleDateString()
+                ? new Date(demand.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
                 : 'Não informada'
             }}
           </div>

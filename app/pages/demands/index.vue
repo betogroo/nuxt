@@ -120,6 +120,8 @@
     } catch (err: unknown) {
       if (err instanceof Error) {
         saveError.value = err.message
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        saveError.value = String((err as Record<string, unknown>).message)
       } else {
         saveError.value = 'Ocorreu um erro desconhecido.'
       }
@@ -181,7 +183,11 @@
               </v-chip>
             </template>
             <template #item-dispute_date="{ item }">
-              {{ item.dispute_date ? new Date(item.dispute_date).toLocaleDateString() : '-' }}
+              {{
+                item.dispute_date
+                  ? new Date(item.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                  : '-'
+              }}
             </template>
             <template #item-creator="{ item }">
               <span class="text-caption text-grey">
