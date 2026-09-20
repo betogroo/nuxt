@@ -9,18 +9,62 @@
 
   type ProductRow = Database['public']['Tables']['products']['Row']
 
+  // Pagination & Filter State
+  const currentPage = ref(1)
+  const itemsPerPage = ref(10)
+  const totalItems = ref(0)
+  const selectedCategory = ref<string | null>(null)
+
+  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
+
+  // Fetch unique categories for the filter
+  const { data: categories } = useAsyncData('product-categories', async () => {
+    // Light fetch of all products to extract unique categories
+    const { data, error } = await supabase.from('products').select('material_category')
+    if (error) return []
+    const unique = [...new Set(data.map((p) => p.material_category))]
+    return unique.sort()
+  })
+
+  // Fetch Products with Pagination and Filter
   const {
     data: products,
     pending,
     refresh,
-  } = useAsyncData('products-list', async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('created_at', { ascending: false })
+  } = useAsyncData(
+    'products-list',
+    async () => {
+      const from = (currentPage.value - 1) * itemsPerPage.value
+      const to = from + itemsPerPage.value - 1
 
-    if (error) throw error
-    return data
+      let query = supabase
+        .from('products')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to)
+
+      if (selectedCategory.value) {
+        query = query.eq('material_category', selectedCategory.value)
+      }
+
+      const { data, count, error } = await query
+
+      if (error) {
+        console.error(error)
+        return []
+      }
+
+      totalItems.value = count || 0
+      return data
+    },
+    {
+      watch: [currentPage, selectedCategory],
+    },
+  )
+
+  // When category changes, reset page to 1
+  watch(selectedCategory, () => {
+    currentPage.value = 1
   })
 
   // Modal State
@@ -148,6 +192,25 @@
 
           <v-divider />
 
+          <!-- Barra de Filtro -->
+          <v-card-text class="bg-grey-lighten-4 py-3">
+            <v-row align="center">
+              <v-col cols="12" md="4" sm="6">
+                <v-select
+                  v-model="selectedCategory"
+                  clearable
+                  density="compact"
+                  hide-details
+                  :items="categories"
+                  label="Filtrar por Categoria"
+                  variant="outlined"
+                />
+              </v-col>
+            </v-row>
+          </v-card-text>
+
+          <v-divider />
+
           <v-table hover>
             <thead>
               <tr>
@@ -193,8 +256,18 @@
           </v-table>
 
           <v-card-text v-if="!products?.length && !pending" class="text-center text-grey">
-            Nenhum produto cadastrado.
+            Nenhum produto encontrado.
           </v-card-text>
+
+          <!-- Paginação -->
+          <v-card-actions v-if="totalPages > 1" class="justify-center py-4">
+            <v-pagination
+              v-model="currentPage"
+              density="comfortable"
+              :length="totalPages"
+              :total-visible="7"
+            />
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>

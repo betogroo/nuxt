@@ -8,16 +8,26 @@
 
   const supabase = useSupabaseClient<Database>()
 
+  const currentPage = ref(1)
+  const itemsPerPage = ref(15)
+  const totalItems = ref(0)
+
+  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
+
   const {
     data: logs,
     pending,
     refresh,
-  } = useAsyncData('admin-logs', async () => {
-    // Need to join with profiles to get user name
-    const { data, error } = await supabase
-      .from('logs')
-      .select(
-        `
+  } = useAsyncData(
+    'admin-logs',
+    async () => {
+      const from = (currentPage.value - 1) * itemsPerPage.value
+      const to = from + itemsPerPage.value - 1
+
+      const { data, count, error } = await supabase
+        .from('logs')
+        .select(
+          `
         id,
         action,
         description,
@@ -28,12 +38,23 @@
           avatar_url
         )
       `,
-      )
-      .order('created_at', { ascending: false })
+          { count: 'exact' },
+        )
+        .order('created_at', { ascending: false })
+        .range(from, to)
 
-    if (error) throw error
-    return data
-  })
+      if (error) {
+        console.error(error)
+        return []
+      }
+
+      totalItems.value = count || 0
+      return data
+    },
+    {
+      watch: [currentPage],
+    },
+  )
 </script>
 
 <template>
@@ -88,6 +109,16 @@
           <v-card-text v-if="!logs?.length && !pending" class="text-center text-grey">
             Nenhum registro encontrado.
           </v-card-text>
+
+          <!-- Paginação -->
+          <v-card-actions v-if="totalPages > 1" class="justify-center py-4">
+            <v-pagination
+              v-model="currentPage"
+              density="comfortable"
+              :length="totalPages"
+              :total-visible="7"
+            />
+          </v-card-actions>
         </v-card>
       </v-col>
     </v-row>
