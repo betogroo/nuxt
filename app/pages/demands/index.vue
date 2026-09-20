@@ -48,6 +48,10 @@
       if (editingDemand.value.offer_opening_date) {
         editingDemand.value.offer_opening_date = editingDemand.value.offer_opening_date.slice(0, 16)
       }
+      // Convert timestamptz/date to YYYY-MM-DD for date input
+      if (editingDemand.value.dispute_date) {
+        editingDemand.value.dispute_date = editingDemand.value.dispute_date.slice(0, 10)
+      }
     } else {
       editingDemand.value = { ...defaultDemand }
     }
