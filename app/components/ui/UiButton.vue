@@ -16,12 +16,13 @@
     :block="block"
     :color="color || 'primary'"
     :disabled="disabled"
-    :icon="icon"
+    :icon="!!icon"
     :loading="loading"
     :prepend-icon="prependIcon"
     :size="size"
     :variant="variant || (icon ? 'text' : 'elevated')"
   >
-    <slot />
+    <v-icon v-if="icon">{{ icon }}</v-icon>
+    <slot v-else />
   </v-btn>
 </template>
