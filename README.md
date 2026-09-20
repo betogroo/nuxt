@@ -8,43 +8,56 @@ Sistema de autenticação construído com [Nuxt 4](https://nuxt.com/), [Vuetify]
 - [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) (para desenvolvimento local)
 - [Docker](https://www.docker.com/) (necessário para o Supabase local)
 
-## Setup
+## 🚀 Como rodar o projeto em outro computador (Setup)
 
-### 1. Instalar dependências
+Para configurar este projeto em uma máquina nova do zero, siga os passos abaixo:
+
+### 1. Clonar o Repositório
+
+Abra o terminal e faça o clone do projeto (substitua pela URL do repositório se aplicável):
+
+```bash
+git clone <URL_DO_SEU_REPOSITORIO>
+cd nuxt
+```
+
+### 2. Instalar dependências
+
+Certifique-se de que o **Node.js** (v20+) está instalado e execute:
 
 ```bash
 npm install
 ```
 
-### 2. Iniciar o Supabase local
+### 3. Configurar Variáveis de Ambiente
 
-```bash
-npx supabase start
-```
-
-Copie a `anon key` exibida no terminal e configure o arquivo `.env`:
+Crie o arquivo `.env` baseado no exemplo:
 
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` e cole a chave:
+### 4. Iniciar o Banco de Dados (Supabase Local)
+
+Certifique-se de que o **Docker Desktop** está rodando em segundo plano e inicie o Supabase:
+
+```bash
+npx supabase start
+```
+
+O terminal exibirá várias credenciais. Copie a `anon key` e a `API URL` fornecidas e cole-as no seu arquivo `.env`:
 
 ```env
 NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NUXT_PUBLIC_SUPABASE_KEY=<sua-anon-key>
+NUXT_PUBLIC_SUPABASE_KEY=<cole-sua-anon-key-aqui>
 ```
 
-### 3. Aplicar migrations
+### 5. Executar Migrações e Gerar Tipos
+
+Com o banco de dados rodando e o `.env` configurado, aplique o schema do banco e atualize os tipos do TypeScript rodando:
 
 ```bash
-npx supabase db reset
-```
-
-### 4. Gerar tipos do banco (opcional)
-
-```bash
-npx supabase gen types typescript --local > app/types/database.types.ts
+npm run db-reset
 ```
 
 ## Desenvolvimento
