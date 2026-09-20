@@ -35,7 +35,7 @@
     id: '',
     name: '',
     type: 'consumption' as const,
-    dispute_date: null,
+    dispute_date: '',
     offer_opening_date: null as string | null,
   }
 
@@ -77,6 +77,10 @@
     saveError.value = ''
 
     try {
+      if (!editingDemand.value.dispute_date) {
+        throw new Error('A data da disputa é obrigatória.')
+      }
+
       const isEditing = !!editingDemand.value.id
 
       // Formatar date-time-local string to ISO para o Supabase (timestamptz)
@@ -89,7 +93,7 @@
       const payload = {
         name: editingDemand.value.name!,
         type: editingDemand.value.type!,
-        dispute_date: editingDemand.value.dispute_date || null,
+        dispute_date: editingDemand.value.dispute_date!,
         offer_opening_date: offerOpening,
         user_id: profile.value!.id,
       }
@@ -239,8 +243,13 @@
         <UiInput
           v-model="editingDemand.dispute_date"
           clearable
-          label="Data da Disputa"
+          label="Data da Disputa *"
           type="date"
+          @update:model-value="
+            () => {
+              if (isModalOpen && editingDemand.id) editingDemand.offer_opening_date = null
+            }
+          "
         />
 
         <UiInput

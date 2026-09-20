@@ -76,7 +76,7 @@ export type Database = {
       demands: {
         Row: {
           created_at: string
-          dispute_date: string | null
+          dispute_date: string
           id: string
           name: string
           offer_opening_date: string | null
@@ -86,7 +86,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          dispute_date?: string | null
+          dispute_date: string
           id?: string
           name: string
           offer_opening_date?: string | null
@@ -96,7 +96,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          dispute_date?: string | null
+          dispute_date?: string
           id?: string
           name?: string
           offer_opening_date?: string | null
