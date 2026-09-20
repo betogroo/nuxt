@@ -33,7 +33,7 @@
   } = useAsyncData(`demand-items-${demandId}`, async () => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*)')
+      .select('*, product:products(*, product_categories(id, name))')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: false })
 
@@ -314,7 +314,7 @@
                 {{ item.product?.name || 'Produto desconhecido' }}
               </NuxtLink>
             </td>
-            <td>{{ item.product?.product_categories?.name || '-' }}</td>
+            <td>{{ (item.product as any)?.product_categories?.name || '-' }}</td>
             <td class="text-center">
               <v-chip class="cursor-pointer" size="small" @click="updateQuantity(item)">
                 {{ item.quantity }}
