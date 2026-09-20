@@ -76,6 +76,57 @@
     }
     isSaving.value = false
   }
+
+  // 4. Lógica de Criação de Novo Usuário (Admin)
+  const isAddModalOpen = ref(false)
+  const isCreating = ref(false)
+  const createError = ref('')
+
+  const defaultNewUserForm = {
+    name: '',
+    email: '',
+    password: '',
+    role: 'user',
+  }
+  const newUserForm = ref({ ...defaultNewUserForm })
+
+  const openAddModal = () => {
+    newUserForm.value = { ...defaultNewUserForm }
+    createError.value = ''
+    isAddModalOpen.value = true
+  }
+
+  const closeAddModal = () => {
+    isAddModalOpen.value = false
+  }
+
+  const createUser = async () => {
+    isCreating.value = true
+    createError.value = ''
+
+    try {
+      // Faz o POST para a nossa rota segura backend
+      await $fetch('/api/admin/users', {
+        method: 'POST',
+        body: newUserForm.value,
+      })
+
+      await logAction(
+        'ADMIN_CREATE_USER',
+        `Administrador criou novo usuário: ${newUserForm.value.email}`,
+        loggedProfile.value?.id,
+      )
+
+      await refresh() // Atualiza a tabela
+      closeAddModal()
+    } catch (err: unknown) {
+      const fetchErr = err as { data?: { statusMessage?: string }; message?: string }
+      createError.value =
+        fetchErr.data?.statusMessage || fetchErr.message || 'Erro ao criar usuário'
+    } finally {
+      isCreating.value = false
+    }
+  }
 </script>
 
 <template>
@@ -84,10 +135,25 @@
       <v-col cols="12">
         <v-card>
           <!-- Cabeçalho da Tabela -->
-          <v-card-title class="d-flex align-center">
+          <v-card-title class="d-flex align-center bg-primary text-white pa-4">
             Usuários do Sistema
             <v-spacer />
-            <v-btn icon="mdi-refresh" :loading="pending" variant="text" @click="refresh" />
+            <v-btn
+              color="white"
+              prepend-icon="mdi-account-plus"
+              variant="elevated"
+              @click="openAddModal"
+            >
+              Novo Usuário
+            </v-btn>
+            <v-btn
+              class="ml-2"
+              color="white"
+              icon="mdi-refresh"
+              :loading="pending"
+              variant="text"
+              @click="refresh"
+            />
           </v-card-title>
 
           <v-divider />
@@ -210,6 +276,67 @@
           <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveUser"
             >Salvar Alterações</v-btn
           >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Modal de Adição (Novo Usuário) -->
+    <v-dialog v-model="isAddModalOpen" max-width="500px">
+      <v-card>
+        <v-card-title class="pa-4"> Criar Novo Usuário </v-card-title>
+
+        <v-divider />
+
+        <v-card-text class="pa-4">
+          <v-alert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
+            {{ createError }}
+          </v-alert>
+
+          <v-text-field
+            v-model="newUserForm.name"
+            class="mb-3"
+            density="comfortable"
+            label="Nome Completo"
+            placeholder="Nome do usuário"
+            variant="outlined"
+          />
+
+          <v-text-field
+            v-model="newUserForm.email"
+            class="mb-3"
+            density="comfortable"
+            label="E-mail"
+            placeholder="email@exemplo.com"
+            type="email"
+            variant="outlined"
+          />
+
+          <v-text-field
+            v-model="newUserForm.password"
+            class="mb-3"
+            density="comfortable"
+            label="Senha (Inicial)"
+            placeholder="Pelo menos 6 caracteres"
+            type="password"
+            variant="outlined"
+          />
+
+          <v-select
+            v-model="newUserForm.role"
+            density="comfortable"
+            :items="['user', 'admin']"
+            label="Cargo (Role)"
+            variant="outlined"
+          />
+        </v-card-text>
+
+        <v-divider />
+
+        <v-card-actions class="px-4 py-3 justify-end">
+          <v-btn :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</v-btn>
+          <v-btn color="primary" :loading="isCreating" variant="flat" @click="createUser">
+            Criar Usuário
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
