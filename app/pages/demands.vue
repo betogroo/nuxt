@@ -74,7 +74,7 @@
         name: editingDemand.value.name!,
         type: editingDemand.value.type!,
         dispute_date: editingDemand.value.dispute_date || null,
-        user_id: user.value!.id,
+        user_id: profile.value!.id,
       }
 
       if (isEditing) {
