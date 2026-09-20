@@ -248,204 +248,171 @@
 
 <template>
   <v-container>
-    <v-btn class="mb-4" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
+    <UiButton class="mb-4" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
       Voltar para Demandas
-    </v-btn>
+    </UiButton>
 
     <!-- Cabeçalho da Demanda -->
-    <v-card v-if="demand" class="mb-6">
-      <v-card-title class="bg-primary text-white pa-4">
+    <UiCard v-if="demand" class="mb-6" transparent-header>
+      <template #header>
         {{ demand.name }}
-      </v-card-title>
-      <v-card-text class="pa-4">
-        <v-row>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-grey">Tipo</div>
-            <div class="text-body-1 font-weight-medium">
-              {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
-            </div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-grey">Data da Disputa</div>
-            <div class="text-body-1">
-              {{
-                demand.dispute_date
-                  ? new Date(demand.dispute_date).toLocaleDateString()
-                  : 'Não informada'
-              }}
-            </div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-grey">ID</div>
-            <div class="text-caption font-weight-mono">{{ demand.id.split('-')[0] }}</div>
-          </v-col>
-        </v-row>
-      </v-card-text>
-    </v-card>
+      </template>
+      <v-row>
+        <v-col cols="12" sm="4">
+          <div class="text-caption text-grey">Tipo</div>
+          <div class="text-body-1 font-weight-medium">
+            {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
+          </div>
+        </v-col>
+        <v-col cols="12" sm="4">
+          <div class="text-caption text-grey">Data da Disputa</div>
+          <div class="text-body-1">
+            {{
+              demand.dispute_date
+                ? new Date(demand.dispute_date).toLocaleDateString()
+                : 'Não informada'
+            }}
+          </div>
+        </v-col>
+        <v-col cols="12" sm="4">
+          <div class="text-caption text-grey">ID</div>
+          <div class="text-caption font-weight-mono">{{ demand.id.split('-')[0] }}</div>
+        </v-col>
+      </v-row>
+    </UiCard>
 
     <!-- Lista de Produtos da Demanda -->
-    <v-card>
-      <v-card-title class="d-flex align-center pa-4">
+    <UiCard transparent-header>
+      <template #header>
         Produtos na Demanda
         <v-spacer />
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+        <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
           Adicionar Produto
-        </v-btn>
-      </v-card-title>
+        </UiButton>
+      </template>
 
-      <v-divider />
-
-      <v-table hover>
-        <thead>
-          <tr>
-            <th class="text-left">Produto</th>
-            <th class="text-left">Categoria</th>
-            <th class="text-center">Quantidade</th>
-            <th class="text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in items" :key="item.id">
-            <td>
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/products/${item.product_id}`"
-              >
-                {{ item.product?.name || 'Produto desconhecido' }}
-              </NuxtLink>
-            </td>
-            <td>{{ (item.product as any)?.product_categories?.name || '-' }}</td>
-            <td class="text-center">
-              <v-chip class="cursor-pointer" size="small" @click="updateQuantity(item)">
-                {{ item.quantity }}
-                <v-icon class="ml-1" size="x-small">mdi-pencil</v-icon>
-              </v-chip>
-            </td>
-            <td class="text-right">
-              <v-btn
-                color="error"
-                icon="mdi-delete"
-                size="small"
-                variant="text"
-                @click="removeItem(item.id, item.product?.name || '')"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-
-      <v-card-text v-if="!items?.length && !itemsPending" class="text-center text-grey">
-        Nenhum produto adicionado a esta demanda ainda.
-      </v-card-text>
-      <v-card-text v-if="itemsPending" class="text-center">
+      <UiTable
+        :headers="[
+          { text: 'Produto', value: 'product' },
+          { text: 'Categoria', value: 'category' },
+          { text: 'Quantidade', value: 'quantity', align: 'center' },
+          { text: 'Ações', value: 'actions', align: 'right' },
+        ]"
+        :items="items || []"
+      >
+        <template v-if="!items?.length && !itemsPending" #empty>
+          Nenhum produto adicionado a esta demanda ainda.
+        </template>
+        <template #item-product="{ item }">
+          <NuxtLink
+            class="text-decoration-none text-primary font-weight-bold"
+            :to="`/products/${item.product_id}`"
+          >
+            {{ item.product?.name || 'Produto desconhecido' }}
+          </NuxtLink>
+        </template>
+        <template #item-category="{ item }">
+          {{ (item.product as any)?.product_categories?.name || '-' }}
+        </template>
+        <template #item-quantity="{ item }">
+          <v-chip class="cursor-pointer" size="small" @click="updateQuantity(item)">
+            {{ item.quantity }}
+            <v-icon class="ml-1" size="x-small">mdi-pencil</v-icon>
+          </v-chip>
+        </template>
+        <template #item-actions="{ item }">
+          <UiButton
+            color="error"
+            icon="mdi-delete"
+            size="small"
+            variant="text"
+            @click="removeItem(item.id, item.product?.name || '')"
+          />
+        </template>
+      </UiTable>
+      <div v-if="itemsPending" class="text-center py-4">
         <v-progress-circular color="primary" indeterminate></v-progress-circular>
-      </v-card-text>
-    </v-card>
+      </div>
+    </UiCard>
 
     <!-- Modal Adicionar Produto -->
     <v-dialog v-model="isModalOpen" max-width="600px" persistent>
-      <v-card>
-        <v-card-title class="pa-4 d-flex justify-space-between align-center">
-          Inserir Produto na Demanda
-          <v-btn icon="mdi-close" variant="text" @click="closeModal" />
-        </v-card-title>
-        <v-divider />
+      <UiCard title="Inserir Produto na Demanda" transparent-header>
+        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ saveError }}
+        </v-alert>
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ saveError }}
+        <!-- Seção de Busca de Produto Existente -->
+        <template v-if="!isNewProductMode">
+          <v-autocomplete
+            v-model="selectedProductId"
+            v-model:search="searchProductText"
+            clearable
+            density="comfortable"
+            item-title="name"
+            item-value="id"
+            :items="allProducts || []"
+            label="Buscar Produto"
+            placeholder="Digite o nome do produto..."
+            variant="outlined"
+          >
+            <!-- Personalizando a pesquisa no front-end para simplificar -->
+            <template #no-data>
+              <div class="pa-3 text-center">
+                <span class="text-grey mr-2">Produto não encontrado.</span>
+                <UiButton
+                  color="primary"
+                  size="small"
+                  variant="tonal"
+                  @click="activateNewProductMode"
+                >
+                  Cadastrar novo
+                </UiButton>
+              </div>
+            </template>
+          </v-autocomplete>
+
+          <UiInput
+            v-if="selectedProductId"
+            v-model.number="itemQuantity"
+            class="mt-3"
+            label="Quantidade"
+            min="1"
+            type="number"
+          />
+        </template>
+
+        <!-- Seção de Cadastro Rápido de Novo Produto -->
+        <template v-else>
+          <v-alert class="mb-4" density="compact" type="info" variant="tonal">
+            Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
+            adicionado à demanda.
           </v-alert>
 
-          <!-- Seção de Busca de Produto Existente -->
-          <template v-if="!isNewProductMode">
-            <v-autocomplete
-              v-model="selectedProductId"
-              v-model:search="searchProductText"
-              clearable
-              density="comfortable"
-              item-title="name"
-              item-value="id"
-              :items="allProducts"
-              label="Buscar Produto"
-              placeholder="Digite o nome do produto..."
-              variant="outlined"
-            >
-              <!-- Personalizando a pesquisa no front-end para simplificar -->
-              <template #no-data>
-                <div class="pa-3 text-center">
-                  <span class="text-grey mr-2">Produto não encontrado.</span>
-                  <v-btn
-                    color="primary"
-                    size="small"
-                    variant="tonal"
-                    @click="activateNewProductMode"
-                  >
-                    Cadastrar novo
-                  </v-btn>
-                </div>
-              </template>
-            </v-autocomplete>
+          <UiInput v-model="newProductName" label="Nome do Produto" />
+          <UiSelect
+            v-model="newProductCategoryId"
+            item-title="name"
+            item-value="id"
+            :items="categories || []"
+            label="Categoria de Material"
+          />
+          <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
 
-            <v-text-field
-              v-if="selectedProductId"
-              v-model.number="itemQuantity"
-              class="mt-3"
-              density="comfortable"
-              label="Quantidade"
-              min="1"
-              type="number"
-              variant="outlined"
-            />
-          </template>
+          <div class="text-right">
+            <UiButton size="small" variant="text" @click="isNewProductMode = false">
+              Voltar à Busca
+            </UiButton>
+          </div>
+        </template>
 
-          <!-- Seção de Cadastro Rápido de Novo Produto -->
-          <template v-else>
-            <v-alert class="mb-4" density="compact" type="info" variant="tonal">
-              Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
-              adicionado à demanda.
-            </v-alert>
-
-            <v-text-field
-              v-model="newProductName"
-              density="comfortable"
-              label="Nome do Produto"
-              variant="outlined"
-            />
-            <v-select
-              v-model="newProductCategoryId"
-              density="comfortable"
-              item-title="name"
-              item-value="id"
-              :items="categories"
-              label="Categoria de Material"
-              variant="outlined"
-            />
-            <v-text-field
-              v-model.number="itemQuantity"
-              density="comfortable"
-              label="Quantidade"
-              min="1"
-              type="number"
-              variant="outlined"
-            />
-
-            <div class="text-right">
-              <v-btn size="small" variant="text" @click="isNewProductMode = false">
-                Voltar à Busca
-              </v-btn>
-            </div>
-          </template>
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isSaving" variant="text" @click="closeModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveToDemand">
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
             Adicionar à Demanda
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+          </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
   </v-container>
 </template>

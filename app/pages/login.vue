@@ -72,8 +72,10 @@
   <v-container class="fill-height">
     <v-row justify="center">
       <v-col cols="12" md="5" sm="8">
-        <v-card>
-          <v-card-title class="text-center py-4"> Entrar </v-card-title>
+        <UiCard>
+          <template #header>
+            <div class="text-center w-100">Entrar</div>
+          </template>
 
           <v-tabs v-model="tab" align-tabs="center">
             <v-tab value="password">Email e Senha</v-tab>
@@ -84,60 +86,48 @@
             Sua conta foi desativada por um administrador.
           </v-alert>
 
-          <v-card-text class="pt-4">
-            <!-- ABA: SENHA -->
-            <template v-if="tab === 'password'">
-              <v-alert v-if="errorPassword" class="mb-4" type="error">
-                {{ errorPassword }}
-              </v-alert>
+          <!-- ABA: SENHA -->
+          <template v-if="tab === 'password'">
+            <v-alert v-if="errorPassword" class="mb-4" type="error">
+              {{ errorPassword }}
+            </v-alert>
 
-              <v-text-field
-                v-model="emailPassword"
-                class="mb-2"
-                label="E-mail"
-                type="email"
-                variant="outlined"
-              />
+            <UiInput v-model="emailPassword" label="E-mail" type="email" />
 
-              <v-text-field
-                v-model="password"
-                class="mb-4"
-                label="Senha"
-                type="password"
-                variant="outlined"
-                @keyup.enter="signInWithPassword"
-              />
+            <UiInput
+              v-model="password"
+              label="Senha"
+              type="password"
+              @keyup.enter="signInWithPassword"
+            />
 
-              <v-btn block color="primary" :loading="loadingPassword" @click="signInWithPassword">
-                Entrar
-              </v-btn>
-            </template>
+            <UiButton block color="primary" :loading="loadingPassword" @click="signInWithPassword">
+              Entrar
+            </UiButton>
+          </template>
 
-            <!-- ABA: LINK MÁGICO -->
-            <template v-else>
-              <v-alert v-if="errorMagic" class="mb-4" type="error">
-                {{ errorMagic }}
-              </v-alert>
+          <!-- ABA: LINK MÁGICO -->
+          <template v-else>
+            <v-alert v-if="errorMagic" class="mb-4" type="error">
+              {{ errorMagic }}
+            </v-alert>
 
-              <v-alert v-if="messageMagic" class="mb-4" type="success">
-                {{ messageMagic }}
-              </v-alert>
+            <v-alert v-if="messageMagic" class="mb-4" type="success">
+              {{ messageMagic }}
+            </v-alert>
 
-              <v-text-field
-                v-model="emailMagic"
-                class="mb-4"
-                label="E-mail"
-                type="email"
-                variant="outlined"
-                @keyup.enter="signInWithMagicLink"
-              />
+            <UiInput
+              v-model="emailMagic"
+              label="E-mail"
+              type="email"
+              @keyup.enter="signInWithMagicLink"
+            />
 
-              <v-btn block color="primary" :loading="loadingMagic" @click="signInWithMagicLink">
-                Enviar Link de Acesso
-              </v-btn>
-            </template>
-          </v-card-text>
-        </v-card>
+            <UiButton block color="primary" :loading="loadingMagic" @click="signInWithMagicLink">
+              Enviar Link de Acesso
+            </UiButton>
+          </template>
+        </UiCard>
 
         <p class="text-center mt-4">
           Não tem uma conta?

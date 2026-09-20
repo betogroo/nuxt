@@ -51,17 +51,14 @@
   <v-container class="fill-height">
     <v-row justify="center">
       <v-col cols="12" md="5" sm="8">
-        <v-card>
-          <v-card-title>Registrar</v-card-title>
-          <v-card-text>
-            <v-alert v-if="message" class="mb-4" type="info">{{ message }}</v-alert>
+        <UiCard title="Registrar" transparent-header>
+          <v-alert v-if="message" class="mb-4" type="info">{{ message }}</v-alert>
 
-            <v-text-field v-model="email" label="E-mail" type="email" variant="outlined" />
-            <v-text-field v-model="password" label="Senha" type="password" variant="outlined" />
+          <UiInput v-model="email" label="E-mail" type="email" />
+          <UiInput v-model="password" label="Senha" type="password" />
 
-            <v-btn block color="primary" :loading="loading" @click="signUp"> Registrar </v-btn>
-          </v-card-text>
-        </v-card>
+          <UiButton block color="primary" :loading="loading" @click="signUp"> Registrar </UiButton>
+        </UiCard>
 
         <p class="text-center mt-4">
           Já tem uma conta?

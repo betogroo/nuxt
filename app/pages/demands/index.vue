@@ -116,144 +116,115 @@
   <v-container>
     <v-row>
       <v-col cols="12">
-        <v-card>
-          <v-card-title class="d-flex align-center">
+        <UiCard>
+          <template #header>
             Demandas
             <v-spacer />
-            <v-btn color="primary" prepend-icon="mdi-plus" @click="openModal()">
+            <UiButton color="primary" prepend-icon="mdi-plus" @click="openModal()">
               Nova Demanda
-            </v-btn>
-            <v-btn
+            </UiButton>
+            <UiButton
               class="ml-2"
+              color="white"
               icon="mdi-refresh"
               :loading="pending"
               variant="text"
               @click="refresh"
             />
-          </v-card-title>
+          </template>
 
-          <v-divider />
-
-          <v-table hover>
-            <thead>
-              <tr>
-                <th class="text-left">Nome</th>
-                <th class="text-left">Tipo</th>
-                <th class="text-left">Data da Disputa</th>
-                <th class="text-left">Criado por</th>
-                <th class="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="demand in demands" :key="demand.id">
-                <td>
-                  <NuxtLink
-                    class="text-decoration-none text-primary font-weight-bold"
-                    :to="`/demands/${demand.id}`"
-                  >
-                    {{ demand.name }}
-                  </NuxtLink>
-                </td>
-                <td>
-                  <v-chip
-                    :color="demand.type === 'consumption' ? 'info' : 'warning'"
-                    size="small"
-                    variant="flat"
-                  >
-                    {{ formatType(demand.type) }}
-                  </v-chip>
-                </td>
-                <td>
-                  {{
-                    demand.dispute_date ? new Date(demand.dispute_date).toLocaleDateString() : '-'
-                  }}
-                </td>
-                <td class="text-caption text-grey">
-                  {{ demand.profiles?.name || `Usuário (${demand.user_id.split('-')[0]})` }}
-                </td>
-                <td class="text-right">
-                  <v-btn
-                    color="primary"
-                    icon="mdi-arrow-right"
-                    size="small"
-                    :to="`/demands/${demand.id}`"
-                    variant="text"
-                  />
-                  <v-btn
-                    v-if="canEdit(demand)"
-                    color="grey"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openModal(demand)"
-                  />
-                </td>
-              </tr>
-            </tbody>
-          </v-table>
-
-          <v-card-text v-if="!demands?.length && !pending" class="text-center text-grey">
-            Nenhuma demanda encontrada.
-          </v-card-text>
-        </v-card>
+          <UiTable
+            :headers="[
+              { text: 'Nome', value: 'name' },
+              { text: 'Tipo', value: 'type' },
+              { text: 'Data da Disputa', value: 'dispute_date' },
+              { text: 'Criado por', value: 'creator' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="demands || []"
+          >
+            <template v-if="!demands?.length && !pending" #empty>
+              Nenhuma demanda encontrada.
+            </template>
+            <template #item-name="{ item }">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/demands/${item.id}`"
+              >
+                {{ item.name }}
+              </NuxtLink>
+            </template>
+            <template #item-type="{ item }">
+              <v-chip
+                :color="item.type === 'consumption' ? 'info' : 'warning'"
+                size="small"
+                variant="flat"
+              >
+                {{ formatType(item.type) }}
+              </v-chip>
+            </template>
+            <template #item-dispute_date="{ item }">
+              {{ item.dispute_date ? new Date(item.dispute_date).toLocaleDateString() : '-' }}
+            </template>
+            <template #item-creator="{ item }">
+              <span class="text-caption text-grey">
+                {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
+              </span>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-arrow-right"
+                size="small"
+                :to="`/demands/${item.id}`"
+                variant="text"
+              />
+              <UiButton
+                v-if="canEdit(item)"
+                color="grey"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openModal(item)"
+              />
+            </template>
+          </UiTable>
+        </UiCard>
       </v-col>
     </v-row>
 
     <!-- Modal Form -->
     <v-dialog v-model="isModalOpen" max-width="500px">
-      <v-card>
-        <v-card-title class="pa-4">
-          {{ editingDemand.id ? 'Editar Demanda' : 'Nova Demanda' }}
-        </v-card-title>
+      <UiCard :title="editingDemand.id ? 'Editar Demanda' : 'Nova Demanda'" transparent-header>
+        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ saveError }}
+        </v-alert>
 
-        <v-divider />
+        <UiInput v-model="editingDemand.name" label="Nome da Demanda" />
 
-        <v-card-text class="pa-4">
-          <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-            {{ saveError }}
-          </v-alert>
+        <UiSelect
+          v-model="editingDemand.type"
+          item-title="title"
+          item-value="value"
+          :items="[
+            { title: 'Consumo', value: 'consumption' },
+            { title: 'Permanente', value: 'permanent' },
+          ]"
+          label="Tipo"
+        />
 
-          <v-text-field
-            v-model="editingDemand.name"
-            class="mb-3"
-            density="comfortable"
-            label="Nome da Demanda"
-            variant="outlined"
-          />
+        <UiInput
+          v-model="editingDemand.dispute_date"
+          clearable
+          label="Data da Disputa"
+          type="date"
+        />
 
-          <v-select
-            v-model="editingDemand.type"
-            class="mb-3"
-            density="comfortable"
-            item-title="title"
-            item-value="value"
-            :items="[
-              { title: 'Consumo', value: 'consumption' },
-              { title: 'Permanente', value: 'permanent' },
-            ]"
-            label="Tipo"
-            variant="outlined"
-          />
-
-          <v-text-field
-            v-model="editingDemand.dispute_date"
-            clearable
-            density="comfortable"
-            label="Data da Disputa"
-            type="date"
-            variant="outlined"
-          />
-        </v-card-text>
-
-        <v-divider />
-
-        <v-card-actions class="px-4 py-3 justify-end">
-          <v-btn :disabled="isSaving" variant="text" @click="closeModal">Cancelar</v-btn>
-          <v-btn color="primary" :loading="isSaving" variant="flat" @click="saveDemand">
-            Salvar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveDemand"> Salvar </UiButton>
+        </template>
+      </UiCard>
     </v-dialog>
   </v-container>
 </template>
