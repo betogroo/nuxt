@@ -207,7 +207,7 @@
     quantity: number
     product: { name: string }
   }) => {
-    const newQtdStr = prompt(`Nova quantidade para ${item.product.name}:`, item.quantity)
+    const newQtdStr = prompt(`Nova quantidade para ${item.product.name}:`, String(item.quantity))
     if (newQtdStr === null) return
 
     const newQtd = Number(newQtdStr)
