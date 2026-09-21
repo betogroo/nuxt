@@ -4,6 +4,8 @@
   const route = useRoute()
   const router = useRouter()
   const supabase = useSupabaseClient<Database>()
+  const user = useSupabaseUser()
+  const { logAction } = useLogger()
 
   const demandId = route.params.id as string
   const itemId = route.params.itemId as string
@@ -13,6 +15,7 @@
     data: item,
     pending,
     error,
+    refresh,
   } = useAsyncData(`demand-item-${itemId}`, async () => {
     const { data, error: err } = await supabase
       .from('demand_products')
@@ -27,6 +30,80 @@
   // Basic fallback
   if (error.value) {
     console.error(error.value)
+  }
+
+  // Edit logic
+  const isEditing = ref(false)
+  const isSaving = ref(false)
+  const editError = ref('')
+  const editForm = ref({ quantity: 1, unit_id: '' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const availableUnits = ref<any[]>([])
+
+  const openEditModal = async () => {
+    if (!item.value) return
+    editForm.value = {
+      quantity: Number(item.value.quantity),
+      unit_id: item.value.unit_id,
+    }
+
+    // Fetch valid units for this product
+    const { data: unitsData } = await supabase
+      .from('product_units')
+      .select('id, measurement_units(*)')
+      .eq('product_id', item.value.product_id)
+
+    if (unitsData) {
+      availableUnits.value = unitsData.map((u) => u.measurement_units)
+    }
+
+    editError.value = ''
+    isEditing.value = true
+  }
+
+  const closeEditModal = () => {
+    isEditing.value = false
+  }
+
+  const saveItem = async () => {
+    isSaving.value = true
+    editError.value = ''
+    try {
+      if (editForm.value.quantity <= 0) throw new Error('A quantidade deve ser maior que 0.')
+      if (!editForm.value.unit_id) throw new Error('A unidade de medida é obrigatória.')
+
+      const { error: updateErr } = await supabase
+        .from('demand_products')
+        .update({
+          quantity: editForm.value.quantity,
+          unit_id: editForm.value.unit_id,
+        })
+        .eq('id', itemId)
+
+      if (updateErr) {
+        if (updateErr.code === '23505')
+          throw new Error('Já existe esse produto com essa mesma unidade nesta demanda.')
+        throw updateErr
+      }
+
+      await logAction(
+        'UPDATE_DEMAND_ITEM',
+        `Usuário editou o item ${itemId} da demanda ${demandId}`,
+        user.value?.id,
+      )
+      await refresh()
+      closeEditModal()
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        editError.value = err.message
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        editError.value = String((err as Record<string, unknown>).message)
+      } else {
+        editError.value = 'Ocorreu um erro ao salvar.'
+      }
+    } finally {
+      isSaving.value = false
+    }
   }
 </script>
 
@@ -57,7 +134,10 @@
               </v-chip>
             </div>
             <v-spacer />
-            <v-chip color="info" variant="outlined">Qtd: {{ item.quantity }}</v-chip>
+            <div class="d-flex align-center">
+              <v-chip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</v-chip>
+              <UiButton color="primary" icon="mdi-pencil" size="small" @click="openEditModal" />
+            </div>
           </template>
 
           <v-alert class="mb-4" density="compact" type="info" variant="tonal">
@@ -109,5 +189,29 @@
         </UiCard>
       </v-col>
     </v-row>
+
+    <!-- Modal Editar Item -->
+    <v-dialog v-model="isEditing" max-width="500px">
+      <UiCard title="Editar Item da Demanda" transparent-header>
+        <v-alert v-if="editError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ editError }}
+        </v-alert>
+
+        <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
+
+        <UiSelect
+          v-model="editForm.unit_id"
+          item-title="name"
+          item-value="id"
+          :items="availableUnits"
+          label="Unidade de Medida (Apresentação)"
+        />
+
+        <template #actions>
+          <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" @click="saveItem"> Salvar </UiButton>
+        </template>
+      </UiCard>
+    </v-dialog>
   </v-container>
 </template>

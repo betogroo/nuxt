@@ -15,17 +15,25 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', async () => {
     // Run all count queries concurrently for maximum performance
-    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('demands').select('*', { count: 'exact', head: true }),
-      supabase.from('product_categories').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('logs')
-        .select('*, profiles(name)')
-        .order('created_at', { ascending: false })
-        .limit(6),
-    ])
+    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes, pendingUnitsRes] =
+      await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_active', true),
+        supabase.from('demands').select('*', { count: 'exact', head: true }),
+        supabase.from('product_categories').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('logs')
+          .select('*, profiles(name)')
+          .order('created_at', { ascending: false })
+          .limit(6),
+        supabase
+          .from('measurement_units')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_pending', true),
+      ])
 
     return {
       usersCount: usersRes.count || 0,
@@ -33,6 +41,7 @@
       demandsCount: demandsRes.count || 0,
       categoriesCount: categoriesRes.count || 0,
       recentLogs: (logsRes.data as RecentLog[]) || [],
+      pendingUnitsCount: pendingUnitsRes.count || 0,
     }
   })
 
@@ -70,6 +79,27 @@
     </v-row>
 
     <template v-else-if="metrics">
+      <!-- Tarefas a Revisar (Notificações) -->
+      <v-row v-if="metrics.pendingUnitsCount > 0" class="mb-4">
+        <v-col cols="12">
+          <v-alert
+            color="warning"
+            icon="mdi-alert-circle-outline"
+            prominent
+            title="Tarefas a Revisar"
+            variant="tonal"
+          >
+            Existem <strong>{{ metrics.pendingUnitsCount }}</strong> unidades de medida sugeridas
+            aguardando revisão e aprovação.
+            <template #append>
+              <UiButton class="mt-2 mt-sm-0" color="warning" to="/admin/units" variant="flat">
+                Revisar Agora
+              </UiButton>
+            </template>
+          </v-alert>
+        </v-col>
+      </v-row>
+
       <!-- Top Metrics Cards -->
       <v-row>
         <v-col cols="12" md="3" sm="6">
