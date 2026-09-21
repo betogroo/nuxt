@@ -87,6 +87,12 @@
   // New Product Form state
   const newProductName = ref('')
   const newProductCategoryId = ref<string | null>(null)
+  const newProductSuggestedCategory = ref('')
+
+  const isNewProductOutrosCategory = computed(() => {
+    const cat = categories.value?.find((c) => c.id === newProductCategoryId.value)
+    return cat?.name === 'Outros'
+  })
 
   const openAddModal = () => {
     selectedProductId.value = null
@@ -95,6 +101,7 @@
     isNewProductMode.value = false
     newProductName.value = ''
     newProductCategoryId.value = null
+    newProductSuggestedCategory.value = ''
     saveError.value = ''
     isModalOpen.value = true
   }
@@ -126,6 +133,9 @@
           .insert({
             name: newProductName.value,
             category_id: newProductCategoryId.value,
+            suggested_category: isNewProductOutrosCategory.value
+              ? newProductSuggestedCategory.value || null
+              : null,
             is_active: true,
           })
           .select()
@@ -410,6 +420,16 @@
             :items="categories || []"
             label="Categoria de Material"
           />
+
+          <UiInput
+            v-if="isNewProductOutrosCategory"
+            v-model="newProductSuggestedCategory"
+            class="mb-4"
+            hint="Digite a categoria para que o administrador possa cadastrá-la no futuro."
+            label="Qual categoria você sugere?"
+            persistent-hint
+          />
+
           <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
 
           <div class="text-right">

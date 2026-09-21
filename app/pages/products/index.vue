@@ -83,9 +83,15 @@
     id: '',
     name: '',
     category_id: '',
+    suggested_category: '',
     is_active: true,
   }
   const form = ref({ ...defaultForm })
+
+  const isOutrosCategory = computed(() => {
+    const cat = categories.value?.find((c) => c.id === form.value.category_id)
+    return cat?.name === 'Outros'
+  })
 
   const openAddModal = () => {
     form.value = { ...defaultForm }
@@ -95,7 +101,10 @@
   }
 
   const openEditModal = (product: ProductRow) => {
-    form.value = { ...product }
+    form.value = {
+      ...product,
+      suggested_category: product.suggested_category || '',
+    }
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -115,27 +124,23 @@
     saveError.value = ''
 
     try {
+      const payload = {
+        name: form.value.name,
+        category_id: form.value.category_id,
+        suggested_category: isOutrosCategory.value ? form.value.suggested_category || null : null,
+        is_active: form.value.is_active,
+      }
+
       if (isEditing.value) {
         // Edit Product
-        const { error } = await supabase
-          .from('products')
-          .update({
-            name: form.value.name,
-            category_id: form.value.category_id,
-            is_active: form.value.is_active,
-          })
-          .eq('id', form.value.id)
+        const { error } = await supabase.from('products').update(payload).eq('id', form.value.id)
 
         if (error) throw error
 
         await logAction('UPDATE_PRODUCT', `Produto atualizado: ${form.value.name}`, user.value?.id)
       } else {
         // Create Product
-        const { error } = await supabase.from('products').insert({
-          name: form.value.name,
-          category_id: form.value.category_id,
-          is_active: form.value.is_active,
-        })
+        const { error } = await supabase.from('products').insert(payload)
 
         if (error) throw error
 
@@ -236,6 +241,12 @@
             </template>
             <template #item-category="{ item }">
               {{ item.product_categories?.name || '-' }}
+              <span
+                v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
+                class="text-caption text-grey ml-1"
+              >
+                (Sugestão: {{ item.suggested_category }})
+              </span>
             </template>
             <template #item-is_active="{ item }">
               <v-chip
@@ -287,6 +298,15 @@
           item-value="id"
           :items="categories || []"
           label="Categoria de Material"
+        />
+
+        <UiInput
+          v-if="isOutrosCategory"
+          v-model="form.suggested_category"
+          class="mb-4"
+          hint="Digite a categoria desejada para que o administrador possa cadastrá-la futuramente."
+          label="Qual categoria você sugere?"
+          persistent-hint
         />
 
         <v-switch
