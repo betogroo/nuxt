@@ -116,6 +116,12 @@
     }
   }
 
+  const cancelAddUnit = () => {
+    isAddingUnit.value = false
+    addUnitError.value = ''
+    addUnitSearch.value = ''
+  }
+
   const removeUnit = async (unitId: string) => {
     if (!confirm('Remover esta apresentação do produto?')) return
     const { error } = await supabase
@@ -216,14 +222,7 @@
                     {{ addUnitError }}
                   </v-alert>
                   <div class="d-flex justify-end mt-2">
-                    <UiButton
-                      variant="text"
-                      @click="
-                        isAddingUnit = false
-                        addUnitError = ''
-                      "
-                      >Cancelar</UiButton
-                    >
+                    <UiButton variant="text" @click="cancelAddUnit">Cancelar</UiButton>
                     <UiButton class="ml-2" color="primary" :loading="adding" @click="addUnit"
                       >Adicionar</UiButton
                     >
