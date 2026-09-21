@@ -15,25 +15,17 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', async () => {
     // Run all count queries concurrently for maximum performance
-    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes, pendingUnitsRes] =
-      await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_active', true),
-        supabase.from('demands').select('*', { count: 'exact', head: true }),
-        supabase.from('product_categories').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('logs')
-          .select('*, profiles(name)')
-          .order('created_at', { ascending: false })
-          .limit(6),
-        supabase
-          .from('measurement_units')
-          .select('*', { count: 'exact', head: true })
-          .eq('is_pending', true),
-      ])
+    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('demands').select('*', { count: 'exact', head: true }),
+      supabase.from('product_categories').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('logs')
+        .select('*, profiles(name)')
+        .order('created_at', { ascending: false })
+        .limit(6),
+    ])
 
     return {
       usersCount: usersRes.count || 0,
@@ -41,9 +33,10 @@
       demandsCount: demandsRes.count || 0,
       categoriesCount: categoriesRes.count || 0,
       recentLogs: (logsRes.data as RecentLog[]) || [],
-      pendingUnitsCount: pendingUnitsRes.count || 0,
     }
   })
+
+  const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
 
   // Formatters
   const formatDate = (dateStr: string) => {
@@ -79,29 +72,8 @@
     </v-row>
 
     <template v-else-if="metrics">
-      <!-- Tarefas a Revisar (Notificações) -->
-      <v-row v-if="metrics.pendingUnitsCount > 0" class="mb-4">
-        <v-col cols="12">
-          <v-alert
-            color="warning"
-            icon="mdi-alert-circle-outline"
-            prominent
-            title="Tarefas a Revisar"
-            variant="tonal"
-          >
-            Existem <strong>{{ metrics.pendingUnitsCount }}</strong> unidades de medida sugeridas
-            aguardando revisão e aprovação.
-            <template #append>
-              <UiButton class="mt-2 mt-sm-0" color="warning" to="/admin/units" variant="flat">
-                Revisar Agora
-              </UiButton>
-            </template>
-          </v-alert>
-        </v-col>
-      </v-row>
-
       <!-- Top Metrics Cards -->
-      <v-row>
+      <v-row class="mb-4">
         <v-col cols="12" md="3" sm="6">
           <v-card class="bg-primary text-white" elevation="3">
             <v-card-text class="d-flex align-center justify-space-between">
@@ -150,6 +122,63 @@
                 <div class="text-h4 font-weight-black mt-1">{{ metrics.categoriesCount }}</div>
               </div>
               <v-icon class="opacity-50" size="48">mdi-shape</v-icon>
+            </v-card-text>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <!-- Bloco de Tarefas a Revisar -->
+      <v-row class="mt-2">
+        <v-col cols="12">
+          <v-card elevation="2">
+            <v-card-title class="d-flex align-center bg-grey-lighten-4 pa-4">
+              <v-icon class="mr-2" color="warning">mdi-clipboard-text-clock</v-icon>
+              Tarefas a Revisar
+            </v-card-title>
+            <v-divider />
+
+            <v-list v-if="totalPending > 0" lines="one">
+              <v-list-item v-if="pendingCategoriesCount > 0">
+                <template #prepend>
+                  <v-icon color="error">mdi-shape</v-icon>
+                </template>
+                <v-list-item-title class="font-weight-medium">
+                  Revisão de Categorias Sugeridas
+                </v-list-item-title>
+                <template #append>
+                  <v-chip class="mr-4 font-weight-bold" color="error" size="small" variant="flat">
+                    {{ pendingCategoriesCount }}
+                  </v-chip>
+                  <UiButton color="primary" size="small" to="/admin/categories" variant="outlined">
+                    Revisar
+                  </UiButton>
+                </template>
+              </v-list-item>
+
+              <v-divider v-if="pendingCategoriesCount > 0 && pendingUnitsCount > 0" />
+
+              <v-list-item v-if="pendingUnitsCount > 0">
+                <template #prepend>
+                  <v-icon color="warning">mdi-scale-balance</v-icon>
+                </template>
+                <v-list-item-title class="font-weight-medium">
+                  Aprovação de Unidades de Medida Pendentes
+                </v-list-item-title>
+                <template #append>
+                  <v-chip class="mr-4 font-weight-bold" color="warning" size="small" variant="flat">
+                    {{ pendingUnitsCount }}
+                  </v-chip>
+                  <UiButton color="primary" size="small" to="/admin/units" variant="outlined">
+                    Revisar
+                  </UiButton>
+                </template>
+              </v-list-item>
+            </v-list>
+            
+            <v-card-text v-else class="text-center text-grey py-6">
+              <v-icon class="mb-2" color="success" size="large">mdi-check-circle-outline</v-icon>
+              <br />
+              Nenhuma tarefa pendente para revisão no momento. Tudo em dia!
             </v-card-text>
           </v-card>
         </v-col>

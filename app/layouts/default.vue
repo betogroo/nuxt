@@ -59,6 +59,9 @@
           </v-list-item>
           <v-list-item prepend-icon="mdi-scale-balance" to="/admin/units">
             <v-list-item-title>Unidades de Medida</v-list-item-title>
+            <template v-if="pendingUnitsCount > 0" #append>
+              <v-badge color="error" :content="pendingUnitsCount" inline />
+            </template>
           </v-list-item>
         </v-list>
       </v-menu>
