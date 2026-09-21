@@ -11,6 +11,7 @@ export type Database = {
           id: string
           product_id: string
           quantity: number
+          unit_id: string
           updated_at: string
         }
         Insert: {
@@ -20,6 +21,7 @@ export type Database = {
           id?: string
           product_id: string
           quantity?: number
+          unit_id: string
           updated_at?: string
         }
         Update: {
@@ -29,6 +31,7 @@ export type Database = {
           id?: string
           product_id?: string
           quantity?: number
+          unit_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -44,6 +47,13 @@ export type Database = {
             columns: ['product_id']
             isOneToOne: false
             referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'demand_products_unit_id_fkey'
+            columns: ['unit_id']
+            isOneToOne: false
+            referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
         ]
@@ -121,6 +131,36 @@ export type Database = {
           },
         ]
       }
+      measurement_units: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_pending: boolean
+          legacy_alias: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_pending?: boolean
+          legacy_alias?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_pending?: boolean
+          legacy_alias?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           created_at: string
@@ -144,6 +184,42 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      product_units: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          unit_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'product_units_product_id_fkey'
+            columns: ['product_id']
+            isOneToOne: false
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'product_units_unit_id_fkey'
+            columns: ['unit_id']
+            isOneToOne: false
+            referencedRelation: 'measurement_units'
+            referencedColumns: ['id']
+          },
+        ]
       }
       products: {
         Row: {

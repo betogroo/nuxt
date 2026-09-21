@@ -17,7 +17,7 @@
   const { logAction } = useLogger()
 
   // Central de Pendências
-  const { totalPending, pendingCategoriesCount } = usePendingTasks()
+  const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
 
   const signOut = async () => {
     if (user.value) {
@@ -57,6 +57,9 @@
               <v-badge color="error" :content="pendingCategoriesCount" inline />
             </template>
           </v-list-item>
+          <v-list-item prepend-icon="mdi-scale-balance" to="/admin/units">
+            <v-list-item-title>Unidades de Medida</v-list-item-title>
+          </v-list-item>
         </v-list>
       </v-menu>
       <v-btn color="primary" to="/about">About</v-btn>
@@ -81,6 +84,13 @@
             <v-list-item-title>
               {{ pendingCategoriesCount }} categorias sugeridas
             </v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-if="pendingUnitsCount > 0"
+            prepend-icon="mdi-scale-balance"
+            to="/admin/units"
+          >
+            <v-list-item-title> {{ pendingUnitsCount }} unidades sugeridas </v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>

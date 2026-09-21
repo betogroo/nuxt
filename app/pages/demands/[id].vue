@@ -33,7 +33,7 @@
   } = useAsyncData(`demand-items-${demandId}`, async () => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*, product_categories(id, name))')
+      .select('*, product:products(*, product_categories(id, name)), measurement_units(*)')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: false })
 
@@ -50,7 +50,7 @@
     async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*, product_categories(id, name)')
+        .select('*, product_categories(id, name), product_units(unit_id, measurement_units(*))')
         .eq('is_active', true)
         .order('name', { ascending: true })
 
@@ -81,8 +81,38 @@
 
   // Form states
   const selectedProductId = ref<string | null>(null)
+  const selectedUnitId = ref<string | null>(null)
   const itemQuantity = ref<number>(1)
   const searchProductText = ref('')
+
+  const selectedProductObj = computed(() => {
+    return allProducts.value?.find((p) => p.id === selectedProductId.value)
+  })
+
+  const availableUnitsForSelectedProduct = computed(() => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    return selectedProductObj.value?.product_units?.map((pu) => pu.measurement_units) || []
+  })
+
+  // Whenever a product is selected, auto-select the first unit if available
+  watch(selectedProductId, (newVal) => {
+    if (newVal) {
+      if (availableUnitsForSelectedProduct.value.length > 0) {
+        selectedUnitId.value = availableUnitsForSelectedProduct.value[0]?.id || null
+      } else {
+        selectedUnitId.value = null
+      }
+    } else {
+      selectedUnitId.value = null
+    }
+  })
+
+  // We need all measurement units just in case we need the default one for new products
+  const { data: allMeasurementUnits } = useAsyncData('all-measurement-units', async () => {
+    const { data } = await supabase.from('measurement_units').select('*')
+    return data || []
+  })
 
   // New Product Form state
   const newProductName = ref('')
@@ -96,6 +126,7 @@
 
   const openAddModal = () => {
     selectedProductId.value = null
+    selectedUnitId.value = null
     itemQuantity.value = 1
     searchProductText.value = ''
     isNewProductMode.value = false
@@ -121,6 +152,7 @@
 
     try {
       let finalProductId = selectedProductId.value
+      let finalUnitId = selectedUnitId.value
 
       // Create new product if in new product mode
       if (isNewProductMode.value) {
@@ -150,6 +182,9 @@
         )
 
         finalProductId = newProd.id
+        finalUnitId =
+          allMeasurementUnits.value?.find((u: { name: string; id: string }) => u.name === 'Unidade')
+            ?.id || null
         await refreshProducts() // reload product list
       }
 
@@ -157,12 +192,19 @@
         throw new Error('Selecione um produto ou cadastre um novo.')
       }
 
+      if (!finalUnitId) {
+        throw new Error('Selecione uma apresentação/unidade de medida.')
+      }
+
       if (itemQuantity.value <= 0) {
         throw new Error('A quantidade deve ser maior que zero.')
       }
 
-      // Check if product already in demand
-      const alreadyExists = items.value?.find((i) => i.product_id === finalProductId)
+      // Check if product already in demand with this specific unit
+      const alreadyExists = items.value?.find(
+        (i) => i.product_id === finalProductId && i.unit_id === finalUnitId,
+      )
+
       if (alreadyExists) {
         // Update quantity
         const { error } = await supabase
@@ -182,6 +224,7 @@
         const { error } = await supabase.from('demand_products').insert({
           demand_id: demandId,
           product_id: finalProductId,
+          unit_id: finalUnitId,
           quantity: itemQuantity.value,
         })
 
@@ -332,6 +375,15 @@
             :to="`/products/${item.product_id}`"
           >
             {{ item.product?.name || 'Produto desconhecido' }}
+            <v-chip
+              v-if="item.measurement_units"
+              class="ml-2"
+              color="secondary"
+              size="x-small"
+              variant="flat"
+            >
+              {{ item.measurement_units.name }}
+            </v-chip>
           </NuxtLink>
         </template>
         <template #item-category="{ item }">
@@ -394,6 +446,18 @@
               </div>
             </template>
           </v-autocomplete>
+
+          <v-autocomplete
+            v-if="selectedProductId && availableUnitsForSelectedProduct.length > 1"
+            v-model="selectedUnitId"
+            class="mt-3"
+            density="comfortable"
+            item-title="name"
+            item-value="id"
+            :items="availableUnitsForSelectedProduct"
+            label="Apresentação (Unidade de Medida)"
+            variant="outlined"
+          />
 
           <UiInput
             v-if="selectedProductId"

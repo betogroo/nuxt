@@ -21,18 +21,38 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
+  const { data: pendingUnitsCount, refresh: refreshPendingUnits } = useAsyncData(
+    'pending-units-count',
+    async () => {
+      const { count, error } = await supabase
+        .from('measurement_units')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_pending', true)
+
+      if (error) {
+        console.error('Erro ao buscar unidades pendentes:', error)
+        return 0
+      }
+
+      return count || 0
+    },
+    { default: () => 0 },
+  )
+
   const totalPending = computed(() => {
-    return pendingCategoriesCount.value
+    return (pendingCategoriesCount.value || 0) + (pendingUnitsCount.value || 0)
   })
 
   const refreshAll = async () => {
-    await Promise.all([refreshPendingCategories()])
+    await Promise.all([refreshPendingCategories(), refreshPendingUnits()])
   }
 
   return {
     pendingCategoriesCount,
+    pendingUnitsCount,
     totalPending,
     refreshAll,
     refreshPendingCategories,
+    refreshPendingUnits,
   }
 }
