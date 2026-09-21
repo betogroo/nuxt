@@ -45,6 +45,116 @@
     { watch: [currentPage] },
   )
 
+  const { data: allActiveCategories } = useAsyncData('all-active-categories', async () => {
+    const { data } = await supabase
+      .from('product_categories')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name')
+    return data || []
+  })
+
+  const {
+    data: pendingSuggestions,
+    pending: pendingSuggestionsPending,
+    refresh: refreshSuggestions,
+  } = useAsyncData('admin-suggestions', async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('suggested_category')
+      .not('suggested_category', 'is', null)
+
+    if (error) return []
+
+    const groups: Record<string, number> = {}
+    data.forEach((p) => {
+      const cat = p.suggested_category as string
+      groups[cat] = (groups[cat] || 0) + 1
+    })
+
+    return Object.keys(groups).map((name) => ({
+      name,
+      count: groups[name],
+    }))
+  })
+
+  // Resolve Modal State
+  const isResolveModalOpen = ref(false)
+  const resolveTarget = ref('')
+  const resolveMode = ref<'new' | 'existing'>('new')
+  const resolveNewName = ref('')
+  const resolveExistingId = ref<string | null>(null)
+  const isResolving = ref(false)
+  const resolveError = ref('')
+
+  const openResolveModal = (suggestion: string) => {
+    resolveTarget.value = suggestion
+    resolveMode.value = 'new'
+    resolveNewName.value = suggestion
+    resolveExistingId.value = null
+    resolveError.value = ''
+    isResolveModalOpen.value = true
+  }
+
+  const closeResolveModal = () => {
+    isResolveModalOpen.value = false
+  }
+
+  const submitResolve = async () => {
+    resolveError.value = ''
+    isResolving.value = true
+    try {
+      let finalCategoryId = resolveExistingId.value
+
+      if (resolveMode.value === 'new') {
+        if (!resolveNewName.value.trim()) {
+          throw new Error('Informe o nome da nova categoria.')
+        }
+        const { data: newCat, error: insertError } = await supabase
+          .from('product_categories')
+          .insert({ name: resolveNewName.value.trim(), is_active: true })
+          .select()
+          .single()
+
+        if (insertError) {
+          if (insertError.code === '23505')
+            throw new Error('Já existe uma categoria com este nome.')
+          throw insertError
+        }
+        finalCategoryId = newCat.id
+      }
+
+      if (!finalCategoryId) {
+        throw new Error('Selecione uma categoria existente.')
+      }
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({
+          category_id: finalCategoryId,
+          suggested_category: null,
+        })
+        .eq('suggested_category', resolveTarget.value)
+
+      if (updateError) throw updateError
+
+      await logAction(
+        'RESOLVE_SUGGESTION',
+        `Sugestão "${resolveTarget.value}" resolvida`,
+        user.value?.id,
+      )
+
+      await refreshSuggestions()
+      if (resolveMode.value === 'new') await refresh()
+
+      closeResolveModal()
+    } catch (e: unknown) {
+      resolveError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      isResolving.value = false
+    }
+  }
+
   const isModalOpen = ref(false)
   const isSaving = ref(false)
   const saveError = ref('')
@@ -136,6 +246,47 @@
   <v-container>
     <v-row>
       <v-col cols="12">
+        <!-- Tabela de Sugestões Pendentes -->
+        <UiCard v-if="pendingSuggestions && pendingSuggestions.length > 0" class="mb-6">
+          <template #header>
+            Sugestões Pendentes ({{ pendingSuggestions.length }})
+            <v-spacer />
+            <UiButton
+              color="white"
+              icon="mdi-refresh"
+              :loading="pendingSuggestionsPending"
+              variant="text"
+              @click="refreshSuggestions"
+            />
+          </template>
+          <UiTable
+            :headers="[
+              { text: 'Sugestão', value: 'name' },
+              { text: 'Produtos aguardando', value: 'count', align: 'center' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="pendingSuggestions"
+          >
+            <template #item-name="{ item }">
+              <span class="font-weight-medium text-warning">{{ item.name }}</span>
+            </template>
+            <template #item-count="{ item }">
+              <v-chip size="small">{{ item.count }}</v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                size="small"
+                variant="tonal"
+                @click="openResolveModal(item.name)"
+              >
+                Resolver
+              </UiButton>
+            </template>
+          </UiTable>
+        </UiCard>
+
+        <!-- Tabela Principal de Categorias -->
         <UiCard>
           <template #header>
             Categorias de Produtos
@@ -216,6 +367,53 @@
         <template #actions>
           <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
           <UiButton color="primary" :loading="isSaving" @click="saveCategory"> Salvar </UiButton>
+        </template>
+      </UiCard>
+    </v-dialog>
+
+    <!-- Resolve Modal -->
+    <v-dialog v-model="isResolveModalOpen" max-width="550px" persistent>
+      <UiCard title="Resolver Sugestão de Categoria" transparent-header>
+        <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ resolveError }}
+        </v-alert>
+
+        <p class="mb-4 text-body-2">
+          Resolvendo a sugestão: <strong class="text-warning">{{ resolveTarget }}</strong>
+        </p>
+
+        <v-radio-group v-model="resolveMode" class="mb-2">
+          <v-radio label="Criar Nova Categoria" value="new" />
+          <v-radio label="Vincular a Categoria Existente" value="existing" />
+        </v-radio-group>
+
+        <v-slide-y-transition leave-absolute>
+          <div v-if="resolveMode === 'new'">
+            <UiInput
+              v-model="resolveNewName"
+              hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
+              label="Nome da Nova Categoria"
+              persistent-hint
+            />
+          </div>
+          <div v-else>
+            <UiSelect
+              v-model="resolveExistingId"
+              item-title="name"
+              item-value="id"
+              :items="allActiveCategories || []"
+              label="Selecione a Categoria"
+            />
+          </div>
+        </v-slide-y-transition>
+
+        <template #actions>
+          <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+            >Cancelar</UiButton
+          >
+          <UiButton color="primary" :loading="isResolving" @click="submitResolve"
+            >Confirmar</UiButton
+          >
         </template>
       </UiCard>
     </v-dialog>
