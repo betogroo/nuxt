@@ -43,6 +43,15 @@
           <template #header>
             <div class="d-flex align-center">
               {{ item.product?.name }}
+              <UiButton
+                class="ml-1"
+                color="primary"
+                icon="mdi-open-in-new"
+                size="small"
+                title="Ver Cadastro Original do Produto"
+                :to="`/products/${item.product?.id}`"
+                variant="text"
+              />
               <v-chip class="ml-2" color="secondary" size="small" variant="flat">
                 {{ item.measurement_units?.name || 'Unidade' }}
               </v-chip>

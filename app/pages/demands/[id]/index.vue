@@ -385,9 +385,21 @@
               {{ item.measurement_units.name }}
             </v-chip>
           </NuxtLink>
+          <UiButton
+            class="ml-1"
+            color="grey"
+            icon="mdi-open-in-new"
+            size="x-small"
+            title="Cadastro do Produto"
+            :to="`/products/${item.product_id}`"
+            variant="text"
+          />
         </template>
         <template #item-category="{ item }">
-          {{ (item.product as any)?.product_categories?.name || '-' }}
+          {{
+            (item.product as { product_categories?: { name: string } })?.product_categories?.name ||
+            '-'
+          }}
         </template>
         <template #item-quantity="{ item }">
           <v-chip class="cursor-pointer" size="small" @click="updateQuantity(item)">
