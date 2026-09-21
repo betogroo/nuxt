@@ -30,7 +30,6 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
     "@nuxt/test-utils": "^4.3.2",
-    "@unrs/resolver-binding-wasm32-wasi": "^1.12.2",
     "@vue/test-utils": "^2.5.1",
     "cross-env": "^10.1.0",
     "eslint": "^10.10.0",

@@ -40,13 +40,19 @@
   }
 
   const editingDemand = ref<Partial<DemandRow>>({ ...defaultDemand })
+  const offerOpeningDate = ref('')
+  const offerOpeningTime = ref('')
 
   const openModal = (demand?: DemandRow) => {
     if (demand) {
       editingDemand.value = { ...demand }
-      // Convert timestamptz to datetime-local format if present
       if (editingDemand.value.offer_opening_date) {
-        editingDemand.value.offer_opening_date = editingDemand.value.offer_opening_date.slice(0, 16)
+        const dt = editingDemand.value.offer_opening_date.slice(0, 16).split('T')
+        offerOpeningDate.value = dt[0] || ''
+        offerOpeningTime.value = dt[1] || ''
+      } else {
+        offerOpeningDate.value = ''
+        offerOpeningTime.value = ''
       }
       // Convert timestamptz/date to YYYY-MM-DD for date input
       if (editingDemand.value.dispute_date) {
@@ -54,6 +60,8 @@
       }
     } else {
       editingDemand.value = { ...defaultDemand }
+      offerOpeningDate.value = ''
+      offerOpeningTime.value = ''
     }
     saveError.value = ''
     isModalOpen.value = true
@@ -62,10 +70,13 @@
   const closeModal = () => {
     isModalOpen.value = false
     editingDemand.value = { ...defaultDemand }
+    offerOpeningDate.value = ''
+    offerOpeningTime.value = ''
   }
 
   const canEdit = (demand: DemandRow) => {
-    return profile.value?.role === 'admin' || demand.user_id === user.value?.id
+    const currentUserId = user.value?.id || profile.value?.id
+    return profile.value?.role === 'admin' || demand.user_id === currentUserId
   }
 
   const formatType = (type: string) => {
@@ -84,10 +95,12 @@
       const isEditing = !!editingDemand.value.id
 
       // Formatar date-time-local string to ISO para o Supabase (timestamptz)
-      let offerOpening = editingDemand.value.offer_opening_date || null
-      if (offerOpening && offerOpening.length === 16) {
-        // Se vier do datetime-local type YYYY-MM-DDThh:mm, converte pra ISO
-        offerOpening = new Date(offerOpening).toISOString()
+      let offerOpening = null
+      if (offerOpeningDate.value || offerOpeningTime.value) {
+        if (!offerOpeningDate.value || !offerOpeningTime.value) {
+          throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
+        }
+        offerOpening = new Date(`${offerOpeningDate.value}T${offerOpeningTime.value}`).toISOString()
       }
 
       const payload = {
@@ -247,17 +260,22 @@
           type="date"
           @update:model-value="
             () => {
-              if (isModalOpen && editingDemand.id) editingDemand.offer_opening_date = null
+              if (isModalOpen && editingDemand.id) {
+                offerOpeningDate = ''
+                offerOpeningTime = ''
+              }
             }
           "
         />
 
-        <UiInput
-          v-model="editingDemand.offer_opening_date"
-          clearable
-          label="Abertura das Ofertas"
-          type="datetime-local"
-        />
+        <v-row class="mt-2">
+          <v-col class="py-0" cols="12" sm="6">
+            <UiInput v-model="offerOpeningDate" clearable label="Data de Abertura" type="date" />
+          </v-col>
+          <v-col class="py-0" cols="12" sm="6">
+            <UiInput v-model="offerOpeningTime" clearable label="Hora de Abertura" type="time" />
+          </v-col>
+        </v-row>
 
         <template #actions>
           <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
