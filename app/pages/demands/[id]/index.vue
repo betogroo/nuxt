@@ -372,7 +372,7 @@
         <template #item-product="{ item }">
           <NuxtLink
             class="text-decoration-none text-primary font-weight-bold"
-            :to="`/products/${item.product_id}`"
+            :to="`/demands/${demandId}/items/${item.id}`"
           >
             {{ item.product?.name || 'Produto desconhecido' }}
             <v-chip
