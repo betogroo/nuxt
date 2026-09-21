@@ -81,7 +81,7 @@
 
   // Form states
   const selectedProductId = ref<string | null>(null)
-  const selectedUnitId = ref<string | null>(null)
+  const selectedUnitSearch = ref<string>('')
   const itemQuantity = ref<number>(1)
   const searchProductText = ref('')
 
@@ -95,16 +95,23 @@
     return selectedProductObj.value?.product_units?.map((pu) => pu.measurement_units) || []
   })
 
+  const computedMeasurementUnits = computed(() => {
+    return (allMeasurementUnits.value || []).map((u) => ({
+      ...u,
+      displayName: u.legacy_alias ? `${u.name} (Legado: ${u.legacy_alias})` : u.name,
+    }))
+  })
+
   // Whenever a product is selected, auto-select the first unit if available
   watch(selectedProductId, (newVal) => {
     if (newVal) {
       if (availableUnitsForSelectedProduct.value.length > 0) {
-        selectedUnitId.value = availableUnitsForSelectedProduct.value[0]?.id || null
+        selectedUnitSearch.value = availableUnitsForSelectedProduct.value[0]?.name || 'Unidade'
       } else {
-        selectedUnitId.value = null
+        selectedUnitSearch.value = 'Unidade'
       }
     } else {
-      selectedUnitId.value = null
+      selectedUnitSearch.value = ''
     }
   })
 
@@ -126,7 +133,7 @@
 
   const openAddModal = () => {
     selectedProductId.value = null
-    selectedUnitId.value = null
+    selectedUnitSearch.value = ''
     itemQuantity.value = 1
     searchProductText.value = ''
     isNewProductMode.value = false
@@ -152,7 +159,12 @@
 
     try {
       let finalProductId = selectedProductId.value
-      let finalUnitId = selectedUnitId.value
+      let finalUnitId = ''
+
+      // Parse unit search string
+      const rawVal = selectedUnitSearch.value
+      const searchStr =
+        typeof rawVal === 'string' ? rawVal.trim() : (rawVal as { name?: string })?.name?.trim()
 
       // Create new product if in new product mode
       if (isNewProductMode.value) {
@@ -184,8 +196,38 @@
         finalProductId = newProd.id
         finalUnitId =
           allMeasurementUnits.value?.find((u: { name: string; id: string }) => u.name === 'Unidade')
-            ?.id || null
+            ?.id || ''
         await refreshProducts() // reload product list
+      } else {
+        if (!searchStr) {
+          throw new Error('Selecione ou digite uma apresentação/unidade de medida.')
+        }
+
+        // Handle Unit (find or create)
+        const existingUnit = allMeasurementUnits.value?.find(
+          (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
+        )
+
+        if (existingUnit) {
+          finalUnitId = existingUnit.id
+        } else {
+          // Create new unit as pending
+          const { data: newUnit, error: insertError } = await supabase
+            .from('measurement_units')
+            .insert({ name: searchStr, is_active: false, is_pending: true })
+            .select()
+            .single()
+
+          if (insertError) throw insertError
+          finalUnitId = newUnit.id
+
+          // Refresh units list
+          const { data: refreshedUnits } = await supabase
+            .from('measurement_units')
+            .select('*')
+            .order('name')
+          allMeasurementUnits.value = refreshedUnits || []
+        }
       }
 
       if (!finalProductId) {
@@ -193,11 +235,27 @@
       }
 
       if (!finalUnitId) {
-        throw new Error('Selecione uma apresentação/unidade de medida.')
+        throw new Error('Unidade de medida inválida.')
       }
 
       if (itemQuantity.value <= 0) {
         throw new Error('A quantidade deve ser maior que zero.')
+      }
+
+      // Ensure unit is linked to product
+      const { data: existingLink } = await supabase
+        .from('product_units')
+        .select('id')
+        .eq('product_id', finalProductId)
+        .eq('unit_id', finalUnitId)
+        .maybeSingle()
+
+      if (!existingLink) {
+        const { error: linkError } = await supabase
+          .from('product_units')
+          .insert({ product_id: finalProductId, unit_id: finalUnitId })
+        if (linkError && linkError.code !== '23505') throw linkError
+        await refreshProducts() // reload product list to reflect new unit
       }
 
       // Check if product already in demand with this specific unit
@@ -459,15 +517,18 @@
             </template>
           </v-autocomplete>
 
-          <v-autocomplete
-            v-if="selectedProductId && availableUnitsForSelectedProduct.length > 1"
-            v-model="selectedUnitId"
+          <v-combobox
+            v-if="selectedProductId"
+            v-model="selectedUnitSearch"
             class="mt-3"
             density="comfortable"
-            item-title="name"
-            item-value="id"
-            :items="availableUnitsForSelectedProduct"
+            hint="Selecione ou digite uma nova embalagem se não existir."
+            item-title="displayName"
+            item-value="name"
+            :items="computedMeasurementUnits"
             label="Apresentação (Unidade de Medida)"
+            persistent-hint
+            :return-object="false"
             variant="outlined"
           />
 
