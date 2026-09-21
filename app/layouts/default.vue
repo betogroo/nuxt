@@ -16,6 +16,9 @@
 
   const { logAction } = useLogger()
 
+  // Central de Pendências
+  const { totalPending, pendingCategoriesCount } = usePendingTasks()
+
   const signOut = async () => {
     if (user.value) {
       await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
@@ -50,11 +53,38 @@
           </v-list-item>
           <v-list-item prepend-icon="mdi-shape" to="/admin/categories">
             <v-list-item-title>Categorias de Produtos</v-list-item-title>
+            <template v-if="pendingCategoriesCount > 0" #append>
+              <v-badge color="error" :content="pendingCategoriesCount" inline />
+            </template>
           </v-list-item>
         </v-list>
       </v-menu>
       <v-btn color="primary" to="/about">About</v-btn>
       <ThemeToggle />
+
+      <!-- Notificações (apenas Admin) -->
+      <v-menu v-if="profile?.role === 'admin' && totalPending > 0">
+        <template #activator="{ props }">
+          <v-btn v-bind="props" class="mr-2" icon>
+            <v-badge color="error" :content="totalPending">
+              <v-icon>mdi-bell</v-icon>
+            </v-badge>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-subheader>Pendências</v-list-subheader>
+          <v-list-item
+            v-if="pendingCategoriesCount > 0"
+            prepend-icon="mdi-shape"
+            to="/admin/categories"
+          >
+            <v-list-item-title>
+              {{ pendingCategoriesCount }} categorias sugeridas
+            </v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
       <!-- Menu do usuário -->
       <v-menu v-if="user">
         <template #activator="{ props }">

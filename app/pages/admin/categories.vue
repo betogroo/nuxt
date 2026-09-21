@@ -146,6 +146,7 @@
 
       await refreshSuggestions()
       if (resolveMode.value === 'new') await refresh()
+      await refreshNuxtData('pending-categories-count')
 
       closeResolveModal()
     } catch (e: unknown) {
