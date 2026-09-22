@@ -84,13 +84,17 @@
     name: '',
     category_id: '',
     suggested_category: '',
+    is_suggesting_category: false,
     is_active: true,
   }
   const form = ref({ ...defaultForm })
 
-  const isOutrosCategory = computed(() => {
-    const cat = categories.value?.find((c) => c.id === form.value.category_id)
-    return cat?.name === 'Outros'
+  const filteredCategories = computed(() => {
+    return categories.value?.filter((c) => c.name !== 'Outros') || []
+  })
+
+  const outrosCategory = computed(() => {
+    return categories.value?.find((c) => c.name === 'Outros')
   })
 
   const openAddModal = () => {
@@ -101,9 +105,14 @@
   }
 
   const openEditModal = (product: ProductRow) => {
+    const isOutros =
+      product.product_categories?.name === 'Outros' ||
+      product.category_id === outrosCategory.value?.id
+
     form.value = {
       ...product,
       suggested_category: product.suggested_category || '',
+      is_suggesting_category: isOutros,
     }
     isEditing.value = true
     saveError.value = ''
@@ -115,9 +124,18 @@
   }
 
   const saveProduct = async () => {
-    if (!form.value.name || !form.value.category_id) {
-      saveError.value = 'Nome e Categoria são obrigatórios.'
-      return
+    if (form.value.is_suggesting_category) {
+      if (!form.value.name || !form.value.suggested_category) {
+        saveError.value = 'Nome e Sugestão de Categoria são obrigatórios.'
+        return
+      }
+      form.value.category_id = outrosCategory.value?.id || ''
+    } else {
+      if (!form.value.name || !form.value.category_id) {
+        saveError.value = 'Nome e Categoria são obrigatórios.'
+        return
+      }
+      form.value.suggested_category = '' // Limpa se desmarcou
     }
 
     isSaving.value = true
@@ -127,7 +145,9 @@
       const payload = {
         name: form.value.name,
         category_id: form.value.category_id,
-        suggested_category: isOutrosCategory.value ? form.value.suggested_category || null : null,
+        suggested_category: form.value.is_suggesting_category
+          ? form.value.suggested_category
+          : null,
         is_active: form.value.is_active,
       }
 
@@ -215,7 +235,7 @@
                   hide-details
                   item-title="name"
                   item-value="id"
-                  :items="categories || []"
+                  :items="filteredCategories"
                   label="Filtrar por Categoria"
                 />
               </v-col>
@@ -297,16 +317,23 @@
 
         <UiInput v-model="form.name" label="Nome do Produto" />
 
+        <v-switch
+          v-model="form.is_suggesting_category"
+          color="primary"
+          label="Não encontrou a categoria? Sugerir nova"
+        />
+
         <UiSelect
+          v-if="!form.is_suggesting_category"
           v-model="form.category_id"
           item-title="name"
           item-value="id"
-          :items="categories || []"
+          :items="filteredCategories"
           label="Categoria de Material"
         />
 
         <UiInput
-          v-if="isOutrosCategory"
+          v-if="form.is_suggesting_category"
           v-model="form.suggested_category"
           class="mb-4"
           hint="Digite a categoria desejada para que o administrador possa cadastrá-la futuramente."
