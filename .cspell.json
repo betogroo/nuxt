@@ -1,0 +1,17 @@
+{
+  "version": "0.2",
+  "language": "en,pt,pt_BR",
+  "ignorePaths": [
+    "package-lock.json",
+    "node_modules",
+    "vscode-extension",
+    ".git/{info,lfs,logs,refs,objects}/**",
+    ".git/{index,*refs,*HEAD}",
+    ".vscode-insiders"
+  ],
+  "dictionaryDefinitions": [],
+  "dictionaries": ["javascript", "typescript", "lorem-ipsum", "node", "html", "bash"],
+  "words": ["esbenp", "nuxt", "nuxtjs", "plpgsql", "supabase", "Supabase", "vuetify"],
+  "ignoreWords": [],
+  "import": ["@cspell/dict-pt-br/cspell-ext.json"]
+}

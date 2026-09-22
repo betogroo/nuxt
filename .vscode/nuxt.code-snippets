@@ -1,0 +1,31 @@
+{
+  "Define Page Meta": {
+    "scope": "javascript, typescript",
+    "prefix": "nu-page-meta",
+    "description": "Default Page Meta",
+    "body": [
+      "definePageMeta({",
+      "layout: 'default',",
+      "\t\tmenu: {",
+      "\t\ttitle: '$1',",
+      "\t\thidden: false,",
+      "\t},",
+      "})",
+    ],
+  },
+
+  "Use Async Data": {
+    "scope": "typescript, javascript",
+    "prefix": "nu-async-data",
+    "description": "useAsyncData() scaffold",
+    "body": [
+      "const {data: $1, error, status} = useAsyncData('$1', async () => {",
+      "\ttry {",
+      "\t\t$2",
+      "\t} catch (error) {",
+      "\t\t$3",
+      "\t}",
+      "})",
+    ],
+  },
+}

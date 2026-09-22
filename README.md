@@ -1,75 +1,124 @@
-# Nuxt Minimal Starter
+# Nuxt + Supabase Auth
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Sistema de autenticação construído com [Nuxt 4](https://nuxt.com/), [Vuetify](https://vuetifyjs.com/) e [Supabase](https://supabase.com/).
 
-## Setup
+## Pré-requisitos
 
-Make sure to install dependencies:
+- [Node.js](https://nodejs.org/) (v20+)
+- [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) (para desenvolvimento local)
+- [Docker](https://www.docker.com/) (necessário para o Supabase local)
+
+## 🚀 Como rodar o projeto em outro computador (Setup)
+
+Para configurar este projeto em uma máquina nova do zero, siga os passos abaixo:
+
+### 1. Clonar o Repositório
+
+Abra o terminal e faça o clone do projeto (substitua pela URL do repositório se aplicável):
 
 ```bash
-# npm
+git clone <URL_DO_SEU_REPOSITORIO>
+cd nuxt
+```
+
+### 2. Instalar dependências
+
+Certifique-se de que o **Node.js** (v20+) está instalado e execute:
+
+```bash
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
+### 3. Configurar Variáveis de Ambiente
 
-Start the development server on `http://localhost:3000`:
+Crie o arquivo `.env` baseado no exemplo:
 
 ```bash
-# npm
+cp .env.example .env
+```
+
+### 4. Iniciar o Banco de Dados (Supabase Local)
+
+Certifique-se de que o **Docker Desktop** está rodando em segundo plano e inicie o Supabase:
+
+```bash
+npx supabase start
+```
+
+O terminal exibirá várias credenciais. Copie a `anon key` e a `API URL` fornecidas e cole-as no seu arquivo `.env`:
+
+```env
+NUXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NUXT_PUBLIC_SUPABASE_KEY=<cole-sua-anon-key-aqui>
+```
+
+### 5. Executar Migrações e Gerar Tipos
+
+Com o banco de dados rodando e o `.env` configurado, aplique o schema do banco e atualize os tipos do TypeScript rodando:
+
+```bash
+npm run db-reset
+```
+
+## Desenvolvimento
+
+```bash
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+O servidor estará disponível em `http://127.0.0.1:3000`.
 
-Build the application for production:
+## Scripts disponíveis
 
-```bash
-# npm
-npm run build
+| Comando              | Descrição                         |
+| -------------------- | --------------------------------- |
+| `npm run dev`        | Servidor de desenvolvimento       |
+| `npm run build`      | Build de produção                 |
+| `npm run preview`    | Preview do build                  |
+| `npm run lint`       | Verificar código com ESLint       |
+| `npm run lint:fix`   | Corrigir código com ESLint        |
+| `npm run format`     | Verificar formatação com Prettier |
+| `npm run format:fix` | Corrigir formatação com Prettier  |
+| `npm run typecheck`  | Verificar tipos com TypeScript    |
 
-# pnpm
-pnpm build
+## Estrutura do projeto
 
-# yarn
-yarn build
+```
+app/
+├── components/theme/   # Componente de alternância de tema
+├── composables/        # useThemeManager
+├── layouts/            # Layout padrão com navbar
+├── pages/              # Páginas (login, registro, confirm, home, about)
+└── types/              # Tipos TypeScript (theme, database)
 
-# bun
-bun run build
+supabase/
+├── config.toml         # Configuração do Supabase local
+└── migrations/         # Migrations SQL
 ```
 
-Locally preview production build:
+## Fluxo de autenticação
 
-```bash
-# npm
-npm run preview
+1. **Registro** (`/register`) — Cria conta com e-mail e senha
+2. **Login** (`/login`) — Duas opções: senha ou magic link
+3. **Confirmação** (`/confirm`) — Callback de confirmação de e-mail/magic link
+4. **Home** (`/`) — Página protegida (requer autenticação)
 
-# pnpm
-pnpm preview
+## Banco de dados
 
-# yarn
-yarn preview
+### Tabela `profiles`
 
-# bun
-bun run preview
-```
+Criada automaticamente via trigger quando um novo usuário é registrado no `auth.users`.
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+| Coluna       | Tipo          | Descrição                              |
+| ------------ | ------------- | -------------------------------------- |
+| `id`         | uuid (PK, FK) | Referencia `auth.users.id`             |
+| `created_at` | timestamptz   | Data de criação                        |
+| `updated_at` | timestamptz   | Data de atualização (auto via trigger) |
+| `name`       | text          | Nome do usuário                        |
+| `avatar_url` | text          | URL do avatar                          |
+| `role`       | user_role     | `'user'` (padrão) ou `'admin'`         |
+
+### RLS (Row Level Security)
+
+- Usuários podem **ler** e **editar** apenas seu próprio perfil
+- Admins podem ler todos os perfis
