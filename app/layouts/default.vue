@@ -53,6 +53,12 @@
           title="Produtos"
           to="/products"
         />
+        <v-list-item
+          v-if="user"
+          prepend-icon="mdi-truck-outline"
+          title="Fornecedores"
+          to="/suppliers"
+        />
 
         <template v-if="profile?.role === 'admin'">
           <v-divider class="my-2" />
