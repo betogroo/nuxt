@@ -64,15 +64,12 @@
 </script>
 
 <template>
-  <v-container max-width="600">
-    <UiCard class="mt-4" transparent-header>
-      <template #header>
-        <v-icon class="mr-2">mdi-account-circle</v-icon>
-        Configurações do Perfil
-      </template>
+  <div class="mx-auto" style="max-width: 600px">
+    <PageHeader subtitle="Gerencie suas informações de conta" title="Meu Perfil" />
 
+    <UiCard class="mt-4" transparent-header>
       <!-- Avatar Preview -->
-      <div class="d-flex flex-column align-center mb-6">
+      <div class="d-flex flex-column align-center mb-6 mt-4">
         <v-avatar class="mb-2" color="primary" size="100" variant="tonal">
           <v-img v-if="formData.avatar_url" :src="formData.avatar_url" />
           <v-icon v-else size="50">mdi-camera</v-icon>
@@ -164,5 +161,5 @@
         </div>
       </v-form>
     </UiCard>
-  </v-container>
+  </div>
 </template>

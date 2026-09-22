@@ -254,10 +254,15 @@
 </script>
 
 <template>
-  <v-container>
+  <div>
+    <PageHeader
+      subtitle="Gerencie unidades e resolva unidades sugeridas"
+      title="Unidades de Medida"
+    />
+
     <v-row>
       <v-col v-if="pendingUnits && pendingUnits.length > 0" cols="12">
-        <UiCard>
+        <UiCard title="Unidades Pendentes">
           <template #header>
             <div class="text-warning d-flex align-center">
               <v-icon class="mr-2">mdi-alert-circle</v-icon>
@@ -295,19 +300,20 @@
       <v-col cols="12">
         <UiCard>
           <template #header>
-            Unidades de Medida Oficiais
+            <span class="text-subtitle-1 font-weight-bold">Unidades de Medida Oficiais</span>
             <v-spacer />
-            <UiButton color="white" prepend-icon="mdi-plus" @click="openAddModal">
-              Nova Unidade
-            </UiButton>
             <UiButton
-              class="ml-2"
-              color="white"
+              class="mr-2"
+              color="secondary"
               icon="mdi-refresh"
               :loading="pending"
-              variant="text"
+              size="small"
+              variant="tonal"
               @click="refresh"
             />
+            <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+              Nova Unidade
+            </UiButton>
           </template>
 
           <UiTable
@@ -414,5 +420,5 @@
         </template>
       </UiCard>
     </v-dialog>
-  </v-container>
+  </div>
 </template>

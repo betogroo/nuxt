@@ -58,22 +58,22 @@
 </script>
 
 <template>
-  <v-container>
+  <div>
+    <PageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
+      <template #actions>
+        <UiButton
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="pending"
+          variant="tonal"
+          @click="refresh"
+        />
+      </template>
+    </PageHeader>
+
     <v-row>
       <v-col cols="12">
         <UiCard>
-          <template #header>
-            Registros de Sistema (Acessos e Ações)
-            <v-spacer />
-            <UiButton
-              color="white"
-              icon="mdi-refresh"
-              :loading="pending"
-              variant="text"
-              @click="refresh"
-            />
-          </template>
-
           <UiTable
             :headers="[
               { text: 'Data/Hora', value: 'created_at' },
@@ -121,5 +121,5 @@
         </UiCard>
       </v-col>
     </v-row>
-  </v-container>
+  </div>
 </template>

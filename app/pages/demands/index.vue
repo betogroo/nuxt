@@ -149,24 +149,27 @@
 </script>
 
 <template>
-  <v-container>
+  <div>
+    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas" />
+
     <v-row>
       <v-col cols="12">
         <UiCard>
           <template #header>
-            Demandas
+            <span class="text-subtitle-1 font-weight-bold">Lista de Demandas</span>
             <v-spacer />
+            <UiButton
+              class="mr-2"
+              color="secondary"
+              icon="mdi-refresh"
+              :loading="pending"
+              size="small"
+              variant="tonal"
+              @click="refresh"
+            />
             <UiButton color="primary" prepend-icon="mdi-plus" @click="openModal()">
               Nova Demanda
             </UiButton>
-            <UiButton
-              class="ml-2"
-              color="white"
-              icon="mdi-refresh"
-              :loading="pending"
-              variant="text"
-              @click="refresh"
-            />
           </template>
 
           <UiTable
@@ -283,5 +286,5 @@
         </template>
       </UiCard>
     </v-dialog>
-  </v-container>
+  </div>
 </template>

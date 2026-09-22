@@ -57,245 +57,229 @@
 </script>
 
 <template>
-  <v-container>
-    <v-row align="center" class="mb-4">
-      <v-col>
-        <h1 class="text-h4 font-weight-bold text-primary">Painel de Controle</h1>
-        <p class="text-subtitle-1 text-grey">Resumo e estatísticas do sistema</p>
-      </v-col>
-    </v-row>
+  <div>
+    <PageHeader subtitle="Resumo e estatísticas do sistema" title="Painel de Controle" />
 
-    <v-row v-if="pending">
-      <v-col class="text-center" cols="12">
-        <v-progress-circular color="primary" indeterminate size="64" />
-      </v-col>
-    </v-row>
+    <div v-if="pending" class="d-flex justify-center my-12">
+      <v-progress-circular color="primary" indeterminate size="64" />
+    </div>
 
     <template v-else-if="metrics">
       <!-- Top Metrics Cards -->
-      <v-row class="mb-4">
+      <v-row class="mb-6">
         <v-col cols="12" md="3" sm="6">
-          <v-card class="bg-primary text-white" elevation="3">
-            <v-card-text class="d-flex align-center justify-space-between">
+          <v-card border elevation="0" rounded="lg">
+            <v-card-text class="d-flex align-center justify-space-between pa-4">
               <div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-80">Usuários</div>
-                <div class="text-h4 font-weight-black mt-1">{{ metrics.usersCount }}</div>
+                <div class="text-caption text-uppercase font-weight-bold text-grey">Usuários</div>
+                <div class="text-h4 font-weight-black mt-1 text-primary">
+                  {{ metrics.usersCount }}
+                </div>
               </div>
-              <v-icon class="opacity-50" size="48">mdi-account-group</v-icon>
+              <v-avatar color="primary" rounded="lg" size="56" variant="tonal">
+                <v-icon size="32">mdi-account-group</v-icon>
+              </v-avatar>
             </v-card-text>
           </v-card>
         </v-col>
 
         <v-col cols="12" md="3" sm="6">
-          <v-card class="bg-success text-white" elevation="3">
-            <v-card-text class="d-flex align-center justify-space-between">
+          <v-card border elevation="0" rounded="lg">
+            <v-card-text class="d-flex align-center justify-space-between pa-4">
               <div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-80">Demandas</div>
-                <div class="text-h4 font-weight-black mt-1">{{ metrics.demandsCount }}</div>
+                <div class="text-caption text-uppercase font-weight-bold text-grey">Demandas</div>
+                <div class="text-h4 font-weight-black mt-1 text-success">
+                  {{ metrics.demandsCount }}
+                </div>
               </div>
-              <v-icon class="opacity-50" size="48">mdi-clipboard-list</v-icon>
+              <v-avatar color="success" rounded="lg" size="56" variant="tonal">
+                <v-icon size="32">mdi-clipboard-list</v-icon>
+              </v-avatar>
             </v-card-text>
           </v-card>
         </v-col>
 
         <v-col cols="12" md="3" sm="6">
-          <v-card class="bg-info text-white" elevation="3">
-            <v-card-text class="d-flex align-center justify-space-between">
+          <v-card border elevation="0" rounded="lg">
+            <v-card-text class="d-flex align-center justify-space-between pa-4">
               <div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-80">
+                <div class="text-caption text-uppercase font-weight-bold text-grey">
                   Produtos Ativos
                 </div>
-                <div class="text-h4 font-weight-black mt-1">{{ metrics.productsCount }}</div>
+                <div class="text-h4 font-weight-black mt-1 text-info">
+                  {{ metrics.productsCount }}
+                </div>
               </div>
-              <v-icon class="opacity-50" size="48">mdi-package-variant</v-icon>
+              <v-avatar color="info" rounded="lg" size="56" variant="tonal">
+                <v-icon size="32">mdi-package-variant</v-icon>
+              </v-avatar>
             </v-card-text>
           </v-card>
         </v-col>
 
         <v-col cols="12" md="3" sm="6">
-          <v-card class="bg-deep-purple text-white" elevation="3">
-            <v-card-text class="d-flex align-center justify-space-between">
+          <v-card border elevation="0" rounded="lg">
+            <v-card-text class="d-flex align-center justify-space-between pa-4">
               <div>
-                <div class="text-caption text-uppercase font-weight-bold opacity-80">
-                  Categorias
+                <div class="text-caption text-uppercase font-weight-bold text-grey">Categorias</div>
+                <div class="text-h4 font-weight-black mt-1 text-deep-purple">
+                  {{ metrics.categoriesCount }}
                 </div>
-                <div class="text-h4 font-weight-black mt-1">{{ metrics.categoriesCount }}</div>
               </div>
-              <v-icon class="opacity-50" size="48">mdi-shape</v-icon>
+              <v-avatar color="deep-purple" rounded="lg" size="56" variant="tonal">
+                <v-icon size="32">mdi-shape</v-icon>
+              </v-avatar>
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
 
       <!-- Bloco de Tarefas a Revisar -->
-      <v-row class="mt-2">
+      <v-row v-if="totalPending > 0" class="mb-6">
         <v-col cols="12">
-          <v-card elevation="2">
-            <v-card-title class="d-flex align-center bg-grey-lighten-4 pa-4">
-              <v-icon class="mr-2" color="warning">mdi-clipboard-text-clock</v-icon>
-              Tarefas a Revisar
-            </v-card-title>
-            <v-divider />
-
-            <v-list v-if="totalPending > 0" lines="one">
-              <v-list-item v-if="pendingCategoriesCount > 0">
-                <template #prepend>
-                  <v-icon color="error">mdi-shape</v-icon>
-                </template>
-                <v-list-item-title class="font-weight-medium">
-                  Revisão de Categorias Sugeridas
-                </v-list-item-title>
-                <template #append>
-                  <v-chip class="mr-4 font-weight-bold" color="error" size="small" variant="flat">
-                    {{ pendingCategoriesCount }}
-                  </v-chip>
-                  <UiButton color="primary" size="small" to="/admin/categories" variant="outlined">
-                    Revisar
-                  </UiButton>
-                </template>
-              </v-list-item>
-
-              <v-divider v-if="pendingCategoriesCount > 0 && pendingUnitsCount > 0" />
-
-              <v-list-item v-if="pendingUnitsCount > 0">
-                <template #prepend>
-                  <v-icon color="warning">mdi-scale-balance</v-icon>
-                </template>
-                <v-list-item-title class="font-weight-medium">
-                  Aprovação de Unidades de Medida Pendentes
-                </v-list-item-title>
-                <template #append>
-                  <v-chip class="mr-4 font-weight-bold" color="warning" size="small" variant="flat">
-                    {{ pendingUnitsCount }}
-                  </v-chip>
-                  <UiButton color="primary" size="small" to="/admin/units" variant="outlined">
-                    Revisar
-                  </UiButton>
-                </template>
-              </v-list-item>
-            </v-list>
-            
-            <v-card-text v-else class="text-center text-grey py-6">
-              <v-icon class="mb-2" color="success" size="large">mdi-check-circle-outline</v-icon>
-              <br />
-              Nenhuma tarefa pendente para revisão no momento. Tudo em dia!
-            </v-card-text>
-          </v-card>
+          <v-alert
+            border="start"
+            border-color="warning"
+            color="warning"
+            elevation="1"
+            icon="mdi-clipboard-text-clock"
+            title="Tarefas Pendentes de Revisão"
+            variant="tonal"
+          >
+            <div class="d-flex flex-column gap-2 mt-3">
+              <div
+                v-if="pendingCategoriesCount > 0"
+                class="d-flex align-center justify-space-between"
+              >
+                <span class="d-flex align-center">
+                  <v-icon class="mr-2" size="small">mdi-shape</v-icon>
+                  Revisão de Categorias Sugeridas ({{ pendingCategoriesCount }})
+                </span>
+                <UiButton color="warning" size="small" to="/admin/categories" variant="outlined"
+                  >Revisar</UiButton
+                >
+              </div>
+              <v-divider v-if="pendingCategoriesCount > 0 && pendingUnitsCount > 0" class="my-1" />
+              <div v-if="pendingUnitsCount > 0" class="d-flex align-center justify-space-between">
+                <span class="d-flex align-center">
+                  <v-icon class="mr-2" size="small">mdi-scale-balance</v-icon>
+                  Aprovação de Unidades de Medida Pendentes ({{ pendingUnitsCount }})
+                </span>
+                <UiButton color="warning" size="small" to="/admin/units" variant="outlined"
+                  >Revisar</UiButton
+                >
+              </div>
+            </div>
+          </v-alert>
         </v-col>
       </v-row>
 
-      <v-row class="mt-6">
+      <v-row>
         <!-- Recent Activity Feed -->
         <v-col cols="12" md="8">
-          <v-card elevation="2" height="100%">
-            <v-card-title class="d-flex align-center bg-grey-lighten-4 pa-4">
-              <v-icon class="mr-2" color="primary">mdi-history</v-icon>
-              Atividade Recente
-            </v-card-title>
-            <v-divider />
+          <UiCard class="h-100" title="Atividade Recente">
+            <template #header>
+              <div class="d-flex align-center">
+                <v-icon class="mr-2" color="primary">mdi-history</v-icon>
+                Atividade Recente
+              </div>
+            </template>
 
-            <v-list lines="two">
-              <template v-for="(log, index) in metrics.recentLogs" :key="log.id">
-                <v-list-item>
-                  <template #prepend>
-                    <v-avatar class="text-white" :color="getLogColor(log.action)" size="40">
-                      <v-icon size="20">mdi-flash</v-icon>
-                    </v-avatar>
-                  </template>
-
-                  <v-list-item-title class="font-weight-medium">
-                    {{ log.action.replace(/_/g, ' ') }}
-                  </v-list-item-title>
-
-                  <v-list-item-subtitle class="mt-1">
-                    {{ log.description }}
-                  </v-list-item-subtitle>
-
-                  <template #append>
-                    <div class="d-flex flex-column align-end">
-                      <div class="text-caption text-grey">
-                        {{ formatDate(log.created_at) }}
-                      </div>
-                      <v-chip class="mt-1" size="x-small" variant="tonal">
-                        {{ log.profiles?.name || 'Sistema' }}
-                      </v-chip>
-                    </div>
-                  </template>
-                </v-list-item>
-
-                <v-divider v-if="index < metrics.recentLogs.length - 1" inset />
-              </template>
-
-              <v-list-item v-if="!metrics.recentLogs.length">
-                <v-list-item-title class="text-grey text-center py-4"
-                  >Nenhuma atividade registrada ainda.</v-list-item-title
+            <div class="px-4 py-2">
+              <v-timeline
+                v-if="metrics.recentLogs.length"
+                align="start"
+                density="compact"
+                truncate-line="both"
+              >
+                <v-timeline-item
+                  v-for="log in metrics.recentLogs"
+                  :key="log.id"
+                  :dot-color="getLogColor(log.action)"
+                  size="small"
                 >
-              </v-list-item>
-            </v-list>
+                  <div class="mb-1">
+                    <strong>{{ log.action.replace(/_/g, ' ') }}</strong>
+                    <div class="text-caption text-grey mt-1">
+                      {{ formatDate(log.created_at) }} &bull; {{ log.profiles?.name || 'Sistema' }}
+                    </div>
+                  </div>
+                  <div class="text-body-2">{{ log.description }}</div>
+                </v-timeline-item>
+              </v-timeline>
+              <div v-else class="text-center text-grey py-8">
+                Nenhuma atividade registrada ainda.
+              </div>
+            </div>
 
-            <v-card-actions class="justify-center bg-grey-lighten-4">
+            <template #actions>
               <UiButton color="primary" to="/logs" variant="text">Ver Todos os Registros</UiButton>
-            </v-card-actions>
-          </v-card>
+            </template>
+          </UiCard>
         </v-col>
 
         <!-- Quick Access / Actions -->
         <v-col cols="12" md="4">
-          <v-card elevation="2" height="100%">
-            <v-card-title class="d-flex align-center bg-grey-lighten-4 pa-4">
-              <v-icon class="mr-2" color="primary">mdi-lightning-bolt</v-icon>
-              Acesso Rápido
-            </v-card-title>
-            <v-divider />
+          <UiCard class="h-100" title="Acesso Rápido">
+            <template #header>
+              <div class="d-flex align-center">
+                <v-icon class="mr-2" color="primary">mdi-lightning-bolt</v-icon>
+                Acesso Rápido
+              </div>
+            </template>
 
-            <v-card-text class="pa-4">
+            <div class="d-flex flex-column gap-3 mt-2">
               <UiButton
                 block
-                class="mb-3 justify-start"
+                class="justify-start"
                 color="primary"
                 prepend-icon="mdi-account-group"
                 size="large"
                 to="/users"
+                variant="tonal"
               >
                 Gerenciar Usuários
               </UiButton>
 
               <UiButton
                 block
-                class="mb-3 justify-start"
+                class="justify-start"
                 color="deep-purple"
                 prepend-icon="mdi-shape"
                 size="large"
                 to="/admin/categories"
+                variant="tonal"
               >
                 Categorias de Produtos
               </UiButton>
 
               <UiButton
                 block
-                class="mb-3 justify-start"
+                class="justify-start"
                 color="info"
                 prepend-icon="mdi-package-variant"
                 size="large"
                 to="/products"
+                variant="tonal"
               >
                 Ver Produtos
               </UiButton>
 
               <UiButton
                 block
-                class="justify-start text-white"
+                class="justify-start"
                 color="blue-grey"
                 prepend-icon="mdi-format-list-bulleted-type"
                 size="large"
                 to="/logs"
+                variant="tonal"
               >
                 Auditoria de Logs
               </UiButton>
-            </v-card-text>
-          </v-card>
+            </div>
+          </UiCard>
         </v-col>
       </v-row>
     </template>
-  </v-container>
+  </div>
 </template>

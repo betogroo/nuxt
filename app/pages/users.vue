@@ -130,24 +130,27 @@
 </script>
 
 <template>
-  <v-container>
+  <div>
+    <PageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários" />
+
     <v-row>
       <v-col cols="12">
         <UiCard>
           <template #header>
-            Usuários do Sistema
+            <span class="text-subtitle-1 font-weight-bold">Lista de Usuários</span>
             <v-spacer />
-            <UiButton color="white" prepend-icon="mdi-account-plus" @click="openAddModal">
-              Novo Usuário
-            </UiButton>
             <UiButton
-              class="ml-2"
-              color="white"
+              class="mr-2"
+              color="secondary"
               icon="mdi-refresh"
               :loading="pending"
-              variant="text"
+              size="small"
+              variant="tonal"
               @click="refresh"
             />
+            <UiButton color="primary" prepend-icon="mdi-account-plus" @click="openAddModal">
+              Novo Usuário
+            </UiButton>
           </template>
 
           <UiTable
@@ -287,5 +290,5 @@
         </template>
       </UiCard>
     </v-dialog>
-  </v-container>
+  </div>
 </template>

@@ -244,18 +244,28 @@
 </script>
 
 <template>
-  <v-container>
+  <div>
+    <PageHeader
+      subtitle="Gerencie as categorias disponíveis e avalie sugestões"
+      title="Categorias de Produtos"
+    />
+
     <v-row>
       <v-col cols="12">
         <!-- Tabela de Sugestões Pendentes -->
-        <UiCard v-if="pendingSuggestions && pendingSuggestions.length > 0" class="mb-6">
+        <UiCard
+          v-if="pendingSuggestions && pendingSuggestions.length > 0"
+          class="mb-6"
+          title="Sugestões Pendentes"
+        >
           <template #header>
             Sugestões Pendentes ({{ pendingSuggestions.length }})
             <v-spacer />
             <UiButton
-              color="white"
+              color="primary"
               icon="mdi-refresh"
               :loading="pendingSuggestionsPending"
+              size="small"
               variant="text"
               @click="refreshSuggestions"
             />
@@ -290,19 +300,20 @@
         <!-- Tabela Principal de Categorias -->
         <UiCard>
           <template #header>
-            Categorias de Produtos
+            <span class="text-subtitle-1 font-weight-bold">Categorias de Produtos</span>
             <v-spacer />
-            <UiButton color="white" prepend-icon="mdi-plus" @click="openAddModal">
-              Nova Categoria
-            </UiButton>
             <UiButton
-              class="ml-2"
-              color="white"
+              class="mr-2"
+              color="secondary"
               icon="mdi-refresh"
               :loading="pending"
-              variant="text"
+              size="small"
+              variant="tonal"
               @click="refresh"
             />
+            <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+              Nova Categoria
+            </UiButton>
           </template>
 
           <UiTable
@@ -418,5 +429,5 @@
         </template>
       </UiCard>
     </v-dialog>
-  </v-container>
+  </div>
 </template>
