@@ -96,10 +96,12 @@
   })
 
   const computedMeasurementUnits = computed(() => {
-    return (allMeasurementUnits.value || []).map((u) => ({
-      ...u,
-      displayName: u.legacy_alias ? `${u.name} (Legado: ${u.legacy_alias})` : u.name,
-    }))
+    return (availableUnitsForSelectedProduct.value || []).map(
+      (u: { name: string; legacy_alias?: string | null } | undefined | null) => ({
+        ...u,
+        displayName: u?.legacy_alias ? `${u?.name} (Legado: ${u?.legacy_alias})` : u?.name,
+      }),
+    )
   })
 
   // Whenever a product is selected, auto-select the first unit if available

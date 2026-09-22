@@ -13,3 +13,7 @@ All database table names, column names, functions, triggers, and any other datab
 # Planning
 
 Always show what will be done before applying changes. Create an implementation plan and wait for the user's approval before executing modifications or creating new features.
+
+# TypeScript Types
+
+Always strictly type your variables and functions. Do NOT use the `any` type under any circumstances. If the exact type is complex or unknown, use `unknown` or define a precise interface/type.
