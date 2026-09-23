@@ -24,6 +24,23 @@
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
   })
 
+  // Fetch Demand Responsibles
+  const { data: responsibles, refresh: refreshResponsibles } = useAsyncData(
+    `demand-responsibles-${demandId}`,
+    async () => {
+      const { data, error } = await supabase
+        .from('demand_responsibles')
+        .select('*, profiles(name)')
+        .eq('demand_id', demandId)
+
+      if (error) {
+        console.error('Responsibles error:', error)
+        return []
+      }
+      return data
+    },
+  )
+
   // Fetch Demand Products
 
   const {
@@ -100,6 +117,33 @@
   const selectedUnitSearch = ref<string>('')
   const itemQuantity = ref<number>(1)
   const searchProductText = ref('')
+
+  // Advance Status Modal State
+  const isStatusModalOpen = ref(false)
+  const isAdvancing = ref(false)
+  const advanceError = ref('')
+  const targetStatus = ref<Database['public']['Enums']['demand_status'] | ''>('')
+
+  // Dynamic fields for advance
+  const advancePayload = ref({
+    bidding_notice_number: '',
+    dispute_number: '',
+    dispute_date: '',
+    offer_opening_date: '',
+    offer_opening_time: '',
+    contract_number: '',
+  })
+
+  // Add Responsible Modal State
+  const isResponsibleModalOpen = ref(false)
+  const responsibleUserId = ref<string | null>(null)
+  const isAddingResponsible = ref(false)
+  const responsibleError = ref('')
+
+  const { data: allProfiles } = useAsyncData('all-profiles', async () => {
+    const { data } = await supabase.from('profiles').select('id, name').order('name')
+    return data || []
+  })
 
   const selectedProductObj = computed(() => {
     return allProducts.value?.find((p) => p.id === selectedProductId.value)
@@ -220,9 +264,39 @@
         )
 
         finalProductId = newProd.id
-        finalUnitId =
-          allMeasurementUnits.value?.find((u: { name: string; id: string }) => u.name === 'Unidade')
-            ?.id || ''
+
+        // Handle Unit for New Product
+        if (!searchStr) {
+          // Fallback to 'Unidade' if none provided
+          finalUnitId =
+            allMeasurementUnits.value?.find(
+              (u: { name: string; id: string }) => u.name === 'Unidade',
+            )?.id || ''
+        } else {
+          const existingUnit = allMeasurementUnits.value?.find(
+            (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
+          )
+          if (existingUnit) {
+            finalUnitId = existingUnit.id
+          } else {
+            // Create new unit as pending
+            const { data: newUnit, error: insertError } = await supabase
+              .from('measurement_units')
+              .insert({ name: searchStr, is_active: false, is_pending: true })
+              .select()
+              .single()
+
+            if (insertError) throw insertError
+            finalUnitId = newUnit.id
+
+            // Refresh units list
+            const { data: refreshedUnits } = await supabase
+              .from('measurement_units')
+              .select('*')
+              .order('name')
+            allMeasurementUnits.value = refreshedUnits || []
+          }
+        }
         await refreshProducts() // reload product list
       } else {
         if (!searchStr) {
@@ -382,6 +456,150 @@
       alert(`Erro ao atualizar quantidade: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
+
+  const formatStatus = (status: string) => {
+    const map: Record<string, string> = {
+      planning: 'Planejamento',
+      bidding_notice: 'Aviso de Contratação',
+      dispute: 'Disputa',
+      homologation: 'Homologação',
+      completed: 'Concluído',
+      cancelled: 'Cancelado',
+    }
+    return map[status] || status
+  }
+
+  const statusList: Database['public']['Enums']['demand_status'][] = [
+    'planning',
+    'bidding_notice',
+    'dispute',
+    'homologation',
+    'completed',
+  ]
+  const getNextStatus = (current: string) => {
+    const idx = statusList.indexOf(current as Database['public']['Enums']['demand_status'])
+    if (idx >= 0 && idx < statusList.length - 1) {
+      return statusList[idx + 1]
+    }
+    return null
+  }
+
+  const openAdvanceModal = () => {
+    if (!demand.value) return
+    const next = getNextStatus(demand.value.status)
+    if (!next) return
+    targetStatus.value = next
+    advanceError.value = ''
+    isStatusModalOpen.value = true
+  }
+
+  const confirmAdvanceStatus = async () => {
+    isAdvancing.value = true
+    advanceError.value = ''
+
+    try {
+      const payload: Partial<Database['public']['Tables']['demands']['Update']> = {
+        status: targetStatus.value as Database['public']['Enums']['demand_status'],
+      }
+
+      if (targetStatus.value === 'bidding_notice') {
+        if (!advancePayload.value.bidding_notice_number)
+          throw new Error('O número do aviso é obrigatório.')
+        payload.bidding_notice_number = advancePayload.value.bidding_notice_number
+      } else if (targetStatus.value === 'dispute') {
+        if (!advancePayload.value.dispute_number)
+          throw new Error('O número da disputa é obrigatório.')
+        if (!advancePayload.value.dispute_date) throw new Error('A data da disputa é obrigatória.')
+
+        let offerOpening = null
+        if (advancePayload.value.offer_opening_date || advancePayload.value.offer_opening_time) {
+          if (
+            !advancePayload.value.offer_opening_date ||
+            !advancePayload.value.offer_opening_time
+          ) {
+            throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
+          }
+          offerOpening = new Date(
+            `${advancePayload.value.offer_opening_date}T${advancePayload.value.offer_opening_time}`,
+          ).toISOString()
+        }
+
+        payload.dispute_number = advancePayload.value.dispute_number
+        payload.dispute_date = advancePayload.value.dispute_date
+        payload.offer_opening_date = offerOpening
+      } else if (targetStatus.value === 'homologation') {
+        if (!advancePayload.value.contract_number)
+          throw new Error('O número da contratação é obrigatório.')
+        payload.contract_number = advancePayload.value.contract_number
+      }
+
+      const { error } = await supabase.from('demands').update(payload).eq('id', demandId)
+      if (error) throw error
+
+      await logAction(
+        'ADVANCE_DEMAND_STATUS',
+        `Demanda ${demandId} avançou para ${targetStatus.value}`,
+        user.value?.id,
+      )
+      isStatusModalOpen.value = false
+      // reload demand data to trigger reactivity
+      const { data, error: reloadErr } = await supabase
+        .from('demands')
+        .select('*')
+        .eq('id', demandId)
+        .single()
+      if (!reloadErr && data) {
+        demand.value = data
+      }
+    } catch (err: unknown) {
+      advanceError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isAdvancing.value = false
+    }
+  }
+
+  const addResponsible = async () => {
+    isAddingResponsible.value = true
+    responsibleError.value = ''
+
+    try {
+      if (!responsibleUserId.value) throw new Error('Selecione um usuário.')
+
+      const { error } = await supabase
+        .from('demand_responsibles')
+        .insert({ demand_id: demandId, user_id: responsibleUserId.value })
+
+      if (error) throw error
+
+      await logAction(
+        'ADD_DEMAND_RESPONSIBLE',
+        `Responsável adicionado à demanda ${demandId}`,
+        user.value?.id,
+      )
+      responsibleUserId.value = null
+      isResponsibleModalOpen.value = false
+      await refreshResponsibles()
+    } catch (err: unknown) {
+      responsibleError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isAddingResponsible.value = false
+    }
+  }
+
+  const removeResponsible = async (userId: string) => {
+    if (!confirm('Deseja realmente remover este responsável?')) return
+    try {
+      const { error } = await supabase
+        .from('demand_responsibles')
+        .delete()
+        .eq('demand_id', demandId)
+        .eq('user_id', userId)
+      if (error) throw error
+      await refreshResponsibles()
+    } catch (err: unknown) {
+      alert(`Erro: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
 </script>
 
 <template>
@@ -393,41 +611,137 @@
     <!-- Cabeçalho da Demanda -->
     <UiCard v-if="demand" class="mb-6" transparent-header>
       <template #header>
-        {{ demand.name }}
+        <div class="d-flex align-center w-100">
+          <span class="mr-4">{{ demand.name }}</span>
+          <v-chip color="primary" size="small" variant="flat">{{
+            formatStatus(demand.status)
+          }}</v-chip>
+          <v-spacer />
+          <UiButton
+            v-if="getNextStatus(demand.status)"
+            color="success"
+            prepend-icon="mdi-arrow-right-bold"
+            @click="openAdvanceModal"
+          >
+            Avançar para {{ formatStatus(getNextStatus(demand.status) || '') }}
+          </UiButton>
+        </div>
       </template>
+
+      <!-- Stepper Visual -->
+      <v-stepper
+        class="elevation-0 bg-transparent mb-6"
+        :model-value="statusList.indexOf(demand.status) + 1"
+      >
+        <v-stepper-header>
+          <template v-for="(step, i) in statusList" :key="step">
+            <v-stepper-item
+              :color="statusList.indexOf(demand.status) >= i ? 'primary' : 'grey'"
+              :complete="statusList.indexOf(demand.status) > i"
+              :value="i + 1"
+            >
+              {{ formatStatus(step) }}
+            </v-stepper-item>
+            <v-divider v-if="i < statusList.length - 1" />
+          </template>
+        </v-stepper-header>
+      </v-stepper>
+
       <v-row>
-        <v-col cols="12" sm="3">
-          <div class="text-caption text-grey">Tipo</div>
-          <div class="text-body-1 font-weight-medium">
-            {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
-          </div>
+        <v-col cols="12" md="8">
+          <v-row>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Tipo</div>
+              <div class="text-body-1 font-weight-medium">
+                {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Aviso de Contratação</div>
+              <div class="text-body-1 font-weight-medium">
+                {{ demand.bidding_notice_number || '-' }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Data da Disputa</div>
+              <div class="text-body-1">
+                {{
+                  demand.dispute_date
+                    ? new Date(demand.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                    : '-'
+                }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Nº Disputa</div>
+              <div class="text-body-1">
+                {{ demand.dispute_number || '-' }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Abertura de Ofertas</div>
+              <div class="text-body-1">
+                {{
+                  demand.offer_opening_date
+                    ? new Date(demand.offer_opening_date).toLocaleString([], {
+                        dateStyle: 'short',
+                        timeStyle: 'short',
+                      })
+                    : '-'
+                }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">Nº Contratação</div>
+              <div class="text-body-1">
+                {{ demand.contract_number || '-' }}
+              </div>
+            </v-col>
+          </v-row>
         </v-col>
-        <v-col cols="12" sm="3">
-          <div class="text-caption text-grey">Data da Disputa</div>
-          <div class="text-body-1">
-            {{
-              demand.dispute_date
-                ? new Date(demand.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-                : 'Não informada'
-            }}
+
+        <!-- Responsáveis -->
+        <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
+          <div class="d-flex align-center mb-2">
+            <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
+            <v-spacer />
+            <UiButton
+              icon="mdi-plus"
+              size="x-small"
+              variant="text"
+              @click="isResponsibleModalOpen = true"
+            />
           </div>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <div class="text-caption text-grey">Abertura de Ofertas</div>
-          <div class="text-body-1">
-            {{
-              demand.offer_opening_date
-                ? new Date(demand.offer_opening_date).toLocaleString([], {
-                    dateStyle: 'short',
-                    timeStyle: 'short',
-                  })
-                : 'Não informada'
-            }}
-          </div>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <div class="text-caption text-grey">ID</div>
-          <div class="text-caption font-weight-mono">{{ demand.id.split('-')[0] }}</div>
+          <v-list class="bg-transparent pa-0" density="compact">
+            <v-list-item
+              v-for="resp in responsibles"
+              :key="resp?.user_id || Math.random()"
+              class="px-0"
+            >
+              <template #prepend>
+                <v-avatar class="text-caption text-white" color="primary" size="32">
+                  {{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}
+                </v-avatar>
+              </template>
+              <v-list-item-title class="text-body-2">{{
+                resp?.profiles?.name || 'Usuário Desconhecido'
+              }}</v-list-item-title>
+              <template #append>
+                <UiButton
+                  color="error"
+                  icon="mdi-close"
+                  size="x-small"
+                  variant="text"
+                  @click="removeResponsible(resp?.user_id || '')"
+                />
+              </template>
+            </v-list-item>
+            <v-list-item v-if="!responsibles?.length" class="px-0">
+              <v-list-item-title class="text-caption text-grey"
+                >Nenhum responsável definido.</v-list-item-title
+              >
+            </v-list-item>
+          </v-list>
         </v-col>
       </v-row>
     </UiCard>
@@ -599,6 +913,20 @@
             variant="outlined"
           />
 
+          <v-combobox
+            v-model="selectedUnitSearch"
+            class="mb-4"
+            density="comfortable"
+            hint="Deixe em branco para usar 'Unidade', ou digite uma nova embalagem."
+            item-title="displayName"
+            item-value="name"
+            :items="computedMeasurementUnits"
+            label="Apresentação (Unidade de Medida)"
+            persistent-hint
+            :return-object="false"
+            variant="outlined"
+          />
+
           <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
 
           <div class="text-right">
@@ -613,6 +941,103 @@
           <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
             Adicionar à Demanda
           </UiButton>
+        </template>
+      </UiCard>
+    </v-dialog>
+
+    <!-- Modal Adicionar Responsável -->
+    <v-dialog v-model="isResponsibleModalOpen" max-width="400px">
+      <UiCard title="Adicionar Responsável" transparent-header>
+        <v-alert
+          v-if="responsibleError"
+          class="mb-4"
+          density="compact"
+          type="error"
+          variant="tonal"
+        >
+          {{ responsibleError }}
+        </v-alert>
+        <UiSelect
+          v-model="responsibleUserId"
+          item-title="name"
+          item-value="id"
+          :items="allProfiles || []"
+          label="Selecione o Usuário"
+        />
+        <template #actions>
+          <UiButton
+            :disabled="isAddingResponsible"
+            variant="text"
+            @click="isResponsibleModalOpen = false"
+            >Cancelar</UiButton
+          >
+          <UiButton color="primary" :loading="isAddingResponsible" @click="addResponsible"
+            >Adicionar</UiButton
+          >
+        </template>
+      </UiCard>
+    </v-dialog>
+
+    <!-- Modal Avançar Status -->
+    <v-dialog v-model="isStatusModalOpen" max-width="500px">
+      <UiCard :title="`Avançar para: ${formatStatus(targetStatus)}`" transparent-header>
+        <v-alert v-if="advanceError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ advanceError }}
+        </v-alert>
+
+        <div v-if="targetStatus === 'bidding_notice'">
+          <UiInput
+            v-model="advancePayload.bidding_notice_number"
+            label="Número do Aviso de Contratação"
+            required
+          />
+        </div>
+
+        <div v-if="targetStatus === 'dispute'">
+          <UiInput v-model="advancePayload.dispute_number" label="Número da Disputa" required />
+          <UiInput
+            v-model="advancePayload.dispute_date"
+            label="Data da Disputa"
+            required
+            type="date"
+          />
+          <v-row class="mt-2">
+            <v-col class="py-0" cols="12" sm="6">
+              <UiInput
+                v-model="advancePayload.offer_opening_date"
+                label="Data de Abertura"
+                type="date"
+              />
+            </v-col>
+            <v-col class="py-0" cols="12" sm="6">
+              <UiInput
+                v-model="advancePayload.offer_opening_time"
+                label="Hora de Abertura"
+                type="time"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <div v-if="targetStatus === 'homologation'">
+          <UiInput
+            v-model="advancePayload.contract_number"
+            label="Número da Contratação (Contrato/Ata)"
+            required
+          />
+        </div>
+
+        <div v-if="targetStatus === 'completed'">
+          <p class="text-body-1">Tem certeza que deseja concluir esta demanda?</p>
+        </div>
+
+        <template #actions>
+          <UiButton :disabled="isAdvancing" variant="text" @click="isStatusModalOpen = false"
+            >Cancelar</UiButton
+          >
+          <UiButton color="success" :loading="isAdvancing" @click="confirmAdvanceStatus"
+            >Confirmar Avanço</UiButton
+          >
         </template>
       </UiCard>
     </v-dialog>

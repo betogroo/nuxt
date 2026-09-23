@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
   const route = useRoute()
@@ -36,7 +36,7 @@
   const isEditing = ref(false)
   const isSaving = ref(false)
   const editError = ref('')
-  const editForm = ref({ quantity: 1, unit_id: '' })
+  const editForm = ref({ quantity: 1, unitSearch: '' })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const availableUnits = ref<any[]>([])
 
@@ -44,17 +44,17 @@
     if (!item.value) return
     editForm.value = {
       quantity: Number(item.value.quantity),
-      unit_id: item.value.unit_id,
+      unitSearch: item.value.measurement_units?.name || '',
     }
 
-    // Fetch valid units for this product
-    const { data: unitsData } = await supabase
-      .from('product_units')
-      .select('id, measurement_units(*)')
-      .eq('product_id', item.value.product_id)
+    // Fetch all units so user can search or suggest new ones
+    const { data: unitsData } = await supabase.from('measurement_units').select('*').order('name')
 
     if (unitsData) {
-      availableUnits.value = unitsData.map((u) => u.measurement_units)
+      availableUnits.value = unitsData.map((u) => ({
+        ...u,
+        displayName: u.legacy_alias ? `${u.name} (Legado: ${u.legacy_alias})` : u.name,
+      }))
     }
 
     editError.value = ''
@@ -70,25 +70,62 @@
     editError.value = ''
     try {
       if (editForm.value.quantity <= 0) throw new Error('A quantidade deve ser maior que 0.')
-      if (!editForm.value.unit_id) throw new Error('A unidade de medida é obrigatória.')
+
+      const rawVal = editForm.value.unitSearch
+      const searchStr =
+        typeof rawVal === 'string' ? rawVal.trim() : (rawVal as { name?: string })?.name?.trim()
+
+      if (!searchStr) throw new Error('A unidade de medida é obrigatória.')
+
+      let finalUnitId = ''
+
+      const existingUnit = availableUnits.value?.find(
+        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
+      )
+
+      if (existingUnit) {
+        finalUnitId = existingUnit.id
+      } else {
+        const { data: newUnit, error: insertError } = await supabase
+          .from('measurement_units')
+          .insert({ name: searchStr, is_active: false, is_pending: true })
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+        finalUnitId = newUnit.id
+      }
+
+      const { data: existingLink } = await supabase
+        .from('product_units')
+        .select('id')
+        .eq('product_id', item.value!.product_id)
+        .eq('unit_id', finalUnitId)
+        .maybeSingle()
+
+      if (!existingLink && item.value?.product_id) {
+        await supabase
+          .from('product_units')
+          .insert({ product_id: item.value.product_id, unit_id: finalUnitId })
+      }
 
       const { error: updateErr } = await supabase
         .from('demand_products')
         .update({
           quantity: editForm.value.quantity,
-          unit_id: editForm.value.unit_id,
+          unit_id: finalUnitId,
         })
         .eq('id', itemId)
 
       if (updateErr) {
         if (updateErr.code === '23505')
-          throw new Error('Já existe esse produto com essa mesma unidade nesta demanda.')
+          throw new Error('JÃ¡ existe esse produto com essa mesma unidade nesta demanda.')
         throw updateErr
       }
 
       await logAction(
         'UPDATE_DEMAND_ITEM',
-        `Usuário editou o item ${itemId} da demanda ${demandId}`,
+        `UsuÃ¡rio editou o item ${itemId} da demanda ${demandId}`,
         user.value?.id,
       )
       await refresh()
@@ -141,8 +178,8 @@
           </template>
 
           <v-alert class="mb-4" density="compact" type="info" variant="tonal">
-            Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
-            documentos enviados pelos fornecedores aparecerão aqui.
+            Esta Ã© a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
+            documentos enviados pelos fornecedores aparecerÃ£o aqui.
           </v-alert>
 
           <!-- Futuro Card de Lances -->
@@ -167,7 +204,7 @@
 
       <v-col cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
-        <UiCard title="Informações" variant="outlined">
+        <UiCard title="InformaÃ§Ãµes" variant="outlined">
           <v-list class="bg-transparent" density="compact">
             <v-list-item>
               <template #prepend>
@@ -199,12 +236,17 @@
 
         <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
 
-        <UiSelect
-          v-model="editForm.unit_id"
-          item-title="name"
-          item-value="id"
+        <v-combobox
+          v-model="editForm.unitSearch"
+          density="comfortable"
+          hint="Selecione ou digite uma nova embalagem se não existir."
+          item-title="displayName"
+          item-value="name"
           :items="availableUnits"
-          label="Unidade de Medida (Apresentação)"
+          label="Apresentação (Unidade de Medida)"
+          persistent-hint
+          :return-object="false"
+          variant="outlined"
         />
 
         <template #actions>

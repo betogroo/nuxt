@@ -67,33 +67,78 @@ export type Database = {
           },
         ]
       }
-      demands: {
+      demand_responsibles: {
         Row: {
           created_at: string
-          dispute_date: string
+          demand_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          demand_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          demand_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'demand_responsibles_demand_id_fkey'
+            columns: ['demand_id']
+            isOneToOne: false
+            referencedRelation: 'demands'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'demand_responsibles_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      demands: {
+        Row: {
+          bidding_notice_number: string | null
+          contract_number: string | null
+          created_at: string
+          dispute_date: string | null
+          dispute_number: string | null
           id: string
           name: string
           offer_opening_date: string | null
+          status: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
           updated_at: string
           user_id: string
         }
         Insert: {
+          bidding_notice_number?: string | null
+          contract_number?: string | null
           created_at?: string
-          dispute_date: string
+          dispute_date?: string | null
+          dispute_number?: string | null
           id?: string
           name: string
           offer_opening_date?: string | null
+          status?: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id: string
         }
         Update: {
+          bidding_notice_number?: string | null
+          contract_number?: string | null
           created_at?: string
-          dispute_date?: string
+          dispute_date?: string | null
+          dispute_number?: string | null
           id?: string
           name?: string
           offer_opening_date?: string | null
+          status?: Database['public']['Enums']['demand_status']
           type?: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id?: string
@@ -371,6 +416,8 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
+      demand_status:
+        'planning' | 'bidding_notice' | 'dispute' | 'homologation' | 'completed' | 'cancelled'
       demand_type: 'consumption' | 'permanent'
       user_role: 'user' | 'admin'
     }
@@ -494,6 +541,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      demand_status: [
+        'planning',
+        'bidding_notice',
+        'dispute',
+        'homologation',
+        'completed',
+        'cancelled',
+      ],
       demand_type: ['consumption', 'permanent'],
       user_role: ['user', 'admin'],
     },

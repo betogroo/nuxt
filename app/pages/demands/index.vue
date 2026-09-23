@@ -20,7 +20,7 @@
   } = useAsyncData('demands-list', async () => {
     const { data, error } = await supabase
       .from('demands')
-      .select('*, profiles(name)')
+      .select('*, profiles!demands_user_id_fkey(name)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -35,33 +35,15 @@
     id: '',
     name: '',
     type: 'consumption' as const,
-    dispute_date: '',
-    offer_opening_date: null as string | null,
   }
 
   const editingDemand = ref<Partial<DemandRow>>({ ...defaultDemand })
-  const offerOpeningDate = ref('')
-  const offerOpeningTime = ref('')
 
   const openModal = (demand?: DemandRow) => {
     if (demand) {
       editingDemand.value = { ...demand }
-      if (editingDemand.value.offer_opening_date) {
-        const dt = editingDemand.value.offer_opening_date.slice(0, 16).split('T')
-        offerOpeningDate.value = dt[0] || ''
-        offerOpeningTime.value = dt[1] || ''
-      } else {
-        offerOpeningDate.value = ''
-        offerOpeningTime.value = ''
-      }
-      // Convert timestamptz/date to YYYY-MM-DD for date input
-      if (editingDemand.value.dispute_date) {
-        editingDemand.value.dispute_date = editingDemand.value.dispute_date.slice(0, 10)
-      }
     } else {
       editingDemand.value = { ...defaultDemand }
-      offerOpeningDate.value = ''
-      offerOpeningTime.value = ''
     }
     saveError.value = ''
     isModalOpen.value = true
@@ -70,8 +52,6 @@
   const closeModal = () => {
     isModalOpen.value = false
     editingDemand.value = { ...defaultDemand }
-    offerOpeningDate.value = ''
-    offerOpeningTime.value = ''
   }
 
   const canEdit = (demand: DemandRow) => {
@@ -83,32 +63,40 @@
     return type === 'consumption' ? 'Consumo' : 'Permanente'
   }
 
+  const formatStatus = (status: string) => {
+    const map: Record<string, string> = {
+      planning: 'Planejamento',
+      bidding_notice: 'Aviso de Contratação',
+      dispute: 'Disputa',
+      homologation: 'Homologação',
+      completed: 'Concluído',
+      cancelled: 'Cancelado',
+    }
+    return map[status] || status
+  }
+
+  const getStatusColor = (status: string) => {
+    const map: Record<string, string> = {
+      planning: 'grey',
+      bidding_notice: 'info',
+      dispute: 'warning',
+      homologation: 'primary',
+      completed: 'success',
+      cancelled: 'error',
+    }
+    return map[status] || 'grey'
+  }
+
   const saveDemand = async () => {
     isSaving.value = true
     saveError.value = ''
 
     try {
-      if (!editingDemand.value.dispute_date) {
-        throw new Error('A data da disputa é obrigatória.')
-      }
-
       const isEditing = !!editingDemand.value.id
-
-      // Formatar date-time-local string to ISO para o Supabase (timestamptz)
-      let offerOpening = null
-      if (offerOpeningDate.value || offerOpeningTime.value) {
-        if (!offerOpeningDate.value || !offerOpeningTime.value) {
-          throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
-        }
-        offerOpening = new Date(`${offerOpeningDate.value}T${offerOpeningTime.value}`).toISOString()
-      }
 
       const payload = {
         name: editingDemand.value.name!,
         type: editingDemand.value.type!,
-        dispute_date: editingDemand.value.dispute_date!,
-        offer_opening_date: offerOpening,
-        user_id: profile.value!.id,
       }
 
       if (isEditing) {
@@ -125,7 +113,11 @@
           user.value?.id,
         )
       } else {
-        const { data, error } = await supabase.from('demands').insert([payload]).select().single()
+        const { data, error } = await supabase
+          .from('demands')
+          .insert([{ ...payload, user_id: profile.value!.id }])
+          .select()
+          .single()
 
         if (error) throw error
 
@@ -176,7 +168,7 @@
             :headers="[
               { text: 'Nome', value: 'name' },
               { text: 'Tipo', value: 'type' },
-              { text: 'Data da Disputa', value: 'dispute_date' },
+              { text: 'Status', value: 'status' },
               { text: 'Criado por', value: 'creator' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
@@ -202,12 +194,10 @@
                 {{ formatType(item.type) }}
               </v-chip>
             </template>
-            <template #item-dispute_date="{ item }">
-              {{
-                item.dispute_date
-                  ? new Date(item.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-                  : '-'
-              }}
+            <template #item-status="{ item }">
+              <v-chip :color="getStatusColor(item.status)" size="small" variant="outlined">
+                {{ formatStatus(item.status) }}
+              </v-chip>
             </template>
             <template #item-creator="{ item }">
               <span class="text-caption text-grey">
@@ -255,30 +245,6 @@
           ]"
           label="Tipo"
         />
-
-        <UiInput
-          v-model="editingDemand.dispute_date"
-          clearable
-          label="Data da Disputa *"
-          type="date"
-          @update:model-value="
-            () => {
-              if (isModalOpen && editingDemand.id) {
-                offerOpeningDate = ''
-                offerOpeningTime = ''
-              }
-            }
-          "
-        />
-
-        <v-row class="mt-2">
-          <v-col class="py-0" cols="12" sm="6">
-            <UiInput v-model="offerOpeningDate" clearable label="Data de Abertura" type="date" />
-          </v-col>
-          <v-col class="py-0" cols="12" sm="6">
-            <UiInput v-model="offerOpeningTime" clearable label="Hora de Abertura" type="time" />
-          </v-col>
-        </v-row>
 
         <template #actions>
           <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
