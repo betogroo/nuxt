@@ -27,6 +27,7 @@ mockNuxtImport('useAsyncData', () => {
     return {
       data: ref([
         { id: '1', name: 'Metro', is_active: true, is_pending: false, legacy_alias: 'm' },
+        { id: '3', name: 'Inativa', is_active: false, is_pending: false, legacy_alias: 'in' },
       ]),
       pending: ref(false),
       refresh: vi.fn(),

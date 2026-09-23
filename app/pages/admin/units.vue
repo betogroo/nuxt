@@ -107,6 +107,10 @@
     return units.value?.filter((u) => !u.is_pending && u.is_active) || []
   })
 
+  const inactiveUnits = computed(() => {
+    return units.value?.filter((u) => !u.is_pending && !u.is_active) || []
+  })
+
   const isResolveModalOpen = ref(false)
   const isResolving = ref(false)
   const resolveError = ref('')
@@ -223,6 +227,54 @@
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="activeUnits"
+            :loading="pending"
+          >
+            <template #item-legacy_alias="{ item }">
+              <v-chip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
+                {{ item.legacy_alias }}
+              </v-chip>
+              <span v-else class="text-grey">-</span>
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
+        </UiCard>
+      </v-col>
+
+      <v-col v-if="inactiveUnits.length > 0" cols="12">
+        <UiCard>
+          <template #header>
+            <span class="text-subtitle-1 font-weight-bold text-grey"
+              >Unidades de Medida Desativadas</span
+            >
+          </template>
+
+          <UiTable
+            :headers="[
+              { text: 'Nome da Unidade', value: 'name' },
+              { text: 'Apelido (Sistema Legado)', value: 'legacy_alias' },
+              { text: 'Status', value: 'is_active', align: 'center' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="inactiveUnits"
             :loading="pending"
           >
             <template #item-legacy_alias="{ item }">
