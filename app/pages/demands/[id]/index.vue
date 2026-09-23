@@ -116,6 +116,7 @@
   const selectedProductId = ref<string | null>(null)
   const selectedUnitSearch = ref<string>('')
   const itemQuantity = ref<number>(1)
+  const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')
 
   // Advance Status Modal State
@@ -197,6 +198,7 @@
     selectedProductId.value = null
     selectedUnitSearch.value = ''
     itemQuantity.value = 1
+    itemReferencePrice.value = null
     searchProductText.value = ''
     isNewProductMode.value = false
     newProductName.value = ''
@@ -384,6 +386,7 @@
           product_id: finalProductId,
           unit_id: finalUnitId,
           quantity: itemQuantity.value,
+          reference_price: itemReferencePrice.value,
         })
 
         if (error) throw error
@@ -934,6 +937,14 @@
             min="1"
             type="number"
           />
+          <UiInput
+            v-if="selectedProductId"
+            v-model.number="itemReferencePrice"
+            class="mt-3"
+            label="Valor Referencial (R$)"
+            step="0.0001"
+            type="number"
+          />
         </template>
 
         <!-- SeÃ§Ã£o de Cadastro RÃ¡pido de Novo Produto -->
@@ -980,6 +991,12 @@
           />
 
           <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
+          <UiInput
+            v-model.number="itemReferencePrice"
+            label="Valor Referencial (R$)"
+            step="0.0001"
+            type="number"
+          />
 
           <div class="text-right">
             <UiButton size="small" variant="text" @click="isNewProductMode = false">
