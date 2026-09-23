@@ -13,6 +13,7 @@
     createCategory,
     updateCategory,
     resolveSuggestion,
+    toggleCategoryStatus,
   } = useCategories()
 
   const currentPage = ref(1)
@@ -34,6 +35,18 @@
     },
     { watch: [currentPage] },
   )
+
+  const activeCategories = computed(() => categories.value?.filter((c) => c.is_active) || [])
+  const inactiveCategories = computed(() => categories.value?.filter((c) => !c.is_active) || [])
+
+  const toggleStatus = async (category: CategoryRow) => {
+    try {
+      await toggleCategoryStatus(category)
+      await refresh()
+    } catch (e: unknown) {
+      alert(`Erro ao alterar status: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
 
   const { data: allActiveCategories } = useAsyncData(
     'all-active-categories',
@@ -226,19 +239,25 @@
           <UiTable
             :headers="[
               { text: 'Nome da Categoria', value: 'name' },
-              { text: 'Status', value: 'is_active' },
+              { text: 'Status', value: 'is_active', align: 'center' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
-            :items="categories || []"
+            :items="activeCategories"
           >
-            <template v-if="!categories?.length && !pending" #empty>
+            <template v-if="!activeCategories?.length && !pending" #empty>
               Nenhuma categoria encontrada.
             </template>
             <template #item-name="{ item }">
               <span class="font-weight-medium">{{ item.name }}</span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip :color="item.is_active ? 'success' : 'error'" size="small" variant="flat">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
               </v-chip>
             </template>
@@ -262,6 +281,48 @@
               :total-visible="7"
             />
           </div>
+        </UiCard>
+      </v-col>
+
+      <v-col v-if="inactiveCategories.length > 0" cols="12">
+        <UiCard>
+          <template #header>
+            <span class="text-subtitle-1 font-weight-bold text-grey">Categorias Desativadas</span>
+          </template>
+
+          <UiTable
+            :headers="[
+              { text: 'Nome da Categoria', value: 'name' },
+              { text: 'Status', value: 'is_active', align: 'center' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="inactiveCategories"
+            :loading="pending"
+          >
+            <template #item-name="{ item }">
+              <span class="font-weight-medium">{{ item.name }}</span>
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
         </UiCard>
       </v-col>
     </v-row>

@@ -77,6 +77,36 @@
     isSaving.value = false
   }
 
+  const activeUsers = computed(() => users.value?.filter((u) => u.is_active) || [])
+  const inactiveUsers = computed(() => users.value?.filter((u) => !u.is_active) || [])
+
+  const toggleUserStatus = async (user: ProfileRow) => {
+    if (user.id === loggedProfile.value?.id) {
+      alert('Você não pode desativar seu próprio usuário.')
+      return
+    }
+
+    try {
+      const newStatus = !user.is_active
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: newStatus })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      await logAction(
+        'ADMIN_TOGGLE_USER_STATUS',
+        `Administrador alterou status do usuário ${user.id} para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
+        loggedProfile.value?.id,
+      )
+      await refresh()
+    } catch (e: unknown) {
+      const err = e as Error
+      alert(`Erro ao alterar status: ${err.message}`)
+    }
+  }
+
   // 4. Lógica de Criação de Novo Usuário (Admin)
   const isAddModalOpen = ref(false)
   const isCreating = ref(false)
@@ -162,10 +192,10 @@
               { text: 'Status', value: 'is_active' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
-            :items="users || []"
+            :items="activeUsers"
           >
-            <template v-if="!users?.length && !pending" #empty>
-              Nenhum usuário encontrado.
+            <template v-if="!activeUsers?.length && !pending" #empty>
+              Nenhum usuário ativo encontrado.
             </template>
             <template #item-id="{ item }">
               <span class="text-grey text-caption font-weight-mono">
@@ -194,7 +224,80 @@
               {{ new Date(item.created_at).toLocaleDateString() }}
             </template>
             <template #item-is_active="{ item }">
-              <v-chip :color="item.is_active ? 'success' : 'error'" size="small" variant="flat">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleUserStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
+        </UiCard>
+      </v-col>
+
+      <v-col v-if="inactiveUsers.length > 0" cols="12">
+        <UiCard>
+          <template #header>
+            <span class="text-subtitle-1 font-weight-bold text-grey">Usuários Desativados</span>
+          </template>
+
+          <UiTable
+            :headers="[
+              { text: 'ID', value: 'id' },
+              { text: 'Usuário', value: 'name' },
+              { text: 'Cargo', value: 'role' },
+              { text: 'Membro desde', value: 'created_at' },
+              { text: 'Status', value: 'is_active' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="inactiveUsers"
+          >
+            <template #item-id="{ item }">
+              <span class="text-grey text-caption font-weight-mono">
+                {{ item.id.split('-')[0] }}
+              </span>
+            </template>
+            <template #item-name="{ item }">
+              <div class="d-flex align-center py-2">
+                <v-avatar class="mr-3" color="surface-variant" size="32">
+                  <v-img v-if="item.avatar_url" :src="item.avatar_url" />
+                  <v-icon v-else>mdi-account</v-icon>
+                </v-avatar>
+                <span>{{ item.name || 'Sem nome' }}</span>
+              </div>
+            </template>
+            <template #item-role="{ item }">
+              <v-chip
+                :color="item.role === 'admin' ? 'primary' : 'grey'"
+                size="small"
+                :variant="item.role === 'admin' ? 'flat' : 'outlined'"
+              >
+                {{ item.role.toUpperCase() }}
+              </v-chip>
+            </template>
+            <template #item-created_at="{ item }">
+              {{ new Date(item.created_at).toLocaleDateString() }}
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleUserStatus(item)"
+              >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
               </v-chip>
             </template>

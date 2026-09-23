@@ -83,6 +83,9 @@
     },
   )
 
+  const activeProducts = computed(() => products.value?.filter((p) => p.is_active) || [])
+  const inactiveProducts = computed(() => products.value?.filter((p) => !p.is_active) || [])
+
   // When category changes, reset page to 1
   watch(selectedCategory, () => {
     currentPage.value = 1
@@ -273,12 +276,12 @@
             :headers="[
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
-              { text: 'Status', value: 'is_active' },
+              { text: 'Status', value: 'is_active', align: 'center' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
-            :items="products || []"
+            :items="activeProducts"
           >
-            <template v-if="!products?.length && !pending" #empty>
+            <template v-if="!activeProducts?.length && !pending" #empty>
               Nenhum produto encontrado.
             </template>
             <template #item-name="{ item }">
@@ -329,6 +332,63 @@
               :total-visible="7"
             />
           </div>
+        </UiCard>
+      </v-col>
+
+      <v-col v-if="inactiveProducts.length > 0" cols="12">
+        <UiCard>
+          <template #header>
+            <span class="text-subtitle-1 font-weight-bold text-grey">Produtos Desativados</span>
+          </template>
+
+          <UiTable
+            :headers="[
+              { text: 'Nome', value: 'name' },
+              { text: 'Categoria (Material)', value: 'category' },
+              { text: 'Status', value: 'is_active', align: 'center' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="inactiveProducts"
+            :loading="pending"
+          >
+            <template #item-name="{ item }">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/products/${item.id}`"
+              >
+                {{ item.name }}
+              </NuxtLink>
+            </template>
+            <template #item-category="{ item }">
+              {{ item.product_categories?.name || '-' }}
+              <span
+                v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
+                class="text-caption text-grey ml-1"
+              >
+                (Sugestão: {{ item.suggested_category }})
+              </span>
+            </template>
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
         </UiCard>
       </v-col>
     </v-row>

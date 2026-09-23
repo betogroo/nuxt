@@ -15,6 +15,7 @@ vi.mock('~/composables/useCategories', () => {
       createCategory: vi.fn(),
       updateCategory: vi.fn(),
       resolveSuggestion: vi.fn(),
+      toggleCategoryStatus: vi.fn(),
     }),
   }
 })

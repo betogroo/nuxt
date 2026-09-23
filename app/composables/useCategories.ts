@@ -135,6 +135,22 @@ export const useCategories = () => {
     await logAction('RESOLVE_SUGGESTION', `Sugestão "${resolveTarget}" resolvida`, user.value?.id)
   }
 
+  const toggleCategoryStatus = async (category: CategoryRow) => {
+    const newStatus = !category.is_active
+    const { error } = await supabase
+      .from('product_categories')
+      .update({ is_active: newStatus })
+      .eq('id', category.id)
+
+    if (error) throw error
+
+    await logAction(
+      'TOGGLE_CATEGORY_STATUS',
+      `Categoria ${category.name} alterada para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
+      user.value?.id,
+    )
+  }
+
   return {
     fetchCategories,
     fetchAllActiveCategories,
@@ -142,5 +158,6 @@ export const useCategories = () => {
     createCategory,
     updateCategory,
     resolveSuggestion,
+    toggleCategoryStatus,
   }
 }

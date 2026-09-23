@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
 import { useCategories } from '~/composables/useCategories'
+import type { CategoryRow } from '~/composables/useCategories'
 
 const mockSupabase = {
   from: vi.fn(),
@@ -156,6 +157,24 @@ describe('useCategories', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'RESOLVE_SUGGESTION',
       'Sugestão "Bebidas Geladas" resolvida',
+      'user-123',
+    )
+  })
+
+  it('toggleCategoryStatus should update status and log', async () => {
+    const mockEq = vi.fn().mockResolvedValue({ error: null })
+    mockSupabase.from.mockReturnValueOnce({
+      update: vi.fn().mockReturnThis(),
+      eq: mockEq,
+    })
+
+    const { toggleCategoryStatus } = useCategories()
+    await toggleCategoryStatus({ id: 'cat-2', name: 'Lanches', is_active: true } as CategoryRow)
+
+    expect(mockEq).toHaveBeenCalledWith('id', 'cat-2')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'TOGGLE_CATEGORY_STATUS',
+      'Categoria Lanches alterada para INATIVO',
       'user-123',
     )
   })
