@@ -119,7 +119,7 @@
         <UiCard v-if="!pending && item" transparent-header>
           <template #header>
             <div class="d-flex align-center">
-              {{ item.product?.name }}
+              {{ item.product_name_snapshot || item.product?.name }}
               <UiButton
                 class="ml-1"
                 color="primary"
@@ -130,7 +130,7 @@
                 variant="text"
               />
               <v-chip class="ml-2" color="secondary" size="small" variant="flat">
-                {{ item.measurement_units?.name || 'Unidade' }}
+                {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
               </v-chip>
             </div>
             <v-spacer />

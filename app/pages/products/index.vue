@@ -31,6 +31,22 @@
     return data
   })
 
+  // Fetch pending suggestions for the combobox
+  const { data: pendingSuggestions, refresh: refreshPendingSuggestions } = useAsyncData(
+    'pending-suggestions-products',
+    async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('suggested_category')
+        .not('suggested_category', 'is', null)
+
+      if (error) return []
+
+      const unique = [...new Set(data.map((p) => p.suggested_category as string))]
+      return unique.sort()
+    },
+  )
+
   // Fetch Products with Pagination and Filter
   const {
     data: products,
@@ -146,7 +162,15 @@
         name: form.value.name,
         category_id: form.value.category_id,
         suggested_category: form.value.is_suggesting_category
-          ? form.value.suggested_category
+          ? typeof form.value.suggested_category === 'string'
+            ? form.value.suggested_category.trim()
+            : form.value.suggested_category
+              ? String(
+                  (form.value.suggested_category as Record<string, unknown>).name ||
+                    (form.value.suggested_category as Record<string, unknown>).title ||
+                    form.value.suggested_category,
+                ).trim()
+              : null
           : null,
         is_active: form.value.is_active,
       }
@@ -168,6 +192,7 @@
       }
 
       await refresh()
+      await refreshPendingSuggestions()
       closeModal()
     } catch (err: unknown) {
       const e = err as Error
@@ -332,13 +357,17 @@
           label="Categoria de Material"
         />
 
-        <UiInput
+        <v-combobox
           v-if="form.is_suggesting_category"
           v-model="form.suggested_category"
           class="mb-4"
-          hint="Digite a categoria desejada para que o administrador possa cadastrá-la futuramente."
+          density="comfortable"
+          hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
+          :items="pendingSuggestions || []"
           label="Qual categoria você sugere?"
           persistent-hint
+          :return-object="false"
+          variant="outlined"
         />
 
         <v-switch

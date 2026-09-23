@@ -72,6 +72,22 @@
     return data
   })
 
+  // Fetch all pending suggestions to show in autocomplete
+  const { data: pendingSuggestions, refresh: refreshPendingSuggestions } = useAsyncData(
+    'pending-suggestions',
+    async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('suggested_category')
+        .not('suggested_category', 'is', null)
+
+      if (error) return []
+
+      const unique = [...new Set(data.map((p) => p.suggested_category as string))]
+      return unique.sort()
+    },
+  )
+
   // Modal State
   const isModalOpen = ref(false)
   const isSaving = ref(false)
@@ -180,7 +196,15 @@
             name: newProductName.value,
             category_id: newProductCategoryId.value,
             suggested_category: isNewProductOutrosCategory.value
-              ? newProductSuggestedCategory.value || null
+              ? typeof newProductSuggestedCategory.value === 'string'
+                ? newProductSuggestedCategory.value.trim()
+                : newProductSuggestedCategory.value
+                  ? String(
+                      (newProductSuggestedCategory.value as Record<string, unknown>).name ||
+                        (newProductSuggestedCategory.value as Record<string, unknown>).title ||
+                        newProductSuggestedCategory.value,
+                    ).trim()
+                  : null
               : null,
             is_active: true,
           })
@@ -298,6 +322,7 @@
       }
 
       await refreshItems()
+      await refreshPendingSuggestions()
       closeModal()
     } catch (err: unknown) {
       saveError.value = err instanceof Error ? err.message : String(err)
@@ -434,7 +459,7 @@
             class="text-decoration-none text-primary font-weight-bold"
             :to="`/demands/${demandId}/items/${item.id}`"
           >
-            {{ item.product?.name || 'Produto desconhecido' }}
+            {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
             <v-chip
               v-if="item.measurement_units"
               class="ml-2"
@@ -442,7 +467,7 @@
               size="x-small"
               variant="flat"
             >
-              {{ item.measurement_units.name }}
+              {{ item.unit_name_snapshot || item.measurement_units.name }}
             </v-chip>
           </NuxtLink>
           <UiButton
@@ -457,6 +482,7 @@
         </template>
         <template #item-category="{ item }">
           {{
+            item.category_name_snapshot ||
             (item.product as { product_categories?: { name: string } })?.product_categories?.name ||
             '-'
           }}
@@ -560,13 +586,17 @@
             label="Categoria de Material"
           />
 
-          <UiInput
+          <v-combobox
             v-if="isNewProductOutrosCategory"
             v-model="newProductSuggestedCategory"
             class="mb-4"
-            hint="Digite a categoria para que o administrador possa cadastrá-la no futuro."
+            density="comfortable"
+            hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
+            :items="pendingSuggestions || []"
             label="Qual categoria você sugere?"
             persistent-hint
+            :return-object="false"
+            variant="outlined"
           />
 
           <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />

@@ -1,37 +1,46 @@
-﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   public: {
     Tables: {
       demand_products: {
         Row: {
+          category_name_snapshot: string | null
           created_at: string
           created_by: string | null
           demand_id: string
           id: string
           product_id: string
+          product_name_snapshot: string | null
           quantity: number
           unit_id: string
+          unit_name_snapshot: string | null
           updated_at: string
         }
         Insert: {
+          category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null
           demand_id: string
           id?: string
           product_id: string
+          product_name_snapshot?: string | null
           quantity?: number
           unit_id: string
+          unit_name_snapshot?: string | null
           updated_at?: string
         }
         Update: {
+          category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null
           demand_id?: string
           id?: string
           product_id?: string
+          product_name_snapshot?: string | null
           quantity?: number
           unit_id?: string
+          unit_name_snapshot?: string | null
           updated_at?: string
         }
         Relationships: [
