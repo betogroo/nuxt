@@ -1,24 +1,16 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
-
-  type UnitRow = Database['public']['Tables']['measurement_units']['Row']
+  import type { UnitRow } from '~/composables/useMeasurementUnits'
 
   const {
-    data: units,
-    pending,
-    refresh,
-  } = useAsyncData('measurement-units-admin', async () => {
-    const { data, error } = await supabase.from('measurement_units').select('*').order('name')
-    if (error) {
-      console.error(error)
-      return []
-    }
-    return data
-  })
+    fetchUnits,
+    createUnit,
+    updateUnit,
+    toggleUnitStatus,
+    approvePendingUnit,
+    mergePendingUnit,
+  } = useMeasurementUnits()
+
+  const { data: units, pending, refresh } = useAsyncData('measurement-units-admin', fetchUnits)
 
   // Modal State
   const isModalOpen = ref(false)
@@ -83,24 +75,9 @@
       }
 
       if (isEditing.value) {
-        const { error } = await supabase
-          .from('measurement_units')
-          .update(payload)
-          .eq('id', form.value.id)
-        if (error) throw error
-        await logAction(
-          'UPDATE_UNIT',
-          `Unidade de medida atualizada: ${form.value.name}`,
-          user.value?.id,
-        )
+        await updateUnit(form.value.id, payload)
       } else {
-        const { error } = await supabase.from('measurement_units').insert(payload)
-        if (error) throw error
-        await logAction(
-          'CREATE_UNIT',
-          `Nova unidade de medida criada: ${form.value.name}`,
-          user.value?.id,
-        )
+        await createUnit(payload)
       }
 
       await refresh()
@@ -114,19 +91,7 @@
 
   const toggleStatus = async (unit: UnitRow) => {
     try {
-      const newStatus = !unit.is_active
-      const { error } = await supabase
-        .from('measurement_units')
-        .update({ is_active: newStatus })
-        .eq('id', unit.id)
-
-      if (error) throw error
-
-      await logAction(
-        'TOGGLE_UNIT_STATUS',
-        `Unidade ${unit.name} alterada para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
-        user.value?.id,
-      )
+      await toggleUnitStatus(unit)
       await refresh()
     } catch (e: unknown) {
       alert(`Erro ao alterar status: ${e instanceof Error ? e.message : String(e)}`)
@@ -170,75 +135,9 @@
       const targetUnit = resolveTarget.value
 
       if (resolveMode.value === 'new') {
-        // 1. Aprovar a unidade pendente como oficial
-        const { error: updateError } = await supabase
-          .from('measurement_units')
-          .update({ is_pending: false, is_active: true })
-          .eq('id', targetUnit.id)
-
-        if (updateError) throw updateError
-        await logAction(
-          'APPROVE_UNIT',
-          `Unidade sugerida aprovada: ${targetUnit.name}`,
-          user.value?.id,
-        )
+        await approvePendingUnit(targetUnit)
       } else {
-        // 2. Fundir (Merge) com uma existente
-        if (!resolveLinkUnitId.value)
-          throw new Error('Selecione uma unidade existente para mesclar.')
-        const finalUnitId = resolveLinkUnitId.value
-
-        // 2.a Atualizar product_units para apontar para a final, ignorando duplicadas
-        // (Podemos tentar um update, mas se houver UNIQUE violation, significa que o produto ja tem a unidade final. Nesse caso, podemos apagar o vinculo da pendente)
-        const { data: productLinks } = await supabase
-          .from('product_units')
-          .select('*')
-          .eq('unit_id', targetUnit.id)
-
-        if (productLinks) {
-          for (const link of productLinks) {
-            const { error: updErr } = await supabase
-              .from('product_units')
-              .update({ unit_id: finalUnitId })
-              .eq('id', link.id)
-            if (updErr && updErr.code === '23505') {
-              // Se deu erro de unicidade, quer dizer que o produto ja tinha a final. Entao só deleta o vinculo temporario
-              await supabase.from('product_units').delete().eq('id', link.id)
-            }
-          }
-        }
-
-        // 2.b Atualizar demand_products para apontar para a final
-        const { data: demandLinks } = await supabase
-          .from('demand_products')
-          .select('*')
-          .eq('unit_id', targetUnit.id)
-
-        if (demandLinks) {
-          for (const link of demandLinks) {
-            const { error: updErr } = await supabase
-              .from('demand_products')
-              .update({ unit_id: finalUnitId })
-              .eq('id', link.id)
-            if (updErr && updErr.code === '23505') {
-              // Produto com essa unidade já está na demanda (pouco provável, mas lidando com isso)
-              await supabase.from('demand_products').delete().eq('id', link.id)
-            }
-          }
-        }
-
-        // 2.c Deletar a unidade pendente
-        const { error: delError } = await supabase
-          .from('measurement_units')
-          .delete()
-          .eq('id', targetUnit.id)
-        if (delError) throw delError
-
-        await logAction(
-          'MERGE_UNIT',
-          `Unidade sugerida "${targetUnit.name}" mesclada na oficial.`,
-          user.value?.id,
-        )
+        await mergePendingUnit(targetUnit, resolveLinkUnitId.value)
       }
 
       await refresh()
