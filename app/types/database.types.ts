@@ -13,6 +13,7 @@ export type Database = {
           product_id: string
           product_name_snapshot: string | null
           quantity: number
+          reference_price: number | null
           unit_id: string
           unit_name_snapshot: string | null
           updated_at: string
@@ -26,6 +27,7 @@ export type Database = {
           product_id: string
           product_name_snapshot?: string | null
           quantity?: number
+          reference_price?: number | null
           unit_id: string
           unit_name_snapshot?: string | null
           updated_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           product_id?: string
           product_name_snapshot?: string | null
           quantity?: number
+          reference_price?: number | null
           unit_id?: string
           unit_name_snapshot?: string | null
           updated_at?: string
@@ -417,7 +420,13 @@ export type Database = {
     }
     Enums: {
       demand_status:
-        'planning' | 'bidding_notice' | 'dispute' | 'homologation' | 'completed' | 'cancelled'
+        | 'planning'
+        | 'quotation'
+        | 'bidding_notice'
+        | 'dispute'
+        | 'homologation'
+        | 'completed'
+        | 'cancelled'
       demand_type: 'consumption' | 'permanent'
       user_role: 'user' | 'admin'
     }
@@ -543,6 +552,7 @@ export const Constants = {
     Enums: {
       demand_status: [
         'planning',
+        'quotation',
         'bidding_notice',
         'dispute',
         'homologation',

@@ -19,7 +19,7 @@
   } = useAsyncData(`demand-item-${itemId}`, async () => {
     const { data, error: err } = await supabase
       .from('demand_products')
-      .select('*, product:products(*), measurement_units(*)')
+      .select('*, product:products(*), measurement_units(*), demand:demands(status)')
       .eq('id', itemId)
       .single()
 
@@ -36,7 +36,7 @@
   const isEditing = ref(false)
   const isSaving = ref(false)
   const editError = ref('')
-  const editForm = ref({ quantity: 1, unitSearch: '' })
+  const editForm = ref({ quantity: 1, unitSearch: '', reference_price: 0 as number | null })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const availableUnits = ref<any[]>([])
 
@@ -45,6 +45,7 @@
     editForm.value = {
       quantity: Number(item.value.quantity),
       unitSearch: item.value.measurement_units?.name || '',
+      reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
     }
 
     // Fetch all units so user can search or suggest new ones
@@ -114,6 +115,7 @@
         .update({
           quantity: editForm.value.quantity,
           unit_id: finalUnitId,
+          reference_price: editForm.value.reference_price,
         })
         .eq('id', itemId)
 
@@ -173,7 +175,13 @@
             <v-spacer />
             <div class="d-flex align-center">
               <v-chip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</v-chip>
-              <UiButton color="primary" icon="mdi-pencil" size="small" @click="openEditModal" />
+              <UiButton
+                v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                @click="openEditModal"
+              />
             </div>
           </template>
 
@@ -235,6 +243,13 @@
         </v-alert>
 
         <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
+
+        <UiInput
+          v-model.number="editForm.reference_price"
+          label="Valor Referencial (R$)"
+          step="0.0001"
+          type="number"
+        />
 
         <v-combobox
           v-model="editForm.unitSearch"
