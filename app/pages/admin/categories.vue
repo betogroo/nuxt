@@ -1,16 +1,19 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { CategoryRow } from '~/composables/useCategories'
 
   definePageMeta({
     middleware: ['admin'],
   })
   useHead({ title: 'Gerenciar Categorias' })
 
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
-
-  type CategoryRow = Database['public']['Tables']['product_categories']['Row']
+  const {
+    fetchCategories,
+    fetchAllActiveCategories,
+    fetchPendingSuggestions,
+    createCategory,
+    updateCategory,
+    resolveSuggestion,
+  } = useCategories()
 
   const currentPage = ref(1)
   const itemsPerPage = ref(10)
@@ -25,58 +28,23 @@
   } = useAsyncData(
     'admin-categories',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      const { data, count, error } = await supabase
-        .from('product_categories')
-        .select('*', { count: 'exact' })
-        .order('name', { ascending: true })
-        .range(from, to)
-
-      if (error) {
-        console.error(error)
-        return []
-      }
-
-      totalItems.value = count || 0
-      return data
+      const result = await fetchCategories(currentPage.value, itemsPerPage.value)
+      totalItems.value = result.count
+      return result.data
     },
     { watch: [currentPage] },
   )
 
-  const { data: allActiveCategories } = useAsyncData('all-active-categories', async () => {
-    const { data } = await supabase
-      .from('product_categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name')
-    return data || []
-  })
+  const { data: allActiveCategories } = useAsyncData(
+    'all-active-categories',
+    fetchAllActiveCategories,
+  )
 
   const {
     data: pendingSuggestions,
     pending: pendingSuggestionsPending,
     refresh: refreshSuggestions,
-  } = useAsyncData('admin-suggestions', async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('suggested_category')
-      .not('suggested_category', 'is', null)
-
-    if (error) return []
-
-    const groups: Record<string, number> = {}
-    data.forEach((p) => {
-      const cat = p.suggested_category as string
-      groups[cat] = (groups[cat] || 0) + 1
-    })
-
-    return Object.keys(groups).map((name) => ({
-      name,
-      count: groups[name],
-    }))
-  })
+  } = useAsyncData('admin-suggestions', fetchPendingSuggestions)
 
   // Resolve Modal State
   const isResolveModalOpen = ref(false)
@@ -104,44 +72,11 @@
     resolveError.value = ''
     isResolving.value = true
     try {
-      let finalCategoryId = resolveExistingId.value
-
-      if (resolveMode.value === 'new') {
-        if (!resolveNewName.value.trim()) {
-          throw new Error('Informe o nome da nova categoria.')
-        }
-        const { data: newCat, error: insertError } = await supabase
-          .from('product_categories')
-          .insert({ name: resolveNewName.value.trim(), is_active: true })
-          .select()
-          .single()
-
-        if (insertError) {
-          if (insertError.code === '23505')
-            throw new Error('Já existe uma categoria com este nome.')
-          throw insertError
-        }
-        finalCategoryId = newCat.id
-      }
-
-      if (!finalCategoryId) {
-        throw new Error('Selecione uma categoria existente.')
-      }
-
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({
-          category_id: finalCategoryId,
-          suggested_category: null,
-        })
-        .eq('suggested_category', resolveTarget.value)
-
-      if (updateError) throw updateError
-
-      await logAction(
-        'RESOLVE_SUGGESTION',
-        `Sugestão "${resolveTarget.value}" resolvida`,
-        user.value?.id,
+      await resolveSuggestion(
+        resolveTarget.value,
+        resolveMode.value,
+        resolveNewName.value,
+        resolveExistingId.value,
       )
 
       await refreshSuggestions()
@@ -200,40 +135,9 @@
 
     try {
       if (isEditing.value) {
-        const { error } = await supabase
-          .from('product_categories')
-          .update({
-            name: form.value.name.trim(),
-            is_active: form.value.is_active,
-          })
-          .eq('id', form.value.id)
-
-        if (error) {
-          if (error.code === '23505') throw new Error('Já existe uma categoria com este nome.')
-          throw error
-        }
-
-        await logAction(
-          'UPDATE_CATEGORY',
-          `Categoria atualizada: ${form.value.name}`,
-          user.value?.id,
-        )
+        await updateCategory(form.value.id, form.value.name, form.value.is_active)
       } else {
-        const { error } = await supabase.from('product_categories').insert({
-          name: form.value.name.trim(),
-          is_active: form.value.is_active,
-        })
-
-        if (error) {
-          if (error.code === '23505') throw new Error('Já existe uma categoria com este nome.')
-          throw error
-        }
-
-        await logAction(
-          'CREATE_CATEGORY',
-          `Nova categoria criada: ${form.value.name}`,
-          user.value?.id,
-        )
+        await createCategory(form.value.name, form.value.is_active)
       }
 
       await refresh()
