@@ -60,6 +60,9 @@
     currentPage.value = 1
   })
 
+  const activeSuppliers = computed(() => suppliers.value?.filter((s) => s.is_active) || [])
+  const inactiveSuppliers = computed(() => suppliers.value?.filter((s) => !s.is_active) || [])
+
   // Modal State
   const isModalOpen = ref(false)
   const isSaving = ref(false)
@@ -254,12 +257,12 @@
               { text: 'Empresa', value: 'company_name' },
               { text: 'E-mail', value: 'email' },
               { text: 'Optante Simples', value: 'is_simples_optant' },
-              { text: 'Status', value: 'is_active' },
+              { text: 'Status', value: 'is_active', align: 'center' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
-            :items="suppliers || []"
+            :items="activeSuppliers"
           >
-            <template v-if="!suppliers?.length && !pending" #empty>
+            <template v-if="!activeSuppliers?.length && !pending" #empty>
               Nenhum fornecedor encontrado.
             </template>
 
@@ -308,6 +311,62 @@
               :total-visible="7"
             />
           </div>
+        </UiCard>
+      </v-col>
+
+      <v-col v-if="inactiveSuppliers.length > 0" cols="12">
+        <UiCard>
+          <template #header>
+            <span class="text-subtitle-1 font-weight-bold text-grey">Fornecedores Desativados</span>
+          </template>
+
+          <UiTable
+            :headers="[
+              { text: 'CNPJ', value: 'cnpj' },
+              { text: 'Empresa', value: 'company_name' },
+              { text: 'E-mail', value: 'email' },
+              { text: 'Optante Simples', value: 'is_simples_optant' },
+              { text: 'Status', value: 'is_active', align: 'center' },
+              { text: 'Ações', value: 'actions', align: 'right' },
+            ]"
+            :items="inactiveSuppliers"
+            :loading="pending"
+          >
+            <template #item-is_simples_optant="{ item }">
+              <div class="d-flex flex-column">
+                <span
+                  :class="item.is_simples_optant ? 'text-success font-weight-bold' : 'text-grey'"
+                >
+                  {{ item.is_simples_optant ? 'Sim' : 'Não' }}
+                </span>
+                <span v-if="item.simples_optant_verified_at" class="text-caption text-grey">
+                  Verif: {{ formatDate(item.simples_optant_verified_at) }}
+                </span>
+              </div>
+            </template>
+
+            <template #item-is_active="{ item }">
+              <v-chip
+                class="cursor-pointer"
+                :color="item.is_active ? 'success' : 'error'"
+                size="small"
+                variant="flat"
+                @click="toggleStatus(item)"
+              >
+                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
+              </v-chip>
+            </template>
+
+            <template #item-actions="{ item }">
+              <UiButton
+                color="primary"
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                @click="openEditModal(item)"
+              />
+            </template>
+          </UiTable>
         </UiCard>
       </v-col>
     </v-row>
