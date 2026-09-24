@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   useHead({ title: 'Produtos' })
@@ -19,6 +19,7 @@
   const totalItems = ref(0)
   // selectedCategory will now hold category_id instead of material_category string
   const selectedCategory = ref<string | null>(null)
+  const statusFilter = ref<string>('active')
 
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
@@ -43,20 +44,18 @@
         currentPage.value,
         itemsPerPage.value,
         selectedCategory.value,
+        statusFilter.value
       )
       totalItems.value = result.count
       return result.data
     },
     {
-      watch: [currentPage, selectedCategory],
+      watch: [currentPage, selectedCategory, statusFilter],
     },
   )
 
-  const activeProducts = computed(() => products.value?.filter((p) => p.is_active) || [])
-  const inactiveProducts = computed(() => products.value?.filter((p) => !p.is_active) || [])
-
-  // When category changes, reset page to 1
-  watch(selectedCategory, () => {
+  // When filters change, reset page to 1
+  watch([selectedCategory, statusFilter], () => {
     currentPage.value = 1
   })
 
@@ -114,13 +113,13 @@
   const saveProduct = async () => {
     if (form.value.is_suggesting_category) {
       if (!form.value.name || !form.value.suggested_category) {
-        saveError.value = 'Nome e SugestÃ£o de Categoria sÃ£o obrigatÃ³rios.'
+        saveError.value = 'Nome e Sugestão de Categoria são obrigatórios.'
         return
       }
       form.value.category_id = outrosCategory.value?.id || ''
     } else {
       if (!form.value.name || !form.value.category_id) {
-        saveError.value = 'Nome e Categoria sÃ£o obrigatÃ³rios.'
+        saveError.value = 'Nome e Categoria são obrigatórios.'
         return
       }
       form.value.suggested_category = '' // Limpa se desmarcou
@@ -179,7 +178,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="CatÃ¡logo centralizado de produtos e materiais" title="Produtos" />
+    <PageHeader subtitle="Catálogo centralizado de produtos e materiais" title="Produtos" />
 
     <v-row>
       <v-col cols="12">
@@ -204,7 +203,7 @@
           <!-- Barra de Filtro -->
           <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
             <v-row align="center" no-gutters>
-              <v-col cols="12" md="4" sm="6">
+              <v-col class="pr-sm-2 mb-2 mb-sm-0" cols="12" md="4" sm="6">
                 <UiSelect
                   v-model="selectedCategory"
                   class="mb-0"
@@ -214,6 +213,21 @@
                   item-value="id"
                   :items="filteredCategories"
                   label="Filtrar por Categoria"
+                />
+              </v-col>
+              <v-col class="pl-sm-2" cols="12" md="4" sm="6">
+                <UiSelect
+                  v-model="statusFilter"
+                  class="mb-0"
+                  hide-details
+                  item-title="title"
+                  item-value="value"
+                  :items="[
+                    { title: 'Todos', value: 'all' },
+                    { title: 'Ativos', value: 'active' },
+                    { title: 'Inativos', value: 'inactive' },
+                  ]"
+                  label="Status"
                 />
               </v-col>
             </v-row>
@@ -226,11 +240,12 @@
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'Ações', value: 'actions', align: 'right' },
             ]"
-            :items="activeProducts"
+            :items="products || []"
+            :loading="pending"
           >
-            <template v-if="!activeProducts?.length && !pending" #empty>
+            <template v-if="!products?.length && !pending" #empty>
               Nenhum produto encontrado.
             </template>
             <template #item-name="{ item }">
@@ -247,7 +262,7 @@
                 v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
                 class="text-caption text-grey ml-1"
               >
-                (SugestÃ£o: {{ item.suggested_category }})
+                (Sugestão: {{ item.suggested_category }})
               </span>
             </template>
             <template #item-is_active="{ item }">
@@ -272,7 +287,7 @@
             </template>
           </UiTable>
 
-          <!-- PaginaÃ§Ã£o -->
+          <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -281,63 +296,6 @@
               :total-visible="7"
             />
           </div>
-        </UiCard>
-      </v-col>
-
-      <v-col v-if="inactiveProducts.length > 0" cols="12">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold text-grey">Produtos Desativados</span>
-          </template>
-
-          <UiTable
-            :headers="[
-              { text: 'Nome', value: 'name' },
-              { text: 'Categoria (Material)', value: 'category' },
-              { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
-            ]"
-            :items="inactiveProducts"
-            :loading="pending"
-          >
-            <template #item-name="{ item }">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/products/${item.id}`"
-              >
-                {{ item.name }}
-              </NuxtLink>
-            </template>
-            <template #item-category="{ item }">
-              {{ item.product_categories?.name || '-' }}
-              <span
-                v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
-                class="text-caption text-grey ml-1"
-              >
-                (SugestÃ£o: {{ item.suggested_category }})
-              </span>
-            </template>
-            <template #item-is_active="{ item }">
-              <v-chip
-                class="cursor-pointer"
-                :color="item.is_active ? 'success' : 'error'"
-                size="small"
-                variant="flat"
-                @click="toggleStatus(item)"
-              >
-                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="openEditModal(item)"
-              />
-            </template>
-          </UiTable>
         </UiCard>
       </v-col>
     </v-row>
@@ -358,7 +316,7 @@
       <UiSwitch
         v-model="form.is_suggesting_category"
         color="primary"
-        label="NÃ£o encontrou a categoria? Sugerir nova"
+        label="Não encontrou a categoria? Sugerir nova"
       />
 
       <UiSelect
@@ -373,9 +331,9 @@
       <UiCombobox
         v-if="form.is_suggesting_category"
         v-model="form.suggested_category"
-        hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
+        hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
         :items="pendingSuggestions || []"
-        label="Qual categoria vocÃª sugere?"
+        label="Qual categoria você sugere?"
         persistent-hint
         :return-object="false"
       />
@@ -383,7 +341,7 @@
       <UiSwitch
         v-model="form.is_active"
         color="success"
-        hint="Indica se o produto estÃ¡ disponÃ­vel para uso"
+        hint="Indica se o produto está disponível para uso"
         label="Produto Ativo"
         persistent-hint
       />

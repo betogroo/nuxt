@@ -39,20 +39,40 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
+  const { data: pendingReturnsCount, refresh: refreshPendingReturns } = useAsyncData(
+    'pending-returns-count',
+    async () => {
+      const { count, error } = await supabase
+        .from('demands')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_return_requested', true)
+
+      if (error) {
+        console.error('Erro ao buscar demandas com retorno solicitado:', error)
+        return 0
+      }
+
+      return count || 0
+    },
+    { default: () => 0 },
+  )
+
   const totalPending = computed(() => {
-    return (pendingCategoriesCount.value || 0) + (pendingUnitsCount.value || 0)
+    return (pendingCategoriesCount.value || 0) + (pendingUnitsCount.value || 0) + (pendingReturnsCount.value || 0)
   })
 
   const refreshAll = async () => {
-    await Promise.all([refreshPendingCategories(), refreshPendingUnits()])
+    await Promise.all([refreshPendingCategories(), refreshPendingUnits(), refreshPendingReturns()])
   }
 
   return {
     pendingCategoriesCount,
     pendingUnitsCount,
+    pendingReturnsCount,
     totalPending,
     refreshAll,
     refreshPendingCategories,
     refreshPendingUnits,
+    refreshPendingReturns,
   }
 }

@@ -18,7 +18,7 @@
   const { logAction } = useLogger()
 
   // Central de Pendências
-  const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
+  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } = usePendingTasks()
 
   const signOut = async () => {
     if (user.value) {
@@ -46,7 +46,11 @@
         <v-divider class="my-2" />
 
         <v-list-subheader v-if="user">Gestão</v-list-subheader>
-        <v-list-item v-if="user" prepend-icon="mdi-clipboard-list" title="Demandas" to="/demands" />
+        <v-list-item v-if="user" prepend-icon="mdi-clipboard-list" title="Demandas" to="/demands">
+          <template v-if="pendingReturnsCount > 0" #append>
+            <v-badge color="error" :content="pendingReturnsCount" inline />
+          </template>
+        </v-list-item>
         <v-list-item
           v-if="user"
           prepend-icon="mdi-package-variant"
@@ -114,6 +118,13 @@
             to="/admin/units"
           >
             <v-list-item-title>{{ pendingUnitsCount }} unidades sugeridas</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-if="pendingReturnsCount > 0"
+            prepend-icon="mdi-keyboard-return"
+            to="/demands"
+          >
+            <v-list-item-title>{{ pendingReturnsCount }} pedidos de retorno em demandas</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>

@@ -111,6 +111,12 @@
     return await fetchAllProfiles()
   })
 
+  const availableProfiles = computed(() => {
+    if (!allProfiles.value) return []
+    const responsibleIds = responsibles.value?.map(r => r.user_id) || []
+    return allProfiles.value.filter(p => !responsibleIds.includes(p.id))
+  })
+
   const selectedProductObj = computed(() => {
     return allProducts.value?.find((p) => p.id === selectedProductId.value)
   })
@@ -938,7 +944,7 @@
           v-model="responsibleUserId"
           item-title="name"
           item-value="id"
-          :items="allProfiles || []"
+          :items="availableProfiles"
           label="Selecione o Usuário"
         />
         <template #actions>
