@@ -12,7 +12,7 @@ export const useDemandProducts = () => {
   const fetchDemandProducts = async (demandId: string) => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, products(id, name)')
+      .select('*, product:products(*, product_categories(id, name)), measurement_units(*)')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: true })
 
@@ -193,6 +193,116 @@ export const useDemandProducts = () => {
     }
   }
 
+  const fetchDemandItemDetails = async (itemId: string) => {
+    const { data, error } = await supabase
+      .from('demand_products')
+      .select('*, product:products(*), measurement_units(*), demand:demands(status)')
+      .eq('id', itemId)
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  const updateDemandItemWithDependencies = async (params: {
+    itemId: string
+    demandId?: string
+    productId?: string
+    quantity: number
+    referencePrice: number | null
+    bidInterval?: number | null
+    bidIntervalType?: 'percentage' | 'monetary'
+    unitSearch: string | { name?: string; id?: string }
+  }) => {
+    let finalUnitId = ''
+    
+    // Determine unit search string or object
+    let selectedUnitId: string | null = null
+    let searchStr = ''
+
+    if (typeof params.unitSearch === 'object' && params.unitSearch?.id) {
+      selectedUnitId = params.unitSearch.id
+    } else if (typeof params.unitSearch === 'string') {
+      searchStr = params.unitSearch.trim()
+      // check if it's an uuid
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchStr)) {
+        selectedUnitId = searchStr
+        searchStr = ''
+      }
+    } else if (typeof params.unitSearch === 'object' && params.unitSearch?.name) {
+      searchStr = params.unitSearch.name.trim()
+    }
+
+    if (selectedUnitId) {
+      finalUnitId = selectedUnitId
+    } else if (searchStr) {
+      // Look for existing
+      const { data: existingUnits } = await supabase.from('measurement_units').select('id, name')
+      const existingUnit = existingUnits?.find(
+        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
+      )
+      
+      if (existingUnit) {
+        finalUnitId = existingUnit.id
+      } else {
+        // Create new pending unit
+        const { data: newUnit, error: insertError } = await supabase
+          .from('measurement_units')
+          .insert({ name: searchStr, is_active: false, is_pending: true })
+          .select()
+          .single()
+
+        if (insertError) throw insertError
+        finalUnitId = newUnit.id
+      }
+    } else {
+      throw new Error('Selecione ou digite uma unidade de medida válida.')
+    }
+
+    // Link unit to product if productId is provided
+    if (params.productId && finalUnitId) {
+      const { data: existingLink } = await supabase
+        .from('product_units')
+        .select('id')
+        .eq('product_id', params.productId)
+        .eq('unit_id', finalUnitId)
+        .maybeSingle()
+
+      if (!existingLink) {
+        await supabase
+          .from('product_units')
+          .insert({ product_id: params.productId, unit_id: finalUnitId })
+      }
+    }
+
+    // Update the demand_product record
+    const updatePayload: Database['public']['Tables']['demand_products']['Update'] = {
+      quantity: params.quantity,
+      unit_id: finalUnitId,
+      reference_price: params.referencePrice,
+    }
+
+    if (params.bidInterval !== undefined) updatePayload.bid_interval = params.bidInterval
+    if (params.bidIntervalType !== undefined) updatePayload.bid_interval_type = params.bidIntervalType
+
+    const { error: updateErr } = await supabase
+      .from('demand_products')
+      .update(updatePayload)
+      .eq('id', params.itemId)
+
+    if (updateErr) {
+      if (updateErr.code === '23505')
+        throw new Error('Já existe esse produto com essa mesma unidade nesta demanda.')
+      throw updateErr
+    }
+
+    await logAction(
+      'UPDATE_DEMAND_ITEM',
+      `Item ${params.itemId} atualizado na demanda`,
+      user.value?.id,
+    )
+  }
+
   const updateDemandProduct = async (
     itemId: string,
     payload: Database['public']['Tables']['demand_products']['Update'],
@@ -216,9 +326,11 @@ export const useDemandProducts = () => {
 
   return {
     fetchDemandProducts,
+    fetchDemandItemDetails,
     addDemandProduct,
     addDemandItemWithDependencies,
     updateDemandProduct,
+    updateDemandItemWithDependencies,
     removeDemandProduct,
   }
 }

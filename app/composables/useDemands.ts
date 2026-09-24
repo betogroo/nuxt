@@ -93,13 +93,81 @@ export const useDemands = () => {
     if (error) throw error
   }
 
+  const fetchDemandResponsibles = async (demandId: string) => {
+    const { data, error } = await supabase
+      .from('demand_responsibles')
+      .select('*, profiles(name)')
+      .eq('demand_id', demandId)
+
+    if (error) throw error
+    return data
+  }
+
+  const advanceDemandStatus = async (
+    demandId: string,
+    targetStatus: Database['public']['Enums']['demand_status'],
+    payload: Partial<Database['public']['Tables']['demands']['Update']>,
+  ) => {
+    payload.status = targetStatus
+    const { error } = await supabase.from('demands').update(payload).eq('id', demandId)
+    if (error) throw error
+
+    await logAction(
+      'ADVANCE_DEMAND_STATUS',
+      `Demanda ${demandId} avançou para ${targetStatus}`,
+      user.value?.id,
+    )
+  }
+
+  const revertDemandStatus = async (
+    demandId: string,
+    previousStatus: Database['public']['Enums']['demand_status'],
+  ) => {
+    const { error } = await supabase
+      .from('demands')
+      .update({
+        status: previousStatus,
+        is_return_requested: false,
+      })
+      .eq('id', demandId)
+
+    if (error) throw error
+
+    await logAction(
+      'REVERT_DEMAND_STATUS',
+      `Demanda ${demandId} retornou para ${previousStatus}`,
+      user.value?.id,
+    )
+  }
+
+  const requestDemandReturn = async (demandId: string) => {
+    const { error } = await supabase
+      .from('demands')
+      .update({
+        is_return_requested: true,
+      })
+      .eq('id', demandId)
+
+    if (error) throw error
+
+    await logAction(
+      'REQUEST_DEMAND_RETURN',
+      `Solicitação de retorno para demanda ${demandId}`,
+      user.value?.id,
+    )
+  }
+
   return {
     fetchDemands,
     fetchDemandById,
+    fetchDemandResponsibles,
     createDemand,
     updateDemand,
     deleteDemand,
     addResponsible,
     removeResponsible,
+    advanceDemandStatus,
+    revertDemandStatus,
+    requestDemandReturn,
   }
 }

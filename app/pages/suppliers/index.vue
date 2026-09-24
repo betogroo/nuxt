@@ -1,13 +1,14 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { SupplierRow } from '~/composables/useSuppliers'
 
   useHead({ title: 'Fornecedores' })
 
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
-
-  type SupplierRow = Database['public']['Tables']['suppliers']['Row']
+  const {
+    fetchSuppliers,
+    createSupplier,
+    updateSupplier,
+    toggleSupplierStatus,
+  } = useSuppliers()
 
   // Pagination State
   const currentPage = ref(1)
@@ -25,29 +26,12 @@
   } = useAsyncData(
     'suppliers-list',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      let query = supabase
-        .from('suppliers')
-        .select('*', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (searchQuery.value) {
-        query = query.or(
-          `company_name.ilike.%${searchQuery.value}%,cnpj.ilike.%${searchQuery.value}%,email.ilike.%${searchQuery.value}%`,
-        )
-      }
-
-      const { data, count, error } = await query
-
-      if (error) {
-        console.error(error)
-        return []
-      }
-
-      totalItems.value = count || 0
+      const { data, count } = await fetchSuppliers({
+        page: currentPage.value,
+        itemsPerPage: itemsPerPage.value,
+        searchQuery: searchQuery.value,
+      })
+      totalItems.value = count
       return data
     },
     {
@@ -153,27 +137,9 @@
       }
 
       if (isEditing.value) {
-        // Edit Supplier
-        const { error } = await supabase.from('suppliers').update(payload).eq('id', form.value.id)
-
-        if (error) throw error
-
-        await logAction(
-          'UPDATE_SUPPLIER',
-          `Fornecedor atualizado: ${form.value.company_name} (${form.value.cnpj})`,
-          user.value?.id,
-        )
+        await updateSupplier(form.value.id, payload)
       } else {
-        // Create Supplier
-        const { error } = await supabase.from('suppliers').insert(payload)
-
-        if (error) throw error
-
-        await logAction(
-          'CREATE_SUPPLIER',
-          `Novo fornecedor cadastrado: ${form.value.company_name} (${form.value.cnpj})`,
-          user.value?.id,
-        )
+        await createSupplier(payload)
       }
 
       await refresh()
@@ -188,19 +154,7 @@
 
   const toggleStatus = async (supplier: SupplierRow) => {
     try {
-      const newStatus = !supplier.is_active
-      const { error } = await supabase
-        .from('suppliers')
-        .update({ is_active: newStatus })
-        .eq('id', supplier.id)
-
-      if (error) throw error
-
-      await logAction(
-        'TOGGLE_SUPPLIER_STATUS',
-        `Fornecedor ${supplier.company_name} alterado para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
-        user.value?.id,
-      )
+      await toggleSupplierStatus(supplier)
       await refresh()
     } catch (err: unknown) {
       const e = err as Error
@@ -416,7 +370,7 @@
               </v-col>
 
               <v-col cols="12">
-                <v-switch
+                <UiSwitch
                   v-model="form.is_simples_optant"
                   color="primary"
                   hint="A data e hora da verificação serão salvas automaticamente."
@@ -426,7 +380,7 @@
               </v-col>
 
               <v-col cols="12">
-                <v-switch
+                <UiSwitch
                   v-model="form.is_active"
                   color="success"
                   hint="Indica se o fornecedor está ativo no sistema"

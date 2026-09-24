@@ -1,11 +1,9 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   const route = useRoute()
   const router = useRouter()
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
+  
+  const { fetchDemandItemDetails, updateDemandItemWithDependencies } = useDemandProducts()
+  const { fetchUnits } = useMeasurementUnits()
 
   const demandId = route.params.id as string
   const itemId = route.params.itemId as string
@@ -17,14 +15,7 @@
     error,
     refresh,
   } = useAsyncData(`demand-item-${itemId}`, async () => {
-    const { data, error: err } = await supabase
-      .from('demand_products')
-      .select('*, product:products(*), measurement_units(*), demand:demands(status)')
-      .eq('id', itemId)
-      .single()
-
-    if (err) throw err
-    return data
+    return await fetchDemandItemDetails(itemId)
   })
 
   // Basic fallback
@@ -57,7 +48,7 @@
     }
 
     // Fetch all units so user can search or suggest new ones
-    const { data: unitsData } = await supabase.from('measurement_units').select('*').order('name')
+    const unitsData = await fetchUnits()
 
     if (unitsData) {
       availableUnits.value = unitsData.map((u) => ({
@@ -80,66 +71,17 @@
     try {
       if (editForm.value.quantity <= 0) throw new Error('A quantidade deve ser maior que 0.')
 
-      const rawVal = editForm.value.unitSearch
-      const searchStr =
-        typeof rawVal === 'string' ? rawVal.trim() : (rawVal as { name?: string })?.name?.trim()
+      await updateDemandItemWithDependencies({
+        itemId,
+        demandId,
+        productId: item.value?.product_id || undefined,
+        quantity: editForm.value.quantity,
+        referencePrice: editForm.value.reference_price,
+        bidInterval: editForm.value.bid_interval,
+        bidIntervalType: editForm.value.bid_interval_type,
+        unitSearch: editForm.value.unitSearch,
+      })
 
-      if (!searchStr) throw new Error('A unidade de medida é obrigatória.')
-
-      let finalUnitId = ''
-
-      const existingUnit = availableUnits.value?.find(
-        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-      )
-
-      if (existingUnit) {
-        finalUnitId = existingUnit.id
-      } else {
-        const { data: newUnit, error: insertError } = await supabase
-          .from('measurement_units')
-          .insert({ name: searchStr, is_active: false, is_pending: true })
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        finalUnitId = newUnit.id
-      }
-
-      const { data: existingLink } = await supabase
-        .from('product_units')
-        .select('id')
-        .eq('product_id', item.value!.product_id)
-        .eq('unit_id', finalUnitId)
-        .maybeSingle()
-
-      if (!existingLink && item.value?.product_id) {
-        await supabase
-          .from('product_units')
-          .insert({ product_id: item.value.product_id, unit_id: finalUnitId })
-      }
-
-      const { error: updateErr } = await supabase
-        .from('demand_products')
-        .update({
-          quantity: editForm.value.quantity,
-          unit_id: finalUnitId,
-          reference_price: editForm.value.reference_price,
-          bid_interval: editForm.value.bid_interval,
-          bid_interval_type: editForm.value.bid_interval_type,
-        })
-        .eq('id', itemId)
-
-      if (updateErr) {
-        if (updateErr.code === '23505')
-          throw new Error('Já existe esse produto com essa mesma unidade nesta demanda.')
-        throw updateErr
-      }
-
-      await logAction(
-        'UPDATE_DEMAND_ITEM',
-        `Usuário editou o item ${itemId} da demanda ${demandId}`,
-        user.value?.id,
-      )
       await refresh()
       closeEditModal()
     } catch (err: unknown) {
@@ -291,7 +233,7 @@
         />
 
         <div class="d-flex align-center mt-2 mb-4">
-          <v-select
+          <UiSelect
             v-model="editForm.bid_interval_type"
             class="mr-2 flex-grow-1"
             density="comfortable"
@@ -313,7 +255,7 @@
           />
         </div>
 
-        <v-combobox
+        <UiCombobox
           v-model="editForm.unitSearch"
           density="comfortable"
           hint="Selecione ou digite uma nova embalagem se não existir."

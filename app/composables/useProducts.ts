@@ -85,8 +85,20 @@ export const useProducts = () => {
     return unique.sort()
   }
 
+  const fetchAllActiveProducts = async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, product_categories(id, name), product_units(unit_id, measurement_units(*))')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+    return data
+  }
+
   return {
     fetchProducts,
+    fetchAllActiveProducts,
     createProduct,
     updateProduct,
     toggleProductStatus,

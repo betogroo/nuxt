@@ -3,24 +3,34 @@
 
   const route = useRoute()
   const router = useRouter()
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { profile } = useProfile()
-  const { logAction } = useLogger()
-  const { addDemandItemWithDependencies, removeDemandProduct } = useDemandProducts()
-  const { addResponsible: addResponsibleDb, removeResponsible: removeResponsibleDb } = useDemands()
+  const { profile, fetchAllProfiles } = useProfile()
+  
+  const { 
+    fetchDemandProducts, 
+    addDemandItemWithDependencies, 
+    removeDemandProduct, 
+    updateDemandItemWithDependencies 
+  } = useDemandProducts()
+  
+  const { 
+    fetchDemandById,
+    fetchDemandResponsibles,
+    addResponsible: addResponsibleDb, 
+    removeResponsible: removeResponsibleDb,
+    advanceDemandStatus,
+    revertDemandStatus,
+    requestDemandReturn
+  } = useDemands()
+  
+  const { fetchAllActiveProducts, fetchPendingProductSuggestions } = useProducts()
+  const { fetchAllActiveCategories } = useCategories()
+  const { fetchUnits } = useMeasurementUnits()
 
   const demandId = route.params.id as string
 
   // Fetch Demand Details
   const { data: demand } = useAsyncData(`demand-${demandId}`, async () => {
-    const { data, error } = await supabase.from('demands').select('*').eq('id', demandId).single()
-
-    if (error) {
-      console.error('Demand error:', error)
-      return null
-    }
-    return data
+    return await fetchDemandById(demandId)
   })
 
   useHead({
@@ -31,78 +41,34 @@
   const { data: responsibles, refresh: refreshResponsibles } = useAsyncData(
     `demand-responsibles-${demandId}`,
     async () => {
-      const { data, error } = await supabase
-        .from('demand_responsibles')
-        .select('*, profiles(name)')
-        .eq('demand_id', demandId)
-
-      if (error) {
-        console.error('Responsibles error:', error)
-        return []
-      }
-      return data
+      return await fetchDemandResponsibles(demandId)
     },
   )
 
   // Fetch Demand Products
-
   const {
     data: items,
     pending: itemsPending,
     refresh: refreshItems,
   } = useAsyncData(`demand-items-${demandId}`, async () => {
-    const { data, error } = await supabase
-      .from('demand_products')
-      .select('*, product:products(*, product_categories(id, name)), measurement_units(*)')
-      .eq('demand_id', demandId)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Demand items error:', error)
-      return []
-    }
-    return data
+    return await fetchDemandProducts(demandId)
   })
 
   // Fetch all active products for the autocomplete
   const { data: allProducts, refresh: refreshProducts } = useAsyncData(
     'all-active-products',
     async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*, product_categories(id, name), product_units(unit_id, measurement_units(*))')
-        .eq('is_active', true)
-        .order('name', { ascending: true })
-
-      if (error) {
-        console.error('Products error:', error)
-        return []
-      }
-      return data
+      return await fetchAllActiveProducts()
     },
   )
 
   const { data: categories } = useAsyncData('active-categories', async () => {
-    const { data, error } = await supabase
-      .from('product_categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name')
-    if (error) return []
-    return data
+    return await fetchAllActiveCategories()
   })
 
   // Fetch all pending suggestions to show in autocomplete
   const { data: pendingSuggestions } = useAsyncData('pending-suggestions', async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('suggested_category')
-      .not('suggested_category', 'is', null)
-
-    if (error) return []
-
-    const unique = [...new Set(data.map((p) => p.suggested_category as string))]
-    return unique.sort()
+    return await fetchPendingProductSuggestions()
   })
 
   // Modal State
@@ -142,8 +108,7 @@
   const responsibleError = ref('')
 
   const { data: allProfiles } = useAsyncData('all-profiles', async () => {
-    const { data } = await supabase.from('profiles').select('id, name').order('name')
-    return data || []
+    return await fetchAllProfiles()
   })
 
   const selectedProductObj = computed(() => {
@@ -179,9 +144,8 @@
   })
 
   // We need all measurement units just in case we need the default one for new products
-  const { data: allMeasurementUnits } = useAsyncData('all-measurement-units', async () => {
-    const { data } = await supabase.from('measurement_units').select('*')
-    return data || []
+  const { data: allMeasurementUnits, refresh: refreshAllMeasurementUnits } = useAsyncData('all-measurement-units', async () => {
+    return await fetchUnits()
   })
 
   // New Product Form state
@@ -262,6 +226,7 @@
   const editItemError = ref('')
   const editItemForm = ref({
     id: '',
+    productId: '',
     productName: '',
     quantity: 1,
     reference_price: null as number | null,
@@ -274,11 +239,13 @@
     id: string
     quantity: number | string
     reference_price?: number | string | null
-    product?: { name: string }
+    product_id?: string
+    product?: { id?: string, name: string }
     unit_id?: string | null
   }) => {
     editItemForm.value = {
       id: item.id,
+      productId: item.product_id || item.product?.id || '',
       productName: item.product?.name || 'Produto',
       quantity: Number(item.quantity),
       reference_price: item.reference_price != null ? Number(item.reference_price) : null,
@@ -299,71 +266,16 @@
         throw new Error('A quantidade deve ser maior que zero.')
       }
 
-      let finalUnitId = null
-      const selectedUnit = editItemForm.value.unit_id
-      const searchStr = editItemForm.value.searchUnitText?.trim()
+      await updateDemandItemWithDependencies({
+        itemId: editItemForm.value.id,
+        demandId: demandId,
+        productId: editItemForm.value.productId,
+        quantity: editItemForm.value.quantity,
+        referencePrice: editItemForm.value.reference_price,
+        unitSearch: editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id,
+      })
 
-      if (typeof selectedUnit === 'object' && selectedUnit?.id) {
-        finalUnitId = selectedUnit.id
-      } else if (typeof selectedUnit === 'string' && selectedUnit.trim() !== '') {
-        const str = selectedUnit.trim()
-        const existing = allMeasurementUnits.value?.find(
-          (u) => u.name.toLowerCase() === str.toLowerCase() || u.id === str,
-        )
-        if (existing) finalUnitId = existing.id
-        else if (!searchStr) {
-          finalUnitId = str
-        } // fallback to pending insert below
-      }
-
-      const strToCreate = searchStr || (typeof selectedUnit === 'string' ? selectedUnit.trim() : '')
-
-      if (!finalUnitId && strToCreate) {
-        const existingUnit = allMeasurementUnits.value?.find(
-          (u) => u.name.toLowerCase() === strToCreate.toLowerCase(),
-        )
-        if (existingUnit) {
-          finalUnitId = existingUnit.id
-        } else {
-          // Create pending unit
-          const { data: newUnit, error: insertError } = await supabase
-            .from('measurement_units')
-            .insert({ name: strToCreate, is_active: false, is_pending: true })
-            .select()
-            .single()
-
-          if (insertError) throw insertError
-          finalUnitId = newUnit.id
-
-          // Refresh units list globally
-          const { data: refreshedUnits } = await supabase
-            .from('measurement_units')
-            .select('*')
-            .order('name')
-          allMeasurementUnits.value = refreshedUnits || []
-        }
-      }
-
-      if (!finalUnitId) {
-        throw new Error('Selecione ou digite uma unidade de medida válida.')
-      }
-
-      const { error } = await supabase
-        .from('demand_products')
-        .update({
-          quantity: editItemForm.value.quantity,
-          reference_price: editItemForm.value.reference_price,
-          unit_id: finalUnitId,
-        })
-        .eq('id', editItemForm.value.id)
-
-      if (error) throw error
-
-      await logAction(
-        'UPDATE_DEMAND_PRODUCT',
-        `Valores atualizados para ${editItemForm.value.productName} na demanda ${demandId}`,
-        user.value?.id,
-      )
+      await refreshAllMeasurementUnits()
       await refreshItems()
       isEditItemModalOpen.value = false
     } catch (err: unknown) {
@@ -432,31 +344,11 @@
     revertError.value = ''
 
     try {
-      const { error } = await supabase
-        .from('demands')
-        .update({
-          status: prev as Database['public']['Enums']['demand_status'],
-          is_return_requested: false, // Reset request if it existed
-        })
-        .eq('id', demandId)
+      await revertDemandStatus(demandId, prev as Database['public']['Enums']['demand_status'])
 
-      if (error) throw error
-
-      await logAction(
-        'REVERT_DEMAND_STATUS',
-        `Demanda ${demandId} retornou para ${prev}`,
-        user.value?.id,
-      )
       isRevertModalOpen.value = false
-
-      const { data, error: reloadErr } = await supabase
-        .from('demands')
-        .select('*')
-        .eq('id', demandId)
-        .single()
-      if (!reloadErr && data) {
-        demand.value = data
-      }
+      const reloaded = await fetchDemandById(demandId)
+      if (reloaded) demand.value = reloaded
     } catch (err: unknown) {
       revertError.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -469,29 +361,10 @@
     isReturnRequesting.value = true
 
     try {
-      const { error } = await supabase
-        .from('demands')
-        .update({
-          is_return_requested: true,
-        })
-        .eq('id', demandId)
+      await requestDemandReturn(demandId)
 
-      if (error) throw error
-
-      await logAction(
-        'REQUEST_DEMAND_RETURN',
-        `Solicitação de retorno para demanda ${demandId}`,
-        user.value?.id,
-      )
-
-      const { data, error: reloadErr } = await supabase
-        .from('demands')
-        .select('*')
-        .eq('id', demandId)
-        .single()
-      if (!reloadErr && data) {
-        demand.value = data
-      }
+      const reloaded = await fetchDemandById(demandId)
+      if (reloaded) demand.value = reloaded
     } catch (err: unknown) {
       console.error(err)
     } finally {
@@ -513,9 +386,7 @@
     advanceError.value = ''
 
     try {
-      const payload: Partial<Database['public']['Tables']['demands']['Update']> = {
-        status: targetStatus.value as Database['public']['Enums']['demand_status'],
-      }
+      const payload: Partial<Database['public']['Tables']['demands']['Update']> = {}
 
       if (targetStatus.value === 'quotation') {
         if (!items.value || items.value.length === 0) {
@@ -568,24 +439,11 @@
         payload.contract_number = advancePayload.value.contract_number
       }
 
-      const { error } = await supabase.from('demands').update(payload).eq('id', demandId)
-      if (error) throw error
+      await advanceDemandStatus(demandId, targetStatus.value as Database['public']['Enums']['demand_status'], payload)
 
-      await logAction(
-        'ADVANCE_DEMAND_STATUS',
-        `Demanda ${demandId} avançou para ${targetStatus.value}`,
-        user.value?.id,
-      )
       isStatusModalOpen.value = false
-      // reload demand data to trigger reactivity
-      const { data, error: reloadErr } = await supabase
-        .from('demands')
-        .select('*')
-        .eq('id', demandId)
-        .single()
-      if (!reloadErr && data) {
-        demand.value = data
-      }
+      const reloaded = await fetchDemandById(demandId)
+      if (reloaded) demand.value = reloaded
     } catch (err: unknown) {
       advanceError.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -896,7 +754,7 @@
 
         <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
 
-        <v-combobox
+        <UiCombobox
           v-model="editItemForm.unit_id"
           v-model:search="editItemForm.searchUnitText"
           class="mt-3"
@@ -964,7 +822,7 @@
             </template>
           </v-autocomplete>
 
-          <v-combobox
+          <UiCombobox
             v-if="selectedProductId"
             v-model="selectedUnitSearch"
             class="mt-3"
@@ -1013,7 +871,7 @@
             label="Categoria de Material"
           />
 
-          <v-combobox
+          <UiCombobox
             v-if="isNewProductOutrosCategory"
             v-model="newProductSuggestedCategory"
             class="mb-4"
@@ -1026,7 +884,7 @@
             variant="outlined"
           />
 
-          <v-combobox
+          <UiCombobox
             v-model="selectedUnitSearch"
             class="mb-4"
             density="comfortable"

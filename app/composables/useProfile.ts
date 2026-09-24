@@ -35,5 +35,11 @@ export const useProfile = () => {
     isLoading.value = false
   }
 
-  return { profile, isLoading, debugError, fetchProfile }
+  const fetchAllProfiles = async () => {
+    const { data, error } = await supabase.from('profiles').select('id, name').order('name')
+    if (error) throw error
+    return data
+  }
+
+  return { profile, isLoading, debugError, fetchProfile, fetchAllProfiles }
 }
