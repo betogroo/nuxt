@@ -7,6 +7,8 @@
   const user = useSupabaseUser()
   const { profile } = useProfile()
   const { logAction } = useLogger()
+  const { addDemandItemWithDependencies, removeDemandProduct } = useDemandProducts()
+  const { addResponsible: addResponsibleDb, removeResponsible: removeResponsibleDb } = useDemands()
 
   const demandId = route.params.id as string
 
@@ -91,20 +93,17 @@
   })
 
   // Fetch all pending suggestions to show in autocomplete
-  const { data: pendingSuggestions, refresh: refreshPendingSuggestions } = useAsyncData(
-    'pending-suggestions',
-    async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('suggested_category')
-        .not('suggested_category', 'is', null)
+  const { data: pendingSuggestions } = useAsyncData('pending-suggestions', async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('suggested_category')
+      .not('suggested_category', 'is', null)
 
-      if (error) return []
+    if (error) return []
 
-      const unique = [...new Set(data.map((p) => p.suggested_category as string))]
-      return unique.sort()
-    },
-  )
+    const unique = [...new Set(data.map((p) => p.suggested_category as string))]
+    return unique.sort()
+  })
 
   // Modal State
   const isModalOpen = ref(false)
@@ -223,210 +222,38 @@
     saveError.value = ''
 
     try {
-      let finalProductId = selectedProductId.value
-      let finalUnitId = ''
+      await addDemandItemWithDependencies({
+        demandId: demandId as string,
+        isNewProductMode: isNewProductMode.value,
+        newProductName: newProductName.value,
+        newProductCategoryId: newProductCategoryId.value,
+        newProductSuggestedCategory: newProductSuggestedCategory.value,
+        isNewProductOutrosCategory: isNewProductOutrosCategory.value,
+        selectedProductId: selectedProductId.value,
+        selectedUnitSearch: selectedUnitSearch.value as string,
+        itemQuantity: Number(itemQuantity.value),
+        itemReferencePrice: Number(itemReferencePrice.value),
+      })
 
-      // Parse unit search string
-      const rawVal = selectedUnitSearch.value
-      const searchStr =
-        typeof rawVal === 'string' ? rawVal.trim() : (rawVal as { name?: string })?.name?.trim()
-
-      // Create new product if in new product mode
-      if (isNewProductMode.value) {
-        if (!newProductName.value || !newProductCategoryId.value) {
-          throw new Error('Nome e Categoria são obrigatórios para novo produto.')
-        }
-
-        const { data: newProd, error: prodError } = await supabase
-          .from('products')
-          .insert({
-            name: newProductName.value,
-            category_id: newProductCategoryId.value,
-            suggested_category: isNewProductOutrosCategory.value
-              ? typeof newProductSuggestedCategory.value === 'string'
-                ? newProductSuggestedCategory.value.trim()
-                : newProductSuggestedCategory.value
-                  ? String(
-                      (newProductSuggestedCategory.value as Record<string, unknown>).name ||
-                        (newProductSuggestedCategory.value as Record<string, unknown>).title ||
-                        newProductSuggestedCategory.value,
-                    ).trim()
-                  : null
-              : null,
-            is_active: true,
-          })
-          .select()
-          .single()
-
-        if (prodError) throw prodError
-
-        await logAction(
-          'CREATE_PRODUCT',
-          `Novo produto criado via demanda: ${newProd.name}`,
-          user.value?.id,
-        )
-
-        finalProductId = newProd.id
-
-        // Handle Unit for New Product
-        if (!searchStr) {
-          // Fallback to 'Unidade' if none provided
-          finalUnitId =
-            allMeasurementUnits.value?.find(
-              (u: { name: string; id: string }) => u.name === 'Unidade',
-            )?.id || ''
-        } else {
-          const existingUnit = allMeasurementUnits.value?.find(
-            (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-          )
-          if (existingUnit) {
-            finalUnitId = existingUnit.id
-          } else {
-            // Create new unit as pending
-            const { data: newUnit, error: insertError } = await supabase
-              .from('measurement_units')
-              .insert({ name: searchStr, is_active: false, is_pending: true })
-              .select()
-              .single()
-
-            if (insertError) throw insertError
-            finalUnitId = newUnit.id
-
-            // Refresh units list
-            const { data: refreshedUnits } = await supabase
-              .from('measurement_units')
-              .select('*')
-              .order('name')
-            allMeasurementUnits.value = refreshedUnits || []
-          }
-        }
-        await refreshProducts() // reload product list
-      } else {
-        if (!searchStr) {
-          throw new Error('Selecione ou digite uma apresentação/unidade de medida.')
-        }
-
-        // Handle Unit (find or create)
-        const existingUnit = allMeasurementUnits.value?.find(
-          (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-        )
-
-        if (existingUnit) {
-          finalUnitId = existingUnit.id
-        } else {
-          // Create new unit as pending
-          const { data: newUnit, error: insertError } = await supabase
-            .from('measurement_units')
-            .insert({ name: searchStr, is_active: false, is_pending: true })
-            .select()
-            .single()
-
-          if (insertError) throw insertError
-          finalUnitId = newUnit.id
-
-          // Refresh units list
-          const { data: refreshedUnits } = await supabase
-            .from('measurement_units')
-            .select('*')
-            .order('name')
-          allMeasurementUnits.value = refreshedUnits || []
-        }
-      }
-
-      if (!finalProductId) {
-        throw new Error('Selecione um produto ou cadastre um novo.')
-      }
-
-      if (!finalUnitId) {
-        throw new Error('Unidade de medida inválida.')
-      }
-
-      if (itemQuantity.value <= 0) {
-        throw new Error('A quantidade deve ser maior que zero.')
-      }
-
-      // Ensure unit is linked to product
-      const { data: existingLink } = await supabase
-        .from('product_units')
-        .select('id')
-        .eq('product_id', finalProductId)
-        .eq('unit_id', finalUnitId)
-        .maybeSingle()
-
-      if (!existingLink) {
-        const { error: linkError } = await supabase
-          .from('product_units')
-          .insert({ product_id: finalProductId, unit_id: finalUnitId })
-        if (linkError && linkError.code !== '23505') throw linkError
-        await refreshProducts() // reload product list to reflect new unit
-      }
-
-      // Check if product already in demand with this specific unit
-      const alreadyExists = items.value?.find(
-        (i) => i.product_id === finalProductId && i.unit_id === finalUnitId,
-      )
-
-      if (alreadyExists) {
-        // Update quantity
-        const { error } = await supabase
-          .from('demand_products')
-          .update({ quantity: Number(alreadyExists.quantity) + Number(itemQuantity.value) })
-          .eq('id', alreadyExists.id)
-
-        if (error) throw error
-
-        await logAction(
-          'UPDATE_DEMAND_PRODUCT',
-          `Atualizada a quantidade do produto na demanda ${demandId}`,
-          user.value?.id,
-        )
-      } else {
-        // Insert new association
-        const { error } = await supabase.from('demand_products').insert({
-          demand_id: demandId,
-          product_id: finalProductId,
-          unit_id: finalUnitId,
-          quantity: itemQuantity.value,
-          reference_price: itemReferencePrice.value,
-          bid_interval: 3,
-          bid_interval_type: 'percentage',
-        })
-
-        if (error) throw error
-
-        await logAction(
-          'ADD_DEMAND_PRODUCT',
-          `Produto adicionado à  demanda ${demandId}`,
-          user.value?.id,
-        )
-      }
-
+      await refreshProducts()
       await refreshItems()
-      await refreshPendingSuggestions()
       closeModal()
     } catch (err: unknown) {
-      saveError.value = err instanceof Error ? err.message : String(err)
+      const e = err as Error
+      saveError.value = e.message
     } finally {
       isSaving.value = false
     }
   }
 
   const removeItem = async (itemId: string, productName: string) => {
-    if (!confirm(`Deseja realmente remover o produto ${productName} desta demanda?`)) return
-
+    if (!confirm(`Deseja realmente remover '${productName}' da demanda?`)) return
     try {
-      const { error } = await supabase.from('demand_products').delete().eq('id', itemId)
-
-      if (error) throw error
-
-      await logAction(
-        'REMOVE_DEMAND_PRODUCT',
-        `Produto ${productName} removido da demanda ${demandId}`,
-        user.value?.id,
-      )
+      await removeDemandProduct(itemId, demandId as string)
       await refreshItems()
     } catch (err: unknown) {
-      alert(`Erro ao remover: ${err instanceof Error ? err.message : String(err)}`)
+      const e = err as Error
+      alert(`Erro ao remover item: ${e.message}`)
     }
   }
 
@@ -767,28 +594,18 @@
   }
 
   const addResponsible = async () => {
+    if (!responsibleUserId.value) {
+      alert('Selecione um usuário.')
+      return
+    }
     isAddingResponsible.value = true
-    responsibleError.value = ''
-
     try {
-      if (!responsibleUserId.value) throw new Error('Selecione um usuário.')
-
-      const { error } = await supabase
-        .from('demand_responsibles')
-        .insert({ demand_id: demandId, user_id: responsibleUserId.value })
-
-      if (error) throw error
-
-      await logAction(
-        'ADD_DEMAND_RESPONSIBLE',
-        `Responsável adicionado à  demanda ${demandId}`,
-        user.value?.id,
-      )
-      responsibleUserId.value = null
-      isResponsibleModalOpen.value = false
+      await addResponsibleDb(demandId as string, responsibleUserId.value)
       await refreshResponsibles()
+      isResponsibleModalOpen.value = false
     } catch (err: unknown) {
-      responsibleError.value = err instanceof Error ? err.message : String(err)
+      const e = err as Error
+      alert(e.message)
     } finally {
       isAddingResponsible.value = false
     }
@@ -797,15 +614,11 @@
   const removeResponsible = async (userId: string) => {
     if (!confirm('Deseja realmente remover este responsável?')) return
     try {
-      const { error } = await supabase
-        .from('demand_responsibles')
-        .delete()
-        .eq('demand_id', demandId)
-        .eq('user_id', userId)
-      if (error) throw error
+      await removeResponsibleDb(demandId as string, userId)
       await refreshResponsibles()
     } catch (err: unknown) {
-      alert(`Erro: ${err instanceof Error ? err.message : String(err)}`)
+      const e = err as Error
+      alert(`Erro ao remover: ${e.message}`)
     }
   }
 </script>

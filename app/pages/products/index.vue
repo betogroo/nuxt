@@ -1,15 +1,17 @@
-<script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+﻿<script setup lang="ts">
+  import type { ProductRow } from '~/composables/useProducts'
 
   useHead({ title: 'Produtos' })
 
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
+  const {
+    fetchProducts,
+    createProduct,
+    updateProduct,
+    toggleProductStatus,
+    fetchPendingProductSuggestions,
+  } = useProducts()
 
-  type ProductRow = Database['public']['Tables']['products']['Row'] & {
-    product_categories?: { id: string; name: string } | null
-  }
+  const { fetchAllActiveCategories } = useCategories()
 
   // Pagination & Filter State
   const currentPage = ref(1)
@@ -21,30 +23,12 @@
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   // Fetch unique categories for the filter
-  const { data: categories } = useAsyncData('product-categories', async () => {
-    const { data, error } = await supabase
-      .from('product_categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name')
-    if (error) return []
-    return data
-  })
+  const { data: categories } = useAsyncData('product-categories', fetchAllActiveCategories)
 
   // Fetch pending suggestions for the combobox
   const { data: pendingSuggestions, refresh: refreshPendingSuggestions } = useAsyncData(
     'pending-suggestions-products',
-    async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('suggested_category')
-        .not('suggested_category', 'is', null)
-
-      if (error) return []
-
-      const unique = [...new Set(data.map((p) => p.suggested_category as string))]
-      return unique.sort()
-    },
+    fetchPendingProductSuggestions,
   )
 
   // Fetch Products with Pagination and Filter
@@ -55,28 +39,13 @@
   } = useAsyncData(
     'products-list',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      let query = supabase
-        .from('products')
-        .select('*, product_categories(id, name)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (selectedCategory.value) {
-        query = query.eq('category_id', selectedCategory.value)
-      }
-
-      const { data, count, error } = await query
-
-      if (error) {
-        console.error(error)
-        return []
-      }
-
-      totalItems.value = count || 0
-      return data
+      const result = await fetchProducts(
+        currentPage.value,
+        itemsPerPage.value,
+        selectedCategory.value,
+      )
+      totalItems.value = result.count
+      return result.data
     },
     {
       watch: [currentPage, selectedCategory],
@@ -145,13 +114,13 @@
   const saveProduct = async () => {
     if (form.value.is_suggesting_category) {
       if (!form.value.name || !form.value.suggested_category) {
-        saveError.value = 'Nome e Sugestão de Categoria são obrigatórios.'
+        saveError.value = 'Nome e SugestÃ£o de Categoria sÃ£o obrigatÃ³rios.'
         return
       }
       form.value.category_id = outrosCategory.value?.id || ''
     } else {
       if (!form.value.name || !form.value.category_id) {
-        saveError.value = 'Nome e Categoria são obrigatórios.'
+        saveError.value = 'Nome e Categoria sÃ£o obrigatÃ³rios.'
         return
       }
       form.value.suggested_category = '' // Limpa se desmarcou
@@ -180,18 +149,10 @@
 
       if (isEditing.value) {
         // Edit Product
-        const { error } = await supabase.from('products').update(payload).eq('id', form.value.id)
-
-        if (error) throw error
-
-        await logAction('UPDATE_PRODUCT', `Produto atualizado: ${form.value.name}`, user.value?.id)
+        await updateProduct(form.value.id, payload)
       } else {
         // Create Product
-        const { error } = await supabase.from('products').insert(payload)
-
-        if (error) throw error
-
-        await logAction('CREATE_PRODUCT', `Novo produto criado: ${form.value.name}`, user.value?.id)
+        await createProduct(payload)
       }
 
       await refresh()
@@ -207,19 +168,7 @@
 
   const toggleStatus = async (product: ProductRow) => {
     try {
-      const newStatus = !product.is_active
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: newStatus })
-        .eq('id', product.id)
-
-      if (error) throw error
-
-      await logAction(
-        'TOGGLE_PRODUCT_STATUS',
-        `Produto ${product.name} alterado para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
-        user.value?.id,
-      )
+      await toggleProductStatus(product)
       await refresh()
     } catch (err: unknown) {
       const e = err as Error
@@ -230,7 +179,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Catálogo centralizado de produtos e materiais" title="Produtos" />
+    <PageHeader subtitle="CatÃ¡logo centralizado de produtos e materiais" title="Produtos" />
 
     <v-row>
       <v-col cols="12">
@@ -277,7 +226,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="activeProducts"
           >
@@ -298,7 +247,7 @@
                 v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
                 class="text-caption text-grey ml-1"
               >
-                (Sugestão: {{ item.suggested_category }})
+                (SugestÃ£o: {{ item.suggested_category }})
               </span>
             </template>
             <template #item-is_active="{ item }">
@@ -323,7 +272,7 @@
             </template>
           </UiTable>
 
-          <!-- Paginação -->
+          <!-- PaginaÃ§Ã£o -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -346,7 +295,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="inactiveProducts"
             :loading="pending"
@@ -365,7 +314,7 @@
                 v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
                 class="text-caption text-grey ml-1"
               >
-                (Sugestão: {{ item.suggested_category }})
+                (SugestÃ£o: {{ item.suggested_category }})
               </span>
             </template>
             <template #item-is_active="{ item }">
@@ -394,55 +343,55 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="isEditing ? 'Editar Produto' : 'Novo Produto'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal
+      v-model="isModalOpen"
+      max-width="500px"
+      :title="isEditing ? 'Editar Produto' : 'Novo Produto'"
+      transparent-header
+    >
+      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </v-alert>
 
-        <UiInput v-model="form.name" label="Nome do Produto" />
+      <UiInput v-model="form.name" label="Nome do Produto" />
 
-        <v-switch
-          v-model="form.is_suggesting_category"
-          color="primary"
-          label="Não encontrou a categoria? Sugerir nova"
-        />
+      <UiSwitch
+        v-model="form.is_suggesting_category"
+        color="primary"
+        label="NÃ£o encontrou a categoria? Sugerir nova"
+      />
 
-        <UiSelect
-          v-if="!form.is_suggesting_category"
-          v-model="form.category_id"
-          item-title="name"
-          item-value="id"
-          :items="filteredCategories"
-          label="Categoria de Material"
-        />
+      <UiSelect
+        v-if="!form.is_suggesting_category"
+        v-model="form.category_id"
+        item-title="name"
+        item-value="id"
+        :items="filteredCategories"
+        label="Categoria de Material"
+      />
 
-        <v-combobox
-          v-if="form.is_suggesting_category"
-          v-model="form.suggested_category"
-          class="mb-4"
-          density="comfortable"
-          hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
-          :items="pendingSuggestions || []"
-          label="Qual categoria você sugere?"
-          persistent-hint
-          :return-object="false"
-          variant="outlined"
-        />
+      <UiCombobox
+        v-if="form.is_suggesting_category"
+        v-model="form.suggested_category"
+        hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
+        :items="pendingSuggestions || []"
+        label="Qual categoria vocÃª sugere?"
+        persistent-hint
+        :return-object="false"
+      />
 
-        <v-switch
-          v-model="form.is_active"
-          color="success"
-          hint="Indica se o produto está disponível para uso"
-          label="Produto Ativo"
-          persistent-hint
-        />
+      <UiSwitch
+        v-model="form.is_active"
+        color="success"
+        hint="Indica se o produto estÃ¡ disponÃ­vel para uso"
+        label="Produto Ativo"
+        persistent-hint
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveProduct"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveProduct"> Salvar </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

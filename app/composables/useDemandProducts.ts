@@ -46,11 +46,11 @@ export const useDemandProducts = () => {
   const addDemandItemWithDependencies = async (params: {
     demandId: string
     isNewProductMode: boolean
-    newProductName?: string
-    newProductCategoryId?: string
+    newProductName?: string | null
+    newProductCategoryId?: string | null
     newProductSuggestedCategory?: string | Record<string, unknown> | null
     isNewProductOutrosCategory?: boolean
-    selectedProductId?: string
+    selectedProductId?: string | null
     selectedUnitSearch: string | { name?: string }
     itemQuantity: number
     itemReferencePrice: number
