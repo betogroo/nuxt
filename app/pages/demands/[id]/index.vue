@@ -435,6 +435,8 @@
     productName: '',
     quantity: 1,
     reference_price: null as number | null,
+    unit_id: null as { id: string; name: string } | string | null,
+    searchUnitText: '',
   })
 
   const openEditItemModal = (item: {
@@ -442,12 +444,17 @@
     quantity: number | string
     reference_price?: number | string | null
     product?: { name: string }
+    unit_id?: string | null
   }) => {
     editItemForm.value = {
       id: item.id,
       productName: item.product?.name || 'Produto',
       quantity: Number(item.quantity),
       reference_price: item.reference_price != null ? Number(item.reference_price) : null,
+      unit_id: item.unit_id
+        ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id) || item.unit_id
+        : null,
+      searchUnitText: '',
     }
     editItemError.value = ''
     isEditItemModalOpen.value = true
@@ -461,11 +468,61 @@
         throw new Error('A quantidade deve ser maior que zero.')
       }
 
+      let finalUnitId = null
+      const selectedUnit = editItemForm.value.unit_id
+      const searchStr = editItemForm.value.searchUnitText?.trim()
+
+      if (typeof selectedUnit === 'object' && selectedUnit?.id) {
+        finalUnitId = selectedUnit.id
+      } else if (typeof selectedUnit === 'string' && selectedUnit.trim() !== '') {
+        const str = selectedUnit.trim()
+        const existing = allMeasurementUnits.value?.find(
+          (u) => u.name.toLowerCase() === str.toLowerCase() || u.id === str,
+        )
+        if (existing) finalUnitId = existing.id
+        else if (!searchStr) {
+          finalUnitId = str
+        } // fallback to pending insert below
+      }
+
+      const strToCreate = searchStr || (typeof selectedUnit === 'string' ? selectedUnit.trim() : '')
+
+      if (!finalUnitId && strToCreate) {
+        const existingUnit = allMeasurementUnits.value?.find(
+          (u) => u.name.toLowerCase() === strToCreate.toLowerCase(),
+        )
+        if (existingUnit) {
+          finalUnitId = existingUnit.id
+        } else {
+          // Create pending unit
+          const { data: newUnit, error: insertError } = await supabase
+            .from('measurement_units')
+            .insert({ name: strToCreate, is_active: false, is_pending: true })
+            .select()
+            .single()
+
+          if (insertError) throw insertError
+          finalUnitId = newUnit.id
+
+          // Refresh units list globally
+          const { data: refreshedUnits } = await supabase
+            .from('measurement_units')
+            .select('*')
+            .order('name')
+          allMeasurementUnits.value = refreshedUnits || []
+        }
+      }
+
+      if (!finalUnitId) {
+        throw new Error('Selecione ou digite uma unidade de medida válida.')
+      }
+
       const { error } = await supabase
         .from('demand_products')
         .update({
           quantity: editItemForm.value.quantity,
           reference_price: editItemForm.value.reference_price,
+          unit_id: finalUnitId,
         })
         .eq('id', editItemForm.value.id)
 
@@ -903,6 +960,20 @@
         <p class="text-body-1 font-weight-bold mb-4">{{ editItemForm.productName }}</p>
 
         <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
+
+        <v-combobox
+          v-model="editItemForm.unit_id"
+          v-model:search="editItemForm.searchUnitText"
+          class="mt-3"
+          clearable
+          hint="Selecione ou digite uma nova unidade de medida se não existir."
+          item-title="name"
+          item-value="id"
+          :items="allMeasurementUnits || []"
+          label="Unidade de Medida"
+          persistent-hint
+        />
+
         <UiInput
           v-model.number="editItemForm.reference_price"
           class="mt-3"
