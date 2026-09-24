@@ -111,6 +111,7 @@ export type Database = {
           dispute_date: string | null
           dispute_number: string | null
           id: string
+          is_return_requested: boolean | null
           name: string
           offer_opening_date: string | null
           status: Database['public']['Enums']['demand_status']
@@ -125,6 +126,7 @@ export type Database = {
           dispute_date?: string | null
           dispute_number?: string | null
           id?: string
+          is_return_requested?: boolean | null
           name: string
           offer_opening_date?: string | null
           status?: Database['public']['Enums']['demand_status']
@@ -139,6 +141,7 @@ export type Database = {
           dispute_date?: string | null
           dispute_number?: string | null
           id?: string
+          is_return_requested?: boolean | null
           name?: string
           offer_opening_date?: string | null
           status?: Database['public']['Enums']['demand_status']

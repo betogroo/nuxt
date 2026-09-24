@@ -1,10 +1,11 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
   const route = useRoute()
   const router = useRouter()
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
+  const { profile } = useProfile()
   const { logAction } = useLogger()
 
   const demandId = route.params.id as string
@@ -572,6 +573,103 @@
     return null
   }
 
+  const getPreviousStatus = (current: string) => {
+    const idx = statusList.indexOf(current as Database['public']['Enums']['demand_status'])
+    if (idx > 0) {
+      return statusList[idx - 1]
+    }
+    return null
+  }
+
+  const isRevertModalOpen = ref(false)
+  const isReverting = ref(false)
+  const revertError = ref('')
+  const isReturnRequesting = ref(false)
+
+  const openRevertModal = () => {
+    if (!demand.value) return
+    const prev = getPreviousStatus(demand.value.status)
+    if (!prev) return
+    revertError.value = ''
+    isRevertModalOpen.value = true
+  }
+
+  const confirmRevertStatus = async () => {
+    if (!demand.value) return
+    const prev = getPreviousStatus(demand.value.status)
+    if (!prev) return
+
+    isReverting.value = true
+    revertError.value = ''
+
+    try {
+      const { error } = await supabase
+        .from('demands')
+        .update({
+          status: prev as Database['public']['Enums']['demand_status'],
+          is_return_requested: false, // Reset request if it existed
+        })
+        .eq('id', demandId)
+
+      if (error) throw error
+
+      await logAction(
+        'REVERT_DEMAND_STATUS',
+        `Demanda ${demandId} retornou para ${prev}`,
+        user.value?.id,
+      )
+      isRevertModalOpen.value = false
+
+      const { data, error: reloadErr } = await supabase
+        .from('demands')
+        .select('*')
+        .eq('id', demandId)
+        .single()
+      if (!reloadErr && data) {
+        demand.value = data
+      }
+    } catch (err: unknown) {
+      revertError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isReverting.value = false
+    }
+  }
+
+  const requestReturn = async () => {
+    if (!demand.value) return
+    isReturnRequesting.value = true
+
+    try {
+      const { error } = await supabase
+        .from('demands')
+        .update({
+          is_return_requested: true,
+        })
+        .eq('id', demandId)
+
+      if (error) throw error
+
+      await logAction(
+        'REQUEST_DEMAND_RETURN',
+        `SolicitaÃ§Ã£o de retorno para demanda ${demandId}`,
+        user.value?.id,
+      )
+
+      const { data, error: reloadErr } = await supabase
+        .from('demands')
+        .select('*')
+        .eq('id', demandId)
+        .single()
+      if (!reloadErr && data) {
+        demand.value = data
+      }
+    } catch (err: unknown) {
+      console.error(err)
+    } finally {
+      isReturnRequesting.value = false
+    }
+  }
+
   const openAdvanceModal = () => {
     if (!demand.value) return
     const next = getNextStatus(demand.value.status)
@@ -725,6 +823,26 @@
             formatStatus(demand.status)
           }}</v-chip>
           <v-spacer />
+          <UiButton
+            v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
+            class="mr-2"
+            color="warning"
+            prepend-icon="mdi-arrow-left-bold"
+            @click="openRevertModal"
+          >
+            Retornar para {{ formatStatus(getPreviousStatus(demand.status) || '') }}
+          </UiButton>
+          <UiButton
+            v-if="profile?.role !== 'admin' && getPreviousStatus(demand.status)"
+            class="mr-2"
+            :color="demand.is_return_requested ? 'grey' : 'warning'"
+            :disabled="demand.is_return_requested || isReturnRequesting"
+            :loading="isReturnRequesting"
+            prepend-icon="mdi-arrow-left-bold"
+            @click="requestReturn"
+          >
+            {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
+          </UiButton>
           <UiButton
             v-if="getNextStatus(demand.status)"
             color="success"
@@ -1222,6 +1340,34 @@
           >
           <UiButton color="success" :loading="isAdvancing" @click="confirmAdvanceStatus"
             >Confirmar Avanço</UiButton
+          >
+        </template>
+      </UiCard>
+    </v-dialog>
+
+    <!-- Modal Retornar Status -->
+    <v-dialog v-model="isRevertModalOpen" max-width="500px">
+      <UiCard title="Confirmar Retorno de Fase" transparent-header>
+        <v-alert v-if="revertError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ revertError }}
+        </v-alert>
+
+        <p class="text-body-1">
+          Tem certeza que deseja retornar esta demanda para a fase
+          <strong>{{ formatStatus(getPreviousStatus(demand?.status || '') || '') }}</strong
+          >?
+        </p>
+        <p class="text-body-2 text-warning mt-2">
+          Isto reabrirá a possibilidade de edição dos itens (dependendo da fase) e limpará qualquer
+          solicitação de retorno pendente.
+        </p>
+
+        <template #actions>
+          <UiButton :disabled="isReverting" variant="text" @click="isRevertModalOpen = false"
+            >Cancelar</UiButton
+          >
+          <UiButton color="warning" :loading="isReverting" @click="confirmRevertStatus"
+            >Confirmar Retorno</UiButton
           >
         </template>
       </UiCard>
