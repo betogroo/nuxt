@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
   const route = useRoute()
@@ -233,7 +233,7 @@
       // Create new product if in new product mode
       if (isNewProductMode.value) {
         if (!newProductName.value || !newProductCategoryId.value) {
-          throw new Error('Nome e Categoria sÃ£o obrigatÃ³rios para novo produto.')
+          throw new Error('Nome e Categoria são obrigatórios para novo produto.')
         }
 
         const { data: newProd, error: prodError } = await supabase
@@ -302,7 +302,7 @@
         await refreshProducts() // reload product list
       } else {
         if (!searchStr) {
-          throw new Error('Selecione ou digite uma apresentaÃ§Ã£o/unidade de medida.')
+          throw new Error('Selecione ou digite uma apresentação/unidade de medida.')
         }
 
         // Handle Unit (find or create)
@@ -337,7 +337,7 @@
       }
 
       if (!finalUnitId) {
-        throw new Error('Unidade de medida invÃ¡lida.')
+        throw new Error('Unidade de medida inválida.')
       }
 
       if (itemQuantity.value <= 0) {
@@ -393,7 +393,7 @@
 
         await logAction(
           'ADD_DEMAND_PRODUCT',
-          `Produto adicionado Ã  demanda ${demandId}`,
+          `Produto adicionado à  demanda ${demandId}`,
           user.value?.id,
         )
       }
@@ -554,13 +554,12 @@
           )
         }
         if (!advancePayload.value.bidding_notice_number)
-          throw new Error('O nÃºmero do aviso Ã© obrigatÃ³rio.')
+          throw new Error('O número do aviso é obrigatório.')
         payload.bidding_notice_number = advancePayload.value.bidding_notice_number
       } else if (targetStatus.value === 'dispute') {
         if (!advancePayload.value.dispute_number)
-          throw new Error('O nÃºmero da disputa Ã© obrigatÃ³rio.')
-        if (!advancePayload.value.dispute_date)
-          throw new Error('A data da disputa Ã© obrigatÃ³ria.')
+          throw new Error('O número da disputa é obrigatório.')
+        if (!advancePayload.value.dispute_date) throw new Error('A data da disputa é obrigatória.')
 
         let offerOpening = null
         if (advancePayload.value.offer_opening_date || advancePayload.value.offer_opening_time) {
@@ -580,7 +579,7 @@
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
         if (!advancePayload.value.contract_number)
-          throw new Error('O nÃºmero da contrataÃ§Ã£o Ã© obrigatÃ³rio.')
+          throw new Error('O número da contratação é obrigatório.')
         payload.contract_number = advancePayload.value.contract_number
       }
 
@@ -589,7 +588,7 @@
 
       await logAction(
         'ADVANCE_DEMAND_STATUS',
-        `Demanda ${demandId} avanÃ§ou para ${targetStatus.value}`,
+        `Demanda ${demandId} avançou para ${targetStatus.value}`,
         user.value?.id,
       )
       isStatusModalOpen.value = false
@@ -614,7 +613,7 @@
     responsibleError.value = ''
 
     try {
-      if (!responsibleUserId.value) throw new Error('Selecione um usuÃ¡rio.')
+      if (!responsibleUserId.value) throw new Error('Selecione um usuário.')
 
       const { error } = await supabase
         .from('demand_responsibles')
@@ -624,7 +623,7 @@
 
       await logAction(
         'ADD_DEMAND_RESPONSIBLE',
-        `ResponsÃ¡vel adicionado Ã  demanda ${demandId}`,
+        `Responsável adicionado à  demanda ${demandId}`,
         user.value?.id,
       )
       responsibleUserId.value = null
@@ -638,7 +637,7 @@
   }
 
   const removeResponsible = async (userId: string) => {
-    if (!confirm('Deseja realmente remover este responsÃ¡vel?')) return
+    if (!confirm('Deseja realmente remover este responsável?')) return
     try {
       const { error } = await supabase
         .from('demand_responsibles')
@@ -659,7 +658,7 @@
       Voltar para Demandas
     </UiButton>
 
-    <!-- CabeÃ§alho da Demanda -->
+    <!-- Cabeçalho da Demanda -->
     <UiCard v-if="demand" class="mb-6" transparent-header>
       <template #header>
         <div class="d-flex align-center w-100">
@@ -674,7 +673,7 @@
             prepend-icon="mdi-arrow-right-bold"
             @click="openAdvanceModal"
           >
-            AvanÃ§ar para {{ formatStatus(getNextStatus(demand.status) || '') }}
+            Avançar para {{ formatStatus(getNextStatus(demand.status) || '') }}
           </UiButton>
         </div>
       </template>
@@ -708,7 +707,7 @@
               </div>
             </v-col>
             <v-col cols="12" sm="4">
-              <div class="text-caption text-grey">Aviso de ContrataÃ§Ã£o</div>
+              <div class="text-caption text-grey">Aviso de Contratação</div>
               <div class="text-body-1 font-weight-medium">
                 {{ demand.bidding_notice_number || '-' }}
               </div>
@@ -724,7 +723,7 @@
               </div>
             </v-col>
             <v-col cols="12" sm="4">
-              <div class="text-caption text-grey">NÂº Disputa</div>
+              <div class="text-caption text-grey">Nº Disputa</div>
               <div class="text-body-1">
                 {{ demand.dispute_number || '-' }}
               </div>
@@ -743,7 +742,7 @@
               </div>
             </v-col>
             <v-col cols="12" sm="4">
-              <div class="text-caption text-grey">NÂº ContrataÃ§Ã£o</div>
+              <div class="text-caption text-grey">Nº Contratação</div>
               <div class="text-body-1">
                 {{ demand.contract_number || '-' }}
               </div>
@@ -751,10 +750,10 @@
           </v-row>
         </v-col>
 
-        <!-- ResponsÃ¡veis -->
+        <!-- Responsáveis -->
         <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
-            <span class="text-subtitle-2 font-weight-bold">ResponsÃ¡veis</span>
+            <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
             <v-spacer />
             <UiButton
               icon="mdi-plus"
@@ -775,7 +774,7 @@
                 </v-avatar>
               </template>
               <v-list-item-title class="text-body-2">{{
-                resp?.profiles?.name || 'UsuÃ¡rio Desconhecido'
+                resp?.profiles?.name || 'Usuário Desconhecido'
               }}</v-list-item-title>
               <template #append>
                 <UiButton
@@ -789,7 +788,7 @@
             </v-list-item>
             <v-list-item v-if="!responsibles?.length" class="px-0">
               <v-list-item-title class="text-caption text-grey"
-                >Nenhum responsÃ¡vel definido.</v-list-item-title
+                >Nenhum responsável definido.</v-list-item-title
               >
             </v-list-item>
           </v-list>
@@ -929,7 +928,7 @@
           {{ saveError }}
         </v-alert>
 
-        <!-- SeÃ§Ã£o de Busca de Produto Existente -->
+        <!-- Seção de Busca de Produto Existente -->
         <template v-if="!isNewProductMode">
           <v-autocomplete
             v-model="selectedProductId"
@@ -946,7 +945,7 @@
             <!-- Personalizando a pesquisa no front-end para simplificar -->
             <template #no-data>
               <div class="pa-3 text-center">
-                <span class="text-grey mr-2">Produto nÃ£o encontrado.</span>
+                <span class="text-grey mr-2">Produto não encontrado.</span>
                 <UiButton
                   color="primary"
                   size="small"
@@ -964,11 +963,11 @@
             v-model="selectedUnitSearch"
             class="mt-3"
             density="comfortable"
-            hint="Selecione ou digite uma nova embalagem se nÃ£o existir."
+            hint="Selecione ou digite uma nova embalagem se não existir."
             item-title="displayName"
             item-value="name"
             :items="computedMeasurementUnits"
-            label="ApresentaÃ§Ã£o (Unidade de Medida)"
+            label="Apresentação (Unidade de Medida)"
             persistent-hint
             :return-object="false"
             variant="outlined"
@@ -992,11 +991,11 @@
           />
         </template>
 
-        <!-- SeÃ§Ã£o de Cadastro RÃ¡pido de Novo Produto -->
+        <!-- Seção de Cadastro Rápido de Novo Produto -->
         <template v-else>
           <v-alert class="mb-4" density="compact" type="info" variant="tonal">
-            VocÃª estÃ¡ cadastrando um novo produto. Ele serÃ¡ salvo no sistema e automaticamente
-            adicionado Ã demanda.
+            Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
+            adicionado à demanda.
           </v-alert>
 
           <UiInput v-model="newProductName" label="Nome do Produto" />
@@ -1013,9 +1012,9 @@
             v-model="newProductSuggestedCategory"
             class="mb-4"
             density="comfortable"
-            hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
+            hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
             :items="pendingSuggestions || []"
-            label="Qual categoria vocÃª sugere?"
+            label="Qual categoria você sugere?"
             persistent-hint
             :return-object="false"
             variant="outlined"
@@ -1029,7 +1028,7 @@
             item-title="displayName"
             item-value="name"
             :items="computedMeasurementUnits"
-            label="ApresentaÃ§Ã£o (Unidade de Medida)"
+            label="Apresentação (Unidade de Medida)"
             persistent-hint
             :return-object="false"
             variant="outlined"
@@ -1045,7 +1044,7 @@
 
           <div class="text-right">
             <UiButton size="small" variant="text" @click="isNewProductMode = false">
-              Voltar Ã Busca
+              Voltar à Busca
             </UiButton>
           </div>
         </template>
@@ -1053,15 +1052,15 @@
         <template #actions>
           <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
           <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
-            Adicionar Ã Demanda
+            Adicionar à Demanda
           </UiButton>
         </template>
       </UiCard>
     </v-dialog>
 
-    <!-- Modal Adicionar ResponsÃ¡vel -->
+    <!-- Modal Adicionar Responsável -->
     <v-dialog v-model="isResponsibleModalOpen" max-width="400px">
-      <UiCard title="Adicionar ResponsÃ¡vel" transparent-header>
+      <UiCard title="Adicionar Responsável" transparent-header>
         <v-alert
           v-if="responsibleError"
           class="mb-4"
@@ -1076,7 +1075,7 @@
           item-title="name"
           item-value="id"
           :items="allProfiles || []"
-          label="Selecione o UsuÃ¡rio"
+          label="Selecione o Usuário"
         />
         <template #actions>
           <UiButton
@@ -1092,9 +1091,9 @@
       </UiCard>
     </v-dialog>
 
-    <!-- Modal AvanÃ§ar Status -->
+    <!-- Modal Avançar Status -->
     <v-dialog v-model="isStatusModalOpen" max-width="500px">
-      <UiCard :title="`AvanÃ§ar para: ${formatStatus(targetStatus)}`" transparent-header>
+      <UiCard :title="`Avançar para: ${formatStatus(targetStatus)}`" transparent-header>
         <v-alert v-if="advanceError" class="mb-4" density="compact" type="error" variant="tonal">
           {{ advanceError }}
         </v-alert>
@@ -1102,13 +1101,13 @@
         <div v-if="targetStatus === 'bidding_notice'">
           <UiInput
             v-model="advancePayload.bidding_notice_number"
-            label="NÃºmero do Aviso de ContrataÃ§Ã£o"
+            label="Número do Aviso de Contratação"
             required
           />
         </div>
 
         <div v-if="targetStatus === 'dispute'">
-          <UiInput v-model="advancePayload.dispute_number" label="NÃºmero da Disputa" required />
+          <UiInput v-model="advancePayload.dispute_number" label="Número da Disputa" required />
           <UiInput
             v-model="advancePayload.dispute_date"
             label="Data da Disputa"
@@ -1136,7 +1135,7 @@
         <div v-if="targetStatus === 'homologation'">
           <UiInput
             v-model="advancePayload.contract_number"
-            label="NÃºmero da ContrataÃ§Ã£o (Contrato/Ata)"
+            label="Número da Contratação (Contrato/Ata)"
             required
           />
         </div>
@@ -1150,7 +1149,7 @@
             >Cancelar</UiButton
           >
           <UiButton color="success" :loading="isAdvancing" @click="confirmAdvanceStatus"
-            >Confirmar AvanÃ§o</UiButton
+            >Confirmar Avanço</UiButton
           >
         </template>
       </UiCard>
