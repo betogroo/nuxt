@@ -427,36 +427,61 @@
     }
   }
 
-  const updateQuantity = async (item: {
+  const isEditItemModalOpen = ref(false)
+  const editItemSaving = ref(false)
+  const editItemError = ref('')
+  const editItemForm = ref({
+    id: '',
+    productName: '',
+    quantity: 1,
+    reference_price: null as number | null,
+  })
+
+  const openEditItemModal = (item: {
     id: string
-    quantity: number
-    product: { name: string }
+    quantity: number | string
+    reference_price?: number | string | null
+    product?: { name: string }
   }) => {
-    const newQtdStr = prompt(`Nova quantidade para ${item.product.name}:`, String(item.quantity))
-    if (newQtdStr === null) return
-
-    const newQtd = Number(newQtdStr)
-    if (isNaN(newQtd) || newQtd <= 0) {
-      alert('Quantidade invÃ¡lida.')
-      return
+    editItemForm.value = {
+      id: item.id,
+      productName: item.product?.name || 'Produto',
+      quantity: Number(item.quantity),
+      reference_price: item.reference_price != null ? Number(item.reference_price) : null,
     }
+    editItemError.value = ''
+    isEditItemModalOpen.value = true
+  }
 
+  const saveEditItem = async () => {
+    editItemSaving.value = true
+    editItemError.value = ''
     try {
+      if (editItemForm.value.quantity <= 0) {
+        throw new Error('A quantidade deve ser maior que zero.')
+      }
+
       const { error } = await supabase
         .from('demand_products')
-        .update({ quantity: newQtd })
-        .eq('id', item.id)
+        .update({
+          quantity: editItemForm.value.quantity,
+          reference_price: editItemForm.value.reference_price,
+        })
+        .eq('id', editItemForm.value.id)
 
       if (error) throw error
 
       await logAction(
         'UPDATE_DEMAND_PRODUCT',
-        `Quantidade atualizada para ${newQtd} (${item.product.name})`,
+        `Valores atualizados para ${editItemForm.value.productName} na demanda ${demandId}`,
         user.value?.id,
       )
       await refreshItems()
+      isEditItemModalOpen.value = false
     } catch (err: unknown) {
-      alert(`Erro ao atualizar quantidade: ${err instanceof Error ? err.message : String(err)}`)
+      editItemError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      editItemSaving.value = false
     }
   }
 
@@ -829,27 +854,7 @@
           }}
         </template>
         <template #item-quantity="{ item }">
-          <v-chip
-            :class="
-              demand?.status === 'planning' || demand?.status === 'quotation'
-                ? 'cursor-pointer'
-                : ''
-            "
-            size="small"
-            @click="
-              demand?.status === 'planning' || demand?.status === 'quotation'
-                ? updateQuantity(item)
-                : null
-            "
-          >
-            {{ item.quantity }}
-            <v-icon
-              v-if="demand?.status === 'planning' || demand?.status === 'quotation'"
-              class="ml-1"
-              size="x-small"
-              >mdi-pencil</v-icon
-            >
-          </v-chip>
+          {{ item.quantity }}
         </template>
         <template #item-reference_price="{ item }">
           {{
@@ -864,9 +869,20 @@
         </template>
         <template #item-actions="{ item }">
           <UiButton
+            v-if="demand?.status === 'planning' || demand?.status === 'quotation'"
+            color="primary"
+            icon="mdi-pencil"
+            size="small"
+            title="Editar Item"
+            variant="text"
+            @click="openEditItemModal(item)"
+          />
+          <UiButton
+            v-if="demand?.status === 'planning'"
             color="error"
             icon="mdi-delete"
             size="small"
+            title="Remover"
             variant="text"
             @click="removeItem(item.id, item.product?.name || '')"
           />
@@ -877,6 +893,34 @@
       </div>
     </UiCard>
 
+    <!-- Modal Editar Item -->
+    <v-dialog v-model="isEditItemModalOpen" max-width="500px" persistent>
+      <UiCard title="Editar Item da Demanda" transparent-header>
+        <v-alert v-if="editItemError" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ editItemError }}
+        </v-alert>
+
+        <p class="text-body-1 font-weight-bold mb-4">{{ editItemForm.productName }}</p>
+
+        <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
+        <UiInput
+          v-model.number="editItemForm.reference_price"
+          class="mt-3"
+          label="Valor Referencial (R$)"
+          step="0.0001"
+          type="number"
+        />
+
+        <template #actions>
+          <UiButton :disabled="editItemSaving" variant="text" @click="isEditItemModalOpen = false"
+            >Cancelar</UiButton
+          >
+          <UiButton color="primary" :loading="editItemSaving" @click="saveEditItem"
+            >Salvar</UiButton
+          >
+        </template>
+      </UiCard>
+    </v-dialog>
     <!-- Modal Adicionar Produto -->
     <v-dialog v-model="isModalOpen" max-width="600px" persistent>
       <UiCard title="Inserir Produto na Demanda" transparent-header>
