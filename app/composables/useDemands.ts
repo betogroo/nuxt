@@ -18,12 +18,16 @@ export const useDemands = () => {
 
     let query = supabase
       .from('demands')
-      .select('*', { count: 'exact' })
+      .select('*, profiles!demands_user_id_fkey(name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
 
     if (statusFilter) {
-      query = query.eq('status', statusFilter as Database['public']['Enums']['demand_status'])
+      if (statusFilter === 'returns') {
+        query = query.eq('is_return_requested', true)
+      } else {
+        query = query.eq('status', statusFilter as Database['public']['Enums']['demand_status'])
+      }
     }
 
     if (searchQuery) {

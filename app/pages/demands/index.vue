@@ -1,30 +1,48 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { DemandRow } from '~/composables/useDemands'
 
   definePageMeta({
     // O @nuxtjs/supabase já protege todas as rotas globalmente por padrão.
   })
   useHead({ title: 'Demandas' })
 
-  const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
   const { profile } = useProfile()
-  const { logAction } = useLogger()
+  
+  const { fetchDemands, createDemand, updateDemand } = useDemands()
+  const route = useRoute()
 
-  type DemandRow = Database['public']['Tables']['demands']['Row']
+  const currentPage = ref(1)
+  const itemsPerPage = ref(10)
+  const totalItems = ref(0)
+  const statusFilter = ref<string | null>((route.query.filter as string) || null)
+  const searchQuery = ref('')
+  
+  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   const {
     data: demands,
     pending,
     refresh,
-  } = useAsyncData('demands-list', async () => {
-    const { data, error } = await supabase
-      .from('demands')
-      .select('*, profiles!demands_user_id_fkey(name)')
-      .order('created_at', { ascending: false })
+  } = useAsyncData(
+    'demands-list',
+    async () => {
+      const result = await fetchDemands(
+        currentPage.value,
+        itemsPerPage.value,
+        statusFilter.value,
+        searchQuery.value
+      )
+      totalItems.value = result.count
+      return result.data
+    },
+    {
+      watch: [currentPage, statusFilter, searchQuery],
+    }
+  )
 
-    if (error) throw error
-    return data
+  watch([statusFilter, searchQuery], () => {
+    currentPage.value = 1
   })
 
   const isModalOpen = ref(false)
@@ -100,28 +118,9 @@
       }
 
       if (isEditing) {
-        const { error } = await supabase
-          .from('demands')
-          .update(payload)
-          .eq('id', editingDemand.value.id!)
-
-        if (error) throw error
-
-        await logAction(
-          'UPDATE_DEMAND',
-          `Usuário atualizou a demanda: ${editingDemand.value.id}`,
-          user.value?.id,
-        )
+        await updateDemand(editingDemand.value.id!, payload)
       } else {
-        const { data, error } = await supabase
-          .from('demands')
-          .insert([{ ...payload, user_id: profile.value!.id }])
-          .select()
-          .single()
-
-        if (error) throw error
-
-        await logAction('CREATE_DEMAND', `Usuário criou nova demanda: ${data.id}`, user.value?.id)
+        await createDemand({ ...payload, user_id: profile.value!.id })
       }
 
       await refresh()
@@ -164,6 +163,43 @@
             </UiButton>
           </template>
 
+          <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
+            <v-row align="center" no-gutters>
+              <v-col class="pr-sm-2 mb-2 mb-sm-0" cols="12" md="6" sm="6">
+                <UiInput
+                  v-model="searchQuery"
+                  append-inner-icon="mdi-magnify"
+                  class="mb-0"
+                  clearable
+                  hide-details
+                  label="Buscar demanda..."
+                />
+              </v-col>
+              <v-col class="pl-sm-2" cols="12" md="4" sm="6">
+                <UiSelect
+                  v-model="statusFilter"
+                  class="mb-0"
+                  clearable
+                  hide-details
+                  item-title="title"
+                  item-value="value"
+                  :items="[
+                    { title: 'Planejamento', value: 'planning' },
+                    { title: 'Aviso de Contratação', value: 'bidding_notice' },
+                    { title: 'Disputa', value: 'dispute' },
+                    { title: 'Homologação', value: 'homologation' },
+                    { title: 'Concluído', value: 'completed' },
+                    { title: 'Cancelado', value: 'cancelled' },
+                    { title: 'Aguardando Retorno (Admin)', value: 'returns' },
+                  ]"
+                  label="Status"
+                />
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider />
+
           <UiTable
             :headers="[
               { text: 'Nome', value: 'name' },
@@ -173,6 +209,7 @@
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="demands || []"
+            :loading="pending"
           >
             <template v-if="!demands?.length && !pending" #empty>
               Nenhuma demanda encontrada.
@@ -226,6 +263,16 @@
               />
             </template>
           </UiTable>
+
+          <!-- Paginação -->
+          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
+            <v-pagination
+              v-model="currentPage"
+              density="comfortable"
+              :length="totalPages"
+              :total-visible="7"
+            />
+          </div>
         </UiCard>
       </v-col>
     </v-row>

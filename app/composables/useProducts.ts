@@ -103,12 +103,80 @@ export const useProducts = () => {
     return data
   }
 
+  const fetchProductById = async (id: string) => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*, product_categories(id, name)')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+
+    const { data: unitsData } = await supabase
+      .from('product_units')
+      .select('id, measurement_units(*)')
+      .eq('product_id', id)
+
+    return {
+      ...data,
+      units: unitsData?.map((u) => u.measurement_units) || [],
+    }
+  }
+
+  const addProductUnit = async (productId: string, unitName: string) => {
+    let unitId = ''
+
+    // Procurar por unidade existente
+    const { data: existingUnit } = await supabase
+      .from('measurement_units')
+      .select('id')
+      .ilike('name', unitName)
+      .single()
+
+    if (existingUnit) {
+      unitId = existingUnit.id
+    } else {
+      // Criar nova como pendente
+      const { data: newUnit, error: insertError } = await supabase
+        .from('measurement_units')
+        .insert({ name: unitName, is_active: false, is_pending: true })
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+      unitId = newUnit.id
+    }
+
+    // Vincular ao produto
+    const { error: linkError } = await supabase
+      .from('product_units')
+      .insert({ product_id: productId, unit_id: unitId })
+
+    if (linkError) {
+      if (linkError.code === '23505') throw new Error('Esta unidade já está vinculada ao produto.')
+      throw linkError
+    }
+  }
+
+  const removeProductUnit = async (productId: string, unitId: string) => {
+    const { error } = await supabase
+      .from('product_units')
+      .delete()
+      .eq('product_id', productId)
+      .eq('unit_id', unitId)
+
+    if (error) throw error
+  }
+
   return {
     fetchProducts,
+    fetchProductById,
     fetchAllActiveProducts,
     createProduct,
     updateProduct,
     toggleProductStatus,
     fetchPendingProductSuggestions,
+    addProductUnit,
+    removeProductUnit,
   }
 }

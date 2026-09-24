@@ -32,7 +32,39 @@ export const useLogger = () => {
     }
   }
 
+  const fetchLogs = async (currentPage: number, itemsPerPage: number) => {
+    const from = (currentPage - 1) * itemsPerPage
+    const to = from + itemsPerPage - 1
+
+    const { data, count, error } = await supabase
+      .from('logs')
+      .select(
+        `
+        id,
+        action,
+        description,
+        created_at,
+        profiles (
+          id,
+          name,
+          avatar_url
+        )
+      `,
+        { count: 'exact' },
+      )
+      .order('created_at', { ascending: false })
+      .range(from, to)
+
+    if (error) {
+      console.error(error)
+      throw error
+    }
+
+    return { data: data || [], count: count || 0 }
+  }
+
   return {
     logAction,
+    fetchLogs,
   }
 }

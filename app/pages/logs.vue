@@ -1,12 +1,10 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   definePageMeta({
     middleware: ['admin'],
   })
   useHead({ title: 'Registros de Acessos e Ações' })
 
-  const supabase = useSupabaseClient<Database>()
+  const { fetchLogs } = useLogger()
 
   const currentPage = ref(1)
   const itemsPerPage = ref(15)
@@ -21,35 +19,14 @@
   } = useAsyncData(
     'admin-logs',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      const { data, count, error } = await supabase
-        .from('logs')
-        .select(
-          `
-        id,
-        action,
-        description,
-        created_at,
-        profiles (
-          id,
-          name,
-          avatar_url
-        )
-      `,
-          { count: 'exact' },
-        )
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (error) {
-        console.error(error)
+      try {
+        const result = await fetchLogs(currentPage.value, itemsPerPage.value)
+        totalItems.value = result.count
+        return result.data
+      } catch (e) {
+        console.error(e)
         return []
       }
-
-      totalItems.value = count || 0
-      return data
     },
     {
       watch: [currentPage],

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   useHead({ title: 'Meu Perfil' })
 
   // Proteção básica: apenas usuários logados
@@ -13,9 +11,8 @@
     ],
   })
 
-  const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
-  const { profile, fetchProfile } = useProfile()
+  const { profile, fetchProfile, updateProfile } = useProfile()
 
   const isSaving = ref(false)
   const saveMessage = ref('')
@@ -43,23 +40,18 @@
     saveMessage.value = ''
     saveError.value = ''
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
+    try {
+      await updateProfile({
         name: formData.value.name,
         avatar_url: formData.value.avatar_url,
-        // Repare que NÃO enviamos a 'role'. O banco também rejeitaria graças ao RLS.
       })
-      .eq('id', profile.value.id)
-
-    if (error) {
-      saveError.value = 'Erro ao salvar o perfil: ' + error.message
-    } else {
       saveMessage.value = 'Perfil atualizado com sucesso!'
       await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.', user.value?.id)
-      await fetchProfile() // Sincroniza a memória global novamente
+    } catch (error: unknown) {
+      saveError.value = 'Erro ao salvar o perfil: ' + (error instanceof Error ? error.message : String(error))
+    } finally {
+      isSaving.value = false
     }
-    isSaving.value = false
   }
 </script>
 

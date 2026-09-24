@@ -1,9 +1,10 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   const route = useRoute()
   const router = useRouter()
-  const supabase = useSupabaseClient<Database>()
+  
+  const { fetchProductById, addProductUnit, removeProductUnit } = useProducts()
+  const { fetchAllActiveUnits } = useMeasurementUnits()
+  
   const productId = route.params.id as string
 
   const {
@@ -11,36 +12,16 @@
     pending,
     refresh,
   } = useAsyncData(`product-${productId}`, async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*, product_categories(id, name)')
-      .eq('id', productId)
-      .single()
-
-    if (error) {
-      console.error(error)
+    try {
+      return await fetchProductById(productId)
+    } catch (e) {
+      console.error(e)
       return null
-    }
-
-    // Fetch units
-    const { data: unitsData } = await supabase
-      .from('product_units')
-      .select('id, measurement_units(*)')
-      .eq('product_id', productId)
-
-    return {
-      ...data,
-      units: unitsData?.map((u) => u.measurement_units) || [],
     }
   })
 
-  const { data: allMeasurementUnits } = useAsyncData('measurement-units', async () => {
-    const { data } = await supabase
-      .from('measurement_units')
-      .select('*')
-      .eq('is_active', true)
-      .order('name')
-    return data || []
+  const { data: allMeasurementUnits, refresh: refreshUnitsList } = useAsyncData('measurement-units', async () => {
+    return await fetchAllActiveUnits()
   })
 
   const computedMeasurementUnits = computed(() => {
@@ -66,46 +47,10 @@
     addUnitError.value = ''
 
     try {
-      let unitId = ''
+      await addProductUnit(productId, searchStr)
 
-      // Check if it's already an existing unit in the list (selected from autocomplete)
-      const existing = allMeasurementUnits.value?.find(
-        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-      )
-
-      if (existing) {
-        unitId = existing.id
-      } else {
-        // Create new (suggested)
-        const { data: newUnit, error: insertError } = await supabase
-          .from('measurement_units')
-          .insert({ name: searchStr, is_active: false, is_pending: true })
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        unitId = newUnit.id
-      }
-
-      // Link to product
-      const { error: linkError } = await supabase
-        .from('product_units')
-        .insert({ product_id: productId, unit_id: unitId })
-
-      if (linkError) {
-        if (linkError.code === '23505')
-          throw new Error('Esta unidade já está vinculada ao produto.')
-        throw linkError
-      }
-
-      refresh() // reload product with units
-      // Refresh the units list as well so the newly created one appears in the dropdown
-      const { data: refreshedUnits } = await supabase
-        .from('measurement_units')
-        .select('*')
-        .eq('is_active', true)
-        .order('name')
-      allMeasurementUnits.value = refreshedUnits || []
+      await refresh() // reload product with units
+      await refreshUnitsList()
 
       isAddingUnit.value = false
       addUnitSearch.value = ''
@@ -124,14 +69,11 @@
 
   const removeUnit = async (unitId: string) => {
     if (!confirm('Remover esta apresentação do produto?')) return
-    const { error } = await supabase
-      .from('product_units')
-      .delete()
-      .eq('product_id', productId)
-      .eq('unit_id', unitId)
-
-    if (!error) {
-      refresh()
+    try {
+      await removeProductUnit(productId, unitId)
+      await refresh()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e))
     }
   }
 

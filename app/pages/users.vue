@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { ProfileRow } from '~/composables/useUsers'
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
@@ -7,32 +7,23 @@
   })
   useHead({ title: 'Gerenciar Usuários' })
 
-  const supabase = useSupabaseClient<Database>()
+  const { fetchUsers, updateUser, toggleUserStatus: toggleStatus } = useUsers()
+  const { logAction } = useLogger()
+  const { profile: loggedProfile } = useProfile()
 
   // 2. Busca todos os usuários no banco
   const {
     data: users,
     pending,
     refresh,
-  } = useAsyncData('admin-users', async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data
-  })
+  } = useAsyncData('admin-users', fetchUsers)
 
   // 3. Lógica de Edição de Usuário
-  type ProfileRow = Database['public']['Tables']['profiles']['Row']
-
   const isEditModalOpen = ref(false)
   const editingUser = ref<ProfileRow | null>(null)
   const isSaving = ref(false)
   const saveError = ref('')
 
-  const { profile: loggedProfile } = useProfile()
   const isSelf = computed(() => editingUser.value?.id === loggedProfile.value?.id)
 
   const openEditModal = (user: ProfileRow) => {
@@ -47,25 +38,18 @@
     editingUser.value = null
   }
 
-  const { logAction } = useLogger()
-
   const saveUser = async () => {
     if (!editingUser.value) return
     isSaving.value = true
     saveError.value = ''
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
+    try {
+      await updateUser(editingUser.value.id, {
         name: editingUser.value.name,
         role: editingUser.value.role,
         is_active: editingUser.value.is_active,
       })
-      .eq('id', editingUser.value.id)
 
-    if (error) {
-      saveError.value = error.message
-    } else {
       await logAction(
         'ADMIN_UPDATE_USER',
         `Administrador atualizou o usuário: ${editingUser.value.id}`,
@@ -73,8 +57,11 @@
       )
       await refresh() // Recarrega a tabela para mostrar os novos dados
       closeEditModal()
+    } catch (e: unknown) {
+      saveError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      isSaving.value = false
     }
-    isSaving.value = false
   }
 
   const activeUsers = computed(() => users.value?.filter((u) => u.is_active) || [])
@@ -88,12 +75,7 @@
 
     try {
       const newStatus = !user.is_active
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_active: newStatus })
-        .eq('id', user.id)
-
-      if (error) throw error
+      await toggleStatus(user.id, newStatus)
 
       await logAction(
         'ADMIN_TOGGLE_USER_STATUS',

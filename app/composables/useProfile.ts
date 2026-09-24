@@ -41,5 +41,18 @@ export const useProfile = () => {
     return data
   }
 
-  return { profile, isLoading, debugError, fetchProfile, fetchAllProfiles }
+  const updateProfile = async (payload: Partial<Profile>) => {
+    if (!profile.value) return
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', profile.value.id)
+
+    if (error) throw error
+
+    await fetchProfile()
+  }
+
+  return { profile, isLoading, debugError, fetchProfile, fetchAllProfiles, updateProfile }
 }
