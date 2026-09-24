@@ -13,6 +13,16 @@ export const useMeasurementUnits = () => {
     return data || []
   }
 
+  const fetchAllActiveUnits = async () => {
+    const { data, error } = await supabase
+      .from('measurement_units')
+      .select('*')
+      .eq('is_active', true)
+      .order('name')
+    if (error) throw error
+    return data || []
+  }
+
   const createUnit = async (payload: {
     name: string
     legacy_alias: string | null
@@ -122,6 +132,7 @@ export const useMeasurementUnits = () => {
 
   return {
     fetchUnits,
+    fetchAllActiveUnits,
     createUnit,
     updateUnit,
     toggleUnitStatus,

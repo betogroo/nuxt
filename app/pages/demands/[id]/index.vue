@@ -80,7 +80,7 @@
 
   // Form states
   const selectedProductId = ref<string | null>(null)
-  const selectedUnitSearch = ref<string>('')
+  const selectedUnitSearch = ref<unknown>('')
   const itemQuantity = ref<number>(1)
   const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')

@@ -119,7 +119,7 @@ export const useProducts = () => {
 
     return {
       ...data,
-      units: unitsData?.map((u) => u.measurement_units) || [],
+      units: unitsData?.map((u: { measurement_units: { id: string; name: string; is_pending: boolean; is_active: boolean; legacy_alias: string | null } }) => u.measurement_units) || [],
     }
   }
 
