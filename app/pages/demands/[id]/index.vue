@@ -435,7 +435,8 @@
     productName: '',
     quantity: 1,
     reference_price: null as number | null,
-    unit_id: null as { id: string; name: string } | string | null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    unit_id: null as any,
     searchUnitText: '',
   })
 
