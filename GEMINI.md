@@ -21,3 +21,7 @@ Always strictly type your variables and functions. Do NOT use the `any` type und
 # Pending Items Feature
 
 When working on modals or pages where users can select Product Categories or Measurement Units (e.g. Demands or Products), ALWAYS preserve and implement the feature that allows users to type in a NEW category or unit that doesn't exist yet. The new item must be inserted into the database with `is_pending = true` and `is_active = false`, so that administrators can review them later. Do NOT force users to select only existing items via strict dropdowns.
+
+# File Encoding
+
+Always use and enforce UTF-8 encoding when creating or modifying files. This is particularly critical in Windows environments where tools like PowerShell might default to Windows-1252, ANSI, or UTF-16, leading to broken accents and special characters (mojibake like `Ã£` instead of `ã`). When using terminal commands to pipe or write output to files (e.g., `Out-File`, `>`), ALWAYS explicitly specify `-Encoding utf8`.

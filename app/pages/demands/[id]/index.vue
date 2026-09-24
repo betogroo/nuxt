@@ -388,6 +388,8 @@
           unit_id: finalUnitId,
           quantity: itemQuantity.value,
           reference_price: itemReferencePrice.value,
+          bid_interval: 3,
+          bid_interval_type: 'percentage',
         })
 
         if (error) throw error
@@ -651,7 +653,7 @@
 
       await logAction(
         'REQUEST_DEMAND_RETURN',
-        `SolicitaÃ§Ã£o de retorno para demanda ${demandId}`,
+        `Solicitação de retorno para demanda ${demandId}`,
         user.value?.id,
       )
 

@@ -5,6 +5,8 @@ export type Database = {
     Tables: {
       demand_products: {
         Row: {
+          bid_interval: number | null
+          bid_interval_type: string | null
           category_name_snapshot: string | null
           created_at: string
           created_by: string | null
@@ -19,6 +21,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bid_interval?: number | null
+          bid_interval_type?: string | null
           category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null
@@ -33,6 +37,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bid_interval?: number | null
+          bid_interval_type?: string | null
           category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null

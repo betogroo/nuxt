@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
   const route = useRoute()
@@ -36,7 +36,13 @@
   const isEditing = ref(false)
   const isSaving = ref(false)
   const editError = ref('')
-  const editForm = ref({ quantity: 1, unitSearch: '', reference_price: 0 as number | null })
+  const editForm = ref({
+    quantity: 1,
+    unitSearch: '',
+    reference_price: 0 as number | null,
+    bid_interval: 3 as number,
+    bid_interval_type: 'percentage' as 'percentage' | 'monetary',
+  })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const availableUnits = ref<any[]>([])
 
@@ -46,6 +52,8 @@
       quantity: Number(item.value.quantity),
       unitSearch: item.value.measurement_units?.name || '',
       reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
+      bid_interval: item.value.bid_interval ? Number(item.value.bid_interval) : 3,
+      bid_interval_type: item.value.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
     }
 
     // Fetch all units so user can search or suggest new ones
@@ -116,18 +124,20 @@
           quantity: editForm.value.quantity,
           unit_id: finalUnitId,
           reference_price: editForm.value.reference_price,
+          bid_interval: editForm.value.bid_interval,
+          bid_interval_type: editForm.value.bid_interval_type,
         })
         .eq('id', itemId)
 
       if (updateErr) {
         if (updateErr.code === '23505')
-          throw new Error('JÃ¡ existe esse produto com essa mesma unidade nesta demanda.')
+          throw new Error('Já existe esse produto com essa mesma unidade nesta demanda.')
         throw updateErr
       }
 
       await logAction(
         'UPDATE_DEMAND_ITEM',
-        `UsuÃ¡rio editou o item ${itemId} da demanda ${demandId}`,
+        `Usuário editou o item ${itemId} da demanda ${demandId}`,
         user.value?.id,
       )
       await refresh()
@@ -186,8 +196,8 @@
           </template>
 
           <v-alert class="mb-4" density="compact" type="info" variant="tonal">
-            Esta Ã© a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
-            documentos enviados pelos fornecedores aparecerÃ£o aqui.
+            Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
+            documentos enviados pelos fornecedores aparecerão aqui.
           </v-alert>
 
           <!-- Futuro Card de Lances -->
@@ -212,8 +222,37 @@
 
       <v-col cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
-        <UiCard title="InformaÃ§Ãµes" variant="outlined">
+        <UiCard title="Informações" variant="outlined">
           <v-list class="bg-transparent" density="compact">
+            <v-list-item v-if="item?.reference_price">
+              <template #prepend>
+                <v-icon color="grey">mdi-currency-brl</v-icon>
+              </template>
+              <v-list-item-title>Valor Referencial</v-list-item-title>
+              <v-list-item-subtitle>
+                {{
+                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    item.reference_price,
+                  )
+                }}
+              </v-list-item-subtitle>
+            </v-list-item>
+            <v-list-item>
+              <template #prepend>
+                <v-icon color="grey">mdi-arrow-split-horizontal</v-icon>
+              </template>
+              <v-list-item-title>Intervalo entre Lances</v-list-item-title>
+              <v-list-item-subtitle v-if="item">
+                {{
+                  item.bid_interval_type === 'percentage'
+                    ? `${item.bid_interval}%`
+                    : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        item.bid_interval || 0,
+                      )
+                }}
+              </v-list-item-subtitle>
+            </v-list-item>
+            <v-divider class="my-2" />
             <v-list-item>
               <template #prepend>
                 <v-icon color="grey">mdi-identifier</v-icon>
@@ -250,6 +289,29 @@
           step="0.0001"
           type="number"
         />
+
+        <div class="d-flex align-center mt-2 mb-4">
+          <v-select
+            v-model="editForm.bid_interval_type"
+            class="mr-2 flex-grow-1"
+            density="comfortable"
+            hide-details
+            :items="[
+              { title: 'Percentual (%)', value: 'percentage' },
+              { title: 'Monetário (R$)', value: 'monetary' },
+            ]"
+            label="Tipo de Intervalo"
+            variant="outlined"
+          />
+          <UiInput
+            v-model.number="editForm.bid_interval"
+            class="flex-grow-1"
+            hide-details
+            label="Valor do Intervalo"
+            step="0.01"
+            type="number"
+          />
+        </div>
 
         <v-combobox
           v-model="editForm.unitSearch"
