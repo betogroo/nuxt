@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { Database } from '~/types/database.types'
 
   const route = useRoute()
@@ -871,12 +871,13 @@
           <UiButton
             v-if="demand?.status === 'planning' || demand?.status === 'quotation'"
             color="primary"
-            icon="mdi-pencil"
             size="small"
             title="Editar Item"
             variant="text"
             @click="openEditItemModal(item)"
-          />
+          >
+            <v-icon>mdi-pencil</v-icon>
+          </UiButton>
           <UiButton
             v-if="demand?.status === 'planning'"
             color="error"
