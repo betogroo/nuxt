@@ -1,4 +1,4 @@
-﻿-- Drop existing policies
+-- Drop existing policies
 DROP POLICY IF EXISTS "Admins can manage demand_responsibles" ON public.demand_responsibles;
 DROP POLICY IF EXISTS "Demand creator can manage responsibles" ON public.demand_responsibles;
 

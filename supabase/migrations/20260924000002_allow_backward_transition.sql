@@ -1,4 +1,4 @@
-﻿-- Add is_return_requested to demands table
+-- Add is_return_requested to demands table
 ALTER TABLE public.demands ADD COLUMN is_return_requested BOOLEAN DEFAULT FALSE;
 
 -- Update the check_demand_status_transition function to allow backward transitions

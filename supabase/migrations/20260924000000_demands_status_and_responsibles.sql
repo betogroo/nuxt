@@ -1,4 +1,4 @@
-﻿-- 1. Alterar dispute_date para nao obrigatorio
+-- 1. Alterar dispute_date para nao obrigatorio
 ALTER TABLE public.demands ALTER COLUMN dispute_date DROP NOT NULL;
 
 -- 2. Atualizar trigger validate_offer_opening_date
