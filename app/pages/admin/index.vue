@@ -1,40 +1,12 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   definePageMeta({
     middleware: ['admin'],
   })
   useHead({ title: 'Painel de Controle - Admin' })
 
-  const supabase = useSupabaseClient<Database>()
+  const { fetchDashboardMetrics, getLogColor } = useAdminDashboard()
 
-  // Interface for nested join
-  type RecentLog = Database['public']['Tables']['logs']['Row'] & {
-    profiles?: { name: string } | null
-  }
-
-  const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', async () => {
-    // Run all count queries concurrently for maximum performance
-    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('demands').select('*', { count: 'exact', head: true }),
-      supabase.from('product_categories').select('*', { count: 'exact', head: true }),
-      supabase
-        .from('logs')
-        .select('*, profiles(name)')
-        .order('created_at', { ascending: false })
-        .limit(6),
-    ])
-
-    return {
-      usersCount: usersRes.count || 0,
-      productsCount: productsRes.count || 0,
-      demandsCount: demandsRes.count || 0,
-      categoriesCount: categoriesRes.count || 0,
-      recentLogs: (logsRes.data as RecentLog[]) || [],
-    }
-  })
+  const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
   const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
 
@@ -46,13 +18,6 @@
       hour: '2-digit',
       minute: '2-digit',
     })
-  }
-
-  const getLogColor = (action: string) => {
-    if (action.includes('CREATE') || action.includes('ADD')) return 'success'
-    if (action.includes('DELETE') || action.includes('REMOVE')) return 'error'
-    if (action.includes('UPDATE')) return 'warning'
-    return 'primary'
   }
 </script>
 

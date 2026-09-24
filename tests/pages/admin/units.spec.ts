@@ -39,6 +39,14 @@ mockNuxtImport('refreshNuxtData', () => {
   return vi.fn()
 })
 
+mockNuxtImport('useHead', () => {
+  return vi.fn()
+})
+
+mockNuxtImport('definePageMeta', () => {
+  return vi.fn()
+})
+
 describe('Units Admin Page', () => {
   it('should render successfully with stubs', () => {
     const wrapper = mount(UnitsPage, {
@@ -50,6 +58,8 @@ describe('Units Admin Page', () => {
           UiButton: true,
           UiInput: true,
           UiSelect: true,
+          UiModal: true,
+          UiSwitch: true,
           'v-row': true,
           'v-col': true,
           'v-icon': true,

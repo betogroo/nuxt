@@ -324,75 +324,81 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal
+      v-model="isModalOpen"
+      max-width="500px"
+      :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'"
+      transparent-header
+    >
+      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </v-alert>
 
-        <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote, Bisnaga 90g)" />
-        <UiInput v-model="form.legacy_alias" label="Apelido do Sistema Legado (opcional)" />
+      <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote, Bisnaga 90g)" />
+      <UiInput v-model="form.legacy_alias" label="Apelido do Sistema Legado (opcional)" />
 
-        <v-switch
-          v-model="form.is_active"
-          color="success"
-          hint="Indica se a unidade está disponível para vínculos"
-          label="Unidade Ativa"
-          persistent-hint
-        />
+      <UiSwitch
+        v-model="form.is_active"
+        color="success"
+        hint="Indica se a unidade está disponível para vínculos"
+        label="Unidade Ativa"
+        persistent-hint
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveUnit"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveUnit"> Salvar </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Modal Resolve Suggestion -->
-    <v-dialog v-model="isResolveModalOpen" max-width="600px">
-      <UiCard title="Resolver Unidade Pendente" transparent-header>
-        <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ resolveError }}
-        </v-alert>
+    <UiModal
+      v-model="isResolveModalOpen"
+      max-width="600px"
+      title="Resolver Unidade Pendente"
+      transparent-header
+    >
+      <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ resolveError }}
+      </v-alert>
 
-        <div class="text-subtitle-1 mb-4">
-          Unidade Sugerida: <strong class="text-warning">{{ resolveTarget?.name }}</strong>
+      <div class="text-subtitle-1 mb-4">
+        Unidade Sugerida: <strong class="text-warning">{{ resolveTarget?.name }}</strong>
+      </div>
+
+      <v-radio-group v-model="resolveMode">
+        <v-radio label="Aprovar como Nova Unidade Oficial" value="new" />
+        <v-radio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
+      </v-radio-group>
+
+      <v-slide-y-transition leave-absolute>
+        <div v-if="resolveMode === 'new'" class="mt-2">
+          <UiInput
+            v-model="resolveNewName"
+            hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
+            label="Nome da Nova Unidade"
+            persistent-hint
+          />
         </div>
+        <div v-else class="mt-4">
+          <UiSelect
+            v-model="resolveLinkUnitId"
+            item-title="name"
+            item-value="id"
+            :items="activeUnits"
+            label="Selecione a unidade oficial correspondente"
+          />
+        </div>
+      </v-slide-y-transition>
 
-        <v-radio-group v-model="resolveMode">
-          <v-radio label="Aprovar como Nova Unidade Oficial" value="new" />
-          <v-radio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
-        </v-radio-group>
-
-        <v-slide-y-transition leave-absolute>
-          <div v-if="resolveMode === 'new'" class="mt-2">
-            <UiInput
-              v-model="resolveNewName"
-              hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
-              label="Nome da Nova Unidade"
-              persistent-hint
-            />
-          </div>
-          <div v-else class="mt-4">
-            <UiSelect
-              v-model="resolveLinkUnitId"
-              item-title="name"
-              item-value="id"
-              :items="activeUnits"
-              label="Selecione a unidade oficial correspondente"
-            />
-          </div>
-        </v-slide-y-transition>
-
-        <template #actions>
-          <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
-            >Cancelar</UiButton
-          >
-          <UiButton color="primary" :loading="isResolving" @click="submitResolve">
-            Confirmar
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="isResolving" @click="submitResolve">
+          Confirmar
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

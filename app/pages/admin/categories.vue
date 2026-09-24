@@ -333,74 +333,79 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="isEditing ? 'Editar Categoria' : 'Nova Categoria'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal
+      v-model="isModalOpen"
+      max-width="500px"
+      :title="isEditing ? 'Editar Categoria' : 'Nova Categoria'"
+      transparent-header
+    >
+      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </v-alert>
 
-        <UiInput v-model="form.name" label="Nome da Categoria (Ex: Papelaria)" />
+      <UiInput v-model="form.name" label="Nome da Categoria (Ex: Papelaria)" />
 
-        <v-switch
-          v-model="form.is_active"
-          color="success"
-          hint="Determina se os usuários podem escolher esta categoria ao cadastrar novos produtos"
-          label="Categoria Ativa"
-          persistent-hint
-        />
+      <UiSwitch
+        v-model="form.is_active"
+        color="success"
+        hint="Determina se os usuários podem escolher esta categoria ao cadastrar novos produtos"
+        label="Categoria Ativa"
+        persistent-hint
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveCategory"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveCategory"> Salvar </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Resolve Modal -->
-    <v-dialog v-model="isResolveModalOpen" max-width="550px" persistent>
-      <UiCard title="Resolver Sugestão de Categoria" transparent-header>
-        <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ resolveError }}
-        </v-alert>
+    <UiModal
+      v-model="isResolveModalOpen"
+      max-width="550px"
+      persistent
+      title="Resolver Sugestão de Categoria"
+      transparent-header
+    >
+      <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ resolveError }}
+      </v-alert>
 
-        <p class="mb-4 text-body-2">
-          Resolvendo a sugestão: <strong class="text-warning">{{ resolveTarget }}</strong>
-        </p>
+      <p class="mb-4 text-body-2">
+        Resolvendo a sugestão: <strong class="text-warning">{{ resolveTarget }}</strong>
+      </p>
 
-        <v-radio-group v-model="resolveMode" class="mb-2">
-          <v-radio label="Criar Nova Categoria" value="new" />
-          <v-radio label="Vincular a Categoria Existente" value="existing" />
-        </v-radio-group>
+      <v-radio-group v-model="resolveMode" class="mb-2">
+        <v-radio label="Criar Nova Categoria" value="new" />
+        <v-radio label="Vincular a Categoria Existente" value="existing" />
+      </v-radio-group>
 
-        <v-slide-y-transition leave-absolute>
-          <div v-if="resolveMode === 'new'">
-            <UiInput
-              v-model="resolveNewName"
-              hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
-              label="Nome da Nova Categoria"
-              persistent-hint
-            />
-          </div>
-          <div v-else>
-            <UiSelect
-              v-model="resolveExistingId"
-              item-title="name"
-              item-value="id"
-              :items="allActiveCategories || []"
-              label="Selecione a Categoria"
-            />
-          </div>
-        </v-slide-y-transition>
+      <v-slide-y-transition leave-absolute>
+        <div v-if="resolveMode === 'new'">
+          <UiInput
+            v-model="resolveNewName"
+            hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
+            label="Nome da Nova Categoria"
+            persistent-hint
+          />
+        </div>
+        <div v-else>
+          <UiSelect
+            v-model="resolveExistingId"
+            item-title="name"
+            item-value="id"
+            :items="allActiveCategories || []"
+            label="Selecione a Categoria"
+          />
+        </div>
+      </v-slide-y-transition>
 
-        <template #actions>
-          <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
-            >Cancelar</UiButton
-          >
-          <UiButton color="primary" :loading="isResolving" @click="submitResolve"
-            >Confirmar</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="isResolving" @click="submitResolve">Confirmar</UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>
