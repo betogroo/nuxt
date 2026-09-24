@@ -954,6 +954,7 @@
               }}</v-list-item-title>
               <template #append>
                 <UiButton
+                  v-if="profile?.role === 'admin'"
                   color="error"
                   icon="mdi-close"
                   size="x-small"
