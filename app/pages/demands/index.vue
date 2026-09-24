@@ -198,6 +198,10 @@
               <v-chip :color="getStatusColor(item.status)" size="small" variant="outlined">
                 {{ formatStatus(item.status) }}
               </v-chip>
+              <v-chip v-if="item.is_return_requested" class="ml-2" color="warning" size="small" variant="flat">
+                <v-icon left size="small">mdi-keyboard-return</v-icon>
+                Retorno Solicitado
+              </v-chip>
             </template>
             <template #item-creator="{ item }">
               <span class="text-caption text-grey">

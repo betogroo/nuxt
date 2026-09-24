@@ -122,7 +122,7 @@
           <v-list-item
             v-if="pendingReturnsCount > 0"
             prepend-icon="mdi-keyboard-return"
-            to="/demands"
+            to="/admin"
           >
             <v-list-item-title>{{ pendingReturnsCount }} pedidos de retorno em demandas</v-list-item-title>
           </v-list-item>
