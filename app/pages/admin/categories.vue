@@ -59,6 +59,11 @@
     refresh: refreshSuggestions,
   } = useAsyncData('admin-suggestions', fetchPendingSuggestions)
 
+  onMounted(() => {
+    refresh()
+    refreshSuggestions()
+  })
+
   // Resolve Modal State
   const isResolveModalOpen = ref(false)
   const resolveTarget = ref('')

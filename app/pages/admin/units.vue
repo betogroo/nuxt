@@ -1,6 +1,12 @@
 <script setup lang="ts">
   import type { UnitRow } from '~/composables/useMeasurementUnits'
 
+  definePageMeta({
+    middleware: ['admin'],
+  })
+
+  useHead({ title: 'Gerenciar Unidades de Medida' })
+
   const {
     fetchUnits,
     createUnit,
@@ -11,6 +17,10 @@
   } = useMeasurementUnits()
 
   const { data: units, pending, refresh } = useAsyncData('measurement-units-admin', fetchUnits)
+
+  onMounted(() => {
+    refresh()
+  })
 
   // Modal State
   const isModalOpen = ref(false)
@@ -117,11 +127,13 @@
   const resolveTarget = ref<UnitRow | null>(null)
   const resolveMode = ref<'new' | 'link'>('new')
   const resolveLinkUnitId = ref('')
+  const resolveNewName = ref('')
 
   const openResolveModal = (unit: UnitRow) => {
     resolveTarget.value = unit
     resolveMode.value = 'new'
     resolveLinkUnitId.value = ''
+    resolveNewName.value = unit.name
     resolveError.value = ''
     isResolveModalOpen.value = true
   }
@@ -139,7 +151,10 @@
       const targetUnit = resolveTarget.value
 
       if (resolveMode.value === 'new') {
-        await approvePendingUnit(targetUnit)
+        if (!resolveNewName.value.trim()) {
+          throw new Error('O nome da nova unidade é obrigatório.')
+        }
+        await approvePendingUnit(targetUnit, resolveNewName.value)
       } else {
         await mergePendingUnit(targetUnit, resolveLinkUnitId.value)
       }
@@ -349,8 +364,16 @@
           <v-radio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
         </v-radio-group>
 
-        <v-slide-y-transition>
-          <div v-if="resolveMode === 'link'" class="mt-4">
+        <v-slide-y-transition leave-absolute>
+          <div v-if="resolveMode === 'new'" class="mt-2">
+            <UiInput
+              v-model="resolveNewName"
+              hint="Você pode ajustar o texto digitado pelo usuário para o padrão oficial."
+              label="Nome da Nova Unidade"
+              persistent-hint
+            />
+          </div>
+          <div v-else class="mt-4">
             <UiSelect
               v-model="resolveLinkUnitId"
               item-title="name"

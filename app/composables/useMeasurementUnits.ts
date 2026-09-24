@@ -48,10 +48,18 @@ export const useMeasurementUnits = () => {
     )
   }
 
-  const approvePendingUnit = async (targetUnit: UnitRow) => {
+  const approvePendingUnit = async (targetUnit: UnitRow, newName?: string) => {
+    const updatePayload: { is_pending: boolean; is_active: boolean; name?: string } = {
+      is_pending: false,
+      is_active: true,
+    }
+    if (newName && newName.trim() !== '') {
+      updatePayload.name = newName.trim()
+    }
+
     const { error: updateError } = await supabase
       .from('measurement_units')
-      .update({ is_pending: false, is_active: true })
+      .update(updatePayload)
       .eq('id', targetUnit.id)
 
     if (updateError) throw updateError
