@@ -1,7 +1,7 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const supabase = useSupabaseClient()
   const user = useSupabaseUser()
+  const { signUp: register } = useAuth()
   const email = ref('')
   const password = ref('')
   const loading = ref(false)
@@ -15,30 +15,20 @@
     }
   })
 
-  const { logAction } = useLogger()
-
   const signUp = async () => {
     loading.value = true
     message.value = ''
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
-      options: {
-        // Endereço de callback após o usuário clicar no link de confirmação
-        emailRedirectTo: `${window.location.origin}/confirm`,
-      },
-    })
+    const { data, error } = await register(
+      email.value,
+      password.value,
+      `${window.location.origin}/confirm`,
+    )
 
     if (error) {
       message.value = error.message
     } else if (data.session) {
       // Ambiente local: confirmação de e-mail desligada, session existe → login automático
-      await logAction(
-        'REGISTER',
-        'Novo usuário registrado no sistema (login automático)',
-        data.session.user.id,
-      )
       return navigateTo('/')
     } else {
       // Produção: confirmação de e-mail ligada, usuário precisa clicar no link

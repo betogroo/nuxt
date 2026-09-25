@@ -1,7 +1,8 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const supabase = useSupabaseClient()
   const user = useSupabaseUser()
+  const { signInWithPassword: loginWithPassword, signInWithMagicLink: loginWithMagicLink } =
+    useAuth()
 
   // Redireciona se já estiver logado
   watchEffect(() => {
@@ -22,21 +23,14 @@
   const loadingPassword = ref(false)
   const errorPassword = ref('')
 
-  const { logAction } = useLogger()
-
   const signInWithPassword = async () => {
     loadingPassword.value = true
     errorPassword.value = ''
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: emailPassword.value,
-      password: password.value,
-    })
+    const { error } = await loginWithPassword(emailPassword.value, password.value)
 
     if (error) {
       errorPassword.value = error.message
-    } else if (data.user) {
-      await logAction('LOGIN', 'Acesso via senha', data.user.id)
     }
     loadingPassword.value = false
   }
@@ -52,13 +46,10 @@
     errorMagic.value = ''
     messageMagic.value = ''
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: emailMagic.value,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/confirm`,
-      },
-    })
+    const { error } = await loginWithMagicLink(
+      emailMagic.value,
+      `${window.location.origin}/confirm`,
+    )
 
     if (error) {
       errorMagic.value = error.message
