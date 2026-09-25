@@ -551,9 +551,9 @@
       <template #header>
         Produtos na Demanda
         <v-spacer />
-        <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
-          Adicionar Produto
-        </UiButton>
+        <UiButton v-if="demand?.status !== 'planning'" color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            Adicionar Produto
+          </UiButton>
       </template>
 
       <!-- Alerta de bloqueio na fase de planejamento -->
@@ -629,7 +629,7 @@
         </template>
         <template #item-actions="{ item }">
           <UiButton
-            v-if="demand?.status === 'planning' || demand?.status === 'quotation'"
+            v-if="demand?.status === 'quotation'"
             color="primary"
             size="small"
             title="Editar Item"
@@ -639,9 +639,9 @@
             <v-icon>mdi-pencil</v-icon>
           </UiButton>
           <UiButton
-            v-if="demand?.status === 'planning'"
-            color="error"
-            icon="mdi-delete"
+              v-if="demand?.status === 'quotation'"
+              color="error"
+              icon="mdi-delete"
             size="small"
             title="Remover"
             variant="text"
