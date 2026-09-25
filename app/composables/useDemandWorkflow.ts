@@ -3,8 +3,13 @@ import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 
-export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null | undefined>, items: Ref<DemandProductRow[] | null | undefined>) {
-  const { advanceDemandStatus, revertDemandStatus, requestDemandReturn, fetchDemandById } = useDemands()
+export function useDemandWorkflow(
+  demandId: string,
+  demand: Ref<DemandRow | null | undefined>,
+  items: Ref<DemandProductRow[] | null | undefined>,
+) {
+  const { advanceDemandStatus, revertDemandStatus, requestDemandReturn, fetchDemandById } =
+    useDemands()
 
   const statusList: Database['public']['Enums']['demand_status'][] = [
     'planning',
@@ -39,7 +44,7 @@ export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null
 
   // --- REVERT MODAL ---
   const revertModal = useModal()
-  
+
   const openRevertModal = () => {
     if (!demand.value) return
     const prev = getPreviousStatus(demand.value.status)
@@ -108,7 +113,9 @@ export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null
 
       if (targetStatus.value === 'quotation') {
         if (!items.value || items.value.length === 0) {
-          throw new Error('Você precisa adicionar pelo menos um produto antes de iniciar a cotação.')
+          throw new Error(
+            'Você precisa adicionar pelo menos um produto antes de iniciar a cotação.',
+          )
         }
       }
 
@@ -121,18 +128,28 @@ export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null
             i.reference_price === undefined,
         )
         if (invalidItems && invalidItems.length > 0) {
-          throw new Error('Todos os produtos devem ter quantidade, unidade de medida e valor referencial preenchidos antes de avançar.')
+          throw new Error(
+            'Todos os produtos devem ter quantidade, unidade de medida e valor referencial preenchidos antes de avançar.',
+          )
         }
         if (!advanceModal.payload.value.bidding_notice_number)
           throw new Error('O número do aviso é obrigatório.')
         payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number
       } else if (targetStatus.value === 'dispute') {
-        if (!advanceModal.payload.value.dispute_number) throw new Error('O número da disputa é obrigatório.')
-        if (!advanceModal.payload.value.dispute_date) throw new Error('A data da disputa é obrigatória.')
+        if (!advanceModal.payload.value.dispute_number)
+          throw new Error('O número da disputa é obrigatório.')
+        if (!advanceModal.payload.value.dispute_date)
+          throw new Error('A data da disputa é obrigatória.')
 
         let offerOpening = null
-        if (advanceModal.payload.value.offer_opening_date || advanceModal.payload.value.offer_opening_time) {
-          if (!advanceModal.payload.value.offer_opening_date || !advanceModal.payload.value.offer_opening_time) {
+        if (
+          advanceModal.payload.value.offer_opening_date ||
+          advanceModal.payload.value.offer_opening_time
+        ) {
+          if (
+            !advanceModal.payload.value.offer_opening_date ||
+            !advanceModal.payload.value.offer_opening_time
+          ) {
             throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
           }
           offerOpening = new Date(
@@ -144,11 +161,16 @@ export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null
         payload.dispute_date = advanceModal.payload.value.dispute_date
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
-        if (!advanceModal.payload.value.contract_number) throw new Error('O número da contratação é obrigatório.')
+        if (!advanceModal.payload.value.contract_number)
+          throw new Error('O número da contratação é obrigatório.')
         payload.contract_number = advanceModal.payload.value.contract_number
       }
 
-      await advanceDemandStatus(demandId, targetStatus.value as Database['public']['Enums']['demand_status'], payload)
+      await advanceDemandStatus(
+        demandId,
+        targetStatus.value as Database['public']['Enums']['demand_status'],
+        payload,
+      )
 
       advanceModal.close()
       await reloadDemand()
@@ -163,17 +185,17 @@ export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null
     statusList,
     getNextStatus,
     getPreviousStatus,
-    
+
     revertModal,
     openRevertModal,
     confirmRevertStatus,
-    
+
     isReturnRequesting,
     requestReturn,
-    
+
     advanceModal,
     targetStatus,
     openAdvanceModal,
-    confirmAdvanceStatus
+    confirmAdvanceStatus,
   }
 }

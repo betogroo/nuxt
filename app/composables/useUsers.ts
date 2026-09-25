@@ -16,10 +16,7 @@ export const useUsers = () => {
   }
 
   const updateUser = async (userId: string, payload: Partial<ProfileRow>) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update(payload)
-      .eq('id', userId)
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
 
     if (error) throw error
   }

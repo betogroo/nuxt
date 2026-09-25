@@ -13,7 +13,7 @@ export const useProducts = () => {
     currentPage: number,
     itemsPerPage: number,
     categoryId: string | null,
-    statusFilter: string | null = 'active'
+    statusFilter: string | null = 'active',
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -27,7 +27,7 @@ export const useProducts = () => {
     if (categoryId) {
       query = query.eq('category_id', categoryId)
     }
-    
+
     if (statusFilter === 'active') {
       query = query.eq('is_active', true)
     } else if (statusFilter === 'inactive') {
@@ -119,7 +119,18 @@ export const useProducts = () => {
 
     return {
       ...data,
-      units: unitsData?.map((u: { measurement_units: { id: string; name: string; is_pending: boolean; is_active: boolean; legacy_alias: string | null } }) => u.measurement_units) || [],
+      units:
+        unitsData?.map(
+          (u: {
+            measurement_units: {
+              id: string
+              name: string
+              is_pending: boolean
+              is_active: boolean
+              legacy_alias: string | null
+            }
+          }) => u.measurement_units,
+        ) || [],
     }
   }
 

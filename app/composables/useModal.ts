@@ -4,9 +4,9 @@ export function useModal<T = Record<string, unknown>>(defaultPayload?: T) {
   const isOpen = ref(false)
   const isSaving = ref(false)
   const error = ref('')
-  
+
   // Clonar o payload padrão se fornecido, ou usar objeto vazio
-  const payload = ref<T>(defaultPayload ? JSON.parse(JSON.stringify(defaultPayload)) : {} as T)
+  const payload = ref<T>(defaultPayload ? JSON.parse(JSON.stringify(defaultPayload)) : ({} as T))
 
   const open = (data?: T) => {
     if (data) {
@@ -49,6 +49,6 @@ export function useModal<T = Record<string, unknown>>(defaultPayload?: T) {
     open,
     close,
     startSaving,
-    stopSaving
+    stopSaving,
   }
 }

@@ -41,7 +41,6 @@ export const useAuth = () => {
     return { data, error }
   }
 
-
   const getRedirectUrl = () => {
     const redirectCookie = useCookie('sb-redirect-path')
     const path = redirectCookie.value || '/'

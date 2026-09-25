@@ -44,10 +44,7 @@ export const useProfile = () => {
   const updateProfile = async (payload: Partial<Profile>) => {
     if (!profile.value) return
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(payload)
-      .eq('id', profile.value.id)
+    const { error } = await supabase.from('profiles').update(payload).eq('id', profile.value.id)
 
     if (error) throw error
 

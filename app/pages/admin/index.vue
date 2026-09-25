@@ -8,8 +8,7 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
-  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } =
-    usePendingTasks()
+  const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
 
   // Formatters
   const formatDate = (dateStr: string) => {

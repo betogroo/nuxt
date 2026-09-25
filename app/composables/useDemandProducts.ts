@@ -215,7 +215,7 @@ export const useDemandProducts = () => {
     unitSearch: string | { name?: string; id?: string }
   }) => {
     let finalUnitId = ''
-    
+
     // Determine unit search string or object
     let selectedUnitId: string | null = null
     let searchStr = ''
@@ -241,7 +241,7 @@ export const useDemandProducts = () => {
       const existingUnit = existingUnits?.find(
         (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
       )
-      
+
       if (existingUnit) {
         finalUnitId = existingUnit.id
       } else {
@@ -283,7 +283,8 @@ export const useDemandProducts = () => {
     }
 
     if (params.bidInterval !== undefined) updatePayload.bid_interval = params.bidInterval
-    if (params.bidIntervalType !== undefined) updatePayload.bid_interval_type = params.bidIntervalType
+    if (params.bidIntervalType !== undefined)
+      updatePayload.bid_interval_type = params.bidIntervalType
 
     const { error: updateErr } = await supabase
       .from('demand_products')

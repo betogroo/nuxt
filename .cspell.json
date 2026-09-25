@@ -12,6 +12,7 @@
   "dictionaryDefinitions": [],
   "dictionaries": ["javascript", "typescript", "lorem-ipsum", "node", "html", "bash"],
   "words": [
+    "cnpj",
     "esbenp",
     "nuxt",
     "nuxtjs",

@@ -58,7 +58,11 @@ export const usePendingTasks = () => {
   )
 
   const totalPending = computed(() => {
-    return (pendingCategoriesCount.value || 0) + (pendingUnitsCount.value || 0) + (pendingReturnsCount.value || 0)
+    return (
+      (pendingCategoriesCount.value || 0) +
+      (pendingUnitsCount.value || 0) +
+      (pendingReturnsCount.value || 0)
+    )
   })
 
   const refreshAll = async () => {
