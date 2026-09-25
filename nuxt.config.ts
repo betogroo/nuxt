@@ -18,6 +18,11 @@ export default defineNuxtConfig({
       saveRedirectToCookie: true,
     },
     cookieName: 'sb',
+    cookieOptions: {
+      maxAge: 60 * 60 * 8,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
   },
   vuetify: {
     vuetifyOptions: {
