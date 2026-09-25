@@ -87,12 +87,12 @@
 
   // Advance Status Modal State
   const isStatusModalOpen = ref(false)
-  const isAdvancing = ref(false)
-  const advanceError = ref('')
+  const advanceModal.isSaving.value = ref(false)
+  const advanceModal.error.value = ref('')
   const targetStatus = ref<Database['public']['Enums']['demand_status'] | ''>('')
 
   // Dynamic fields for advance
-  const advancePayload = ref({
+  const advanceModal.payload.value = ref({
     bidding_notice_number: '',
     dispute_number: '',
     dispute_date: '',
@@ -290,159 +290,12 @@
       editItemSaving.value = false
     }
   }
-
-    const statusList: Database['public']['Enums']['demand_status'][] = [
-    'planning',
-    'quotation',
-    'bidding_notice',
-    'dispute',
-    'homologation',
-    'completed',
-  ]
-  const getNextStatus = (current: string) => {
-    const idx = statusList.indexOf(current as Database['public']['Enums']['demand_status'])
-    if (idx >= 0 && idx < statusList.length - 1) {
-      return statusList[idx + 1]
-    }
-    return null
-  }
-
-  const getPreviousStatus = (current: string) => {
-    const idx = statusList.indexOf(current as Database['public']['Enums']['demand_status'])
-    if (idx > 0) {
-      return statusList[idx - 1]
-    }
-    return null
-  }
-
-  const isRevertModalOpen = ref(false)
-  const isReverting = ref(false)
-  const revertError = ref('')
-  const isReturnRequesting = ref(false)
-
-  const openRevertModal = () => {
-    if (!demand.value) return
-    const prev = getPreviousStatus(demand.value.status)
-    if (!prev) return
-    revertError.value = ''
-    isRevertModalOpen.value = true
-  }
-
-  const confirmRevertStatus = async () => {
-    if (!demand.value) return
-    const prev = getPreviousStatus(demand.value.status)
-    if (!prev) return
-
-    isReverting.value = true
-    revertError.value = ''
-
-    try {
-      await revertDemandStatus(demandId, prev as Database['public']['Enums']['demand_status'])
-
-      isRevertModalOpen.value = false
-      const reloaded = await fetchDemandById(demandId)
-      if (reloaded) demand.value = reloaded
-    } catch (err: unknown) {
-      revertError.value = err instanceof Error ? err.message : String(err)
-    } finally {
-      isReverting.value = false
-    }
-  }
-
-  const requestReturn = async () => {
-    if (!demand.value) return
-    isReturnRequesting.value = true
-
-    try {
-      await requestDemandReturn(demandId)
-
-      const reloaded = await fetchDemandById(demandId)
-      if (reloaded) demand.value = reloaded
-    } catch (err: unknown) {
-      console.error(err)
-    } finally {
-      isReturnRequesting.value = false
-    }
-  }
-
-  const openAdvanceModal = () => {
-    if (!demand.value) return
-    const next = getNextStatus(demand.value.status)
-    if (!next) return
-    targetStatus.value = next
-    advanceError.value = ''
-    isStatusModalOpen.value = true
-  }
-
-  const confirmAdvanceStatus = async () => {
-    isAdvancing.value = true
-    advanceError.value = ''
-
-    try {
-      const payload: Partial<Database['public']['Tables']['demands']['Update']> = {}
-
-      if (targetStatus.value === 'quotation') {
-        if (!items.value || items.value.length === 0) {
-          throw new Error(
-            'Você precisa adicionar pelo menos um produto antes de iniciar a cotação.',
-          )
-        }
-      }
-
-      if (targetStatus.value === 'bidding_notice') {
-        const invalidItems = items.value?.filter(
-          (i) =>
-            !i.quantity ||
-            !i.unit_id ||
-            i.reference_price === null ||
-            i.reference_price === undefined,
-        )
-        if (invalidItems && invalidItems.length > 0) {
-          throw new Error(
-            'Todos os produtos devem ter quantidade, unidade de medida e valor referencial preenchidos antes de avançar.',
-          )
-        }
-        if (!advancePayload.value.bidding_notice_number)
-          throw new Error('O número do aviso é obrigatório.')
-        payload.bidding_notice_number = advancePayload.value.bidding_notice_number
-      } else if (targetStatus.value === 'dispute') {
-        if (!advancePayload.value.dispute_number)
-          throw new Error('O número da disputa é obrigatório.')
-        if (!advancePayload.value.dispute_date) throw new Error('A data da disputa é obrigatória.')
-
-        let offerOpening = null
-        if (advancePayload.value.offer_opening_date || advancePayload.value.offer_opening_time) {
-          if (
-            !advancePayload.value.offer_opening_date ||
-            !advancePayload.value.offer_opening_time
-          ) {
-            throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
-          }
-          offerOpening = new Date(
-            `${advancePayload.value.offer_opening_date}T${advancePayload.value.offer_opening_time}`,
-          ).toISOString()
-        }
-
-        payload.dispute_number = advancePayload.value.dispute_number
-        payload.dispute_date = advancePayload.value.dispute_date
-        payload.offer_opening_date = offerOpening
-      } else if (targetStatus.value === 'homologation') {
-        if (!advancePayload.value.contract_number)
-          throw new Error('O número da contratação é obrigatório.')
-        payload.contract_number = advancePayload.value.contract_number
-      }
-
-      await advanceDemandStatus(demandId, targetStatus.value as Database['public']['Enums']['demand_status'], payload)
-
-      isStatusModalOpen.value = false
-      const reloaded = await fetchDemandById(demandId)
-      if (reloaded) demand.value = reloaded
-    } catch (err: unknown) {
-      advanceError.value = err instanceof Error ? err.message : String(err)
-    } finally {
-      isAdvancing.value = false
-    }
-  }
+  const {
+    statusList, getNextStatus, getPreviousStatus,
+    revertModal, openRevertModal, confirmRevertStatus,
+    isReturnRequesting, requestReturn,
+    advanceModal, targetStatus, openAdvanceModal, confirmAdvanceStatus
+  } = useDemandWorkflow(demandId, demand, items)
 
   const addResponsible = async () => {
     if (!responsibleUserId.value) {
@@ -949,24 +802,24 @@
     </v-dialog>
 
     <!-- Modal Avançar Status -->
-    <v-dialog v-model="isStatusModalOpen" max-width="500px">
+    <v-dialog v-model="advanceModal.isOpen.value" max-width="500px">
       <UiCard :title="`Avançar para: ${formatDemandStatus(targetStatus)}`" transparent-header>
-        <v-alert v-if="advanceError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ advanceError }}
+        <v-alert v-if="advanceModal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ advanceModal.error.value }}
         </v-alert>
 
         <div v-if="targetStatus === 'bidding_notice'">
           <UiInput
-            v-model="advancePayload.bidding_notice_number"
+            v-model="advanceModal.payload.value.bidding_notice_number"
             label="Número do Aviso de Contratação"
             required
           />
         </div>
 
         <div v-if="targetStatus === 'dispute'">
-          <UiInput v-model="advancePayload.dispute_number" label="Número da Disputa" required />
+          <UiInput v-model="advanceModal.payload.value.dispute_number" label="Número da Disputa" required />
           <UiInput
-            v-model="advancePayload.dispute_date"
+            v-model="advanceModal.payload.value.dispute_date"
             label="Data da Disputa"
             required
             type="date"
@@ -974,14 +827,14 @@
           <v-row class="mt-2">
             <v-col class="py-0" cols="12" sm="6">
               <UiInput
-                v-model="advancePayload.offer_opening_date"
+                v-model="advanceModal.payload.value.offer_opening_date"
                 label="Data de Abertura"
                 type="date"
               />
             </v-col>
             <v-col class="py-0" cols="12" sm="6">
               <UiInput
-                v-model="advancePayload.offer_opening_time"
+                v-model="advanceModal.payload.value.offer_opening_time"
                 label="Hora de Abertura"
                 type="time"
               />
@@ -991,7 +844,7 @@
 
         <div v-if="targetStatus === 'homologation'">
           <UiInput
-            v-model="advancePayload.contract_number"
+            v-model="advanceModal.payload.value.contract_number"
             label="Número da Contratação (Contrato/Ata)"
             required
           />
@@ -1002,10 +855,10 @@
         </div>
 
         <template #actions>
-          <UiButton :disabled="isAdvancing" variant="text" @click="isStatusModalOpen = false"
+          <UiButton :disabled="advanceModal.isSaving.value" variant="text" @click="advanceModal.close()"
             >Cancelar</UiButton
           >
-          <UiButton color="success" :loading="isAdvancing" @click="confirmAdvanceStatus"
+          <UiButton color="success" :loading="advanceModal.isSaving.value" @click="confirmAdvanceStatus"
             >Confirmar Avanço</UiButton
           >
         </template>
@@ -1013,10 +866,10 @@
     </v-dialog>
 
     <!-- Modal Retornar Status -->
-    <v-dialog v-model="isRevertModalOpen" max-width="500px">
+    <v-dialog v-model="revertModal.isOpen.value" max-width="500px">
       <UiCard title="Confirmar Retorno de Fase" transparent-header>
-        <v-alert v-if="revertError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ revertError }}
+        <v-alert v-if="revertModal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ revertModal.error.value }}
         </v-alert>
 
         <p class="text-body-1">
@@ -1030,10 +883,10 @@
         </p>
 
         <template #actions>
-          <UiButton :disabled="isReverting" variant="text" @click="isRevertModalOpen = false"
+          <UiButton :disabled="revertModal.isSaving.value" variant="text" @click="revertModal.close()"
             >Cancelar</UiButton
           >
-          <UiButton color="warning" :loading="isReverting" @click="confirmRevertStatus"
+          <UiButton color="warning" :loading="revertModal.isSaving.value" @click="confirmRevertStatus"
             >Confirmar Retorno</UiButton
           >
         </template>
