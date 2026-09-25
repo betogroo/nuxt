@@ -60,21 +60,16 @@
   })
 
   // Modal State
-  const isModalOpen = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-  const isEditing = ref(false)
-
-  // Form State
-  const defaultForm = {
+  const modal = useModal({
     id: '',
     name: '',
     category_id: '',
     suggested_category: '',
     is_suggesting_category: false,
     is_active: true,
-  }
-  const form = ref({ ...defaultForm })
+  })
+  
+  const isEditing = computed(() => !!modal.payload.value.id)
 
   const filteredCategories = computed(() => {
     return categories.value?.filter((c) => c.name !== 'Outros') || []
@@ -85,10 +80,7 @@
   })
 
   const openAddModal = () => {
-    form.value = { ...defaultForm }
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
+    modal.open()
   }
 
   const openEditModal = (product: ProductRow) => {
@@ -96,59 +88,56 @@
       product.product_categories?.name === 'Outros' ||
       product.category_id === outrosCategory.value?.id
 
-    form.value = {
+    modal.open({
       ...product,
       suggested_category: product.suggested_category || '',
       is_suggesting_category: isOutros,
-    }
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
+    })
   }
 
   const closeModal = () => {
-    isModalOpen.value = false
+    modal.close()
   }
 
   const saveProduct = async () => {
-    if (form.value.is_suggesting_category) {
-      if (!form.value.name || !form.value.suggested_category) {
-        saveError.value = 'Nome e Sugestão de Categoria são obrigatórios.'
+    if (modal.payload.value.is_suggesting_category) {
+      if (!modal.payload.value.name || !modal.payload.value.suggested_category) {
+        modal.error.value = 'Nome e Sugestão de Categoria são obrigatórios.'
         return
       }
-      form.value.category_id = outrosCategory.value?.id || ''
+      modal.payload.value.category_id = outrosCategory.value?.id || ''
     } else {
-      if (!form.value.name || !form.value.category_id) {
-        saveError.value = 'Nome e Categoria são obrigatórios.'
+      if (!modal.payload.value.name || !modal.payload.value.category_id) {
+        modal.error.value = 'Nome e Categoria são obrigatórios.'
         return
       }
-      form.value.suggested_category = '' // Limpa se desmarcou
+      modal.payload.value.suggested_category = '' // Limpa se desmarcou
     }
 
-    isSaving.value = true
-    saveError.value = ''
+    modal.startSaving()
+    modal.error.value = ''
 
     try {
       const payload = {
-        name: form.value.name,
-        category_id: form.value.category_id,
-        suggested_category: form.value.is_suggesting_category
-          ? typeof form.value.suggested_category === 'string'
-            ? form.value.suggested_category.trim()
-            : form.value.suggested_category
+        name: modal.payload.value.name,
+        category_id: modal.payload.value.category_id,
+        suggested_category: modal.payload.value.is_suggesting_category
+          ? typeof modal.payload.value.suggested_category === 'string'
+            ? modal.payload.value.suggested_category.trim()
+            : modal.payload.value.suggested_category
               ? String(
-                  (form.value.suggested_category as Record<string, unknown>).name ||
-                    (form.value.suggested_category as Record<string, unknown>).title ||
-                    form.value.suggested_category,
+                  (modal.payload.value.suggested_category as Record<string, unknown>).name ||
+                    (modal.payload.value.suggested_category as Record<string, unknown>).title ||
+                    modal.payload.value.suggested_category,
                 ).trim()
               : null
           : null,
-        is_active: form.value.is_active,
+        is_active: modal.payload.value.is_active,
       }
 
       if (isEditing.value) {
         // Edit Product
-        await updateProduct(form.value.id, payload)
+        await updateProduct(modal.payload.value.id, payload)
       } else {
         // Create Product
         await createProduct(payload)
@@ -159,9 +148,9 @@
       closeModal()
     } catch (err: unknown) {
       const e = err as Error
-      saveError.value = e.message
+      modal.error.value = e.message
     } finally {
-      isSaving.value = false
+      modal.stopSaving()
     }
   }
 
@@ -302,26 +291,26 @@
 
     <!-- Modal Form -->
     <UiModal
-      v-model="isModalOpen"
+      v-model="modal.isOpen.value"
       max-width="500px"
       :title="isEditing ? 'Editar Produto' : 'Novo Produto'"
       transparent-header
     >
-      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-        {{ saveError }}
+      <v-alert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ modal.error.value }}
       </v-alert>
 
-      <UiInput v-model="form.name" label="Nome do Produto" />
+      <UiInput v-model="modal.payload.value.name" label="Nome do Produto" />
 
       <UiSwitch
-        v-model="form.is_suggesting_category"
+        v-model="modal.payload.value.is_suggesting_category"
         color="primary"
         label="Não encontrou a categoria? Sugerir nova"
       />
 
       <UiSelect
-        v-if="!form.is_suggesting_category"
-        v-model="form.category_id"
+        v-if="!modal.payload.value.is_suggesting_category"
+        v-model="modal.payload.value.category_id"
         item-title="name"
         item-value="id"
         :items="filteredCategories"
@@ -329,8 +318,8 @@
       />
 
       <UiCombobox
-        v-if="form.is_suggesting_category"
-        v-model="form.suggested_category"
+        v-if="modal.payload.value.is_suggesting_category"
+        v-model="modal.payload.value.suggested_category"
         hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
         :items="pendingSuggestions || []"
         label="Qual categoria você sugere?"
@@ -339,7 +328,7 @@
       />
 
       <UiSwitch
-        v-model="form.is_active"
+        v-model="modal.payload.value.is_active"
         color="success"
         hint="Indica se o produto está disponível para uso"
         label="Produto Ativo"
@@ -347,8 +336,8 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" @click="saveProduct"> Salvar </UiButton>
+        <UiButton :disabled="modal.isSaving.value" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="modal.isSaving.value" @click="saveProduct"> Salvar </UiButton>
       </template>
     </UiModal>
   </div>
