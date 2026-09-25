@@ -44,32 +44,7 @@
     currentPage.value = 1
   })
 
-  const isModalOpen = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-
-  const defaultDemand = {
-    id: '',
-    name: '',
-    type: 'consumption' as const,
-  }
-
-  const editingDemand = ref<Partial<DemandRow>>({ ...defaultDemand })
-
-  const openModal = (demand?: DemandRow) => {
-    if (demand) {
-      editingDemand.value = { ...demand }
-    } else {
-      editingDemand.value = { ...defaultDemand }
-    }
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const closeModal = () => {
-    isModalOpen.value = false
-    editingDemand.value = { ...defaultDemand }
-  }
+  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption' })
 
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
@@ -78,35 +53,34 @@
 
 
   const saveDemand = async () => {
-    isSaving.value = true
-    saveError.value = ''
+    modal.startSaving()
 
     try {
-      const isEditing = !!editingDemand.value.id
+      const isEditing = !!modal.payload.value.id
 
       const payload = {
-        name: editingDemand.value.name!,
-        type: editingDemand.value.type!,
+        name: modal.payload.value.name!,
+        type: modal.payload.value.type!,
       }
 
       if (isEditing) {
-        await updateDemand(editingDemand.value.id!, payload)
+        await updateDemand(modal.payload.value.id!, payload)
       } else {
         await createDemand({ ...payload, user_id: profile.value!.id })
       }
 
       await refresh()
-      closeModal()
+      modal.close()
     } catch (err: unknown) {
       if (err instanceof Error) {
-        saveError.value = err.message
+        modal.error.value = err.message
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        saveError.value = String((err as Record<string, unknown>).message)
+        modal.error.value = String((err as Record<string, unknown>).message)
       } else {
-        saveError.value = 'Ocorreu um erro desconhecido.'
+        modal.error.value = 'Ocorreu um erro desconhecido.'
       }
     } finally {
-      isSaving.value = false
+      modal.stopSaving()
     }
   }
 </script>
@@ -130,7 +104,7 @@
               variant="tonal"
               @click="refresh"
             />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="openModal()">
+            <UiButton color="primary" prepend-icon="mdi-plus" @click="modal.open()">
               Nova Demanda
             </UiButton>
           </template>
@@ -231,7 +205,7 @@
                 icon="mdi-pencil"
                 size="small"
                 variant="text"
-                @click="openModal(item)"
+                @click="modal.open(item)"
               />
             </template>
           </UiTable>
@@ -250,16 +224,16 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="editingDemand.id ? 'Editar Demanda' : 'Nova Demanda'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
+    <v-dialog v-model="modal.isOpen.value" max-width="500px">
+      <UiCard :title="modal.payload.value.id ? 'Editar Demanda' : 'Nova Demanda'" transparent-header>
+        <v-alert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+          {{ modal.error.value }}
         </v-alert>
 
-        <UiInput v-model="editingDemand.name" label="Nome da Demanda" />
+        <UiInput v-model="modal.payload.value.name" label="Nome da Demanda" />
 
         <UiSelect
-          v-model="editingDemand.type"
+          v-model="modal.payload.value.type"
           item-title="title"
           item-value="value"
           :items="[
@@ -270,8 +244,8 @@
         />
 
         <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveDemand"> Salvar </UiButton>
+          <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close">Cancelar</UiButton>
+          <UiButton color="primary" :loading="modal.isSaving.value" @click="saveDemand"> Salvar </UiButton>
         </template>
       </UiCard>
     </v-dialog>
