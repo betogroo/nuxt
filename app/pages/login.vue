@@ -138,12 +138,7 @@
               </UiButton>
             </template>
             <template v-else>
-              <UiInput
-                v-model="otpCode"
-                label="Código de 6 dígitos"
-                type="text"
-                @keyup.enter="handleVerifyOtp"
-              />
+              <UiOtpInput v-model="otpCode" @finish="handleVerifyOtp" />
 
               <UiButton block color="primary" :loading="loadingOtp" @click="handleVerifyOtp">
                 Acessar
