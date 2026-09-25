@@ -85,21 +85,7 @@
   const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')
 
-  // Advance Status Modal State
-  const isStatusModalOpen = ref(false)
-  const advanceModal.isSaving.value = ref(false)
-  const advanceModal.error.value = ref('')
-  const targetStatus = ref<Database['public']['Enums']['demand_status'] | ''>('')
 
-  // Dynamic fields for advance
-  const advanceModal.payload.value = ref({
-    bidding_notice_number: '',
-    dispute_number: '',
-    dispute_date: '',
-    offer_opening_date: '',
-    offer_opening_time: '',
-    contract_number: '',
-  })
 
   // Add Responsible Modal State
   const isResponsibleModalOpen = ref(false)
