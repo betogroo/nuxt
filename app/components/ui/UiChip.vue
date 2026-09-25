@@ -7,10 +7,7 @@
     disabled?: boolean
   }>()
 
-  defineEmits<{
-    (e: 'click:close'): void
-    (e: 'click'): void
-  }>()
+  defineEmits<{ (e: 'click:close' | 'click'): void }>()
 </script>
 
 <template>

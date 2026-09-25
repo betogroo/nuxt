@@ -12,7 +12,7 @@
   })
 
   const { user } = useAuth()
-  const { profile, fetchProfile, updateProfile } = useProfile()
+  const { profile, updateProfile } = useProfile()
 
   const isSaving = ref(false)
   const saveMessage = ref('')

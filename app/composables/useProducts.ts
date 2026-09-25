@@ -135,7 +135,7 @@ export const useProducts = () => {
   }
 
   const addProductUnit = async (productId: string, unitName: string) => {
-    let unitId = ''
+    let unitId: string
 
     // Procurar por unidade existente
     const { data: existingUnit } = await supabase

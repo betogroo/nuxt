@@ -214,7 +214,7 @@ export const useDemandProducts = () => {
     bidIntervalType?: 'percentage' | 'monetary'
     unitSearch: string | { name?: string; id?: string }
   }) => {
-    let finalUnitId = ''
+    let finalUnitId: string
 
     // Determine unit search string or object
     let selectedUnitId: string | null = null
