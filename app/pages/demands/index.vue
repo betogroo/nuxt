@@ -44,7 +44,7 @@
     currentPage.value = 1
   })
 
-  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '', id_pca: '' })
+  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '', id_pca: '', contract_number: '' })
 
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
@@ -63,6 +63,7 @@
         type: modal.payload.value.type!,
         process_number: modal.payload.value.process_number || null,
         id_pca: modal.payload.value.id_pca || null,
+        contract_number: modal.payload.value.contract_number ? String(modal.payload.value.contract_number) : null,
       }
 
       if (isEditing) {
@@ -264,6 +265,14 @@
           label="ID PCA" 
           placeholder="Ex: 46377800000127-0-000132/2026"
           hint="Opcional. ID do Plano de Contratações Anual"
+        />
+        
+        <UiInput 
+          v-model="modal.payload.value.contract_number" 
+          label="Nº da Contratação" 
+          placeholder="Apenas números"
+          type="number"
+          hint="Opcional. Número da contratação."
         />
 
         <template #actions>
