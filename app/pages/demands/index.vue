@@ -44,7 +44,7 @@
     currentPage.value = 1
   })
 
-  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption' })
+  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '' })
 
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
@@ -61,6 +61,7 @@
       const payload = {
         name: modal.payload.value.name!,
         type: modal.payload.value.type!,
+        process_number: modal.payload.value.process_number || null,
       }
 
       if (isEditing) {
@@ -159,7 +160,9 @@
             :loading="pending"
           >
             <template #item-internal_process_number="{ item }">
-              <span class="font-weight-medium text-grey-darken-1">{{ item.internal_process_number || '-' }}</span>
+              <div v-if="item.process_number" class="font-weight-bold text-primary">{{ item.process_number }}</div>
+              <div v-else class="text-caption text-grey font-italic">Sem nº oficial</div>
+              <div class="text-caption text-grey-darken-1">Interno: {{ item.internal_process_number || '-' }}</div>
             </template>
             <template v-if="!demands?.length && !pending" #empty>
               Nenhuma demanda encontrada.
@@ -235,6 +238,13 @@
         </v-alert>
 
         <UiInput v-model="modal.payload.value.name" label="Nome da Demanda" />
+
+        <UiInput 
+          v-model="modal.payload.value.process_number" 
+          label="Nº do Processo (Oficial)" 
+          placeholder="Ex: 058.00100793/2026-21"
+          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        />
 
         <UiSelect
           v-model="modal.payload.value.type"
