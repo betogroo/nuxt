@@ -1,8 +1,9 @@
 import { ref } from 'vue'
 import type { Database } from '~/types/database.types'
-import type { DemandRow, DemandProductRow } from '~/composables/useDemands'
+import type { DemandRow } from '~/composables/useDemands'
+import type { DemandProductRow } from '~/composables/useDemandProducts'
 
-export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null>, items: Ref<DemandProductRow[] | null>) {
+export function useDemandWorkflow(demandId: string, demand: Ref<DemandRow | null | undefined>, items: Ref<DemandProductRow[] | null | undefined>) {
   const { advanceDemandStatus, revertDemandStatus, requestDemandReturn, fetchDemandById } = useDemands()
 
   const statusList: Database['public']['Enums']['demand_status'][] = [
