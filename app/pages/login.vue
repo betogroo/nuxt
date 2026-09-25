@@ -1,12 +1,17 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const { user, signInWithPassword: loginWithPassword, signInWithMagicLink: loginWithMagicLink } =
-    useAuth()
+  const {
+    user,
+    signInWithPassword: loginWithPassword,
+    sendOtp,
+    verifyOtpCode,
+    getRedirectUrl,
+  } = useAuth()
 
   // Redireciona se já estiver logado
   watchEffect(() => {
     if (user.value) {
-      navigateTo('/')
+      navigateTo(getRedirectUrl())
     }
   })
 
@@ -35,27 +40,39 @@
   }
 
   // Login com link mágico
-  const emailMagic = ref('')
-  const loadingMagic = ref(false)
-  const messageMagic = ref('')
-  const errorMagic = ref('')
+  const emailOtp = ref('')
+  const loadingOtp = ref(false)
+  const messageOtp = ref('')
+  const errorOtp = ref('')
+  const otpCode = ref('')
+  const isOtpSent = ref(false)
 
-  const signInWithMagicLink = async () => {
-    loadingMagic.value = true
-    errorMagic.value = ''
-    messageMagic.value = ''
+  const handleSendOtp = async () => {
+    loadingOtp.value = true
+    errorOtp.value = ''
+    messageOtp.value = ''
 
-    const { error } = await loginWithMagicLink(
-      emailMagic.value,
-      `${window.location.origin}/confirm`,
-    )
+    const { error } = await sendOtp(emailOtp.value)
 
     if (error) {
-      errorMagic.value = error.message
+      errorOtp.value = error.message
     } else {
-      messageMagic.value = 'Verifique seu e-mail para o link de acesso.'
+      messageOtp.value = 'Código de 6 dígitos enviado para o seu e-mail.'
+      isOtpSent.value = true
     }
-    loadingMagic.value = false
+    loadingOtp.value = false
+  }
+
+  const handleVerifyOtp = async () => {
+    loadingOtp.value = true
+    errorOtp.value = ''
+
+    const { error } = await verifyOtpCode(emailOtp.value, otpCode.value)
+
+    if (error) {
+      errorOtp.value = error.message
+    }
+    loadingOtp.value = false
   }
 </script>
 
@@ -70,7 +87,7 @@
 
           <v-tabs v-model="tab" align-tabs="center">
             <v-tab value="password">Email e Senha</v-tab>
-            <v-tab value="magic">Link Mágico</v-tab>
+            <v-tab value="magic">Código (E-mail)</v-tab>
           </v-tabs>
 
           <v-alert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
@@ -97,26 +114,40 @@
             </UiButton>
           </template>
 
-          <!-- ABA: LINK MÁGICO -->
+          <!-- ABA: CÓDIGO OTP -->
           <template v-else>
-            <v-alert v-if="errorMagic" class="mb-4" type="error">
-              {{ errorMagic }}
+            <v-alert v-if="errorOtp" class="mb-4" type="error">
+              {{ errorOtp }}
             </v-alert>
 
-            <v-alert v-if="messageMagic" class="mb-4" type="success">
-              {{ messageMagic }}
+            <v-alert v-if="messageOtp" class="mb-4" type="success">
+              {{ messageOtp }}
             </v-alert>
 
-            <UiInput
-              v-model="emailMagic"
-              label="E-mail"
-              type="email"
-              @keyup.enter="signInWithMagicLink"
-            />
+            <template v-if="!isOtpSent">
+              <UiInput
+                v-model="emailOtp"
+                label="E-mail"
+                type="email"
+                @keyup.enter="handleSendOtp"
+              />
 
-            <UiButton block color="primary" :loading="loadingMagic" @click="signInWithMagicLink">
-              Enviar Link de Acesso
-            </UiButton>
+              <UiButton block color="primary" :loading="loadingOtp" @click="handleSendOtp">
+                Enviar Código
+              </UiButton>
+            </template>
+            <template v-else>
+              <UiInput
+                v-model="otpCode"
+                label="Código de 6 dígitos"
+                type="text"
+                @keyup.enter="handleVerifyOtp"
+              />
+
+              <UiButton block color="primary" :loading="loadingOtp" @click="handleVerifyOtp">
+                Acessar
+              </UiButton>
+            </template>
           </template>
         </UiCard>
 

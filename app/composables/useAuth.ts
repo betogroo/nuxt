@@ -16,15 +16,36 @@ export const useAuth = () => {
     return { data, error }
   }
 
-  const signInWithMagicLink = async (email: string, emailRedirectTo: string) => {
+  const sendOtp = async (email: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,
-        emailRedirectTo,
       },
     })
     return { data, error }
+  }
+
+  const verifyOtpCode = async (email: string, token: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    })
+
+    if (!error && data.user) {
+      await logAction('LOGIN', 'Acesso via código OTP', data.user.id)
+    }
+
+    return { data, error }
+  }
+
+  const getRedirectUrl = () => {
+    const cookie = useCookie('sb-redirect-path')
+    const path = cookie.value || '/'
+    // Limpa o cookie após o uso para não ficar preso nesse redirecionamento
+    cookie.value = null
+    return path
   }
 
   const signUp = async (email: string, password: string, emailRedirectTo: string) => {
@@ -50,7 +71,9 @@ export const useAuth = () => {
   return {
     user,
     signInWithPassword,
-    signInWithMagicLink,
+    sendOtp,
+    verifyOtpCode,
+    getRedirectUrl,
     signUp,
   }
 }
