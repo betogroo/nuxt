@@ -2,44 +2,41 @@
 
 Este arquivo serve para transferir o contexto de desenvolvimento entre sessões ou máquinas diferentes. Ao iniciar uma nova sessão, o agente deve ler este arquivo para entender o estado atual da arquitetura e os próximos passos.
 
-## 🏗️ Estado da Arquitetura (Antigravity Nuxt 4)
+## Estado da Arquitetura (Antigravity Nuxt 4)
 
-O projeto está passando por uma fase pesada de **Desacoplamento e Clean Architecture**. Estamos removendo lógica de banco de dados (Supabase) de dentro dos componentes Vue (UI) e movendo para **Composables** orientados a domínio. Também estamos substituindo o uso cru de componentes do Vuetify por **Componentes Ui*** encapsulados (`UiModal`, `UiCombobox`, etc.).
+O projeto está passando por uma fase pesada de **Desacoplamento e Clean Architecture**. Estamos removendo lógica de banco de dados (Supabase) de dentro dos componentes Vue (UI) e movendo para **Composables** orientados a domínio. Também estamos substituindo o uso cru de componentes do Vuetify por **Componentes Ui*** encapsulados (`UiModal`, `UiCombobox`, `UiAlert`, `UiChip`, etc.).
 
-### 🎯 O que acabou de ser concluído:
+### O que acabou de ser concluído (Sessão Atual):
 
-1. **Bugfix em Unidades de Medida (`admin/units.vue`)**:
-   - Corrigido o bug onde as unidades pendentes não apareciam por conta de cache no `useAsyncData`. Adicionado `refresh()` no `onMounted`.
-   - Implementado recurso que permite ao administrador **editar o texto** de uma unidade pendente antes de aprová-la ou fundi-la.
+1. **Bugfix de Autenticação e Redirecionamento**:
+   - Corrigido o loop/flash de redirecionamento para login no ambiente local ajustando `cookieOptions: { secure: false }` no ambiente de desenvolvimento no `nuxt.config.ts`.
+   
+2. **Refatoração das Regras de Negócio de Demandas (Planejamento)**:
+   - Adicionadas novas colunas via migrations: `internal_process_number` (automático por ano), `process_number`, `id_pca` e `contract_number`.
+   - **Regra de Negócio implementada**: A inserção de itens (produtos) em uma demanda agora é bloqueada enquanto ela estiver na fase de planejamento (`status === 'planning'`).
+   - **Regra de Avanço implementada**: Não é possível avançar a demanda para "Cotação" caso os campos obrigatórios do planejamento (Processo, ID PCA e Nº Contratação) não estejam preenchidos.
+   
+3. **Redesign da Tela de Detalhes da Demanda (`[id]/index.vue`)**:
+   - Os dados foram reestruturados visualmente em blocos elegantes: "Dados do Planejamento" e "Dados da Disputa e Contratação".
+   - Implementada a **Edição Inline** dos dados do planejamento na própria tela de detalhes da demanda por meio de um `UiModal`.
+   
+4. **Desacoplamento Visual e Limpeza de Código**:
+   - Criados os componentes base `<UiChip>`, `<UiTooltip>` e `<UiOtpInput>`.
+   - Feita uma varredura em todo o projeto, substituindo o uso direto de `<v-alert>`, `<v-dialog>`, `<v-chip>`, `<v-tooltip>` e `<v-otp-input>` para suas respectivas versões `Ui*`.
+   - Removidas variáveis inúteis acusadas pelo ESLint (ex: em `useDemandProducts`, `useProducts`, e `profile.vue`).
+   - Mock dos testes de `usePendingTasks` consertado para cobrir a consulta recém-adicionada à tabela `demands` (24/24 testes rodando limpos).
+   - Deletados todos os scripts `.cjs` e arquivos temporários `.txt` gerados na raiz do repositório.
 
-2. **Componentes Base Criados e Aplicados**:
-   - `UiModal`, `UiAlert`, `UiCombobox`, `UiSwitch`, `UiInput`, `UiSelect`.
-   - Já substituídos com sucesso nas telas de Admin (Categorias/Unidades), Produtos e Demandas.
-
-3. **Composables de Negócio Criados**:
-   - `useAdminDashboard`: Agrega as lógicas e cálculos pesados do painel administrativo.
-   - `useProducts`: Lida com o CRUD e status dos produtos.
-   - `useDemands`: Lida com requisições gerais de demandas, avanços de status e adição/remoção de usuários responsáveis.
-   - `useDemandProducts`: Possui a função super-complexa `addDemandItemWithDependencies` que orquestra a criação de produto novo, criação de unidade pendente, vínculo entre eles, e adição na demanda em uma única transaction lógica.
-
-4. **Refatoração Massiva no Frontend**:
-   - O arquivo `app/pages/products/index.vue` foi totalmente limpo.
-   - O arquivo `app/pages/demands/[id]/index.vue` (que possuía 45KB e dezenas de acessos brutos ao Supabase) foi migrado para chamar os Composables nativos. Nenhum acesso direto ao Supabase permaneceu nos métodos cruciais (salvar item, editar item, alterar status, remover responsáveis).
-
-5. **Testes e Tipagem (Vitest & TS)**:
-   - Configurado o mock global do Nuxt/Supabase para resolver erros de contexto (`NUXT_E1001`).
-   - Todos os problemas de TypeScript rigoroso (`no-explicit-any`) foram sanados.
-   - **Suíte de Testes atual: 24/24 passando 100% verde.**
-
-### 🚀 Próximos Passos Imediatos:
+### Próximos Passos Imediatos:
 
 1. **Continuar a varredura por Acoplamento**:
-   - Verificar se ainda restam arquivos `*.vue` gigantes que acessam o banco `supabase.from(...)` diretamente e extraí-los para seus devidos composables.
-2. **Refatorar Sub-telas**:
-   - Verificar se `app/pages/demands/[id]/items/[itemId].vue` (ou similares) precisam da mesma limpeza visual substituindo tags nativas pelo padrão `<Ui...>` e abstraindo as requisições.
+   - Verificar se ainda restam componentes Vuetify isolados que seriam úteis se tornarem genéricos (ex: tabelas complexas, steppers).
+   - Manter a regra de não escrever `supabase.from()` dentro de arquivos `.vue`.
+2. **Refatorar Sub-telas e Funcionalidades**:
+   - O fluxo de Disputa/Cotação ("Dados da Disputa e Contratação") precisará em breve receber a mesma possibilidade de "edição inline" conforme a demanda avança nas etapas (Cotação, Disputa, etc).
 3. **Novas Funcionalidades**:
-   - Seguir com as pendências do backlog do usuário sempre respeitando as regras estritas descritas no arquivo `GEMINI.md`.
+   - Seguir com as pendências de negócio listadas pelo usuário ou aprimoramentos no fluxo de orçamentos, sempre respeitando as regras estritas descritas no arquivo `GEMINI.md`.
 
 ---
 
-_Nota para a IA: Após ler este arquivo, pergunte ao usuário se ele deseja seguir com os próximos passos acima ou se ele tem uma nova demanda prioritária._
+_Nota para a IA: Após ler este arquivo, confirme que o contexto foi recuperado com sucesso e pergunte ao usuário qual é a prioridade atual para dar prosseguimento._
