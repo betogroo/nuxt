@@ -5,7 +5,6 @@
     signInWithPassword: loginWithPassword,
     sendOtp,
     verifyOtpCode,
-    getRedirectUrl,
   } = useAuth()
 
   // Redireciona se já estiver logado
