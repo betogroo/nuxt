@@ -188,10 +188,10 @@
             </div>
           </template>
 
-          <v-alert class="mb-4" density="compact" type="info" variant="tonal">
+          <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
             Usuários sugeriram as unidades abaixo ao vincular a produtos. Resolva-as aprovando-as
             como oficiais ou fundindo-as com unidades existentes.
-          </v-alert>
+          </UiAlert>
 
           <UiTable
             :headers="[
@@ -245,13 +245,13 @@
             :loading="pending"
           >
             <template #item-legacy_alias="{ item }">
-              <v-chip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
+              <UiChip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
                 {{ item.legacy_alias }}
-              </v-chip>
+              </UiChip>
               <span v-else class="text-grey">-</span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -259,7 +259,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -293,13 +293,13 @@
             :loading="pending"
           >
             <template #item-legacy_alias="{ item }">
-              <v-chip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
+              <UiChip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
                 {{ item.legacy_alias }}
-              </v-chip>
+              </UiChip>
               <span v-else class="text-grey">-</span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -307,7 +307,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -330,9 +330,9 @@
       :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'"
       transparent-header
     >
-      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ saveError }}
-      </v-alert>
+      </UiAlert>
 
       <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote, Bisnaga 90g)" />
       <UiInput v-model="form.legacy_alias" label="Apelido do Sistema Legado (opcional)" />
@@ -358,9 +358,9 @@
       title="Resolver Unidade Pendente"
       transparent-header
     >
-      <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ resolveError }}
-      </v-alert>
+      </UiAlert>
 
       <div class="text-subtitle-1 mb-4">
         Unidade Sugerida: <strong class="text-warning">{{ resolveTarget?.name }}</strong>

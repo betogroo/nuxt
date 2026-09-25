@@ -12,11 +12,7 @@
   const { profile: loggedProfile } = useProfile()
 
   // 2. Busca todos os usuários no banco
-  const {
-    data: users,
-    pending,
-    refresh,
-  } = useAsyncData('admin-users', fetchUsers)
+  const { data: users, pending, refresh } = useAsyncData('admin-users', fetchUsers)
 
   // 3. Lógica de Edição de Usuário
   const isEditModalOpen = ref(false)
@@ -194,19 +190,19 @@
               </div>
             </template>
             <template #item-role="{ item }">
-              <v-chip
+              <UiChip
                 :color="item.role === 'admin' ? 'primary' : 'grey'"
                 size="small"
                 :variant="item.role === 'admin' ? 'flat' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-created_at="{ item }">
               {{ new Date(item.created_at).toLocaleDateString() }}
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -214,7 +210,7 @@
                 @click="toggleUserStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -261,19 +257,19 @@
               </div>
             </template>
             <template #item-role="{ item }">
-              <v-chip
+              <UiChip
                 :color="item.role === 'admin' ? 'primary' : 'grey'"
                 size="small"
                 :variant="item.role === 'admin' ? 'flat' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-created_at="{ item }">
               {{ new Date(item.created_at).toLocaleDateString() }}
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -281,7 +277,7 @@
                 @click="toggleUserStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -298,82 +294,89 @@
     </v-row>
 
     <!-- Modal de Edição -->
-    <v-dialog v-model="isEditModalOpen" max-width="500px">
-      <UiCard v-if="editingUser" title="Editar Usuário" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal
+      v-if="editingUser"
+      v-model="isEditModalOpen"
+      max-width="500px"
+      title="Editar Usuário"
+      transparent-header
+    >
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
 
-        <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
+      <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
 
-        <!-- Using native v-select for disabled prop since UiSelect doesnt have it yet, actually I should add it -->
-        <v-select
-          v-model="editingUser.role"
-          class="mb-3"
-          density="comfortable"
-          :disabled="isSelf"
-          :hint="
-            isSelf
-              ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
-              : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
-          "
-          :items="['user', 'admin']"
-          label="Cargo (Role)"
-          persistent-hint
-          variant="outlined"
-        />
+      <!-- Using native v-select for disabled prop since UiSelect doesnt have it yet, actually I should add it -->
+      <v-select
+        v-model="editingUser.role"
+        class="mb-3"
+        density="comfortable"
+        :disabled="isSelf"
+        :hint="
+          isSelf
+            ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
+            : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
+        "
+        :items="['user', 'admin']"
+        label="Cargo (Role)"
+        persistent-hint
+        variant="outlined"
+      />
 
-        <v-switch
-          v-model="editingUser.is_active"
-          class="mt-3"
-          color="success"
-          :disabled="isSelf"
-          hint="Se desmarcado, o usuário não poderá acessar o sistema"
-          label="Usuário Ativo"
-          persistent-hint
-        />
+      <v-switch
+        v-model="editingUser.is_active"
+        class="mt-3"
+        color="success"
+        :disabled="isSelf"
+        hint="Se desmarcado, o usuário não poderá acessar o sistema"
+        label="Usuário Ativo"
+        persistent-hint
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveUser">
-            Salvar Alterações
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveUser">
+          Salvar Alterações
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Modal de Adição (Novo Usuário) -->
-    <v-dialog v-model="isAddModalOpen" max-width="500px">
-      <UiCard title="Criar Novo Usuário" transparent-header>
-        <v-alert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ createError }}
-        </v-alert>
+    <UiModal
+      v-model="isAddModalOpen"
+      max-width="500px"
+      title="Criar Novo Usuário"
+      transparent-header
+    >
+      <UiAlert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ createError }}
+      </UiAlert>
 
-        <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
+      <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
 
-        <UiInput
-          v-model="newUserForm.email"
-          label="E-mail"
-          placeholder="email@exemplo.com"
-          type="email"
-        />
+      <UiInput
+        v-model="newUserForm.email"
+        label="E-mail"
+        placeholder="email@exemplo.com"
+        type="email"
+      />
 
-        <UiInput
-          v-model="newUserForm.password"
-          label="Senha (Inicial)"
-          placeholder="Pelo menos 6 caracteres"
-          type="password"
-        />
+      <UiInput
+        v-model="newUserForm.password"
+        label="Senha (Inicial)"
+        placeholder="Pelo menos 6 caracteres"
+        type="password"
+      />
 
-        <UiSelect v-model="newUserForm.role" :items="['user', 'admin']" label="Cargo (Role)" />
+      <UiSelect v-model="newUserForm.role" :items="['user', 'admin']" label="Cargo (Role)" />
 
-        <template #actions>
-          <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isCreating" @click="createUser">
-            Criar Usuário
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isCreating" @click="createUser">
+          Criar Usuário
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

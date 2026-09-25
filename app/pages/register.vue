@@ -42,7 +42,7 @@
     <v-row justify="center">
       <v-col cols="12" md="5" sm="8">
         <UiCard title="Registrar" transparent-header>
-          <v-alert v-if="message" class="mb-4" type="info">{{ message }}</v-alert>
+          <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
 
           <UiInput v-model="email" label="E-mail" type="email" />
           <UiInput v-model="password" label="Senha" type="password" />

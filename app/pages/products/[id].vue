@@ -1,10 +1,10 @@
 <script setup lang="ts">
   const route = useRoute()
   const router = useRouter()
-  
+
   const { fetchProductById, addProductUnit, removeProductUnit } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
-  
+
   const productId = route.params.id as string
 
   const {
@@ -20,9 +20,12 @@
     }
   })
 
-  const { data: allMeasurementUnits, refresh: refreshUnitsList } = useAsyncData('measurement-units', async () => {
-    return await fetchAllActiveUnits()
-  })
+  const { data: allMeasurementUnits, refresh: refreshUnitsList } = useAsyncData(
+    'measurement-units',
+    async () => {
+      return await fetchAllActiveUnits()
+    },
+  )
 
   const computedMeasurementUnits = computed(() => {
     return (allMeasurementUnits.value || []).map((u) => ({
@@ -104,9 +107,9 @@
               <v-icon class="mr-3" size="large">mdi-package-variant</v-icon>
               {{ product.name }}
               <v-spacer />
-              <v-chip :color="product.is_active ? 'success' : 'error'" variant="elevated">
+              <UiChip :color="product.is_active ? 'success' : 'error'" variant="elevated">
                 {{ product.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </div>
           </template>
 
@@ -155,14 +158,14 @@
                     :return-object="false"
                     variant="outlined"
                   />
-                  <v-alert
+                  <UiAlert
                     v-if="addUnitError"
                     class="mt-2 text-caption"
                     density="compact"
                     type="error"
                   >
                     {{ addUnitError }}
-                  </v-alert>
+                  </UiAlert>
                   <div class="d-flex justify-end mt-2">
                     <UiButton variant="text" @click="cancelAddUnit">Cancelar</UiButton>
                     <UiButton class="ml-2" color="primary" :loading="adding" @click="addUnit"
@@ -173,7 +176,7 @@
               </v-slide-y-transition>
 
               <div class="d-flex flex-wrap gap-2">
-                <v-chip
+                <UiChip
                   v-for="unit in product.units"
                   :key="unit.id"
                   closable
@@ -182,7 +185,7 @@
                   @click:close="removeUnit(unit.id)"
                 >
                   {{ unit.name }} {{ unit.is_pending ? '(Pendente)' : '' }}
-                </v-chip>
+                </UiChip>
                 <span
                   v-if="!product.units || product.units.length === 0"
                   class="text-grey text-caption"
@@ -215,7 +218,7 @@
 
     <v-row v-else>
       <v-col cols="12">
-        <v-alert type="error" variant="tonal"> Produto não encontrado. </v-alert>
+        <UiAlert type="error" variant="tonal"> Produto não encontrado. </UiAlert>
       </v-col>
     </v-row>
   </v-container>

@@ -3,12 +3,7 @@
 
   useHead({ title: 'Fornecedores' })
 
-  const {
-    fetchSuppliers,
-    createSupplier,
-    updateSupplier,
-    toggleSupplierStatus,
-  } = useSuppliers()
+  const { fetchSuppliers, createSupplier, updateSupplier, toggleSupplierStatus } = useSuppliers()
 
   // Pagination State
   const currentPage = ref(1)
@@ -234,7 +229,7 @@
             </template>
 
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -242,7 +237,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
 
             <template #item-actions="{ item }">
@@ -300,7 +295,7 @@
             </template>
 
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -308,7 +303,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
 
             <template #item-actions="{ item }">
@@ -326,79 +321,83 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="700px" scrollable>
-      <UiCard :title="isEditing ? 'Editar Fornecedor' : 'Novo Fornecedor'" transparent-header>
-        <v-card-text class="pa-0" style="max-height: 60vh; overflow-y: auto">
-          <div class="pa-4">
-            <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-              {{ saveError }}
-            </v-alert>
+    <UiModal
+      v-model="isModalOpen"
+      max-width="700px"
+      scrollable
+      :title="isEditing ? 'Editar Fornecedor' : 'Novo Fornecedor'"
+      transparent-header
+    >
+      <v-card-text class="pa-0" style="max-height: 60vh; overflow-y: auto">
+        <div class="pa-4">
+          <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+            {{ saveError }}
+          </UiAlert>
 
-            <v-row>
-              <v-col cols="12" md="4">
-                <UiInput v-model="form.cnpj" label="CNPJ *" required />
-              </v-col>
-              <v-col cols="12" md="8">
-                <UiInput v-model="form.company_name" label="Nome da Empresa *" required />
-              </v-col>
+          <v-row>
+            <v-col cols="12" md="4">
+              <UiInput v-model="form.cnpj" label="CNPJ *" required />
+            </v-col>
+            <v-col cols="12" md="8">
+              <UiInput v-model="form.company_name" label="Nome da Empresa *" required />
+            </v-col>
 
-              <v-col cols="12" md="6">
-                <UiInput v-model="form.responsible_name" label="Nome do Responsável" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <UiInput v-model="form.email" label="E-mail *" required type="email" />
-              </v-col>
+            <v-col cols="12" md="6">
+              <UiInput v-model="form.responsible_name" label="Nome do Responsável" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <UiInput v-model="form.email" label="E-mail *" required type="email" />
+            </v-col>
 
-              <v-col cols="12" md="6">
-                <UiInput v-model="form.cell_phone" label="Telefone Celular" />
-              </v-col>
-              <v-col cols="12" md="6">
-                <UiInput v-model="form.landline" label="Telefone Fixo" />
-              </v-col>
+            <v-col cols="12" md="6">
+              <UiInput v-model="form.cell_phone" label="Telefone Celular" />
+            </v-col>
+            <v-col cols="12" md="6">
+              <UiInput v-model="form.landline" label="Telefone Fixo" />
+            </v-col>
 
-              <v-col cols="12">
-                <UiInput v-model="form.address" label="Endereço" />
-              </v-col>
+            <v-col cols="12">
+              <UiInput v-model="form.address" label="Endereço" />
+            </v-col>
 
-              <v-col cols="12">
-                <UiInput
-                  v-model="form.has_bb_account"
-                  hint="Ex: Ag: 1234-5, CC: 12345-6"
-                  label="Conta no Banco do Brasil"
-                  persistent-hint
-                />
-              </v-col>
+            <v-col cols="12">
+              <UiInput
+                v-model="form.has_bb_account"
+                hint="Ex: Ag: 1234-5, CC: 12345-6"
+                label="Conta no Banco do Brasil"
+                persistent-hint
+              />
+            </v-col>
 
-              <v-col cols="12">
-                <UiSwitch
-                  v-model="form.is_simples_optant"
-                  color="primary"
-                  hint="A data e hora da verificação serão salvas automaticamente."
-                  label="Optante pelo Simples Nacional"
-                  persistent-hint
-                />
-              </v-col>
+            <v-col cols="12">
+              <UiSwitch
+                v-model="form.is_simples_optant"
+                color="primary"
+                hint="A data e hora da verificação serão salvas automaticamente."
+                label="Optante pelo Simples Nacional"
+                persistent-hint
+              />
+            </v-col>
 
-              <v-col cols="12">
-                <UiSwitch
-                  v-model="form.is_active"
-                  color="success"
-                  hint="Indica se o fornecedor está ativo no sistema"
-                  label="Fornecedor Ativo"
-                  persistent-hint
-                />
-              </v-col>
-            </v-row>
-          </div>
-        </v-card-text>
+            <v-col cols="12">
+              <UiSwitch
+                v-model="form.is_active"
+                color="success"
+                hint="Indica se o fornecedor está ativo no sistema"
+                label="Fornecedor Ativo"
+                persistent-hint
+              />
+            </v-col>
+          </v-row>
+        </div>
+      </v-card-text>
 
-        <v-divider />
+      <v-divider />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveSupplier"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveSupplier"> Salvar </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

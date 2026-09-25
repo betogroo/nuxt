@@ -48,7 +48,8 @@
       saveMessage.value = 'Perfil atualizado com sucesso!'
       await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.', user.value?.id)
     } catch (error: unknown) {
-      saveError.value = 'Erro ao salvar o perfil: ' + (error instanceof Error ? error.message : String(error))
+      saveError.value =
+        'Erro ao salvar o perfil: ' + (error instanceof Error ? error.message : String(error))
     } finally {
       isSaving.value = false
     }
@@ -69,7 +70,7 @@
         <div class="text-caption text-grey">Sua foto de perfil</div>
       </div>
 
-      <v-alert
+      <UiAlert
         v-if="saveMessage"
         class="mb-4"
         closable
@@ -78,9 +79,9 @@
         variant="tonal"
       >
         {{ saveMessage }}
-      </v-alert>
+      </UiAlert>
 
-      <v-alert
+      <UiAlert
         v-if="saveError"
         class="mb-4"
         closable
@@ -89,7 +90,7 @@
         variant="tonal"
       >
         {{ saveError }}
-      </v-alert>
+      </UiAlert>
 
       <v-form @submit.prevent="saveProfile">
         <!-- Campos Editáveis -->

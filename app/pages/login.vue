@@ -57,7 +57,8 @@
     if (error) {
       errorOtp.value = error.message
     } else {
-      messageOtp.value = 'Código enviado para o e-mail (você também pode clicar no link que enviamos).'
+      messageOtp.value =
+        'Código enviado para o e-mail (você também pode clicar no link que enviamos).'
       isOtpSent.value = true
     }
     loadingOtp.value = false
@@ -90,15 +91,15 @@
             <v-tab value="magic">Código (E-mail)</v-tab>
           </v-tabs>
 
-          <v-alert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
+          <UiAlert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
             Sua conta foi desativada por um administrador.
-          </v-alert>
+          </UiAlert>
 
           <!-- ABA: SENHA -->
           <template v-if="tab === 'password'">
-            <v-alert v-if="errorPassword" class="mb-4" type="error">
+            <UiAlert v-if="errorPassword" class="mb-4" type="error">
               {{ errorPassword }}
-            </v-alert>
+            </UiAlert>
 
             <UiInput v-model="emailPassword" label="E-mail" type="email" />
 
@@ -116,13 +117,13 @@
 
           <!-- ABA: CÓDIGO OTP -->
           <template v-else>
-            <v-alert v-if="errorOtp" class="mb-4" type="error">
+            <UiAlert v-if="errorOtp" class="mb-4" type="error">
               {{ errorOtp }}
-            </v-alert>
+            </UiAlert>
 
-            <v-alert v-if="messageOtp" class="mb-4" type="success">
+            <UiAlert v-if="messageOtp" class="mb-4" type="success">
               {{ messageOtp }}
-            </v-alert>
+            </UiAlert>
 
             <template v-if="!isOtpSent">
               <UiInput

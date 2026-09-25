@@ -7,7 +7,7 @@
   useHead({ title: 'Demandas' })
 
   const { profile } = useProfile()
-  
+
   const { fetchDemands, createDemand, updateDemand } = useDemands()
   const route = useRoute()
 
@@ -16,7 +16,7 @@
   const totalItems = ref(0)
   const statusFilter = ref<string | null>((route.query.filter as string) || null)
   const searchQuery = ref('')
-  
+
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   const {
@@ -30,27 +30,33 @@
         currentPage.value,
         itemsPerPage.value,
         statusFilter.value,
-        searchQuery.value
+        searchQuery.value,
       )
       totalItems.value = result.count
       return result.data
     },
     {
       watch: [currentPage, statusFilter, searchQuery],
-    }
+    },
   )
 
   watch([statusFilter, searchQuery], () => {
     currentPage.value = 1
   })
 
-  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '', id_pca: '', contract_number: '' })
+  const modal = useModal<Partial<DemandRow>>({
+    id: '',
+    name: '',
+    type: 'consumption',
+    process_number: '',
+    id_pca: '',
+    contract_number: '',
+  })
 
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
     return profile.value?.role === 'admin' || demand.user_id === currentUserId
   }
-
 
   const saveDemand = async () => {
     modal.startSaving()
@@ -63,7 +69,9 @@
         type: modal.payload.value.type!,
         process_number: modal.payload.value.process_number || null,
         id_pca: modal.payload.value.id_pca || null,
-        contract_number: modal.payload.value.contract_number ? String(modal.payload.value.contract_number) : null,
+        contract_number: modal.payload.value.contract_number
+          ? String(modal.payload.value.contract_number)
+          : null,
       }
 
       if (isEditing) {
@@ -162,9 +170,13 @@
             :loading="pending"
           >
             <template #item-internal_process_number="{ item }">
-              <div v-if="item.process_number" class="font-weight-bold text-primary">{{ item.process_number }}</div>
+              <div v-if="item.process_number" class="font-weight-bold text-primary">
+                {{ item.process_number }}
+              </div>
               <div v-else class="text-caption text-grey font-italic">Sem nº oficial</div>
-              <div class="text-caption text-grey-darken-1">Interno: {{ item.internal_process_number || '-' }}</div>
+              <div class="text-caption text-grey-darken-1">
+                Interno: {{ item.internal_process_number || '-' }}
+              </div>
             </template>
             <template v-if="!demands?.length && !pending" #empty>
               Nenhuma demanda encontrada.
@@ -178,22 +190,28 @@
               </NuxtLink>
             </template>
             <template #item-type="{ item }">
-              <v-chip
+              <UiChip
                 :color="item.type === 'consumption' ? 'info' : 'warning'"
                 size="small"
                 variant="flat"
               >
                 {{ formatDemandType(item.type) }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-status="{ item }">
-              <v-chip :color="getDemandStatusColor(item.status)" size="small" variant="outlined">
+              <UiChip :color="getDemandStatusColor(item.status)" size="small" variant="outlined">
                 {{ formatDemandStatus(item.status) }}
-              </v-chip>
-              <v-chip v-if="item.is_return_requested" class="ml-2" color="warning" size="small" variant="flat">
+              </UiChip>
+              <UiChip
+                v-if="item.is_return_requested"
+                class="ml-2"
+                color="warning"
+                size="small"
+                variant="flat"
+              >
                 <v-icon left size="small">mdi-keyboard-return</v-icon>
                 Retorno Solicitado
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-creator="{ item }">
               <span class="text-caption text-grey">
@@ -233,53 +251,60 @@
     </v-row>
 
     <!-- Modal Form -->
-    <v-dialog v-model="modal.isOpen.value" max-width="500px">
-      <UiCard :title="modal.payload.value.id ? 'Editar Demanda' : 'Nova Demanda'" transparent-header>
-        <v-alert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ modal.error.value }}
-        </v-alert>
+    <UiModal
+      v-model="modal.isOpen.value"
+      max-width="500px"
+      :title="modal.payload.value.id ? 'Editar Demanda' : 'Nova Demanda'"
+      transparent-header
+    >
+      <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ modal.error.value }}
+      </UiAlert>
 
-        <UiInput v-model="modal.payload.value.name" label="Nome da Demanda*" required />
+      <UiInput v-model="modal.payload.value.name" label="Nome da Demanda*" required />
 
-        <UiSelect
-          v-model="modal.payload.value.type"
-          item-title="title"
-          item-value="value"
-          :items="[
-            { title: 'Consumo', value: 'consumption' },
-            { title: 'Permanente', value: 'permanent' },
-          ]"
-          label="Tipo*"
-          required
-        />
+      <UiSelect
+        v-model="modal.payload.value.type"
+        item-title="title"
+        item-value="value"
+        :items="[
+          { title: 'Consumo', value: 'consumption' },
+          { title: 'Permanente', value: 'permanent' },
+        ]"
+        label="Tipo*"
+        required
+      />
 
-        <UiInput 
-          v-model="modal.payload.value.process_number" 
-          label="Nº do Processo (Oficial)" 
-          placeholder="Ex: 058.00100793/2026-21"
-          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
-        />
+      <UiInput
+        v-model="modal.payload.value.process_number"
+        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        label="Nº do Processo (Oficial)"
+        placeholder="Ex: 058.00100793/2026-21"
+      />
 
-        <UiInput 
-          v-model="modal.payload.value.id_pca" 
-          label="ID PCA" 
-          placeholder="Ex: 46377800000127-0-000132/2026"
-          hint="Opcional. ID do Plano de Contratações Anual"
-        />
-        
-        <UiInput 
-          v-model="modal.payload.value.contract_number" 
-          label="Nº da Contratação" 
-          placeholder="Apenas números"
-          type="number"
-          hint="Opcional. Número da contratação."
-        />
+      <UiInput
+        v-model="modal.payload.value.id_pca"
+        hint="Opcional. ID do Plano de Contratações Anual"
+        label="ID PCA"
+        placeholder="Ex: 46377800000127-0-000132/2026"
+      />
 
-        <template #actions>
-          <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close">Cancelar</UiButton>
-          <UiButton color="primary" :loading="modal.isSaving.value" @click="saveDemand"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <UiInput
+        v-model="modal.payload.value.contract_number"
+        hint="Opcional. Número da contratação."
+        label="Nº da Contratação"
+        placeholder="Apenas números"
+        type="number"
+      />
+
+      <template #actions>
+        <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="modal.isSaving.value" @click="saveDemand">
+          Salvar
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

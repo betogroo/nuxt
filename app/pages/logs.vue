@@ -77,9 +77,9 @@
               <span v-else class="text-grey text-caption">Sistema / Desconhecido</span>
             </template>
             <template #item-action="{ item }">
-              <v-chip color="primary" size="small" variant="outlined">
+              <UiChip color="primary" size="small" variant="outlined">
                 {{ item.action }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-description="{ item }">
               {{ item.description || '-' }}

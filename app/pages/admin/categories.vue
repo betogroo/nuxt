@@ -207,7 +207,7 @@
               <span class="font-weight-medium text-warning">{{ item.name }}</span>
             </template>
             <template #item-count="{ item }">
-              <v-chip size="small">{{ item.count }}</v-chip>
+              <UiChip size="small">{{ item.count }}</UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -256,7 +256,7 @@
               <span class="font-weight-medium">{{ item.name }}</span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -264,7 +264,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -308,7 +308,7 @@
               <span class="font-weight-medium">{{ item.name }}</span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -316,7 +316,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -339,9 +339,9 @@
       :title="isEditing ? 'Editar Categoria' : 'Nova Categoria'"
       transparent-header
     >
-      <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ saveError }}
-      </v-alert>
+      </UiAlert>
 
       <UiInput v-model="form.name" label="Nome da Categoria (Ex: Papelaria)" />
 
@@ -367,9 +367,9 @@
       title="Resolver Sugestão de Categoria"
       transparent-header
     >
-      <v-alert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ resolveError }}
-      </v-alert>
+      </UiAlert>
 
       <p class="mb-4 text-body-2">
         Resolvendo a sugestão: <strong class="text-warning">{{ resolveTarget }}</strong>

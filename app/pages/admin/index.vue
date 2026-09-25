@@ -8,7 +8,8 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
-  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } = usePendingTasks()
+  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } =
+    usePendingTasks()
 
   // Formatters
   const formatDate = (dateStr: string) => {
@@ -102,14 +103,14 @@
       <!-- Bloco de Tarefas a Revisar -->
       <v-row v-if="totalPending > 0" class="mb-6">
         <v-col cols="12">
-          <v-alert
+          <UiAlert
             border="start"
             border-color="warning"
             color="warning"
             elevation="1"
             icon="mdi-clipboard-text-clock"
             title="Tarefas Pendentes de Revisão"
-            variant="tonal"
+            variant="outlined"
           >
             <div class="d-flex flex-column gap-2 mt-3">
               <div
@@ -134,24 +135,41 @@
                   >Revisar</UiButton
                 >
               </div>
-              <v-divider v-if="(pendingCategoriesCount > 0 || pendingUnitsCount > 0) && metrics.pendingReturnDemands.length > 0" class="my-1" />
+              <v-divider
+                v-if="
+                  (pendingCategoriesCount > 0 || pendingUnitsCount > 0) &&
+                  metrics.pendingReturnDemands.length > 0
+                "
+                class="my-1"
+              />
               <div v-if="metrics.pendingReturnDemands.length > 0" class="d-flex flex-column gap-2">
                 <span class="d-flex align-center font-weight-bold">
                   <v-icon class="mr-2" size="small">mdi-keyboard-return</v-icon>
-                  Solicitações de Retorno de Status em Demandas ({{ metrics.pendingReturnDemands.length }})
+                  Solicitações de Retorno de Status em Demandas ({{
+                    metrics.pendingReturnDemands.length
+                  }})
                 </span>
-                <div v-for="demand in metrics.pendingReturnDemands" :key="demand.id" class="d-flex align-center justify-space-between bg-white pa-2 rounded border">
+                <div
+                  v-for="demand in metrics.pendingReturnDemands"
+                  :key="demand.id"
+                  class="d-flex align-center justify-space-between bg-white pa-2 rounded border"
+                >
                   <div>
                     <div class="text-body-2 font-weight-bold">{{ demand.name }}</div>
                     <div class="text-caption text-grey">Status atual: {{ demand.status }}</div>
                   </div>
-                  <UiButton color="primary" size="small" :to="`/demands/${demand.id}`" variant="outlined">
+                  <UiButton
+                    color="primary"
+                    size="small"
+                    :to="`/demands/${demand.id}`"
+                    variant="outlined"
+                  >
                     Acessar
                   </UiButton>
                 </div>
               </div>
             </div>
-          </v-alert>
+          </UiAlert>
         </v-col>
       </v-row>
 

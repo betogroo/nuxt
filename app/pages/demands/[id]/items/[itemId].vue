@@ -1,7 +1,7 @@
 <script setup lang="ts">
   const route = useRoute()
   const router = useRouter()
-  
+
   const { fetchDemandItemDetails, updateDemandItemWithDependencies } = useDemandProducts()
   const { fetchUnits } = useMeasurementUnits()
 
@@ -120,13 +120,13 @@
                 :to="`/products/${item.product?.id}`"
                 variant="text"
               />
-              <v-chip class="ml-2" color="secondary" size="small" variant="flat">
+              <UiChip class="ml-2" color="secondary" size="small" variant="flat">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
-              </v-chip>
+              </UiChip>
             </div>
             <v-spacer />
             <div class="d-flex align-center">
-              <v-chip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</v-chip>
+              <UiChip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</UiChip>
               <UiButton
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
                 color="primary"
@@ -137,10 +137,10 @@
             </div>
           </template>
 
-          <v-alert class="mb-4" density="compact" type="info" variant="tonal">
+          <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
             Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
             documentos enviados pelos fornecedores aparecerão aqui.
-          </v-alert>
+          </UiAlert>
 
           <!-- Futuro Card de Lances -->
           <UiCard class="mb-4" title="Lances Recebidos" variant="outlined">
@@ -217,62 +217,65 @@
     </v-row>
 
     <!-- Modal Editar Item -->
-    <v-dialog v-model="isEditing" max-width="500px">
-      <UiCard title="Editar Item da Demanda" transparent-header>
-        <v-alert v-if="editError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ editError }}
-        </v-alert>
+    <UiModal
+      v-model="isEditing"
+      max-width="500px"
+      title="Editar Item da Demanda"
+      transparent-header
+    >
+      <UiAlert v-if="editError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ editError }}
+      </UiAlert>
 
-        <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
+      <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
 
-        <UiInput
-          v-model.number="editForm.reference_price"
-          label="Valor Referencial (R$)"
-          step="0.0001"
-          type="number"
-        />
+      <UiInput
+        v-model.number="editForm.reference_price"
+        label="Valor Referencial (R$)"
+        step="0.0001"
+        type="number"
+      />
 
-        <div class="d-flex align-center mt-2 mb-4">
-          <UiSelect
-            v-model="editForm.bid_interval_type"
-            class="mr-2 flex-grow-1"
-            density="comfortable"
-            hide-details
-            :items="[
-              { title: 'Percentual (%)', value: 'percentage' },
-              { title: 'Monetário (R$)', value: 'monetary' },
-            ]"
-            label="Tipo de Intervalo"
-            variant="outlined"
-          />
-          <UiInput
-            v-model.number="editForm.bid_interval"
-            class="flex-grow-1"
-            hide-details
-            label="Valor do Intervalo"
-            step="0.01"
-            type="number"
-          />
-        </div>
-
-        <UiCombobox
-          v-model="editForm.unitSearch"
+      <div class="d-flex align-center mt-2 mb-4">
+        <UiSelect
+          v-model="editForm.bid_interval_type"
+          class="mr-2 flex-grow-1"
           density="comfortable"
-          hint="Selecione ou digite uma nova embalagem se não existir."
-          item-title="displayName"
-          item-value="name"
-          :items="availableUnits"
-          label="Apresentação (Unidade de Medida)"
-          persistent-hint
-          :return-object="false"
+          hide-details
+          :items="[
+            { title: 'Percentual (%)', value: 'percentage' },
+            { title: 'Monetário (R$)', value: 'monetary' },
+          ]"
+          label="Tipo de Intervalo"
           variant="outlined"
         />
+        <UiInput
+          v-model.number="editForm.bid_interval"
+          class="flex-grow-1"
+          hide-details
+          label="Valor do Intervalo"
+          step="0.01"
+          type="number"
+        />
+      </div>
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveItem"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <UiCombobox
+        v-model="editForm.unitSearch"
+        density="comfortable"
+        hint="Selecione ou digite uma nova embalagem se não existir."
+        item-title="displayName"
+        item-value="name"
+        :items="availableUnits"
+        label="Apresentação (Unidade de Medida)"
+        persistent-hint
+        :return-object="false"
+        variant="outlined"
+      />
+
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveItem"> Salvar </UiButton>
+      </template>
+    </UiModal>
   </v-container>
 </template>

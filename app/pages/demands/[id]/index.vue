@@ -384,9 +384,9 @@
       <template #header>
         <div class="d-flex align-center w-100">
           <span class="mr-4">{{ demand.name }}</span>
-          <v-chip color="primary" size="small" variant="flat">{{
+          <UiChip color="primary" size="small" variant="flat">{{
             formatDemandStatus(demand.status)
-          }}</v-chip>
+          }}</UiChip>
           <v-spacer />
           <UiButton
             v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
@@ -408,7 +408,7 @@
           >
             {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
           </UiButton>
-          <v-tooltip
+          <UiTooltip
             v-if="getNextStatus(demand.status)"
             :disabled="!isPlanningIncomplete"
             text="Preencha todos os Dados do Planejamento para avançar"
@@ -425,7 +425,7 @@
                 </UiButton>
               </span>
             </template>
-          </v-tooltip>
+          </UiTooltip>
         </div>
       </template>
 
@@ -501,7 +501,7 @@
                 </div>
               </v-col>
               <v-col cols="12">
-                <v-alert
+                <UiAlert
                   v-if="isPlanningIncomplete"
                   class="mt-2 text-caption"
                   density="compact"
@@ -512,7 +512,7 @@
                   ID PCA e Nº Contratação).
                   <br />
                   <small>Você pode editar a demanda voltando à tela de listagem.</small>
-                </v-alert>
+                </UiAlert>
               </v-col>
             </v-row>
           </UiCard>
@@ -628,7 +628,7 @@
       </template>
 
       <!-- Alerta de bloqueio na fase de planejamento -->
-      <v-alert
+      <UiAlert
         v-if="demand?.status === 'planning'"
         class="mb-4"
         density="compact"
@@ -636,7 +636,7 @@
         variant="tonal"
       >
         A inserção de itens (produtos) só é permitida após a conclusão da fase de planejamento.
-      </v-alert>
+      </UiAlert>
 
       <UiTable
         :headers="[
@@ -657,7 +657,7 @@
             :to="`/demands/${demandId}/items/${item.id}`"
           >
             {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
-            <v-chip
+            <UiChip
               v-if="item.measurement_units"
               class="ml-2"
               color="secondary"
@@ -665,7 +665,7 @@
               variant="flat"
             >
               {{ item.unit_name_snapshot || item.measurement_units.name }}
-            </v-chip>
+            </UiChip>
           </NuxtLink>
           <UiButton
             class="ml-1"
@@ -726,401 +726,407 @@
     </UiCard>
 
     <!-- Modal Editar Item -->
-    <v-dialog v-model="isEditItemModalOpen" max-width="500px" persistent>
-      <UiCard title="Editar Item da Demanda" transparent-header>
-        <v-alert v-if="editItemError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ editItemError }}
-        </v-alert>
+    <UiModal
+      v-model="isEditItemModalOpen"
+      max-width="500px"
+      persistent
+      title="Editar Item da Demanda"
+      transparent-header
+    >
+      <UiAlert v-if="editItemError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ editItemError }}
+      </UiAlert>
 
-        <p class="text-body-1 font-weight-bold mb-4">{{ editItemForm.productName }}</p>
+      <p class="text-body-1 font-weight-bold mb-4">{{ editItemForm.productName }}</p>
 
-        <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
+      <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
 
-        <UiCombobox
-          v-model="editItemForm.unit_id"
-          v-model:search="editItemForm.searchUnitText"
-          class="mt-3"
+      <UiCombobox
+        v-model="editItemForm.unit_id"
+        v-model:search="editItemForm.searchUnitText"
+        class="mt-3"
+        clearable
+        hint="Selecione ou digite uma nova unidade de medida se não existir."
+        item-title="name"
+        item-value="id"
+        :items="allMeasurementUnits || []"
+        label="Unidade de Medida"
+        persistent-hint
+      />
+
+      <UiInput
+        v-model.number="editItemForm.reference_price"
+        class="mt-3"
+        label="Valor Referencial (R$)"
+        step="0.0001"
+        type="number"
+      />
+
+      <template #actions>
+        <UiButton :disabled="editItemSaving" variant="text" @click="isEditItemModalOpen = false"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="editItemSaving" @click="saveEditItem">Salvar</UiButton>
+      </template>
+    </UiModal>
+    <!-- Modal Adicionar Produto -->
+    <UiModal
+      v-model="isModalOpen"
+      max-width="600px"
+      persistent
+      title="Inserir Produto na Demanda"
+      transparent-header
+    >
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
+
+      <!-- Seção de Busca de Produto Existente -->
+      <template v-if="!isNewProductMode">
+        <v-autocomplete
+          v-model="selectedProductId"
+          v-model:search="searchProductText"
           clearable
-          hint="Selecione ou digite uma nova unidade de medida se não existir."
+          density="comfortable"
           item-title="name"
           item-value="id"
-          :items="allMeasurementUnits || []"
-          label="Unidade de Medida"
+          :items="allProducts || []"
+          label="Buscar Produto"
+          placeholder="Digite o nome do produto..."
+          variant="outlined"
+        >
+          <!-- Personalizando a pesquisa no front-end para simplificar -->
+          <template #no-data>
+            <div class="pa-3 text-center">
+              <span class="text-grey mr-2">Produto não encontrado.</span>
+              <UiButton
+                color="primary"
+                size="small"
+                variant="tonal"
+                @click="activateNewProductMode"
+              >
+                Cadastrar novo
+              </UiButton>
+            </div>
+          </template>
+        </v-autocomplete>
+
+        <UiCombobox
+          v-if="selectedProductId"
+          v-model="selectedUnitSearch"
+          class="mt-3"
+          density="comfortable"
+          hint="Selecione ou digite uma nova embalagem se não existir."
+          item-title="displayName"
+          item-value="name"
+          :items="computedMeasurementUnits"
+          label="Apresentação (Unidade de Medida)"
           persistent-hint
+          :return-object="false"
+          variant="outlined"
         />
 
         <UiInput
-          v-model.number="editItemForm.reference_price"
+          v-if="selectedProductId"
+          v-model.number="itemQuantity"
+          class="mt-3"
+          label="Quantidade"
+          min="1"
+          type="number"
+        />
+        <UiInput
+          v-if="selectedProductId"
+          v-model.number="itemReferencePrice"
           class="mt-3"
           label="Valor Referencial (R$)"
           step="0.0001"
           type="number"
         />
+      </template>
 
-        <template #actions>
-          <UiButton :disabled="editItemSaving" variant="text" @click="isEditItemModalOpen = false"
-            >Cancelar</UiButton
-          >
-          <UiButton color="primary" :loading="editItemSaving" @click="saveEditItem"
-            >Salvar</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
-    <!-- Modal Adicionar Produto -->
-    <v-dialog v-model="isModalOpen" max-width="600px" persistent>
-      <UiCard title="Inserir Produto na Demanda" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+      <!-- Seção de Cadastro Rápido de Novo Produto -->
+      <template v-else>
+        <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
+          Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
+          adicionado à demanda.
+        </UiAlert>
 
-        <!-- Seção de Busca de Produto Existente -->
-        <template v-if="!isNewProductMode">
-          <v-autocomplete
-            v-model="selectedProductId"
-            v-model:search="searchProductText"
-            clearable
-            density="comfortable"
-            item-title="name"
-            item-value="id"
-            :items="allProducts || []"
-            label="Buscar Produto"
-            placeholder="Digite o nome do produto..."
-            variant="outlined"
-          >
-            <!-- Personalizando a pesquisa no front-end para simplificar -->
-            <template #no-data>
-              <div class="pa-3 text-center">
-                <span class="text-grey mr-2">Produto não encontrado.</span>
-                <UiButton
-                  color="primary"
-                  size="small"
-                  variant="tonal"
-                  @click="activateNewProductMode"
-                >
-                  Cadastrar novo
-                </UiButton>
-              </div>
-            </template>
-          </v-autocomplete>
-
-          <UiCombobox
-            v-if="selectedProductId"
-            v-model="selectedUnitSearch"
-            class="mt-3"
-            density="comfortable"
-            hint="Selecione ou digite uma nova embalagem se não existir."
-            item-title="displayName"
-            item-value="name"
-            :items="computedMeasurementUnits"
-            label="Apresentação (Unidade de Medida)"
-            persistent-hint
-            :return-object="false"
-            variant="outlined"
-          />
-
-          <UiInput
-            v-if="selectedProductId"
-            v-model.number="itemQuantity"
-            class="mt-3"
-            label="Quantidade"
-            min="1"
-            type="number"
-          />
-          <UiInput
-            v-if="selectedProductId"
-            v-model.number="itemReferencePrice"
-            class="mt-3"
-            label="Valor Referencial (R$)"
-            step="0.0001"
-            type="number"
-          />
-        </template>
-
-        <!-- Seção de Cadastro Rápido de Novo Produto -->
-        <template v-else>
-          <v-alert class="mb-4" density="compact" type="info" variant="tonal">
-            Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
-            adicionado à demanda.
-          </v-alert>
-
-          <UiInput v-model="newProductName" label="Nome do Produto" />
-          <UiSelect
-            v-model="newProductCategoryId"
-            item-title="name"
-            item-value="id"
-            :items="categories || []"
-            label="Categoria de Material"
-          />
-
-          <UiCombobox
-            v-if="isNewProductOutrosCategory"
-            v-model="newProductSuggestedCategory"
-            class="mb-4"
-            density="comfortable"
-            hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
-            :items="pendingSuggestions || []"
-            label="Qual categoria você sugere?"
-            persistent-hint
-            :return-object="false"
-            variant="outlined"
-          />
-
-          <UiCombobox
-            v-model="selectedUnitSearch"
-            class="mb-4"
-            density="comfortable"
-            hint="Deixe em branco para usar 'Unidade', ou digite uma nova embalagem."
-            item-title="displayName"
-            item-value="name"
-            :items="computedMeasurementUnits"
-            label="Apresentação (Unidade de Medida)"
-            persistent-hint
-            :return-object="false"
-            variant="outlined"
-          />
-
-          <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
-          <UiInput
-            v-model.number="itemReferencePrice"
-            label="Valor Referencial (R$)"
-            step="0.0001"
-            type="number"
-          />
-
-          <div class="text-right">
-            <UiButton size="small" variant="text" @click="isNewProductMode = false">
-              Voltar à Busca
-            </UiButton>
-          </div>
-        </template>
-
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
-            Adicionar à Demanda
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
-
-    <!-- Modal Adicionar Responsável -->
-    <v-dialog v-model="isResponsibleModalOpen" max-width="400px">
-      <UiCard title="Adicionar Responsável" transparent-header>
-        <v-alert
-          v-if="responsibleError"
-          class="mb-4"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ responsibleError }}
-        </v-alert>
+        <UiInput v-model="newProductName" label="Nome do Produto" />
         <UiSelect
-          v-model="responsibleUserId"
+          v-model="newProductCategoryId"
           item-title="name"
           item-value="id"
-          :items="availableProfiles"
-          label="Selecione o Usuário"
+          :items="categories || []"
+          label="Categoria de Material"
         />
-        <template #actions>
-          <UiButton
-            :disabled="isAddingResponsible"
-            variant="text"
-            @click="isResponsibleModalOpen = false"
-            >Cancelar</UiButton
-          >
-          <UiButton color="primary" :loading="isAddingResponsible" @click="addResponsible"
-            >Adicionar</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
 
-    <!-- Modal Avançar Status -->
-    <v-dialog v-model="advanceModal.isOpen.value" max-width="500px">
-      <UiCard :title="`Avançar para: ${formatDemandStatus(targetStatus)}`" transparent-header>
-        <v-alert
-          v-if="advanceModal.error.value"
+        <UiCombobox
+          v-if="isNewProductOutrosCategory"
+          v-model="newProductSuggestedCategory"
           class="mb-4"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ advanceModal.error.value }}
-        </v-alert>
+          density="comfortable"
+          hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
+          :items="pendingSuggestions || []"
+          label="Qual categoria você sugere?"
+          persistent-hint
+          :return-object="false"
+          variant="outlined"
+        />
 
-        <div v-if="targetStatus === 'bidding_notice'">
-          <UiInput
-            v-model="advanceModal.payload.value.bidding_notice_number"
-            label="Número do Aviso de Contratação"
-            required
-          />
-        </div>
-
-        <div v-if="targetStatus === 'dispute'">
-          <UiInput
-            v-model="advanceModal.payload.value.dispute_number"
-            label="Número da Disputa"
-            required
-          />
-          <UiInput
-            v-model="advanceModal.payload.value.dispute_date"
-            label="Data da Disputa"
-            required
-            type="date"
-          />
-          <v-row class="mt-2">
-            <v-col class="py-0" cols="12" sm="6">
-              <UiInput
-                v-model="advanceModal.payload.value.offer_opening_date"
-                label="Data de Abertura"
-                type="date"
-              />
-            </v-col>
-            <v-col class="py-0" cols="12" sm="6">
-              <UiInput
-                v-model="advanceModal.payload.value.offer_opening_time"
-                label="Hora de Abertura"
-                type="time"
-              />
-            </v-col>
-          </v-row>
-        </div>
-
-        <div v-if="targetStatus === 'homologation'">
-          <UiInput
-            v-model="advanceModal.payload.value.contract_number"
-            label="Número da Contratação (Contrato/Ata)"
-            required
-          />
-        </div>
-
-        <div v-if="targetStatus === 'completed'">
-          <p class="text-body-1">Tem certeza que deseja concluir esta demanda?</p>
-        </div>
-
-        <template #actions>
-          <UiButton
-            :disabled="advanceModal.isSaving.value"
-            variant="text"
-            @click="advanceModal.close()"
-            >Cancelar</UiButton
-          >
-          <UiButton
-            color="success"
-            :loading="advanceModal.isSaving.value"
-            @click="confirmAdvanceStatus"
-            >Confirmar Avanço</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
-
-    <!-- Modal Retornar Status -->
-    <v-dialog v-model="revertModal.isOpen.value" max-width="500px">
-      <UiCard title="Confirmar Retorno de Fase" transparent-header>
-        <v-alert
-          v-if="revertModal.error.value"
+        <UiCombobox
+          v-model="selectedUnitSearch"
           class="mb-4"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ revertModal.error.value }}
-        </v-alert>
-
-        <p class="text-body-1">
-          Tem certeza que deseja retornar esta demanda para a fase
-          <strong>{{ formatDemandStatus(getPreviousStatus(demand?.status || '') || '') }}</strong
-          >?
-        </p>
-        <p class="text-body-2 text-warning mt-2">
-          Isto reabrirá a possibilidade de edição dos itens (dependendo da fase) e limpará qualquer
-          solicitação de retorno pendente.
-        </p>
-
-        <template #actions>
-          <UiButton
-            :disabled="revertModal.isSaving.value"
-            variant="text"
-            @click="revertModal.close()"
-            >Cancelar</UiButton
-          >
-          <UiButton
-            color="orange-darken-3"
-            :loading="revertModal.isSaving.value"
-            @click="confirmRevertStatus"
-            >Confirmar Retorno</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
-
-    <!-- Modal Editar Planejamento -->
-    <v-dialog v-model="editPlanningModal.isOpen.value" max-width="500px">
-      <UiCard title="Editar Planejamento" transparent-header>
-        <v-alert
-          v-if="editPlanningModal.error.value"
-          class="mb-4"
-          density="compact"
-          type="error"
-          variant="tonal"
-        >
-          {{ editPlanningModal.error.value }}
-        </v-alert>
-
-        <UiInput v-model="editPlanningModal.payload.value.name" label="Nome da Demanda*" required />
-
-        <UiSelect
-          v-model="editPlanningModal.payload.value.type"
-          item-title="title"
-          item-value="value"
-          :items="[
-            { title: 'Consumo', value: 'consumption' },
-            { title: 'Permanente', value: 'permanent' },
-          ]"
-          label="Tipo*"
-          required
+          density="comfortable"
+          hint="Deixe em branco para usar 'Unidade', ou digite uma nova embalagem."
+          item-title="displayName"
+          item-value="name"
+          :items="computedMeasurementUnits"
+          label="Apresentação (Unidade de Medida)"
+          persistent-hint
+          :return-object="false"
+          variant="outlined"
         />
 
+        <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
         <UiInput
-          v-model="editPlanningModal.payload.value.process_number"
-          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
-          label="Nº do Processo (Oficial)"
-          placeholder="Ex: 058.00100793/2026-21"
-        />
-
-        <UiInput
-          v-model="editPlanningModal.payload.value.id_pca"
-          hint="Opcional."
-          label="ID PCA"
-          placeholder="Ex: 46377800000127-0-000132/2026"
-        />
-
-        <UiInput
-          v-model="editPlanningModal.payload.value.contract_number"
-          hint="Opcional."
-          label="Nº da Contratação"
-          placeholder="Apenas números"
+          v-model.number="itemReferencePrice"
+          label="Valor Referencial (R$)"
+          step="0.0001"
           type="number"
         />
 
-        <template #actions>
-          <UiButton
-            :disabled="editPlanningModal.isSaving.value"
-            variant="text"
-            @click="editPlanningModal.close()"
-            >Cancelar</UiButton
-          >
-          <UiButton
-            color="primary"
-            :loading="editPlanningModal.isSaving.value"
-            @click="savePlanning"
-            >Salvar</UiButton
-          >
-        </template>
-      </UiCard>
-    </v-dialog>
+        <div class="text-right">
+          <UiButton size="small" variant="text" @click="isNewProductMode = false">
+            Voltar à Busca
+          </UiButton>
+        </div>
+      </template>
+
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
+          Adicionar à Demanda
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Adicionar Responsável -->
+    <UiModal
+      v-model="isResponsibleModalOpen"
+      max-width="400px"
+      title="Adicionar Responsável"
+      transparent-header
+    >
+      <UiAlert v-if="responsibleError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ responsibleError }}
+      </UiAlert>
+      <UiSelect
+        v-model="responsibleUserId"
+        item-title="name"
+        item-value="id"
+        :items="availableProfiles"
+        label="Selecione o Usuário"
+      />
+      <template #actions>
+        <UiButton
+          :disabled="isAddingResponsible"
+          variant="text"
+          @click="isResponsibleModalOpen = false"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="isAddingResponsible" @click="addResponsible"
+          >Adicionar</UiButton
+        >
+      </template>
+    </UiModal>
+
+    <!-- Modal Avançar Status -->
+    <UiModal
+      v-model="advanceModal.isOpen.value"
+      max-width="500px"
+      :title="`Avançar para: ${formatDemandStatus(targetStatus)}`"
+      transparent-header
+    >
+      <UiAlert
+        v-if="advanceModal.error.value"
+        class="mb-4"
+        density="compact"
+        type="error"
+        variant="tonal"
+      >
+        {{ advanceModal.error.value }}
+      </UiAlert>
+
+      <div v-if="targetStatus === 'bidding_notice'">
+        <UiInput
+          v-model="advanceModal.payload.value.bidding_notice_number"
+          label="Número do Aviso de Contratação"
+          required
+        />
+      </div>
+
+      <div v-if="targetStatus === 'dispute'">
+        <UiInput
+          v-model="advanceModal.payload.value.dispute_number"
+          label="Número da Disputa"
+          required
+        />
+        <UiInput
+          v-model="advanceModal.payload.value.dispute_date"
+          label="Data da Disputa"
+          required
+          type="date"
+        />
+        <v-row class="mt-2">
+          <v-col class="py-0" cols="12" sm="6">
+            <UiInput
+              v-model="advanceModal.payload.value.offer_opening_date"
+              label="Data de Abertura"
+              type="date"
+            />
+          </v-col>
+          <v-col class="py-0" cols="12" sm="6">
+            <UiInput
+              v-model="advanceModal.payload.value.offer_opening_time"
+              label="Hora de Abertura"
+              type="time"
+            />
+          </v-col>
+        </v-row>
+      </div>
+
+      <div v-if="targetStatus === 'homologation'">
+        <UiInput
+          v-model="advanceModal.payload.value.contract_number"
+          label="Número da Contratação (Contrato/Ata)"
+          required
+        />
+      </div>
+
+      <div v-if="targetStatus === 'completed'">
+        <p class="text-body-1">Tem certeza que deseja concluir esta demanda?</p>
+      </div>
+
+      <template #actions>
+        <UiButton
+          :disabled="advanceModal.isSaving.value"
+          variant="text"
+          @click="advanceModal.close()"
+          >Cancelar</UiButton
+        >
+        <UiButton
+          color="success"
+          :loading="advanceModal.isSaving.value"
+          @click="confirmAdvanceStatus"
+          >Confirmar Avanço</UiButton
+        >
+      </template>
+    </UiModal>
+
+    <!-- Modal Retornar Status -->
+    <UiModal
+      v-model="revertModal.isOpen.value"
+      max-width="500px"
+      title="Confirmar Retorno de Fase"
+      transparent-header
+    >
+      <UiAlert
+        v-if="revertModal.error.value"
+        class="mb-4"
+        density="compact"
+        type="error"
+        variant="tonal"
+      >
+        {{ revertModal.error.value }}
+      </UiAlert>
+
+      <p class="text-body-1">
+        Tem certeza que deseja retornar esta demanda para a fase
+        <strong>{{ formatDemandStatus(getPreviousStatus(demand?.status || '') || '') }}</strong
+        >?
+      </p>
+      <p class="text-body-2 text-warning mt-2">
+        Isto reabrirá a possibilidade de edição dos itens (dependendo da fase) e limpará qualquer
+        solicitação de retorno pendente.
+      </p>
+
+      <template #actions>
+        <UiButton :disabled="revertModal.isSaving.value" variant="text" @click="revertModal.close()"
+          >Cancelar</UiButton
+        >
+        <UiButton
+          color="orange-darken-3"
+          :loading="revertModal.isSaving.value"
+          @click="confirmRevertStatus"
+          >Confirmar Retorno</UiButton
+        >
+      </template>
+    </UiModal>
+
+    <!-- Modal Editar Planejamento -->
+    <UiModal
+      v-model="editPlanningModal.isOpen.value"
+      max-width="500px"
+      title="Editar Planejamento"
+      transparent-header
+    >
+      <UiAlert
+        v-if="editPlanningModal.error.value"
+        class="mb-4"
+        density="compact"
+        type="error"
+        variant="tonal"
+      >
+        {{ editPlanningModal.error.value }}
+      </UiAlert>
+
+      <UiInput v-model="editPlanningModal.payload.value.name" label="Nome da Demanda*" required />
+
+      <UiSelect
+        v-model="editPlanningModal.payload.value.type"
+        item-title="title"
+        item-value="value"
+        :items="[
+          { title: 'Consumo', value: 'consumption' },
+          { title: 'Permanente', value: 'permanent' },
+        ]"
+        label="Tipo*"
+        required
+      />
+
+      <UiInput
+        v-model="editPlanningModal.payload.value.process_number"
+        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        label="Nº do Processo (Oficial)"
+        placeholder="Ex: 058.00100793/2026-21"
+      />
+
+      <UiInput
+        v-model="editPlanningModal.payload.value.id_pca"
+        hint="Opcional."
+        label="ID PCA"
+        placeholder="Ex: 46377800000127-0-000132/2026"
+      />
+
+      <UiInput
+        v-model="editPlanningModal.payload.value.contract_number"
+        hint="Opcional."
+        label="Nº da Contratação"
+        placeholder="Apenas números"
+        type="number"
+      />
+
+      <template #actions>
+        <UiButton
+          :disabled="editPlanningModal.isSaving.value"
+          variant="text"
+          @click="editPlanningModal.close()"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="editPlanningModal.isSaving.value" @click="savePlanning"
+          >Salvar</UiButton
+        >
+      </template>
+    </UiModal>
   </v-container>
 </template>

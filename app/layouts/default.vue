@@ -18,7 +18,8 @@
   const { logAction } = useLogger()
 
   // Central de Pendências
-  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } = usePendingTasks()
+  const { pendingCategoriesCount, pendingUnitsCount, pendingReturnsCount, totalPending } =
+    usePendingTasks()
 
   const signOut = async () => {
     if (user.value) {
@@ -124,7 +125,9 @@
             prepend-icon="mdi-keyboard-return"
             to="/admin"
           >
-            <v-list-item-title>{{ pendingReturnsCount }} pedidos de retorno em demandas</v-list-item-title>
+            <v-list-item-title
+              >{{ pendingReturnsCount }} pedidos de retorno em demandas</v-list-item-title
+            >
           </v-list-item>
         </v-list>
       </v-menu>

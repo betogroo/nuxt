@@ -44,7 +44,7 @@
         currentPage.value,
         itemsPerPage.value,
         selectedCategory.value,
-        statusFilter.value
+        statusFilter.value,
       )
       totalItems.value = result.count
       return result.data
@@ -68,7 +68,7 @@
     is_suggesting_category: false,
     is_active: true,
   })
-  
+
   const isEditing = computed(() => !!modal.payload.value.id)
 
   const filteredCategories = computed(() => {
@@ -255,7 +255,7 @@
               </span>
             </template>
             <template #item-is_active="{ item }">
-              <v-chip
+              <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
                 size="small"
@@ -263,7 +263,7 @@
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
+              </UiChip>
             </template>
             <template #item-actions="{ item }">
               <UiButton
@@ -296,9 +296,9 @@
       :title="isEditing ? 'Editar Produto' : 'Novo Produto'"
       transparent-header
     >
-      <v-alert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
         {{ modal.error.value }}
-      </v-alert>
+      </UiAlert>
 
       <UiInput v-model="modal.payload.value.name" label="Nome do Produto" />
 
@@ -336,8 +336,12 @@
       />
 
       <template #actions>
-        <UiButton :disabled="modal.isSaving.value" variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="modal.isSaving.value" @click="saveProduct"> Salvar </UiButton>
+        <UiButton :disabled="modal.isSaving.value" variant="text" @click="closeModal"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="modal.isSaving.value" @click="saveProduct">
+          Salvar
+        </UiButton>
       </template>
     </UiModal>
   </div>
