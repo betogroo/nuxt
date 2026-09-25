@@ -16,11 +16,12 @@ export const useAuth = () => {
     return { data, error }
   }
 
-  const sendOtp = async (email: string) => {
+  const sendOtp = async (email: string, emailRedirectTo?: string) => {
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: false,
+        emailRedirectTo,
       },
     })
     return { data, error }

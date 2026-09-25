@@ -52,12 +52,12 @@
     errorOtp.value = ''
     messageOtp.value = ''
 
-    const { error } = await sendOtp(emailOtp.value)
+    const { error } = await sendOtp(emailOtp.value, `${window.location.origin}/confirm`)
 
     if (error) {
       errorOtp.value = error.message
     } else {
-      messageOtp.value = 'Código de 6 dígitos enviado para o seu e-mail.'
+      messageOtp.value = 'Código enviado para o e-mail (você também pode clicar no link que enviamos).'
       isOtpSent.value = true
     }
     loadingOtp.value = false
