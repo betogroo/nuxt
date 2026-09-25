@@ -48,10 +48,10 @@ export const useAuth = () => {
       const event = useRequestEvent()
       const cookieStr = event?.node?.req?.headers?.cookie || ''
       const match = cookieStr.match(/sb-[^;]*redirect-path=([^;]+)/)
-      if (match) path = decodeURIComponent(match[1])
+      if (match && match[1]) path = decodeURIComponent(match[1])
     } else {
       const match = document.cookie.match(/sb-[^;]*redirect-path=([^;]+)/)
-      if (match) path = decodeURIComponent(match[1])
+      if (match && match[1]) path = decodeURIComponent(match[1])
       
       // Limpar o cookie no client para não ficar preso
       if (match) {
