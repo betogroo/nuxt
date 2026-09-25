@@ -1,6 +1,6 @@
 <script setup lang="ts">
   useHead({ title: 'Confirmando...' })
-  const { user } = useAuth()
+  const { user, getRedirectUrl } = useAuth()
 
   const { logAction } = useLogger()
 
@@ -12,7 +12,7 @@
     async () => {
       if (user.value) {
         await logAction('LOGIN', 'Acesso via link mágico ou confirmação', user.value.id)
-        return navigateTo(useCookie('sb-redirect-path').value || '/', { replace: true })
+        return navigateTo(getRedirectUrl(), { replace: true })
       }
     },
     { immediate: true },

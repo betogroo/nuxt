@@ -5,12 +5,13 @@
     signInWithPassword: loginWithPassword,
     sendOtp,
     verifyOtpCode,
+    getRedirectUrl,
   } = useAuth()
 
   // Redireciona se já estiver logado
   watchEffect(() => {
     if (user.value) {
-      navigateTo(useCookie('sb-redirect-path').value || '/', { replace: true })
+      navigateTo(getRedirectUrl(), { replace: true })
     }
   })
 

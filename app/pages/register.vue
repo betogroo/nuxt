@@ -1,6 +1,6 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const { user, signUp: register } = useAuth()
+  const { user, signUp: register, getRedirectUrl } = useAuth()
   const email = ref('')
   const password = ref('')
   const loading = ref(false)
@@ -10,7 +10,7 @@
   // Redireciona se já estiver logado
   watchEffect(() => {
     if (user.value) {
-      navigateTo(useCookie('sb-redirect-path').value || '/', { replace: true })
+      navigateTo(getRedirectUrl(), { replace: true })
     }
   })
 
@@ -28,7 +28,7 @@
       message.value = error.message
     } else if (data.session) {
       // Ambiente local: confirmação de e-mail desligada, session existe → login automático
-      return navigateTo(useCookie('sb-redirect-path').value || '/', { replace: true })
+      return navigateTo(getRedirectUrl(), { replace: true })
     } else {
       // Produção: confirmação de e-mail ligada, usuário precisa clicar no link
       message.value = 'Cadastro bem-sucedido! Verifique seu e-mail para confirmar.'

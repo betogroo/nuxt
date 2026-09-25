@@ -42,6 +42,25 @@ export const useAuth = () => {
   }
 
 
+  const getRedirectUrl = () => {
+    let path = '/'
+    if (process.server) {
+      const event = useRequestEvent()
+      const cookieStr = event?.node?.req?.headers?.cookie || ''
+      const match = cookieStr.match(/sb-[^;]*redirect-path=([^;]+)/)
+      if (match) path = decodeURIComponent(match[1])
+    } else {
+      const match = document.cookie.match(/sb-[^;]*redirect-path=([^;]+)/)
+      if (match) path = decodeURIComponent(match[1])
+      
+      // Limpar o cookie no client para não ficar preso
+      if (match) {
+        const cookieName = match[0].split('=')[0]
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+      }
+    }
+    return path
+  }
 
   const signUp = async (email: string, password: string, emailRedirectTo: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -68,6 +87,7 @@ export const useAuth = () => {
     signInWithPassword,
     sendOtp,
     verifyOtpCode,
-        signUp,
+    getRedirectUrl,
+    signUp,
   }
 }
