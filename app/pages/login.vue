@@ -11,7 +11,7 @@
   // Redireciona se já estiver logado
   watchEffect(() => {
     if (user.value) {
-      navigateTo(getRedirectUrl())
+      navigateTo(useCookie('sb-redirect-path').value || '/', { replace: true })
     }
   })
 

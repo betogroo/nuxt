@@ -41,13 +41,7 @@ export const useAuth = () => {
     return { data, error }
   }
 
-  const getRedirectUrl = () => {
-    const cookie = useCookie('sb-redirect-path')
-    const path = cookie.value || '/'
-    // Limpa o cookie após o uso para não ficar preso nesse redirecionamento
-    cookie.value = null
-    return path
-  }
+
 
   const signUp = async (email: string, password: string, emailRedirectTo: string) => {
     const { data, error } = await supabase.auth.signUp({
@@ -74,7 +68,6 @@ export const useAuth = () => {
     signInWithPassword,
     sendOtp,
     verifyOtpCode,
-    getRedirectUrl,
-    signUp,
+        signUp,
   }
 }
