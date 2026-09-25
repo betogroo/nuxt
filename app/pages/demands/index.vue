@@ -148,6 +148,7 @@
 
           <UiTable
             :headers="[
+              { text: 'Processo', value: 'internal_process_number' },
               { text: 'Nome', value: 'name' },
               { text: 'Tipo', value: 'type' },
               { text: 'Status', value: 'status' },
@@ -157,6 +158,9 @@
             :items="demands || []"
             :loading="pending"
           >
+            <template #item-internal_process_number="{ item }">
+              <span class="font-weight-medium text-grey-darken-1">{{ item.internal_process_number || '-' }}</span>
+            </template>
             <template v-if="!demands?.length && !pending" #empty>
               Nenhuma demanda encontrada.
             </template>
