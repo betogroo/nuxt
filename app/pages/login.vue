@@ -1,7 +1,6 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const user = useSupabaseUser()
-  const { signInWithPassword: loginWithPassword, signInWithMagicLink: loginWithMagicLink } =
+  const { user, signInWithPassword: loginWithPassword, signInWithMagicLink: loginWithMagicLink } =
     useAuth()
 
   // Redireciona se já estiver logado

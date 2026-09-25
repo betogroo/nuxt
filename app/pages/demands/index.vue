@@ -6,7 +6,6 @@
   })
   useHead({ title: 'Demandas' })
 
-  const user = useSupabaseUser()
   const { profile } = useProfile()
   
   const { fetchDemands, createDemand, updateDemand } = useDemands()
@@ -73,37 +72,10 @@
   }
 
   const canEdit = (demand: DemandRow) => {
-    const currentUserId = user.value?.id || profile.value?.id
+    const currentUserId = profile.value?.id
     return profile.value?.role === 'admin' || demand.user_id === currentUserId
   }
 
-  const formatType = (type: string) => {
-    return type === 'consumption' ? 'Consumo' : 'Permanente'
-  }
-
-  const formatStatus = (status: string) => {
-    const map: Record<string, string> = {
-      planning: 'Planejamento',
-      bidding_notice: 'Aviso de Contratação',
-      dispute: 'Disputa',
-      homologation: 'Homologação',
-      completed: 'Concluído',
-      cancelled: 'Cancelado',
-    }
-    return map[status] || status
-  }
-
-  const getStatusColor = (status: string) => {
-    const map: Record<string, string> = {
-      planning: 'grey',
-      bidding_notice: 'info',
-      dispute: 'warning',
-      homologation: 'primary',
-      completed: 'success',
-      cancelled: 'error',
-    }
-    return map[status] || 'grey'
-  }
 
   const saveDemand = async () => {
     isSaving.value = true
@@ -228,12 +200,12 @@
                 size="small"
                 variant="flat"
               >
-                {{ formatType(item.type) }}
+                {{ formatDemandType(item.type) }}
               </v-chip>
             </template>
             <template #item-status="{ item }">
-              <v-chip :color="getStatusColor(item.status)" size="small" variant="outlined">
-                {{ formatStatus(item.status) }}
+              <v-chip :color="getDemandStatusColor(item.status)" size="small" variant="outlined">
+                {{ formatDemandStatus(item.status) }}
               </v-chip>
               <v-chip v-if="item.is_return_requested" class="ml-2" color="warning" size="small" variant="flat">
                 <v-icon left size="small">mdi-keyboard-return</v-icon>

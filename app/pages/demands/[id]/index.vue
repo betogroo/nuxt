@@ -291,20 +291,7 @@
     }
   }
 
-  const formatStatus = (status: string) => {
-    const map: Record<string, string> = {
-      planning: 'Planejamento',
-      quotation: 'Cotação',
-      bidding_notice: 'Aviso de Contratação',
-      dispute: 'Disputa',
-      homologation: 'Homologação',
-      completed: 'Concluído',
-      cancelled: 'Cancelado',
-    }
-    return map[status] || status
-  }
-
-  const statusList: Database['public']['Enums']['demand_status'][] = [
+    const statusList: Database['public']['Enums']['demand_status'][] = [
     'planning',
     'quotation',
     'bidding_notice',
@@ -499,7 +486,7 @@
         <div class="d-flex align-center w-100">
           <span class="mr-4">{{ demand.name }}</span>
           <v-chip color="primary" size="small" variant="flat">{{
-            formatStatus(demand.status)
+            formatDemandStatus(demand.status)
           }}</v-chip>
           <v-spacer />
           <UiButton
@@ -509,7 +496,7 @@
             prepend-icon="mdi-arrow-left-bold"
             @click="openRevertModal"
           >
-            Retornar para {{ formatStatus(getPreviousStatus(demand.status) || '') }}
+            Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
           </UiButton>
           <UiButton
             v-if="profile?.role !== 'admin' && getPreviousStatus(demand.status)"
@@ -528,7 +515,7 @@
             prepend-icon="mdi-arrow-right-bold"
             @click="openAdvanceModal"
           >
-            Avançar para {{ formatStatus(getNextStatus(demand.status) || '') }}
+            Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
           </UiButton>
         </div>
       </template>
@@ -545,7 +532,7 @@
               :complete="statusList.indexOf(demand.status) > i"
               :value="i + 1"
             >
-              {{ formatStatus(step) }}
+              {{ formatDemandStatus(step) }}
             </v-stepper-item>
             <v-divider v-if="i < statusList.length - 1" />
           </template>
@@ -963,7 +950,7 @@
 
     <!-- Modal Avançar Status -->
     <v-dialog v-model="isStatusModalOpen" max-width="500px">
-      <UiCard :title="`Avançar para: ${formatStatus(targetStatus)}`" transparent-header>
+      <UiCard :title="`Avançar para: ${formatDemandStatus(targetStatus)}`" transparent-header>
         <v-alert v-if="advanceError" class="mb-4" density="compact" type="error" variant="tonal">
           {{ advanceError }}
         </v-alert>
@@ -1034,7 +1021,7 @@
 
         <p class="text-body-1">
           Tem certeza que deseja retornar esta demanda para a fase
-          <strong>{{ formatStatus(getPreviousStatus(demand?.status || '') || '') }}</strong
+          <strong>{{ formatDemandStatus(getPreviousStatus(demand?.status || '') || '') }}</strong
           >?
         </p>
         <p class="text-body-2 text-warning mt-2">

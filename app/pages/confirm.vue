@@ -1,6 +1,6 @@
 <script setup lang="ts">
   useHead({ title: 'Confirmando...' })
-  const user = useSupabaseUser()
+  const { user } = useAuth()
 
   const { logAction } = useLogger()
 

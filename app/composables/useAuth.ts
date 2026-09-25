@@ -1,5 +1,6 @@
 export const useAuth = () => {
   const supabase = useSupabaseClient()
+  const user = useSupabaseUser()
   const { logAction } = useLogger()
 
   const signInWithPassword = async (email: string, password: string) => {
@@ -47,6 +48,7 @@ export const useAuth = () => {
   }
 
   return {
+    user,
     signInWithPassword,
     signInWithMagicLink,
     signUp,

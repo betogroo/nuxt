@@ -5,13 +5,13 @@
   definePageMeta({
     middleware: [
       function () {
-        const user = useSupabaseUser()
+        const { user } = useAuth()
         if (!user.value) return navigateTo('/login')
       },
     ],
   })
 
-  const user = useSupabaseUser()
+  const { user } = useAuth()
   const { profile, fetchProfile, updateProfile } = useProfile()
 
   const isSaving = ref(false)

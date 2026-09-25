@@ -1,7 +1,6 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
-  const user = useSupabaseUser()
-  const { signUp: register } = useAuth()
+  const { user, signUp: register } = useAuth()
   const email = ref('')
   const password = ref('')
   const loading = ref(false)
