@@ -44,7 +44,7 @@
     currentPage.value = 1
   })
 
-  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '' })
+  const modal = useModal<Partial<DemandRow>>({ id: '', name: '', type: 'consumption', process_number: '', id_pca: '' })
 
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
@@ -62,6 +62,7 @@
         name: modal.payload.value.name!,
         type: modal.payload.value.type!,
         process_number: modal.payload.value.process_number || null,
+        id_pca: modal.payload.value.id_pca || null,
       }
 
       if (isEditing) {
@@ -237,14 +238,7 @@
           {{ modal.error.value }}
         </v-alert>
 
-        <UiInput v-model="modal.payload.value.name" label="Nome da Demanda" />
-
-        <UiInput 
-          v-model="modal.payload.value.process_number" 
-          label="Nº do Processo (Oficial)" 
-          placeholder="Ex: 058.00100793/2026-21"
-          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
-        />
+        <UiInput v-model="modal.payload.value.name" label="Nome da Demanda*" required />
 
         <UiSelect
           v-model="modal.payload.value.type"
@@ -254,7 +248,22 @@
             { title: 'Consumo', value: 'consumption' },
             { title: 'Permanente', value: 'permanent' },
           ]"
-          label="Tipo"
+          label="Tipo*"
+          required
+        />
+
+        <UiInput 
+          v-model="modal.payload.value.process_number" 
+          label="Nº do Processo (Oficial)" 
+          placeholder="Ex: 058.00100793/2026-21"
+          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        />
+
+        <UiInput 
+          v-model="modal.payload.value.id_pca" 
+          label="ID PCA" 
+          placeholder="Ex: 46377800000127-0-000132/2026"
+          hint="Opcional. ID do Plano de Contratações Anual"
         />
 
         <template #actions>

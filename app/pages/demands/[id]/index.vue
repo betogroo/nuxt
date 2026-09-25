@@ -388,6 +388,12 @@
               </div>
             </v-col>
             <v-col cols="12" sm="4">
+              <div class="text-caption text-grey">ID PCA</div>
+              <div class="text-body-1 font-weight-medium">
+                {{ demand.id_pca || '-' }}
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
               <div class="text-caption text-grey">Processo Interno</div>
               <div class="text-body-1 font-weight-medium">
                 {{ demand.internal_process_number || '-' }}
