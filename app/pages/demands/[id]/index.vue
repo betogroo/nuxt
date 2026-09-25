@@ -15,6 +15,7 @@
     fetchDemandResponsibles,
     addResponsible: addResponsibleDb,
     removeResponsible: removeResponsibleDb,
+    updateDemand,
   } = useDemands()
 
   const { fetchAllActiveProducts, fetchPendingProductSuggestions } = useProducts()
@@ -22,6 +23,55 @@
   const { fetchUnits } = useMeasurementUnits()
 
   const demandId = route.params.id as string
+
+  // Modal de Edição Rápida de Planejamento
+  const editPlanningModal = useModal<Partial<DemandRow>>({
+    name: '',
+    type: 'consumption',
+    process_number: '',
+    id_pca: '',
+    contract_number: '',
+  })
+
+  const openEditPlanning = () => {
+    if (demand.value) {
+      editPlanningModal.open({
+        name: demand.value.name,
+        type: demand.value.type,
+        process_number: demand.value.process_number || '',
+        id_pca: demand.value.id_pca || '',
+        contract_number: demand.value.contract_number || '',
+      })
+    }
+  }
+
+  const savePlanning = async () => {
+    editPlanningModal.startSaving()
+    try {
+      const payload = {
+        name: editPlanningModal.payload.value.name,
+        type: editPlanningModal.payload.value.type,
+        process_number: editPlanningModal.payload.value.process_number || null,
+        id_pca: editPlanningModal.payload.value.id_pca || null,
+        contract_number: editPlanningModal.payload.value.contract_number
+          ? String(editPlanningModal.payload.value.contract_number)
+          : null,
+      }
+      //
+      await updateDemand(demandId, payload)
+      const { refresh: refDmd } = useAsyncData(`demand-${demandId}`, async () =>
+        fetchDemandById(demandId),
+      )
+      await refDmd()
+      editPlanningModal.close()
+      // Hard reload para garantir reatividade
+      window.location.reload()
+    } catch (err: unknown) {
+      editPlanningModal.error.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      editPlanningModal.stopSaving()
+    }
+  }
 
   // Verifica se o planejamento está incompleto (faltando campos obrigatórios para avançar)
   const isPlanningIncomplete = computed(() => {
@@ -108,8 +158,7 @@
   })
 
   const availableUnitsForSelectedProduct = computed(() => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
+    //
     return selectedProductObj.value?.product_units?.map((pu) => pu.measurement_units) || []
   })
 
@@ -342,7 +391,7 @@
           <UiButton
             v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
             class="mr-2"
-            color="warning"
+            color="orange-darken-3"
             prepend-icon="mdi-arrow-left-bold"
             @click="openRevertModal"
           >
@@ -402,7 +451,24 @@
       <v-row>
         <v-col cols="12" md="8">
           <!-- Dados do Planejamento -->
-          <UiCard class="mb-4" title="Dados do Planejamento" variant="outlined">
+          <UiCard class="mb-4" variant="outlined">
+            <template #header>
+              <div class="d-flex align-center w-100">
+                <v-icon class="mr-2 text-primary" left>mdi-clipboard-text-outline</v-icon>
+                <span class="text-subtitle-1 font-weight-bold">Dados do Planejamento</span>
+                <v-spacer />
+                <UiButton
+                  v-if="demand?.status === 'planning'"
+                  color="primary"
+                  prepend-icon="mdi-pencil"
+                  size="small"
+                  variant="text"
+                  @click="openEditPlanning"
+                >
+                  Editar
+                </UiButton>
+              </div>
+            </template>
             <v-row class="px-2 pb-2 mt-2">
               <v-col cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Processo Oficial</div>
@@ -551,9 +617,14 @@
       <template #header>
         Produtos na Demanda
         <v-spacer />
-        <UiButton v-if="demand?.status !== 'planning'" color="primary" prepend-icon="mdi-plus" @click="openAddModal">
-            Adicionar Produto
-          </UiButton>
+        <UiButton
+          v-if="demand?.status !== 'planning'"
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="openAddModal"
+        >
+          Adicionar Produto
+        </UiButton>
       </template>
 
       <!-- Alerta de bloqueio na fase de planejamento -->
@@ -639,9 +710,9 @@
             <v-icon>mdi-pencil</v-icon>
           </UiButton>
           <UiButton
-              v-if="demand?.status === 'quotation'"
-              color="error"
-              icon="mdi-delete"
+            v-if="demand?.status === 'quotation'"
+            color="error"
+            icon="mdi-delete"
             size="small"
             title="Remover"
             variant="text"
@@ -977,10 +1048,76 @@
             >Cancelar</UiButton
           >
           <UiButton
-            color="warning"
+            color="orange-darken-3"
             :loading="revertModal.isSaving.value"
             @click="confirmRevertStatus"
             >Confirmar Retorno</UiButton
+          >
+        </template>
+      </UiCard>
+    </v-dialog>
+
+    <!-- Modal Editar Planejamento -->
+    <v-dialog v-model="editPlanningModal.isOpen.value" max-width="500px">
+      <UiCard title="Editar Planejamento" transparent-header>
+        <v-alert
+          v-if="editPlanningModal.error.value"
+          class="mb-4"
+          density="compact"
+          type="error"
+          variant="tonal"
+        >
+          {{ editPlanningModal.error.value }}
+        </v-alert>
+
+        <UiInput v-model="editPlanningModal.payload.value.name" label="Nome da Demanda*" required />
+
+        <UiSelect
+          v-model="editPlanningModal.payload.value.type"
+          item-title="title"
+          item-value="value"
+          :items="[
+            { title: 'Consumo', value: 'consumption' },
+            { title: 'Permanente', value: 'permanent' },
+          ]"
+          label="Tipo*"
+          required
+        />
+
+        <UiInput
+          v-model="editPlanningModal.payload.value.process_number"
+          hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+          label="Nº do Processo (Oficial)"
+          placeholder="Ex: 058.00100793/2026-21"
+        />
+
+        <UiInput
+          v-model="editPlanningModal.payload.value.id_pca"
+          hint="Opcional."
+          label="ID PCA"
+          placeholder="Ex: 46377800000127-0-000132/2026"
+        />
+
+        <UiInput
+          v-model="editPlanningModal.payload.value.contract_number"
+          hint="Opcional."
+          label="Nº da Contratação"
+          placeholder="Apenas números"
+          type="number"
+        />
+
+        <template #actions>
+          <UiButton
+            :disabled="editPlanningModal.isSaving.value"
+            variant="text"
+            @click="editPlanningModal.close()"
+            >Cancelar</UiButton
+          >
+          <UiButton
+            color="primary"
+            :loading="editPlanningModal.isSaving.value"
+            @click="savePlanning"
+            >Salvar</UiButton
           >
         </template>
       </UiCard>
