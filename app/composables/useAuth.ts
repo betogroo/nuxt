@@ -43,22 +43,10 @@ export const useAuth = () => {
 
 
   const getRedirectUrl = () => {
-    let path = '/'
-    if (process.server) {
-      const event = useRequestEvent()
-      const cookieStr = event?.node?.req?.headers?.cookie || ''
-      const match = cookieStr.match(/sb-[^;]*redirect-path=([^;]+)/)
-      if (match && match[1]) path = decodeURIComponent(match[1])
-    } else {
-      const match = document.cookie.match(/sb-[^;]*redirect-path=([^;]+)/)
-      if (match && match[1]) path = decodeURIComponent(match[1])
-      
-      // Limpar o cookie no client para não ficar preso
-      if (match) {
-        const cookieName = match[0].split('=')[0]
-        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-      }
-    }
+    const redirectCookie = useCookie('sb-redirect-path')
+    const path = redirectCookie.value || '/'
+    // Limpa o cookie
+    redirectCookie.value = null
     return path
   }
 

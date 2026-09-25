@@ -17,6 +17,7 @@ export default defineNuxtConfig({
       exclude: ['/about', '/register'],
       saveRedirectToCookie: true,
     },
+    cookieName: 'sb',
   },
   vuetify: {
     vuetifyOptions: {
