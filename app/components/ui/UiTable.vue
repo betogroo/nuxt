@@ -20,14 +20,14 @@
       </tr>
     </thead>
     <tbody>
-      <tr v-for="item in items" :key="item.id || Math.random()">
+      <tr v-for="(item, index) in items" :key="item.id || Math.random()">
         <td
           v-for="header in headers"
           :key="header.value"
           :class="header.align ? `text-${header.align}` : 'text-left'"
         >
           <!-- Dynamic slot for custom cell rendering -->
-          <slot :item="item" :name="`item-${header.value}`">
+          <slot :index="index" :item="item" :name="`item-${header.value}`">
             {{ item[header.value] }}
           </slot>
         </td>
