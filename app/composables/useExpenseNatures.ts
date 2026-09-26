@@ -8,26 +8,10 @@ export const useExpenseNatures = () => {
   const user = useSupabaseUser()
   const { logAction } = useLogger()
 
-  const fetchExpenseNatures = async (params: {
-    page: number
-    itemsPerPage: number
-    searchQuery: string
-  }) => {
-    const from = (params.page - 1) * params.itemsPerPage
-    const to = from + params.itemsPerPage - 1
-
-    let query = supabase
-      .from('expense_natures')
-      .select('*', { count: 'exact' })
-      .order('id', { ascending: true })
-      .range(from, to)
-
-    if (params.searchQuery) {
-      query = query.or(`id.ilike.%${params.searchQuery}%,name.ilike.%${params.searchQuery}%`)
-    }
-
-    const { data, count, error } = await query
-    return { data: data as ExpenseNatureRow[], count: count || 0 }
+  const fetchExpenseNatures = async () => {
+    const { data, error } = await supabase.from('expense_natures').select('*').order('id', { ascending: true })
+    if (error) throw error
+    return data as ExpenseNatureRow[]
   }
 
   const fetchAllActiveExpenseNatures = async () => {

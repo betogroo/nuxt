@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import type { expenseNatureRow } from '~/composables/useExpenseNatures'
+  import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
 
   definePageMeta({
     middleware: ['admin'],
@@ -52,7 +52,7 @@
     isModalOpen.value = true
   }
 
-  const openEditModal = (expenseNature: expenseNatureRow) => {
+  const openEditModal = (expenseNature: ExpenseNatureRow) => {
     form.value = {
       id: expenseNature.id,
       name: expenseNature.name,
@@ -99,7 +99,7 @@
     }
   }
 
-  const toggleStatus = async (expenseNature: expenseNatureRow) => {
+  const toggleStatus = async (expenseNature: ExpenseNatureRow) => {
     try {
       await toggleexpenseNaturestatus(expenseNature)
       await refresh()
@@ -124,12 +124,12 @@
   const isResolveModalOpen = ref(false)
   const isResolving = ref(false)
   const resolveError = ref('')
-  const resolveTarget = ref<expenseNatureRow | null>(null)
+  const resolveTarget = ref<ExpenseNatureRow | null>(null)
   const resolveMode = ref<'new' | 'link'>('new')
   const resolveLinkexpenseNatureId = ref('')
   const resolveNewName = ref('')
 
-  const openResolveModal = (expenseNature: expenseNatureRow) => {
+  const openResolveModal = (expenseNature: ExpenseNatureRow) => {
     resolveTarget.value = expenseNature
     resolveMode.value = 'new'
     resolveLinkexpenseNatureId.value = ''
@@ -160,7 +160,7 @@
       }
 
       await refresh()
-      await refreshNuxtData('pending-expenseNatures-count')
+      await refreshNuxtData('pending-expense-natures-count')
 
       closeResolveModal()
     } catch (e: unknown) {
