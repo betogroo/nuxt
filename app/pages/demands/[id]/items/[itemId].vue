@@ -468,7 +468,7 @@
       ></v-switch>
 
       <!-- Fornecedor Existente -->
-      <UiAutocomplete
+      <v-autocomplete
         v-if="!bidForm.isNewSupplier"
         v-model="bidForm.supplierId"
         :items="suppliers"
@@ -477,11 +477,14 @@
         label="Selecionar Fornecedor*"
         placeholder="Busque pela razão social ou CNPJ..."
         variant="outlined"
+        density="comfortable"
+        class="mb-3"
+        color="primary"
       >
         <template #item="{ props, item }">
           <v-list-item v-bind="props" :title="item.raw.company_name" :subtitle="item.raw.cnpj"></v-list-item>
         </template>
-      </UiAutocomplete>
+      </v-autocomplete>
 
       <!-- Novo Fornecedor -->
       <template v-else>
