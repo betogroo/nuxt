@@ -615,7 +615,7 @@
         Produtos na Demanda
         <v-spacer />
         <UiButton
-          v-if="demand?.status !== 'planning'"
+          v-if="demand?.status === 'quotation'"
           color="primary"
           prepend-icon="mdi-plus"
           @click="openAddModal"
@@ -624,15 +624,15 @@
         </UiButton>
       </template>
 
-      <!-- Alerta de bloqueio na fase de planejamento -->
+      <!-- Alerta de bloqueio -->
       <UiAlert
-        v-if="demand?.status === 'planning'"
+        v-if="demand?.status !== 'quotation'"
         class="mb-4"
         density="compact"
         type="info"
         variant="tonal"
       >
-        A inserção de itens (produtos) só é permitida após a conclusão da fase de planejamento.
+        A inserção ou alteração de itens só é permitida na fase de Cotação.
       </UiAlert>
 
       <UiTable

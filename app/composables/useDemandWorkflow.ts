@@ -111,15 +111,11 @@ export function useDemandWorkflow(
     try {
       const payload: Partial<Database['public']['Tables']['demands']['Update']> = {}
 
-      if (targetStatus.value === 'quotation') {
-        if (!items.value || items.value.length === 0) {
-          throw new Error(
-            'Você precisa adicionar pelo menos um produto antes de iniciar a cotação.',
-          )
-        }
-      }
-
       if (targetStatus.value === 'bidding_notice') {
+        if (!items.value || items.value.length === 0) {
+          throw new Error('Você precisa adicionar pelo menos um produto antes de avançar para o aviso de contratação.')
+        }
+
         const invalidItems = items.value?.filter(
           (i) =>
             !i.quantity ||
