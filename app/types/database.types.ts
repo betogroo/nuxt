@@ -1,646 +1,407 @@
-﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+﻿
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
+  
+  "graphql_public": {
+          Tables: {
+            [_ in never]: never
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "graphql":
+{ Args: { "extensions"?: Json,"operationName"?: string,"query"?: string,"variables"?: Json }; Returns: Json
+                           }
+          }
+          Enums: {
+            [_ in never]: never
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        },"public": {
+          Tables: {
+            "demand_product_bids": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string | null,"demand_product_id": string,"id": string,"supplier_id": string
+                  }
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by"?: string | null,"demand_product_id": string,"id"?: string,"supplier_id": string
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string | null,"demand_product_id"?: string,"id"?: string,"supplier_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "demand_product_bids_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "demand_product_bids_demand_product_id_fkey"
+      columns: ["demand_product_id"]
+isOneToOne: false
+      referencedRelation: "demand_products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "demand_product_bids_supplier_id_fkey"
+      columns: ["supplier_id"]
+isOneToOne: false
+      referencedRelation: "suppliers"
+      referencedColumns: ["id"]
     }
-    Views: {
-      [_ in never]: never
+                  ]
+                },"demand_products": {
+                  Row: {
+                    "bid_interval": number | null,"bid_interval_type": string | null,"category_name_snapshot": string | null,"created_at": string,"created_by": string | null,"demand_id": string,"id": string,"product_id": string,"product_name_snapshot": string | null,"quantity": number,"reference_price": number | null,"unit_id": string,"unit_name_snapshot": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "bid_interval"?: number | null,"bid_interval_type"?: string | null,"category_name_snapshot"?: string | null,"created_at"?: string,"created_by"?: string | null,"demand_id": string,"id"?: string,"product_id": string,"product_name_snapshot"?: string | null,"quantity"?: number,"reference_price"?: number | null,"unit_id": string,"unit_name_snapshot"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "bid_interval"?: number | null,"bid_interval_type"?: string | null,"category_name_snapshot"?: string | null,"created_at"?: string,"created_by"?: string | null,"demand_id"?: string,"id"?: string,"product_id"?: string,"product_name_snapshot"?: string | null,"quantity"?: number,"reference_price"?: number | null,"unit_id"?: string,"unit_name_snapshot"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "demand_products_demand_id_fkey"
+      columns: ["demand_id"]
+isOneToOne: false
+      referencedRelation: "demands"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "demand_products_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "demand_products_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "measurement_units"
+      referencedColumns: ["id"]
     }
-    Functions: {
-      graphql: {
-        Args: { extensions?: Json; operationName?: string; query?: string; variables?: Json }
-        Returns: Json
-      }
+                  ]
+                },"demand_responsibles": {
+                  Row: {
+                    "created_at": string,"demand_id": string,"user_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"demand_id": string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"demand_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "demand_responsibles_demand_id_fkey"
+      columns: ["demand_id"]
+isOneToOne: false
+      referencedRelation: "demands"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "demand_responsibles_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
-    Enums: {
-      [_ in never]: never
+                  ]
+                },"demands": {
+                  Row: {
+                    "bidding_notice_number": string | null,"contract_number": string | null,"created_at": string,"dispute_date": string | null,"dispute_number": string | null,"id": string,"id_pca": string | null,"internal_process_number": string | null,"is_return_requested": boolean | null,"name": string,"offer_opening_date": string | null,"process_number": string | null,"status": Database["public"]['Enums']["demand_status"],"type": Database["public"]['Enums']["demand_type"],"updated_at": string,"user_id": string
+                  }
+                  Insert: {
+                    "bidding_notice_number"?: string | null,"contract_number"?: string | null,"created_at"?: string,"dispute_date"?: string | null,"dispute_number"?: string | null,"id"?: string,"id_pca"?: string | null,"internal_process_number"?: string | null,"is_return_requested"?: boolean | null,"name": string,"offer_opening_date"?: string | null,"process_number"?: string | null,"status"?: Database["public"]['Enums']["demand_status"],"type": Database["public"]['Enums']["demand_type"],"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "bidding_notice_number"?: string | null,"contract_number"?: string | null,"created_at"?: string,"dispute_date"?: string | null,"dispute_number"?: string | null,"id"?: string,"id_pca"?: string | null,"internal_process_number"?: string | null,"is_return_requested"?: boolean | null,"name"?: string,"offer_opening_date"?: string | null,"process_number"?: string | null,"status"?: Database["public"]['Enums']["demand_status"],"type"?: Database["public"]['Enums']["demand_type"],"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "demands_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
-    CompositeTypes: {
-      [_ in never]: never
+                  ]
+                },"expense_natures": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"is_pending": boolean,"name": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id": string,"is_active"?: boolean,"is_pending"?: boolean,"name": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"is_pending"?: boolean,"name"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"logs": {
+                  Row: {
+                    "action": string,"created_at": string,"description": string | null,"id": string,"user_id": string | null
+                  }
+                  Insert: {
+                    "action": string,"created_at"?: string,"description"?: string | null,"id"?: string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "action"?: string,"created_at"?: string,"description"?: string | null,"id"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "logs_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
-  }
-  public: {
-    Tables: {
-      demand_product_bids: {
-        Row: {
-          amount: number
-          created_at: string
-          created_by: string | null
-          demand_product_id: string
-          id: string
-          supplier_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string
-          created_by?: string | null
-          demand_product_id: string
-          id?: string
-          supplier_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string
-          created_by?: string | null
-          demand_product_id?: string
-          id?: string
-          supplier_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'demand_product_bids_created_by_fkey'
-            columns: ['created_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'demand_product_bids_demand_product_id_fkey'
-            columns: ['demand_product_id']
-            isOneToOne: false
-            referencedRelation: 'demand_products'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'demand_product_bids_supplier_id_fkey'
-            columns: ['supplier_id']
-            isOneToOne: false
-            referencedRelation: 'suppliers'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      demand_products: {
-        Row: {
-          bid_interval: number | null
-          bid_interval_type: string | null
-          category_name_snapshot: string | null
-          created_at: string
-          created_by: string | null
-          demand_id: string
-          id: string
-          product_id: string
-          product_name_snapshot: string | null
-          quantity: number
-          reference_price: number | null
-          unit_id: string
-          unit_name_snapshot: string | null
-          updated_at: string
-        }
-        Insert: {
-          bid_interval?: number | null
-          bid_interval_type?: string | null
-          category_name_snapshot?: string | null
-          created_at?: string
-          created_by?: string | null
-          demand_id: string
-          id?: string
-          product_id: string
-          product_name_snapshot?: string | null
-          quantity?: number
-          reference_price?: number | null
-          unit_id: string
-          unit_name_snapshot?: string | null
-          updated_at?: string
-        }
-        Update: {
-          bid_interval?: number | null
-          bid_interval_type?: string | null
-          category_name_snapshot?: string | null
-          created_at?: string
-          created_by?: string | null
-          demand_id?: string
-          id?: string
-          product_id?: string
-          product_name_snapshot?: string | null
-          quantity?: number
-          reference_price?: number | null
-          unit_id?: string
-          unit_name_snapshot?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'demand_products_demand_id_fkey'
-            columns: ['demand_id']
-            isOneToOne: false
-            referencedRelation: 'demands'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'demand_products_product_id_fkey'
-            columns: ['product_id']
-            isOneToOne: false
-            referencedRelation: 'products'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'demand_products_unit_id_fkey'
-            columns: ['unit_id']
-            isOneToOne: false
-            referencedRelation: 'measurement_units'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      demand_responsibles: {
-        Row: {
-          created_at: string
-          demand_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          demand_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          demand_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'demand_responsibles_demand_id_fkey'
-            columns: ['demand_id']
-            isOneToOne: false
-            referencedRelation: 'demands'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'demand_responsibles_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      demands: {
-        Row: {
-          bidding_notice_number: string | null
-          contract_number: string | null
-          created_at: string
-          dispute_date: string | null
-          dispute_number: string | null
-          id: string
-          id_pca: string | null
-          internal_process_number: string | null
-          is_return_requested: boolean | null
-          name: string
-          offer_opening_date: string | null
-          process_number: string | null
-          status: Database['public']['Enums']['demand_status']
-          type: Database['public']['Enums']['demand_type']
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          bidding_notice_number?: string | null
-          contract_number?: string | null
-          created_at?: string
-          dispute_date?: string | null
-          dispute_number?: string | null
-          id?: string
-          id_pca?: string | null
-          internal_process_number?: string | null
-          is_return_requested?: boolean | null
-          name: string
-          offer_opening_date?: string | null
-          process_number?: string | null
-          status?: Database['public']['Enums']['demand_status']
-          type: Database['public']['Enums']['demand_type']
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          bidding_notice_number?: string | null
-          contract_number?: string | null
-          created_at?: string
-          dispute_date?: string | null
-          dispute_number?: string | null
-          id?: string
-          id_pca?: string | null
-          internal_process_number?: string | null
-          is_return_requested?: boolean | null
-          name?: string
-          offer_opening_date?: string | null
-          process_number?: string | null
-          status?: Database['public']['Enums']['demand_status']
-          type?: Database['public']['Enums']['demand_type']
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'demands_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      logs: {
-        Row: {
-          action: string
-          created_at: string
-          description: string | null
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          description?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'logs_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      measurement_units: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          is_pending: boolean
-          legacy_alias: string | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          is_pending?: boolean
-          legacy_alias?: string | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          is_pending?: boolean
-          legacy_alias?: string | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      product_categories: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      product_units: {
-        Row: {
-          created_at: string
-          id: string
-          product_id: string
-          unit_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          product_id: string
-          unit_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          product_id?: string
-          unit_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'product_units_product_id_fkey'
-            columns: ['product_id']
-            isOneToOne: false
-            referencedRelation: 'products'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'product_units_unit_id_fkey'
-            columns: ['unit_id']
-            isOneToOne: false
-            referencedRelation: 'measurement_units'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      products: {
-        Row: {
-          category_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-          is_active: boolean
-          name: string
-          suggested_category: string | null
-          updated_at: string
-        }
-        Insert: {
-          category_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          name: string
-          suggested_category?: string | null
-          updated_at?: string
-        }
-        Update: {
-          category_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          is_active?: boolean
-          name?: string
-          suggested_category?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'products_category_id_fkey'
-            columns: ['category_id']
-            isOneToOne: false
-            referencedRelation: 'product_categories'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string | null
-          role: Database['public']['Enums']['user_role']
-          theme: string | null
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          id: string
-          is_active?: boolean
-          name?: string | null
-          role?: Database['public']['Enums']['user_role']
-          theme?: string | null
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string | null
-          role?: Database['public']['Enums']['user_role']
-          theme?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      suppliers: {
-        Row: {
-          address: string | null
-          cell_phone: string | null
-          cnpj: string
-          company_name: string
-          created_at: string
-          created_by: string | null
-          email: string
-          has_bb_account: string | null
-          id: string
-          is_active: boolean
-          is_simples_optant: boolean
-          landline: string | null
-          responsible_name: string | null
-          simples_optant_verified_at: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          cell_phone?: string | null
-          cnpj: string
-          company_name: string
-          created_at?: string
-          created_by?: string | null
-          email: string
-          has_bb_account?: string | null
-          id?: string
-          is_active?: boolean
-          is_simples_optant?: boolean
-          landline?: string | null
-          responsible_name?: string | null
-          simples_optant_verified_at?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          cell_phone?: string | null
-          cnpj?: string
-          company_name?: string
-          created_at?: string
-          created_by?: string | null
-          email?: string
-          has_bb_account?: string | null
-          id?: string
-          is_active?: boolean
-          is_simples_optant?: boolean
-          landline?: string | null
-          responsible_name?: string | null
-          simples_optant_verified_at?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
+                  ]
+                },"measurement_units": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"is_pending": boolean,"legacy_alias": string | null,"name": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"is_pending"?: boolean,"legacy_alias"?: string | null,"name": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"is_pending"?: boolean,"legacy_alias"?: string | null,"name"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"product_categories": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"name": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"product_units": {
+                  Row: {
+                    "created_at": string,"id": string,"product_id": string,"unit_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"product_id": string,"unit_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"product_id"?: string,"unit_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "product_units_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "product_units_unit_id_fkey"
+      columns: ["unit_id"]
+isOneToOne: false
+      referencedRelation: "measurement_units"
+      referencedColumns: ["id"]
     }
-    Views: {
-      [_ in never]: never
+                  ]
+                },"products": {
+                  Row: {
+                    "category_id": string,"created_at": string,"created_by": string | null,"expense_nature_id": string | null,"id": string,"is_active": boolean,"name": string,"suggested_category": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "category_id": string,"created_at"?: string,"created_by"?: string | null,"expense_nature_id"?: string | null,"id"?: string,"is_active"?: boolean,"name": string,"suggested_category"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "category_id"?: string,"created_at"?: string,"created_by"?: string | null,"expense_nature_id"?: string | null,"id"?: string,"is_active"?: boolean,"name"?: string,"suggested_category"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "products_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "product_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "products_expense_nature_id_fkey"
+      columns: ["expense_nature_id"]
+isOneToOne: false
+      referencedRelation: "expense_natures"
+      referencedColumns: ["id"]
     }
-    Functions: {
-      can_read_own_profile: { Args: { profile_id: string }; Returns: boolean }
-      get_my_current_role: {
-        Args: Record<PropertyKey, never>
-        Returns: Database['public']['Enums']['user_role']
-      }
-      is_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
-    }
-    Enums: {
-      demand_status:
-        | 'planning'
-        | 'quotation'
-        | 'bidding_notice'
-        | 'dispute'
-        | 'homologation'
-        | 'completed'
-        | 'cancelled'
-      demand_type: 'consumption' | 'permanent'
-      user_role: 'user' | 'admin'
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
+                  ]
+                },"profiles": {
+                  Row: {
+                    "avatar_url": string | null,"created_at": string,"id": string,"is_active": boolean,"name": string | null,"role": Database["public"]['Enums']["user_role"],"theme": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "avatar_url"?: string | null,"created_at"?: string,"id": string,"is_active"?: boolean,"name"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"theme"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "avatar_url"?: string | null,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"theme"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"suppliers": {
+                  Row: {
+                    "address": string | null,"cell_phone": string | null,"cnpj": string,"company_name": string,"created_at": string,"created_by": string | null,"email": string,"has_bb_account": string | null,"id": string,"is_active": boolean,"is_simples_optant": boolean,"landline": string | null,"responsible_name": string | null,"simples_optant_verified_at": string | null,"updated_at": string
+                  }
+                  Insert: {
+                    "address"?: string | null,"cell_phone"?: string | null,"cnpj": string,"company_name": string,"created_at"?: string,"created_by"?: string | null,"email": string,"has_bb_account"?: string | null,"id"?: string,"is_active"?: boolean,"is_simples_optant"?: boolean,"landline"?: string | null,"responsible_name"?: string | null,"simples_optant_verified_at"?: string | null,"updated_at"?: string
+                  }
+                  Update: {
+                    "address"?: string | null,"cell_phone"?: string | null,"cnpj"?: string,"company_name"?: string,"created_at"?: string,"created_by"?: string | null,"email"?: string,"has_bb_account"?: string | null,"id"?: string,"is_active"?: boolean,"is_simples_optant"?: boolean,"landline"?: string | null,"responsible_name"?: string | null,"simples_optant_verified_at"?: string | null,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                }
+          }
+          Views: {
+            [_ in never]: never
+          }
+          Functions: {
+            "can_read_own_profile":
+{ Args: { "profile_id": string }; Returns: boolean
+                           },
+"get_my_current_role":
+{ Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
+                           },
+"is_admin":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           }
+          }
+          Enums: {
+            "demand_status": "planning"|"quotation"|"bidding_notice"|"dispute"|"homologation"|"completed"|"cancelled","demand_type": "consumption"|"permanent","user_role": "user"|"admin"
+          }
+          CompositeTypes: {
+            [_ in never]: never
+          }
+        }
 }
 
 type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
-    : never) = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+    ? R
     : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never) = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Insert: infer I
+    }
+    ? I
     : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
-  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-    : never) = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never
 > = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+      Update: infer U
+    }
+    ? U
     : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
-    : never) = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never
 > = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    keyof DefaultSchema['CompositeTypes'] | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
-    : never) = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
-  public: {
-    Enums: {
-      demand_status: [
-        'planning',
-        'quotation',
-        'bidding_notice',
-        'dispute',
-        'homologation',
-        'completed',
-        'cancelled',
-      ],
-      demand_type: ['consumption', 'permanent'],
-      user_role: ['user', 'admin'],
-    },
-  },
+  "graphql_public": {
+          Enums: {
+            
+          }
+        },"public": {
+          Enums: {
+            "demand_status": ["planning", "quotation", "bidding_notice", "dispute", "homologation", "completed", "cancelled"],"demand_type": ["consumption", "permanent"],"user_role": ["user", "admin"]
+          }
+        }
 } as const
+

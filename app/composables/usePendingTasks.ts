@@ -1,4 +1,4 @@
-import type { Database } from '~/types/database.types'
+﻿import type { Database } from '~/types/database.types'
 
 export const usePendingTasks = () => {
   const supabase = useSupabaseClient<Database>()
@@ -21,7 +21,7 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
-  const { data: pendingUnitsCount, refresh: refreshPendingUnits } = useAsyncData(
+  const { data: pendingUnitsCount, pendingExpenseNaturesCount, refresh: refreshPendingUnits } = useAsyncData(
     'pending-units-count',
     async () => {
       const { count, error } = await supabase
@@ -39,6 +39,21 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
+  const { data: pendingExpenseNaturesCount, refresh: refreshPendingExpenseNatures } = useAsyncData(
+    'pending-expense-natures-count',
+    async () => {
+      const { count, error } = await supabase
+        .from('expense_natures')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_pending', true)
+      if (error) {
+        console.error('Erro ao buscar naturezas pendentes:', error)
+        return 0
+      }
+      return count || 0
+    },
+    { default: () => 0 },
+  )
   const { data: pendingReturnsCount, refresh: refreshPendingReturns } = useAsyncData(
     'pending-returns-count',
     async () => {
@@ -61,7 +76,7 @@ export const usePendingTasks = () => {
     return (
       (pendingCategoriesCount.value || 0) +
       (pendingUnitsCount.value || 0) +
-      (pendingReturnsCount.value || 0)
+      (pendingReturnsCount.value || 0) + (pendingExpenseNaturesCount.value || 0)
     )
   })
 
@@ -71,12 +86,12 @@ export const usePendingTasks = () => {
 
   return {
     pendingCategoriesCount,
-    pendingUnitsCount,
+    pendingUnitsCount, pendingExpenseNaturesCount,
     pendingReturnsCount,
     totalPending,
     refreshAll,
     refreshPendingCategories,
-    refreshPendingUnits,
+    refreshPendingUnits, refreshPendingExpenseNatures,
     refreshPendingReturns,
   }
 }
