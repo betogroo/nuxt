@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   useHead({ title: 'Produtos' })
@@ -107,13 +107,13 @@
   const saveProduct = async () => {
     if (modal.payload.value.is_suggesting_category) {
       if (!modal.payload.value.name || !modal.payload.value.suggested_category) {
-        modal.error.value = 'Nome e SugestÃ£o de Categoria sÃ£o obrigatÃ³rios.'
+        modal.error.value = 'Nome e Sugestão de Categoria são obrigatórios.'
         return
       }
       modal.payload.value.category_id = outrosCategory.value?.id || ''
     } else {
       if (!modal.payload.value.name || !modal.payload.value.category_id) {
-        modal.error.value = 'Nome e Categoria sÃ£o obrigatÃ³rios.'
+        modal.error.value = 'Nome e Categoria são obrigatórios.'
         return
       }
       modal.payload.value.suggested_category = '' // Limpa se desmarcou
@@ -173,7 +173,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="CatÃ¡logo centralizado de produtos e materiais" title="Produtos" />
+    <PageHeader subtitle="Catálogo centralizado de produtos e materiais" title="Produtos" />
 
     <v-row>
       <v-col cols="12">
@@ -235,7 +235,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="products || []"
             :loading="pending"
@@ -257,7 +257,7 @@
                 v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
                 class="text-caption text-grey ml-1"
               >
-                (SugestÃ£o: {{ item.suggested_category }})
+                (Sugestão: {{ item.suggested_category }})
               </span>
             </template>
             <template #item-is_active="{ item }">
@@ -282,7 +282,7 @@
             </template>
           </UiTable>
 
-          <!-- PaginaÃ§Ã£o -->
+          <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -311,7 +311,7 @@
       <UiSwitch
         v-model="modal.payload.value.is_suggesting_category"
         color="primary"
-        label="NÃ£o encontrou a categoria? Sugerir nova"
+        label="Não encontrou a categoria? Sugerir nova"
       />
 
       <UiSelect
@@ -322,25 +322,26 @@
         :items="filteredCategories"
         label="Categoria de Material"
       />
-        <UiSelect
-          v-model="modal.payload.value.expense_nature_id"
-          item-title="name"
-          item-value="id"
-          :items="expenseNatures || []"
-          label="Natureza de Despesa"
-          clearable
-        >
-          <template #item="{ props, item }">
-            <v-list-item v-bind="props" :subtitle="item.raw.id" />
-          </template>
-        </UiSelect>
+      <UiAutocomplete
+        v-model="modal.payload.value.expense_nature_id"
+        item-title="name"
+        item-value="id"
+        :items="expenseNatures || []"
+        :custom-filter="(value, query, item) => item?.raw?.id?.includes?.(query) || item?.raw?.name?.toLowerCase?.()?.includes?.(query?.toLowerCase?.())"
+        label="Natureza de Despesa"
+        clearable
+      >
+        <template #item="{ props, item }">
+          <v-list-item v-bind="props" :subtitle="item.raw.id" />
+        </template>
+      </UiAutocomplete>
 
       <UiCombobox
         v-if="modal.payload.value.is_suggesting_category"
         v-model="modal.payload.value.suggested_category"
-        hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
+        hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
         :items="pendingSuggestions || []"
-        label="Qual categoria vocÃª sugere?"
+        label="Qual categoria você sugere?"
         persistent-hint
         :return-object="false"
       />
@@ -348,7 +349,7 @@
       <UiSwitch
         v-model="modal.payload.value.is_active"
         color="success"
-        hint="Indica se o produto estÃ¡ disponÃ­vel para uso"
+        hint="Indica se o produto está disponível para uso"
         label="Produto Ativo"
         persistent-hint
       />
