@@ -106,7 +106,7 @@ export const useProducts = () => {
   const fetchProductById = async (id: string) => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, product_categories(id, name), expense_natures(id, name), profiles(id, name)')
+      .select('*, product_categories(id, name), expense_natures(id, name)')
       .eq('id', id)
       .single()
 
@@ -117,8 +117,15 @@ export const useProducts = () => {
       .select('id, measurement_units(*)')
       .eq('product_id', id)
 
+    let profiles = null
+    if (data.created_by) {
+      const { data: p } = await supabase.from('profiles').select('name').eq('id', data.created_by).single()
+      profiles = p
+    }
+
     return {
       ...data,
+      profiles,
       units:
         unitsData?.map(
           (u: {
