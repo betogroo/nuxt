@@ -1,20 +1,4 @@
 <script setup lang="ts">
-</template>
-            <v-list-item
-              v-if="pendingExpenseNaturesCount > 0"
-              prepend-icon="mdi-cash-multiple"
-              to="/admin/expense-natures"
-            >
-              <v-list-item-title>{{ pendingExpenseNaturesCount }} naturezas sugeridas</v-list-item-title>
-            </v-list-item>
-<script setup lang="ts">
-</template>
-          <v-list-item prepend-icon="mdi-cash-multiple" title="Naturezas de Despesa" to="/admin/expense-natures">
-            <template v-if="pendingExpenseNaturesCount > 0" #append>
-              <v-badge color="error" :content="pendingExpenseNaturesCount" inline />
-            </template>
-          </v-list-item>
-<script setup lang="ts">
   const user = useSupabaseUser()
   const supabase = useSupabaseClient()
   const { profile, fetchProfile } = useProfile()
@@ -100,6 +84,7 @@
               <v-badge color="error" :content="pendingUnitsCount" inline />
             </template>
           </v-list-item>
+
           <v-list-item prepend-icon="mdi-cash-multiple" title="Naturezas de Despesa" to="/admin/expense-natures">
             <template v-if="pendingExpenseNaturesCount > 0" #append>
               <v-badge color="error" :content="pendingExpenseNaturesCount" inline />
@@ -140,6 +125,13 @@
             to="/admin/units"
           >
             <v-list-item-title>{{ pendingUnitsCount }} unidades sugeridas</v-list-item-title>
+          </v-list-item>
+          <v-list-item
+            v-if="pendingExpenseNaturesCount > 0"
+            prepend-icon="mdi-cash-multiple"
+            to="/admin/expense-natures"
+          >
+            <v-list-item-title>{{ pendingExpenseNaturesCount }} naturezas sugeridas</v-list-item-title>
           </v-list-item>
           <v-list-item
             v-if="pendingReturnsCount > 0"
