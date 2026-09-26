@@ -24,6 +24,11 @@
 
   const demandId = route.params.id as string
 
+  // Fetch Demand Details
+  const { data: demand, refresh: refreshDemand } = useAsyncData(`demand-${demandId}`, async () => {
+    return await fetchDemandById(demandId)
+  })
+
   // Modal de Edição Rápida de Planejamento
   const editPlanningModal = useModal<Partial<DemandRow>>({
     name: '',
@@ -59,13 +64,8 @@
       }
       //
       await updateDemand(demandId, payload)
-      const { refresh: refDmd } = useAsyncData(`demand-${demandId}`, async () =>
-        fetchDemandById(demandId),
-      )
-      await refDmd()
+      await refreshDemand()
       editPlanningModal.close()
-      // Hard reload para garantir reatividade
-      window.location.reload()
     } catch (err: unknown) {
       editPlanningModal.error.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -80,10 +80,7 @@
     return !process_number || !id_pca || !contract_number
   })
 
-  // Fetch Demand Details
-  const { data: demand } = useAsyncData(`demand-${demandId}`, async () => {
-    return await fetchDemandById(demandId)
-  })
+
 
   useHead({
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
