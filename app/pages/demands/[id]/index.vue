@@ -368,6 +368,67 @@
       alert(`Erro ao remover: ${e.message}`)
     }
   }
+  // --- Suppliers Summary Logic ---
+  const winningSuppliersSummary = computed(() => {
+    if (!items.value) return []
+
+    // Map: supplier_id -> { supplier, productsParticipated: Set, productsWon: Set }
+    const supplierStats = new Map<string, {
+      supplier: any,
+      participated: Set<string>,
+      won: Set<string>,
+      totalAmountWon: number
+    }>()
+
+    items.value.forEach(product => {
+      const bids = product.demand_product_bids || []
+      if (bids.length === 0) return
+
+      let minAmount = Infinity
+      let winningBid: any = null
+
+      bids.forEach(bid => {
+        if (bid.amount < minAmount) {
+          minAmount = bid.amount
+          winningBid = bid
+        }
+
+        // Register participation
+        if (bid.suppliers) {
+          const suppId = bid.supplier_id
+          if (!supplierStats.has(suppId)) {
+            supplierStats.set(suppId, {
+              supplier: bid.suppliers,
+              participated: new Set(),
+              won: new Set(),
+              totalAmountWon: 0
+            })
+          }
+          supplierStats.get(suppId)!.participated.add(product.id)
+        }
+      })
+
+      // Register win
+      if (winningBid && winningBid.suppliers) {
+        const stats = supplierStats.get(winningBid.supplier_id)!
+        stats.won.add(product.id)
+        stats.totalAmountWon += (minAmount * (product.quantity || 1))
+      }
+    })
+
+    // Filter to only those who won at least one product
+    const winners = Array.from(supplierStats.values())
+      .filter(s => s.won.size > 0)
+      .map(s => ({
+        ...s.supplier,
+        participatedCount: s.participated.size,
+        wonCount: s.won.size,
+        totalAmountWon: s.totalAmountWon
+      }))
+      
+    // Sort by most won products
+    return winners.sort((a, b) => b.wonCount - a.wonCount)
+  })
 </script>
 
 <template>
@@ -758,6 +819,48 @@
       <div v-if="itemsPending" class="text-center py-4">
         <v-progress-circular color="primary" indeterminate></v-progress-circular>
       </div>
+    </UiCard>
+
+    <!-- Resumo de Fornecedores da Demanda -->
+    <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outlined">
+      <div v-if="itemsPending" class="text-center py-4">
+        <v-progress-circular color="primary" indeterminate></v-progress-circular>
+      </div>
+      <UiTable
+        v-else
+        :headers="[
+          { text: 'Fornecedor', value: 'supplier' },
+          { text: 'Participou (Itens)', value: 'participated', align: 'center' },
+          { text: 'Venceu (Itens)', value: 'won', align: 'center' },
+          { text: 'Total Arrematado', value: 'total_amount', align: 'right' }
+        ]"
+        :items="winningSuppliersSummary"
+      >
+        <template #empty>
+          <div class="text-body-2 text-grey text-center py-4">
+            Nenhum fornecedor vencedor calculado ainda.
+          </div>
+        </template>
+
+        <template #item-supplier="{ item: supplier }">
+          <div class="font-weight-bold">{{ supplier.company_name }}</div>
+          <div class="text-caption text-grey">{{ supplier.cnpj }}</div>
+        </template>
+
+        <template #item-participated="{ item: supplier }">
+          <UiChip color="default" size="small">{{ supplier.participatedCount }}</UiChip>
+        </template>
+
+        <template #item-won="{ item: supplier }">
+          <UiChip color="success" size="small">{{ supplier.wonCount }}</UiChip>
+        </template>
+
+        <template #item-total_amount="{ item: supplier }">
+          <span class="text-success font-weight-bold">
+            {{ new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(supplier.totalAmountWon) }}
+          </span>
+        </template>
+      </UiTable>
     </UiCard>
 
     <!-- Modal Editar Item -->
