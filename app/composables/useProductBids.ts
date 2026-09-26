@@ -1,4 +1,4 @@
-﻿import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
 
 export type DemandProductBidRow = Database['public']['Tables']['demand_product_bids']['Row']
 export type DemandProductBidInsert = Database['public']['Tables']['demand_product_bids']['Insert']
@@ -32,7 +32,7 @@ export const useProductBids = () => {
 
     await logAction(
       'ADD_PRODUCT_BID',
-      Lance de R$ \ adicionado para o produto da demanda (ID: \),
+      `Lance de R$ ${amount} adicionado para o produto da demanda (ID: ${demandProductId})`,
       user.value?.id,
     )
   }
@@ -42,7 +42,7 @@ export const useProductBids = () => {
 
     if (error) throw error
 
-    await logAction('REMOVE_PRODUCT_BID', Lance (ID: \) removido, user.value?.id)
+    await logAction('REMOVE_PRODUCT_BID', `Lance (ID: ${bidId}) removido`, user.value?.id)
   }
 
   return {
