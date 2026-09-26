@@ -15,31 +15,31 @@ BEGIN
         END IF;
 
         IF OLD.status = 'planning' AND NEW.status != 'quotation' THEN
-            RAISE EXCEPTION 'A demanda em planejamento sÛ pode avanÁar para cotaÁ„o ou ser cancelada.';
+            RAISE EXCEPTION 'A demanda em planejamento s√≥ pode avan√ßar para cota√ß√£o ou ser cancelada.';
         END IF;
 
         IF OLD.status = 'quotation' AND NEW.status != 'bidding_notice' THEN
-            RAISE EXCEPTION 'A demanda em cotaÁ„o sÛ pode avanÁar para o aviso de contrataÁ„o ou ser cancelada.';
+            RAISE EXCEPTION 'A demanda em cota√ß√£o s√≥ pode avan√ßar para o aviso de contrata√ß√£o ou ser cancelada.';
         END IF;
 
         IF OLD.status = 'bidding_notice' AND NEW.status != 'dispute' THEN
-            RAISE EXCEPTION 'A demanda em aviso sÛ pode avanÁar para disputa ou ser cancelada.';
+            RAISE EXCEPTION 'A demanda em aviso s√≥ pode avan√ßar para disputa ou ser cancelada.';
         END IF;
 
         IF OLD.status = 'dispute' AND NEW.status != 'homologation' THEN
-            RAISE EXCEPTION 'A demanda em disputa sÛ pode avanÁar para homologaÁ„o ou ser cancelada.';
+            RAISE EXCEPTION 'A demanda em disputa s√≥ pode avan√ßar para homologa√ß√£o ou ser cancelada.';
         END IF;
 
         IF OLD.status = 'homologation' AND NEW.status != 'completed' THEN
-            RAISE EXCEPTION 'A demanda em homologaÁ„o sÛ pode avanÁar para concluÌda ou ser cancelada.';
+            RAISE EXCEPTION 'A demanda em homologa√ß√£o s√≥ pode avan√ßar para conclu√≠da ou ser cancelada.';
         END IF;
 
         IF OLD.status = 'completed' THEN
-            RAISE EXCEPTION 'A demanda concluÌda n„o pode mudar de status.';
+            RAISE EXCEPTION 'A demanda conclu√≠da n√£o pode mudar de status.';
         END IF;
 
         IF OLD.status = 'cancelled' THEN
-            RAISE EXCEPTION 'A demanda cancelada n„o pode mudar de status.';
+            RAISE EXCEPTION 'A demanda cancelada n√£o pode mudar de status.';
         END IF;
     END IF;
 

@@ -357,8 +357,8 @@ allow_dynamic_registration = false
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
-# `per_worker` (default) — enables hot reload during local development.
-# `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
+# `per_worker` (default) â€” enables hot reload during local development.
+# `oneshot` â€” fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
 policy = "per_worker"
 # Port to attach the Chrome inspector for debugging edge functions.
 inspector_port = 8083
@@ -388,5 +388,5 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 s3_secret_key = "env(S3_SECRET_KEY)"
 
 [auth.email.template.magic_link]
-subject = 'Seu c�digo de acesso'
+subject = 'Seu código de acesso'
 content_path = './supabase/templates/magic_link.html'
