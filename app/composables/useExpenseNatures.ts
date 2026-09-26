@@ -1,4 +1,4 @@
-﻿import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
 
 export type ExpenseNatureRow = Database['public']['Tables']['expense_natures']['Row']
 export type ExpenseNatureInsert = Database['public']['Tables']['expense_natures']['Insert']
@@ -23,7 +23,7 @@ export const useExpenseNatures = () => {
       .range(from, to)
 
     if (params.searchQuery) {
-      query = query.or(id.ilike.% + params.searchQuery + %,name.ilike.% + params.searchQuery + %)
+      query = query.or(`id.ilike.%${params.searchQuery}%,name.ilike.%${params.searchQuery}%`)
     }
 
     const { data, count, error } = await query
@@ -59,7 +59,7 @@ export const useExpenseNatures = () => {
 
     await logAction(
       'CREATE_EXPENSE_NATURE',
-      Nova natureza de despesa cadastrada:  + payload.name,
+      `Nova natureza de despesa cadastrada: ${payload.name}`,
       user.value?.id,
     )
   }
@@ -71,7 +71,7 @@ export const useExpenseNatures = () => {
 
     await logAction(
       'UPDATE_EXPENSE_NATURE',
-      Natureza de despesa atualizada:  + id,
+      `Natureza de despesa atualizada: ${id}`,
       user.value?.id,
     )
   }
@@ -81,7 +81,7 @@ export const useExpenseNatures = () => {
 
     if (error) throw error
 
-    await logAction('DELETE_EXPENSE_NATURE', Natureza de despesa removida:  + id, user.value?.id)
+    await logAction('DELETE_EXPENSE_NATURE', `Natureza de despesa removida: ${id}`, user.value?.id)
   }
 
   return {
