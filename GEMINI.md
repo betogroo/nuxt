@@ -10,9 +10,9 @@ Whenever a new feature is implemented, use the `logAction` function to record th
 
 All database table names, column names, functions, triggers, and any other database artifacts MUST be written in English. Use English for enum types and values as well (e.g., use 'consumption' instead of 'consumo').
 
-# Planning
+# Planning (CRITICAL / MANDATORY)
 
-Always show what will be done before applying changes. Create an implementation plan and wait for the user's approval before executing modifications or creating new features.
+**STOP AND READ THIS**: YOU MUST ALWAYS show what will be done before applying changes. CREATE an implementation plan and WAIT FOR THE USER'S APPROVAL BEFORE executing modifications, creating new features, or writing code. Skipping this step is strictly forbidden.
 
 # TypeScript Types
 
@@ -24,7 +24,7 @@ When working on modals or pages where users can select Product Categories or Mea
 
 # File Encoding
 
-Always use and enforce UTF-8 encoding when creating or modifying files. This is particularly critical in Windows environments where tools like PowerShell might default to Windows-1252, ANSI, or UTF-16, leading to broken accents and special characters (mojibake like `Ã£` instead of `ã`). When using terminal commands to pipe or write output to files (e.g., `Out-File`, `>`), ALWAYS explicitly specify `-Encoding utf8`.
+Always use and enforce UTF-8 encoding when creating or modifying files. This is particularly critical in Windows environments where tools like PowerShell might default to Windows-1252, ANSI, or UTF-16, leading to broken accents and special characters (mojibake like `ÃƒÂ£` instead of `Ã£`). When using terminal commands to pipe or write output to files (e.g., `Out-File`, `>`), ALWAYS explicitly specify `-Encoding utf8`.
 
 # Tests
 
