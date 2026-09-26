@@ -27,7 +27,8 @@
   const { data: categories } = useAsyncData('product-categories', fetchAllActiveCategories)
 
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
-  const { data: expenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
+  const { data: rawExpenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
+  const expenseNatures = computed(() => rawExpenseNatures.value?.map(n => ({ ...n, displayName: n.id + ' - ' + n.name })))
 
   // Fetch pending suggestions for the combobox
   const { data: pendingSuggestions, refresh: refreshPendingSuggestions } = useAsyncData(
@@ -324,17 +325,12 @@
       />
       <UiAutocomplete
         v-model="modal.payload.value.expense_nature_id"
-        item-title="name"
+        item-title="displayName"
         item-value="id"
         :items="expenseNatures || []"
-        :custom-filter="(value, query, item) => item?.raw?.id?.includes?.(query) || item?.raw?.name?.toLowerCase?.()?.includes?.(query?.toLowerCase?.())"
         label="Natureza de Despesa"
         clearable
-      >
-        <template #item="{ props, item }">
-          <v-list-item v-bind="props" :subtitle="item.raw.id" />
-        </template>
-      </UiAutocomplete>
+      />
 
       <UiCombobox
         v-if="modal.payload.value.is_suggesting_category"
