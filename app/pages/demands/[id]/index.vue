@@ -639,9 +639,11 @@
         :headers="[
           { text: 'Produto', value: 'product' },
           { text: 'Categoria', value: 'category' },
-          { text: 'Quantidade', value: 'quantity', align: 'center' },
+          { text: 'Qtd.', value: 'quantity', align: 'center' },
           { text: 'Valor Ref.', value: 'reference_price', align: 'right' },
+          { text: 'Total Ref.', value: 'total_reference', align: 'right' },
           { text: 'Melhor Lance', value: 'best_bid', align: 'right' },
+          { text: 'Total Final', value: 'total_final', align: 'right' },
           { text: 'Ações', value: 'actions', align: 'right' },
         ]"
         :items="items || []"
@@ -696,12 +698,35 @@
               : '-'
           }}
         </template>
+        <template #item-total_reference="{ item }">
+          <span class="text-grey font-weight-bold">
+            {{
+              item.reference_price != null && item.quantity != null
+                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    Number(item.reference_price) * Number(item.quantity)
+                  )
+                : '-'
+            }}
+          </span>
+        </template>
         <template #item-best_bid="{ item }">
           <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
             <span class="text-success font-weight-bold">
               {{
                 new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                   Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount))
+                )
+              }}
+            </span>
+          </template>
+          <span v-else class="text-grey">-</span>
+        </template>
+        <template #item-total_final="{ item }">
+          <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0 && item.quantity != null">
+            <span class="text-success font-weight-bold">
+              {{
+                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) * Number(item.quantity)
                 )
               }}
             </span>
