@@ -1,4 +1,4 @@
-﻿import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
 
 export const usePendingTasks = () => {
   const supabase = useSupabaseClient<Database>()
@@ -21,7 +21,7 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
-  const { data: pendingUnitsCount, pendingExpenseNaturesCount, refresh: refreshPendingUnits } = useAsyncData(
+  const { data: pendingUnitsCount, refresh: refreshPendingUnits } = useAsyncData(
     'pending-units-count',
     async () => {
       const { count, error } = await supabase
@@ -81,7 +81,7 @@ export const usePendingTasks = () => {
   })
 
   const refreshAll = async () => {
-    await Promise.all([refreshPendingCategories(), refreshPendingUnits(), refreshPendingReturns()])
+    await Promise.all([refreshPendingCategories(), refreshPendingUnits(), refreshPendingReturns(), refreshPendingExpenseNatures()])
   }
 
   return {
