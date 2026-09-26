@@ -96,6 +96,115 @@
       isSaving.value = false
     }
   }
+  // --- Bids Logic ---
+  const { fetchBidsByProduct, addBid, removeBid } = useProductBids()
+  const { fetchAllActiveSuppliers, createSupplierFast } = useSuppliers()
+
+  const { data: bids, refresh: refreshBids, pending: bidsPending } = useAsyncData(`item-bids-${itemId}`, async () => {
+    return await fetchBidsByProduct(itemId)
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const suppliers = ref<any[]>([])
+  const fetchSuppliersList = async () => {
+    const list = await fetchAllActiveSuppliers()
+    suppliers.value = list
+  }
+  
+  onMounted(() => {
+    fetchSuppliersList()
+  })
+
+  const isBidModalOpen = ref(false)
+  const isBidSaving = ref(false)
+  const bidError = ref('')
+  
+  // Bid form state
+  const bidForm = ref({
+    isNewSupplier: false,
+    supplierId: null as string | null,
+    newSupplierCnpj: '',
+    newSupplierName: '',
+    newSupplierEmail: '',
+    amount: null as number | null,
+  })
+
+  const openBidModal = () => {
+    bidForm.value = {
+      isNewSupplier: false,
+      supplierId: null,
+      newSupplierCnpj: '',
+      newSupplierName: '',
+      newSupplierEmail: '',
+      amount: null,
+    }
+    bidError.value = ''
+    isBidModalOpen.value = true
+  }
+
+  const closeBidModal = () => {
+    isBidModalOpen.value = false
+  }
+
+  const saveBid = async () => {
+    isBidSaving.value = true
+    bidError.value = ''
+    try {
+      if (!bidForm.value.amount || bidForm.value.amount <= 0) {
+        throw new Error('O valor do lance deve ser maior que zero.')
+      }
+
+      let selectedSupplierId = bidForm.value.supplierId
+
+      if (bidForm.value.isNewSupplier) {
+        if (!bidForm.value.newSupplierCnpj || !bidForm.value.newSupplierName || !bidForm.value.newSupplierEmail) {
+          throw new Error('Preencha os dados do fornecedor: CNPJ, Razão Social e E-mail.')
+        }
+        
+        // Remove non-numeric chars from CNPJ
+        const cleanCnpj = bidForm.value.newSupplierCnpj.replace(/\D/g, '')
+
+        const newSupp = await createSupplierFast(cleanCnpj, bidForm.value.newSupplierName, bidForm.value.newSupplierEmail)
+        selectedSupplierId = newSupp.id
+        await fetchSuppliersList() // refresh the list just in case
+      }
+
+      if (!selectedSupplierId) {
+        throw new Error('Selecione um fornecedor ou cadastre um novo.')
+      }
+
+      // Check if this supplier already has a bid for this product
+      if (bids.value?.find(b => b.supplier_id === selectedSupplierId)) {
+         throw new Error('Este fornecedor já possui um lance para este produto.')
+      }
+
+      await addBid(itemId, selectedSupplierId, bidForm.value.amount)
+
+      await refreshBids()
+      closeBidModal()
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        bidError.value = err.message
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        bidError.value = String((err as Record<string, unknown>).message)
+      } else {
+        bidError.value = 'Ocorreu um erro ao salvar o lance.'
+      }
+    } finally {
+      isBidSaving.value = false
+    }
+  }
+
+  const confirmRemoveBid = async (bidId: string) => {
+    if (!confirm('Deseja realmente remover este lance?')) return
+    try {
+      await removeBid(bidId)
+      await refreshBids()
+    } catch (err) {
+      console.error('Erro ao remover lance', err)
+      alert('Erro ao remover lance.')
+    }
+  }
 </script>
 
 <template>
@@ -142,11 +251,72 @@
             documentos enviados pelos fornecedores aparecerão aqui.
           </UiAlert>
 
-          <!-- Futuro Card de Lances -->
-          <UiCard class="mb-4" title="Lances Recebidos" variant="outlined">
-            <div class="text-body-2 text-grey pa-4 text-center">
-              Nenhum lance registrado para este item ainda. (Em desenvolvimento)
+          <!-- Card de Lances -->
+          <UiCard class="mb-4" variant="outlined">
+            <template #header>
+              <div class="d-flex justify-space-between align-center w-100">
+                <span>Lances Recebidos</span>
+                <UiButton
+                  v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
+                  color="primary"
+                  prepend-icon="mdi-plus"
+                  size="small"
+                  @click="openBidModal"
+                >
+                  Registrar Lance
+                </UiButton>
+              </div>
+            </template>
+            
+            <div v-if="bidsPending" class="text-center py-4">
+              <v-progress-circular color="primary" indeterminate></v-progress-circular>
             </div>
+            
+            <UiTable
+              v-else
+              :headers="[
+                { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
+                { text: 'Fornecedor', value: 'supplier' },
+                { text: 'Valor do Lance', value: 'amount', align: 'right' },
+                { text: 'Ações', value: 'actions', align: 'center', sortable: false }
+              ]"
+              :items="bids || []"
+            >
+              <template #empty>
+                <div class="text-body-2 text-grey text-center py-4">
+                  Nenhum lance registrado para este item ainda.
+                </div>
+              </template>
+              
+              <template #item-pos="{ index }">
+                <UiChip :color="index === 0 ? 'success' : 'default'" size="small">
+                  {{ index + 1 }}º
+                </UiChip>
+              </template>
+
+              <template #item-supplier="{ item: bid }">
+                <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
+                <div class="text-caption text-grey">{{ bid.suppliers?.cnpj }}</div>
+              </template>
+
+              <template #item-amount="{ item: bid }">
+                <div class="font-weight-bold" :class="{'text-success': bids && bids[0].id === bid.id}">
+                  {{ new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bid.amount) }}
+                </div>
+              </template>
+              
+              <template #item-actions="{ item: bid }">
+                <UiButton
+                  v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
+                  color="error"
+                  icon="mdi-delete"
+                  size="small"
+                  title="Remover Lance"
+                  variant="text"
+                  @click="confirmRemoveBid(bid.id)"
+                />
+              </template>
+            </UiTable>
           </UiCard>
 
           <!-- Futuro Card de Documentos -->
@@ -275,6 +445,77 @@
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveItem"> Salvar </UiButton>
+      </template>
+    </UiModal>
+    <!-- Modal Registrar Lance -->
+    <UiModal
+      v-model="isBidModalOpen"
+      max-width="500px"
+      title="Registrar Lance do Fornecedor"
+      transparent-header
+    >
+      <UiAlert v-if="bidError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ bidError }}
+      </UiAlert>
+
+      <v-switch
+        v-model="bidForm.isNewSupplier"
+        color="primary"
+        label="Fornecedor não está na lista? Cadastrar Novo."
+        density="compact"
+        hide-details
+        class="mb-4"
+      ></v-switch>
+
+      <!-- Fornecedor Existente -->
+      <UiAutocomplete
+        v-if="!bidForm.isNewSupplier"
+        v-model="bidForm.supplierId"
+        :items="suppliers"
+        item-title="company_name"
+        item-value="id"
+        label="Selecionar Fornecedor*"
+        placeholder="Busque pela razão social ou CNPJ..."
+        variant="outlined"
+      >
+        <template #item="{ props, item }">
+          <v-list-item v-bind="props" :title="item.raw.company_name" :subtitle="item.raw.cnpj"></v-list-item>
+        </template>
+      </UiAutocomplete>
+
+      <!-- Novo Fornecedor -->
+      <template v-else>
+        <UiInput
+          v-model="bidForm.newSupplierCnpj"
+          label="CNPJ do Fornecedor*"
+          placeholder="Apenas números"
+          v-maska="'##.###.###/####-##'"
+        />
+        <UiInput
+          v-model="bidForm.newSupplierName"
+          label="Razão Social*"
+          placeholder="Nome da empresa"
+        />
+        <UiInput
+          v-model="bidForm.newSupplierEmail"
+          label="E-mail de Contato*"
+          placeholder="email@empresa.com"
+          type="email"
+        />
+      </template>
+
+      <UiInput
+        v-model.number="bidForm.amount"
+        label="Valor do Lance (R$)*"
+        placeholder="0,00"
+        type="number"
+        step="0.01"
+        class="mt-4"
+      />
+
+      <template #actions>
+        <UiButton :disabled="isBidSaving" variant="text" @click="closeBidModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isBidSaving" @click="saveBid"> Salvar Lance </UiButton>
       </template>
     </UiModal>
   </v-container>

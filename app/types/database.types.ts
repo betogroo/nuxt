@@ -1,4 +1,4 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   graphql_public: {
@@ -23,6 +23,55 @@ export type Database = {
   }
   public: {
     Tables: {
+      demand_product_bids: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          demand_product_id: string
+          id: string
+          supplier_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          demand_product_id: string
+          id?: string
+          supplier_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          demand_product_id?: string
+          id?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'demand_product_bids_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'demand_product_bids_demand_product_id_fkey'
+            columns: ['demand_product_id']
+            isOneToOne: false
+            referencedRelation: 'demand_products'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'demand_product_bids_supplier_id_fkey'
+            columns: ['supplier_id']
+            isOneToOne: false
+            referencedRelation: 'suppliers'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       demand_products: {
         Row: {
           bid_interval: number | null

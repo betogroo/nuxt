@@ -62,6 +62,21 @@ export const useSuppliers = () => {
     )
   }
 
+  const createSupplierFast = async (cnpj: string, company_name: string, email: string) => {
+    const payload: SupplierInsert = { cnpj, company_name, email }
+    const { data, error } = await supabase.from('suppliers').insert(payload).select().single()
+
+    if (error) throw error
+
+    await logAction(
+      'CREATE_SUPPLIER_FAST',
+      `Fornecedor cadastrado rapidamente na cotação: ${company_name} (${cnpj})`,
+      user.value?.id,
+    )
+
+    return data as SupplierRow
+  }
+
   const updateSupplier = async (id: string, payload: SupplierUpdate) => {
     const { error } = await supabase.from('suppliers').update(payload).eq('id', id)
 
@@ -94,6 +109,7 @@ export const useSuppliers = () => {
     fetchSuppliers,
     fetchAllActiveSuppliers,
     createSupplier,
+    createSupplierFast,
     updateSupplier,
     toggleSupplierStatus,
   }
