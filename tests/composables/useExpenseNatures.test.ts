@@ -41,12 +41,14 @@ describe('useExpenseNatures', () => {
     const fakeData = [{ id: '1', name: 'Natureza 1' }]
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockResolvedValue({ data: fakeData, error: null }),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: fakeData, count: 1, error: null }),
     })
 
     const { fetchExpenseNatures } = useExpenseNatures()
-    const result = await fetchExpenseNatures()
-    expect(result).toEqual(fakeData)
+    const result = await fetchExpenseNatures(1, 10)
+    expect(result.data).toEqual(fakeData)
+    expect(result.count).toBe(1)
     expect(mockSupabase.from).toHaveBeenCalledWith('expense_natures')
   })
 
