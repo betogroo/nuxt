@@ -25,3 +25,7 @@ When working on modals or pages where users can select Product Categories or Mea
 # File Encoding
 
 Always use and enforce UTF-8 encoding when creating or modifying files. This is particularly critical in Windows environments where tools like PowerShell might default to Windows-1252, ANSI, or UTF-16, leading to broken accents and special characters (mojibake like `Ã£` instead of `ã`). When using terminal commands to pipe or write output to files (e.g., `Out-File`, `>`), ALWAYS explicitly specify `-Encoding utf8`.
+
+# Tests
+
+For every feature created, altered, or deleted, the corresponding unit and/or integration tests MUST be updated or created to reflect the changes. Code modifications are not considered complete until tests are written and passing.
