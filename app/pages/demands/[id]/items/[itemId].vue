@@ -475,16 +475,12 @@
         item-title="company_name"
         item-value="id"
         label="Selecionar Fornecedor*"
-        placeholder="Busque pela razão social ou CNPJ..."
+        placeholder="Busque pela razão social..."
         variant="outlined"
         density="comfortable"
         class="mb-3"
         color="primary"
-      >
-        <template #item="{ props, item }">
-          <v-list-item v-bind="props" :title="item.raw.company_name" :subtitle="item.raw.cnpj"></v-list-item>
-        </template>
-      </v-autocomplete>
+      ></v-autocomplete>
 
       <!-- Novo Fornecedor -->
       <template v-else>
