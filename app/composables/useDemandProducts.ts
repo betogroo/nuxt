@@ -1,7 +1,8 @@
 import type { Database } from '~/types/database.types'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
-  products?: { id: string; name: string } | null
+  product?: { id: string; name: string } | null
+  demand_product_bids?: { amount: number }[]
 }
 
 export const useDemandProducts = () => {
@@ -12,7 +13,7 @@ export const useDemandProducts = () => {
   const fetchDemandProducts = async (demandId: string) => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*, product_categories(id, name)), measurement_units(*)')
+      .select('*, product:products(*, product_categories(id, name)), measurement_units(*), demand_product_bids(amount)')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: true })
 

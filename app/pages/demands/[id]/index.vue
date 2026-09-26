@@ -641,6 +641,7 @@
           { text: 'Categoria', value: 'category' },
           { text: 'Quantidade', value: 'quantity', align: 'center' },
           { text: 'Valor Ref.', value: 'reference_price', align: 'right' },
+          { text: 'Melhor Lance', value: 'best_bid', align: 'right' },
           { text: 'Ações', value: 'actions', align: 'right' },
         ]"
         :items="items || []"
@@ -694,6 +695,18 @@
                 })
               : '-'
           }}
+        </template>
+        <template #item-best_bid="{ item }">
+          <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
+            <span class="text-success font-weight-bold">
+              {{
+                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount))
+                )
+              }}
+            </span>
+          </template>
+          <span v-else class="text-grey">-</span>
         </template>
         <template #item-actions="{ item }">
           <UiButton
