@@ -1,4 +1,4 @@
-import type { Database } from '~/types/database.types'
+﻿import type { Database } from '~/types/database.types'
 
 export type SupplierRow = Database['public']['Tables']['suppliers']['Row']
 export type SupplierInsert = Database['public']['Tables']['suppliers']['Insert']
@@ -39,6 +39,11 @@ export const useSuppliers = () => {
     return { data: data as SupplierRow[], count: count || 0 }
   }
 
+  const fetchSupplierById = async (id: string) => {
+    const { data, error } = await supabase.from('suppliers').select('*').eq('id', id).single()
+    if (error) throw error
+    return data as SupplierRow
+  }
   const fetchAllActiveSuppliers = async () => {
     const { data, error } = await supabase
       .from('suppliers')
@@ -70,7 +75,7 @@ export const useSuppliers = () => {
 
     await logAction(
       'CREATE_SUPPLIER_FAST',
-      `Fornecedor cadastrado rapidamente na cotação: ${company_name} (${cnpj})`,
+      `Fornecedor cadastrado rapidamente na cotaÃ§Ã£o: ${company_name} (${cnpj})`,
       user.value?.id,
     )
 
@@ -108,6 +113,7 @@ export const useSuppliers = () => {
   return {
     fetchSuppliers,
     fetchAllActiveSuppliers,
+    fetchSupplierById,
     createSupplier,
     createSupplierFast,
     updateSupplier,

@@ -843,7 +843,12 @@
         </template>
 
         <template #item-supplier="{ item: supplier }">
-          <div class="font-weight-bold">{{ supplier.company_name }}</div>
+          <NuxtLink
+            class="text-decoration-none text-primary font-weight-bold"
+            :to="`/demands/${demandId}/suppliers/${supplier.id}`"
+          >
+            {{ supplier.company_name }}
+          </NuxtLink>
           <div class="text-caption text-grey">{{ supplier.cnpj }}</div>
         </template>
 
