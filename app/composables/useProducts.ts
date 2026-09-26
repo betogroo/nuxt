@@ -106,7 +106,7 @@ export const useProducts = () => {
   const fetchProductById = async (id: string) => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, product_categories(id, name)')
+      .select('*, product_categories(id, name), expense_natures(id, name), profiles(id, name)')
       .eq('id', id)
       .single()
 

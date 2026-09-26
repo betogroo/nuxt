@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   const route = useRoute()
   const router = useRouter()
 
@@ -123,6 +123,12 @@
               <div class="text-body-1">{{ product.product_categories?.name || '-' }}</div>
             </v-col>
 
+            <v-col cols="12">
+              <div class="text-caption text-grey mb-1">Natureza de Despesa</div>
+              <div class="text-body-1">
+                {{ product.expense_natures ? product.expense_natures.id + ' - ' + product.expense_natures.name : 'Não informada' }}
+              </div>
+            </v-col>
             <!-- Apresentações do Produto -->
             <v-col cols="12">
               <v-divider class="mb-4" />
@@ -206,9 +212,9 @@
             </v-col>
 
             <v-col v-if="product.created_by" cols="12">
-              <div class="text-caption text-grey mb-1">Criado por (ID)</div>
+              <div class="text-caption text-grey mb-1">Criado por</div>
               <div class="text-body-1">
-                {{ product.created_by }}
+                {{ product.profiles?.name || product.created_by }}
               </div>
             </v-col>
           </v-row>
