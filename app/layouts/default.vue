@@ -4,7 +4,7 @@
   const { profile, fetchProfile } = useProfile()
   const drawer = ref(true)
 
-  // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
+  // Sincroniza o perfil reativamente assim que o ID do usuÃ¡rio estiver pronto
   watchEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = user.value?.id || (user.value as any)?.sub
@@ -17,13 +17,13 @@
 
   const { logAction } = useLogger()
 
-  // Central de Pendências
+  // Central de PendÃªncias
   const { pendingCategoriesCount, pendingUnitsCount, pendingExpenseNaturesCount, pendingReturnsCount, totalPending } =
     usePendingTasks()
 
   const signOut = async () => {
     if (user.value) {
-      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
+      await logAction('LOGOUT', 'UsuÃ¡rio fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
     navigateTo('/login')
@@ -46,7 +46,7 @@
 
         <v-divider class="my-2" />
 
-        <v-list-subheader v-if="user">Gestão</v-list-subheader>
+        <v-list-subheader v-if="user">GestÃ£o</v-list-subheader>
         <v-list-item v-if="user" prepend-icon="mdi-clipboard-list" title="Demandas" to="/demands">
           <template v-if="pendingReturnsCount > 0" #append>
             <v-badge color="error" :content="pendingReturnsCount" inline />
@@ -65,12 +65,19 @@
           to="/suppliers"
         />
 
+        <v-list-item
+          v-if="profile?.role === 'admin' || profile?.role === 'iirgd'"
+          prepend-icon="mdi-card-account-details-outline"
+          title="IIRGD"
+          to="/iirgd"
+        />
+
         <template v-if="profile?.role === 'admin'">
           <v-divider class="my-2" />
-          <v-list-subheader>Administração</v-list-subheader>
+          <v-list-subheader>AdministraÃ§Ã£o</v-list-subheader>
 
           <v-list-item prepend-icon="mdi-view-dashboard" title="Painel" to="/admin" />
-          <v-list-item prepend-icon="mdi-account-group" title="Usuários" to="/users" />
+          <v-list-item prepend-icon="mdi-account-group" title="UsuÃ¡rios" to="/users" />
           <v-list-item prepend-icon="mdi-format-list-bulleted-type" title="Logs" to="/logs" />
 
           <v-list-item prepend-icon="mdi-shape" title="Categorias" to="/admin/categories">
@@ -94,14 +101,14 @@
       </v-list>
     </v-navigation-drawer>
 
-    <!-- Cabeçalho (App Bar) -->
+    <!-- CabeÃ§alho (App Bar) -->
     <v-app-bar app border="b" elevation="0">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-spacer />
 
       <ThemeToggle />
 
-      <!-- Notificações (apenas Admin) -->
+      <!-- NotificaÃ§Ãµes (apenas Admin) -->
       <v-menu v-if="profile?.role === 'admin' && totalPending > 0">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="mx-2" icon>
@@ -111,7 +118,7 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-subheader>Pendências</v-list-subheader>
+          <v-list-subheader>PendÃªncias</v-list-subheader>
           <v-list-item
             v-if="pendingCategoriesCount > 0"
             prepend-icon="mdi-shape"
@@ -145,7 +152,7 @@
         </v-list>
       </v-menu>
 
-      <!-- Menu do usuário -->
+      <!-- Menu do usuÃ¡rio -->
       <v-menu v-if="user">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="ml-2" icon>
@@ -161,7 +168,7 @@
                 <span class="text-white text-uppercase">{{ user.email?.charAt(0) || 'U' }}</span>
               </v-avatar>
             </template>
-            <v-list-item-title>{{ profile?.name || 'Usuário' }}</v-list-item-title>
+            <v-list-item-title>{{ profile?.name || 'UsuÃ¡rio' }}</v-list-item-title>
             <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
           </v-list-item>
           <v-divider class="my-2" />

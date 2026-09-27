@@ -1,10 +1,11 @@
-﻿export default defineNuxtRouteMiddleware(async () => {
+export default defineNuxtRouteMiddleware(async (to) => {
   const user = useSupabaseUser()
-  const { profile, fetchProfile } = useProfile()
-  
+
   if (!user.value) {
     return navigateTo('/login')
   }
+
+  const { profile, fetchProfile } = useProfile()
 
   // Ensure profile is loaded
   if (!profile.value) {
