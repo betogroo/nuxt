@@ -1,20 +1,20 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { ProfileRow } from '~/composables/useUsers'
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
     middleware: ['admin'],
   })
-  useHead({ title: 'Gerenciar Usuários' })
+  useHead({ title: 'Gerenciar UsuÃ¡rios' })
 
   const { fetchUsers, updateUser, toggleUserStatus: toggleStatus } = useUsers()
   const { logAction } = useLogger()
   const { profile: loggedProfile } = useProfile()
 
-  // 2. Busca todos os usuários no banco
+  // 2. Busca todos os usuÃ¡rios no banco
   const { data: users, pending, refresh } = useAsyncData('admin-users', fetchUsers)
 
-  // 3. Lógica de Edição de Usuário
+  // 3. LÃ³gica de EdiÃ§Ã£o de UsuÃ¡rio
   const isEditModalOpen = ref(false)
   const editingUser = ref<ProfileRow | null>(null)
   const isSaving = ref(false)
@@ -23,7 +23,7 @@
   const isSelf = computed(() => editingUser.value?.id === loggedProfile.value?.id)
 
   const openEditModal = (user: ProfileRow) => {
-    // Clonamos o objeto para não alterar a tabela antes de salvar
+    // Clonamos o objeto para nÃ£o alterar a tabela antes de salvar
     editingUser.value = { ...user }
     saveError.value = ''
     isEditModalOpen.value = true
@@ -48,7 +48,7 @@
 
       await logAction(
         'ADMIN_UPDATE_USER',
-        `Administrador atualizou o usuário: ${editingUser.value.id}`,
+        `Administrador atualizou o usuÃ¡rio: ${editingUser.value.id}`,
         loggedProfile.value?.id,
       )
       await refresh() // Recarrega a tabela para mostrar os novos dados
@@ -65,7 +65,7 @@
 
   const toggleUserStatus = async (user: ProfileRow) => {
     if (user.id === loggedProfile.value?.id) {
-      alert('Você não pode desativar seu próprio usuário.')
+      alert('VocÃª nÃ£o pode desativar seu prÃ³prio usuÃ¡rio.')
       return
     }
 
@@ -75,7 +75,7 @@
 
       await logAction(
         'ADMIN_TOGGLE_USER_STATUS',
-        `Administrador alterou status do usuário ${user.id} para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
+        `Administrador alterou status do usuÃ¡rio ${user.id} para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
         loggedProfile.value?.id,
       )
       await refresh()
@@ -85,7 +85,7 @@
     }
   }
 
-  // 4. Lógica de Criação de Novo Usuário (Admin)
+  // 4. LÃ³gica de CriaÃ§Ã£o de Novo UsuÃ¡rio (Admin)
   const isAddModalOpen = ref(false)
   const isCreating = ref(false)
   const createError = ref('')
@@ -121,7 +121,7 @@
 
       await logAction(
         'ADMIN_CREATE_USER',
-        `Administrador criou novo usuário: ${newUserForm.value.email}`,
+        `Administrador criou novo usuÃ¡rio: ${newUserForm.value.email}`,
         loggedProfile.value?.id,
       )
 
@@ -130,7 +130,7 @@
     } catch (err: unknown) {
       const fetchErr = err as { data?: { statusMessage?: string }; message?: string }
       createError.value =
-        fetchErr.data?.statusMessage || fetchErr.message || 'Erro ao criar usuário'
+        fetchErr.data?.statusMessage || fetchErr.message || 'Erro ao criar usuÃ¡rio'
     } finally {
       isCreating.value = false
     }
@@ -139,13 +139,13 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários" />
+    <PageHeader subtitle="AdministraÃ§Ã£o de acesso e contas" title="Gerenciar UsuÃ¡rios" />
 
     <v-row>
       <v-col cols="12">
         <UiCard>
           <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Lista de Usuários</span>
+            <span class="text-subtitle-1 font-weight-bold">Lista de UsuÃ¡rios</span>
             <v-spacer />
             <UiButton
               class="mr-2"
@@ -157,23 +157,23 @@
               @click="refresh"
             />
             <UiButton color="primary" prepend-icon="mdi-account-plus" @click="openAddModal">
-              Novo Usuário
+              Novo UsuÃ¡rio
             </UiButton>
           </template>
 
           <UiTable
             :headers="[
               { text: 'ID', value: 'id' },
-              { text: 'Usuário', value: 'name' },
+              { text: 'UsuÃ¡rio', value: 'name' },
               { text: 'Cargo', value: 'role' },
               { text: 'Membro desde', value: 'created_at' },
               { text: 'Status', value: 'is_active' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="activeUsers"
           >
             <template v-if="!activeUsers?.length && !pending" #empty>
-              Nenhum usuário ativo encontrado.
+              Nenhum usuÃ¡rio ativo encontrado.
             </template>
             <template #item-id="{ item }">
               <span class="text-grey text-caption font-weight-mono">
@@ -191,9 +191,9 @@
             </template>
             <template #item-role="{ item }">
               <UiChip
-                :color="item.role === 'admin' ? 'primary' : 'grey'"
+                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : 'grey'"
                 size="small"
-                :variant="item.role === 'admin' ? 'flat' : 'outlined'"
+                :variant="item.role === 'admin' ? 'flat' : item.role === 'iirgd' ? 'tonal' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
               </UiChip>
@@ -228,17 +228,17 @@
       <v-col v-if="inactiveUsers.length > 0" cols="12">
         <UiCard>
           <template #header>
-            <span class="text-subtitle-1 font-weight-bold text-grey">Usuários Desativados</span>
+            <span class="text-subtitle-1 font-weight-bold text-grey">UsuÃ¡rios Desativados</span>
           </template>
 
           <UiTable
             :headers="[
               { text: 'ID', value: 'id' },
-              { text: 'Usuário', value: 'name' },
+              { text: 'UsuÃ¡rio', value: 'name' },
               { text: 'Cargo', value: 'role' },
               { text: 'Membro desde', value: 'created_at' },
               { text: 'Status', value: 'is_active' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="inactiveUsers"
           >
@@ -258,9 +258,9 @@
             </template>
             <template #item-role="{ item }">
               <UiChip
-                :color="item.role === 'admin' ? 'primary' : 'grey'"
+                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : 'grey'"
                 size="small"
-                :variant="item.role === 'admin' ? 'flat' : 'outlined'"
+                :variant="item.role === 'admin' ? 'flat' : item.role === 'iirgd' ? 'tonal' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
               </UiChip>
@@ -293,19 +293,19 @@
       </v-col>
     </v-row>
 
-    <!-- Modal de Edição -->
+    <!-- Modal de EdiÃ§Ã£o -->
     <UiModal
       v-if="editingUser"
       v-model="isEditModalOpen"
       max-width="500px"
-      title="Editar Usuário"
+      title="Editar UsuÃ¡rio"
       transparent-header
     >
       <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ saveError }}
       </UiAlert>
 
-      <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
+      <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuÃ¡rio" />
 
       <!-- Using native v-select for disabled prop since UiSelect doesnt have it yet, actually I should add it -->
       <v-select
@@ -315,10 +315,10 @@
         :disabled="isSelf"
         :hint="
           isSelf
-            ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
-            : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
+            ? 'Por medida de seguranÃ§a, vocÃª nÃ£o pode rebaixar a si mesmo.'
+            : 'Cuidado ao promover usuÃ¡rios a Administrador. Eles terÃ£o acesso a este painel.'
         "
-        :items="['user', 'admin']"
+        :items="['user', 'admin', 'iirgd']"
         label="Cargo (Role)"
         persistent-hint
         variant="outlined"
@@ -329,31 +329,31 @@
         class="mt-3"
         color="success"
         :disabled="isSelf"
-        hint="Se desmarcado, o usuário não poderá acessar o sistema"
-        label="Usuário Ativo"
+        hint="Se desmarcado, o usuÃ¡rio nÃ£o poderÃ¡ acessar o sistema"
+        label="UsuÃ¡rio Ativo"
         persistent-hint
       />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveUser">
-          Salvar Alterações
+          Salvar AlteraÃ§Ãµes
         </UiButton>
       </template>
     </UiModal>
 
-    <!-- Modal de Adição (Novo Usuário) -->
+    <!-- Modal de AdiÃ§Ã£o (Novo UsuÃ¡rio) -->
     <UiModal
       v-model="isAddModalOpen"
       max-width="500px"
-      title="Criar Novo Usuário"
+      title="Criar Novo UsuÃ¡rio"
       transparent-header
     >
       <UiAlert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
         {{ createError }}
       </UiAlert>
 
-      <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
+      <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuÃ¡rio" />
 
       <UiInput
         v-model="newUserForm.email"
@@ -369,14 +369,16 @@
         type="password"
       />
 
-      <UiSelect v-model="newUserForm.role" :items="['user', 'admin']" label="Cargo (Role)" />
+      <UiSelect v-model="newUserForm.role" :items="['user', 'admin', 'iirgd']" label="Cargo (Role)" />
 
       <template #actions>
         <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isCreating" @click="createUser">
-          Criar Usuário
+          Criar UsuÃ¡rio
         </UiButton>
       </template>
     </UiModal>
   </div>
 </template>
+
+
