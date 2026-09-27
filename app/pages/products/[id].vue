@@ -1,4 +1,5 @@
 ﻿<script setup lang="ts">
+  definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
 
@@ -229,3 +230,4 @@
     </v-row>
   </v-container>
 </template>
+

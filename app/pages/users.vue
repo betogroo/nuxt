@@ -191,9 +191,9 @@
             </template>
             <template #item-role="{ item }">
               <UiChip
-                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : 'grey'"
+                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : item.role === 'uge' ? 'warning' : 'grey'"
                 size="small"
-                :variant="item.role === 'admin' ? 'flat' : item.role === 'iirgd' ? 'tonal' : 'outlined'"
+                :variant="item.role === 'admin' ? 'flat' : (item.role === 'iirgd' || item.role === 'uge') ? 'tonal' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
               </UiChip>
@@ -258,9 +258,9 @@
             </template>
             <template #item-role="{ item }">
               <UiChip
-                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : 'grey'"
+                :color="item.role === 'admin' ? 'primary' : item.role === 'iirgd' ? 'info' : item.role === 'uge' ? 'warning' : 'grey'"
                 size="small"
-                :variant="item.role === 'admin' ? 'flat' : item.role === 'iirgd' ? 'tonal' : 'outlined'"
+                :variant="item.role === 'admin' ? 'flat' : (item.role === 'iirgd' || item.role === 'uge') ? 'tonal' : 'outlined'"
               >
                 {{ item.role.toUpperCase() }}
               </UiChip>
@@ -318,7 +318,7 @@
             ? 'Por medida de seguranÃ§a, vocÃª nÃ£o pode rebaixar a si mesmo.'
             : 'Cuidado ao promover usuÃ¡rios a Administrador. Eles terÃ£o acesso a este painel.'
         "
-        :items="['user', 'admin', 'iirgd']"
+        :items="['user', 'uge', 'admin', 'iirgd']"
         label="Cargo (Role)"
         persistent-hint
         variant="outlined"
@@ -369,7 +369,7 @@
         type="password"
       />
 
-      <UiSelect v-model="newUserForm.role" :items="['user', 'admin', 'iirgd']" label="Cargo (Role)" />
+      <UiSelect v-model="newUserForm.role" :items="['user', 'uge', 'admin', 'iirgd']" label="Cargo (Role)" />
 
       <template #actions>
         <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
@@ -380,5 +380,6 @@
     </UiModal>
   </div>
 </template>
+
 
 

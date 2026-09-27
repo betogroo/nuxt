@@ -1,4 +1,5 @@
 ﻿<script setup lang="ts">
+  definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
   const { profile, fetchAllProfiles } = useProfile()
@@ -1273,3 +1274,4 @@
     </UiModal>
   </v-container>
 </template>
+

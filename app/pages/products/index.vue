@@ -1,4 +1,5 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
+  definePageMeta({ middleware: ['uge'] })
   import type { ProductRow } from '~/composables/useProducts'
 
   useHead({ title: 'Produtos' })
@@ -108,13 +109,13 @@
   const saveProduct = async () => {
     if (modal.payload.value.is_suggesting_category) {
       if (!modal.payload.value.name || !modal.payload.value.suggested_category) {
-        modal.error.value = 'Nome e Sugestão de Categoria são obrigatórios.'
+        modal.error.value = 'Nome e SugestÃ£o de Categoria sÃ£o obrigatÃ³rios.'
         return
       }
       modal.payload.value.category_id = outrosCategory.value?.id || ''
     } else {
       if (!modal.payload.value.name || !modal.payload.value.category_id) {
-        modal.error.value = 'Nome e Categoria são obrigatórios.'
+        modal.error.value = 'Nome e Categoria sÃ£o obrigatÃ³rios.'
         return
       }
       modal.payload.value.suggested_category = '' // Limpa se desmarcou
@@ -174,7 +175,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Catálogo centralizado de produtos e materiais" title="Produtos" />
+    <PageHeader subtitle="CatÃ¡logo centralizado de produtos e materiais" title="Produtos" />
 
     <v-row>
       <v-col cols="12">
@@ -236,7 +237,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Categoria (Material)', value: 'category' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="products || []"
             :loading="pending"
@@ -258,7 +259,7 @@
                 v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
                 class="text-caption text-grey ml-1"
               >
-                (Sugestão: {{ item.suggested_category }})
+                (SugestÃ£o: {{ item.suggested_category }})
               </span>
             </template>
             <template #item-is_active="{ item }">
@@ -283,7 +284,7 @@
             </template>
           </UiTable>
 
-          <!-- Paginação -->
+          <!-- PaginaÃ§Ã£o -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -312,7 +313,7 @@
       <UiSwitch
         v-model="modal.payload.value.is_suggesting_category"
         color="primary"
-        label="Não encontrou a categoria? Sugerir nova"
+        label="NÃ£o encontrou a categoria? Sugerir nova"
       />
 
       <UiSelect
@@ -335,9 +336,9 @@
       <UiCombobox
         v-if="modal.payload.value.is_suggesting_category"
         v-model="modal.payload.value.suggested_category"
-        hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
+        hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
         :items="pendingSuggestions || []"
-        label="Qual categoria você sugere?"
+        label="Qual categoria vocÃª sugere?"
         persistent-hint
         :return-object="false"
       />
@@ -345,7 +346,7 @@
       <UiSwitch
         v-model="modal.payload.value.is_active"
         color="success"
-        hint="Indica se o produto está disponível para uso"
+        hint="Indica se o produto estÃ¡ disponÃ­vel para uso"
         label="Produto Ativo"
         persistent-hint
       />
@@ -361,3 +362,4 @@
     </UiModal>
   </div>
 </template>
+
