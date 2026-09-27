@@ -58,7 +58,7 @@ INSERT INTO public.expense_natures (id, name, is_active, is_pending) VALUES
 ('33903031', 'MATERIAL MEDICO,HOSPITALAR E ODONTOLOGICO', true, false),
 ('33903032', 'MATERIAL DE USO LABORATORIAL', true, false),
 ('33903034', 'MATERIAL DE USO VETERINARIO', true, false),
-('33903035', 'MEDICAMENTOS FORNECIDOS POR DECIS„O JUDICIAL', true, false),
+('33903035', 'MEDICAMENTOS FORNECIDOS POR DECIS√£O JUDICIAL', true, false),
 ('33903036', 'OUT.MAT.CONS.DECORRENTE DE DECISAO JUDICIAL', true, false),
 ('33903039', 'MATERIAL ESPORTIVO E DE LAZER', true, false),
 ('33903040', 'MATERIAL EDUCATIVO E CULTURAL', true, false),
@@ -84,8 +84,8 @@ INSERT INTO public.expense_natures (id, name, is_active, is_pending) VALUES
 ('33903081', 'ALIMENTOS PARA ANIMAIS', true, false),
 ('33903082', 'SEMENTES E MUDAS DE PLANTAS', true, false),
 ('33903090', 'OUTROS MATERIAIS DE CONSUMO', true, false),
-('44905220', 'INFORM¡TICA', true, false),
-('44905232', 'MOBILI¡RIO GERAL', true, false),
+('44905220', 'INFORM√ÅTICA', true, false),
+('44905232', 'MOBILI√ÅRIO GERAL', true, false),
 ('44905234', 'EQUIPAMENTOS', true, false);
 
 -- 6. Add relation to products
