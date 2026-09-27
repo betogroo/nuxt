@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   const route = useRoute()
   const router = useRouter()
   const { profile, fetchAllProfiles } = useProfile()
@@ -29,7 +29,7 @@
     return await fetchDemandById(demandId)
   })
 
-  // Modal de Edição Rápida de Planejamento
+  // Modal de EdiÃ§Ã£o RÃ¡pida de Planejamento
   const editPlanningModal = useModal<Partial<DemandRow>>({
     name: '',
     type: 'consumption',
@@ -73,7 +73,7 @@
     }
   }
 
-  // Verifica se o planejamento está incompleto (faltando campos obrigatórios para avançar)
+  // Verifica se o planejamento estÃ¡ incompleto (faltando campos obrigatÃ³rios para avanÃ§ar)
   const isPlanningIncomplete = computed(() => {
     if (demand.value?.status !== 'planning') return false
     const { process_number, id_pca, contract_number } = demand.value
@@ -160,7 +160,7 @@
   })
 
   const computedMeasurementUnits = computed(() => {
-    return (availableUnitsForSelectedProduct.value || []).map(
+    return (allMeasurementUnits.value || []).map(
       (u: { name: string; legacy_alias?: string | null } | undefined | null) => ({
         ...u,
         displayName: u?.legacy_alias ? `${u?.name} (Legado: ${u?.legacy_alias})` : u?.name,
@@ -342,7 +342,7 @@
 
   const addResponsible = async () => {
     if (!responsibleUserId.value) {
-      alert('Selecione um usuário.')
+      alert('Selecione um usuÃ¡rio.')
       return
     }
     isAddingResponsible.value = true
@@ -359,7 +359,7 @@
   }
 
   const removeResponsible = async (userId: string) => {
-    if (!confirm('Deseja realmente remover este responsável?')) return
+    if (!confirm('Deseja realmente remover este responsÃ¡vel?')) return
     try {
       await removeResponsibleDb(demandId as string, userId)
       await refreshResponsibles()
@@ -437,7 +437,7 @@
       Voltar para Demandas
     </UiButton>
 
-    <!-- Cabeçalho da Demanda -->
+    <!-- CabeÃ§alho da Demanda -->
     <UiCard v-if="demand" class="mb-6" transparent-header>
       <template #header>
         <div class="d-flex align-center w-100">
@@ -469,7 +469,7 @@
           <UiTooltip
             v-if="getNextStatus(demand.status)"
             :disabled="!isPlanningIncomplete"
-            text="Preencha todos os Dados do Planejamento para avançar"
+            text="Preencha todos os Dados do Planejamento para avanÃ§ar"
           >
             <template #activator="{ props }">
               <span v-bind="props" class="d-inline-block">
@@ -479,7 +479,7 @@
                   prepend-icon="mdi-arrow-right-bold"
                   @click="openAdvanceModal"
                 >
-                  Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
+                  AvanÃ§ar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
                 </UiButton>
               </span>
             </template>
@@ -531,7 +531,7 @@
               <v-col cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Processo Oficial</div>
                 <div class="text-body-1 font-weight-bold text-primary">
-                  {{ demand.process_number || 'Aguardando autuação' }}
+                  {{ demand.process_number || 'Aguardando autuaÃ§Ã£o' }}
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
@@ -553,7 +553,7 @@
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">Nº da Contratação</div>
+                <div class="text-caption text-grey">NÂº da ContrataÃ§Ã£o</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.contract_number || '-' }}
                 </div>
@@ -566,10 +566,10 @@
                   type="warning"
                   variant="tonal"
                 >
-                  Para avançar para a Cotação, preencha os dados do planejamento (Processo Oficial,
-                  ID PCA e Nº Contratação).
+                  Para avanÃ§ar para a CotaÃ§Ã£o, preencha os dados do planejamento (Processo Oficial,
+                  ID PCA e NÂº ContrataÃ§Ã£o).
                   <br />
-                  <small>Você pode editar a demanda voltando à tela de listagem.</small>
+                  <small>VocÃª pode editar a demanda voltando Ã  tela de listagem.</small>
                 </UiAlert>
               </v-col>
             </v-row>
@@ -578,18 +578,18 @@
           <!-- Dados da Disputa -->
           <UiCard
             v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
-            title="Dados da Disputa e Contratação"
+            title="Dados da Disputa e ContrataÃ§Ã£o"
             variant="outlined"
           >
             <v-row class="px-2 pb-2 mt-2">
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">Aviso de Contratação</div>
+                <div class="text-caption text-grey">Aviso de ContrataÃ§Ã£o</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.bidding_notice_number || '-' }}
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">Nº Disputa</div>
+                <div class="text-caption text-grey">NÂº Disputa</div>
                 <div class="text-body-1">
                   {{ demand.dispute_number || '-' }}
                 </div>
@@ -623,10 +623,10 @@
           </UiCard>
         </v-col>
 
-        <!-- Responsáveis -->
+        <!-- ResponsÃ¡veis -->
         <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
-            <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
+            <span class="text-subtitle-2 font-weight-bold">ResponsÃ¡veis</span>
             <v-spacer />
             <UiButton
               icon="mdi-plus"
@@ -647,7 +647,7 @@
                 </v-avatar>
               </template>
               <v-list-item-title class="text-body-2">{{
-                resp?.profiles?.name || 'Usuário Desconhecido'
+                resp?.profiles?.name || 'UsuÃ¡rio Desconhecido'
               }}</v-list-item-title>
               <template #append>
                 <UiButton
@@ -662,7 +662,7 @@
             </v-list-item>
             <v-list-item v-if="!responsibles?.length" class="px-0">
               <v-list-item-title class="text-caption text-grey"
-                >Nenhum responsável definido.</v-list-item-title
+                >Nenhum responsÃ¡vel definido.</v-list-item-title
               >
             </v-list-item>
           </v-list>
@@ -693,7 +693,7 @@
         type="info"
         variant="tonal"
       >
-        A inserção ou alteração de itens só é permitida na fase de Cotação.
+        A inserÃ§Ã£o ou alteraÃ§Ã£o de itens sÃ³ Ã© permitida na fase de CotaÃ§Ã£o.
       </UiAlert>
 
       <UiTable
@@ -705,7 +705,7 @@
           { text: 'Total Ref.', value: 'total_reference', align: 'right' },
           { text: 'Melhor Lance', value: 'best_bid', align: 'right' },
           { text: 'Total Final', value: 'total_final', align: 'right' },
-          { text: 'Ações', value: 'actions', align: 'right' },
+          { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
         ]"
         :items="items || []"
       >
@@ -889,7 +889,7 @@
         v-model:search="editItemForm.searchUnitText"
         class="mt-3"
         clearable
-        hint="Selecione ou digite uma nova unidade de medida se não existir."
+        hint="Selecione ou digite uma nova unidade de medida se nÃ£o existir."
         item-title="name"
         item-value="id"
         :items="allMeasurementUnits || []"
@@ -924,7 +924,7 @@
         {{ saveError }}
       </UiAlert>
 
-      <!-- Seção de Busca de Produto Existente -->
+      <!-- SeÃ§Ã£o de Busca de Produto Existente -->
       <template v-if="!isNewProductMode">
         <v-autocomplete
           v-model="selectedProductId"
@@ -941,7 +941,7 @@
           <!-- Personalizando a pesquisa no front-end para simplificar -->
           <template #no-data>
             <div class="pa-3 text-center">
-              <span class="text-grey mr-2">Produto não encontrado.</span>
+              <span class="text-grey mr-2">Produto nÃ£o encontrado.</span>
               <UiButton
                 color="primary"
                 size="small"
@@ -959,11 +959,11 @@
           v-model="selectedUnitSearch"
           class="mt-3"
           density="comfortable"
-          hint="Selecione ou digite uma nova embalagem se não existir."
+          hint="Selecione ou digite uma nova embalagem se nÃ£o existir."
           item-title="displayName"
           item-value="name"
           :items="computedMeasurementUnits"
-          label="Apresentação (Unidade de Medida)"
+          label="ApresentaÃ§Ã£o (Unidade de Medida)"
           persistent-hint
           :return-object="false"
           variant="outlined"
@@ -987,11 +987,11 @@
         />
       </template>
 
-      <!-- Seção de Cadastro Rápido de Novo Produto -->
+      <!-- SeÃ§Ã£o de Cadastro RÃ¡pido de Novo Produto -->
       <template v-else>
         <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
-          Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
-          adicionado à demanda.
+          VocÃª estÃ¡ cadastrando um novo produto. Ele serÃ¡ salvo no sistema e automaticamente
+          adicionado Ã  demanda.
         </UiAlert>
 
         <UiInput v-model="newProductName" label="Nome do Produto" />
@@ -1008,9 +1008,9 @@
           v-model="newProductSuggestedCategory"
           class="mb-4"
           density="comfortable"
-          hint="Digite uma nova ou escolha uma sugestão pendente de outros usuários."
+          hint="Digite uma nova ou escolha uma sugestÃ£o pendente de outros usuÃ¡rios."
           :items="pendingSuggestions || []"
-          label="Qual categoria você sugere?"
+          label="Qual categoria vocÃª sugere?"
           persistent-hint
           :return-object="false"
           variant="outlined"
@@ -1024,7 +1024,7 @@
           item-title="displayName"
           item-value="name"
           :items="computedMeasurementUnits"
-          label="Apresentação (Unidade de Medida)"
+          label="ApresentaÃ§Ã£o (Unidade de Medida)"
           persistent-hint
           :return-object="false"
           variant="outlined"
@@ -1040,7 +1040,7 @@
 
         <div class="text-right">
           <UiButton size="small" variant="text" @click="isNewProductMode = false">
-            Voltar à Busca
+            Voltar Ã  Busca
           </UiButton>
         </div>
       </template>
@@ -1048,16 +1048,16 @@
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
-          Adicionar à Demanda
+          Adicionar Ã  Demanda
         </UiButton>
       </template>
     </UiModal>
 
-    <!-- Modal Adicionar Responsável -->
+    <!-- Modal Adicionar ResponsÃ¡vel -->
     <UiModal
       v-model="isResponsibleModalOpen"
       max-width="400px"
-      title="Adicionar Responsável"
+      title="Adicionar ResponsÃ¡vel"
       transparent-header
     >
       <UiAlert v-if="responsibleError" class="mb-4" density="compact" type="error" variant="tonal">
@@ -1068,7 +1068,7 @@
         item-title="name"
         item-value="id"
         :items="availableProfiles"
-        label="Selecione o Usuário"
+        label="Selecione o UsuÃ¡rio"
       />
       <template #actions>
         <UiButton
@@ -1083,11 +1083,11 @@
       </template>
     </UiModal>
 
-    <!-- Modal Avançar Status -->
+    <!-- Modal AvanÃ§ar Status -->
     <UiModal
       v-model="advanceModal.isOpen.value"
       max-width="500px"
-      :title="`Avançar para: ${formatDemandStatus(targetStatus)}`"
+      :title="`AvanÃ§ar para: ${formatDemandStatus(targetStatus)}`"
       transparent-header
     >
       <UiAlert
@@ -1103,7 +1103,7 @@
       <div v-if="targetStatus === 'bidding_notice'">
         <UiInput
           v-model="advanceModal.payload.value.bidding_notice_number"
-          label="Número do Aviso de Contratação"
+          label="NÃºmero do Aviso de ContrataÃ§Ã£o"
           required
         />
       </div>
@@ -1111,7 +1111,7 @@
       <div v-if="targetStatus === 'dispute'">
         <UiInput
           v-model="advanceModal.payload.value.dispute_number"
-          label="Número da Disputa"
+          label="NÃºmero da Disputa"
           required
         />
         <UiInput
@@ -1141,7 +1141,7 @@
       <div v-if="targetStatus === 'homologation'">
         <UiInput
           v-model="advanceModal.payload.value.contract_number"
-          label="Número da Contratação (Contrato/Ata)"
+          label="NÃºmero da ContrataÃ§Ã£o (Contrato/Ata)"
           required
         />
       </div>
@@ -1161,7 +1161,7 @@
           color="success"
           :loading="advanceModal.isSaving.value"
           @click="confirmAdvanceStatus"
-          >Confirmar Avanço</UiButton
+          >Confirmar AvanÃ§o</UiButton
         >
       </template>
     </UiModal>
@@ -1189,8 +1189,8 @@
         >?
       </p>
       <p class="text-body-2 text-warning mt-2">
-        Isto reabrirá a possibilidade de edição dos itens (dependendo da fase) e limpará qualquer
-        solicitação de retorno pendente.
+        Isto reabrirÃ¡ a possibilidade de ediÃ§Ã£o dos itens (dependendo da fase) e limparÃ¡ qualquer
+        solicitaÃ§Ã£o de retorno pendente.
       </p>
 
       <template #actions>
@@ -1239,8 +1239,8 @@
 
       <UiInput
         v-model="editPlanningModal.payload.value.process_number"
-        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
-        label="Nº do Processo (Oficial)"
+        hint="Opcional. PadrÃ£o: XXX.XXXXXXXX/YYYY-ZZ"
+        label="NÂº do Processo (Oficial)"
         placeholder="Ex: 058.00100793/2026-21"
       />
 
@@ -1254,8 +1254,8 @@
       <UiInput
         v-model="editPlanningModal.payload.value.contract_number"
         hint="Opcional."
-        label="Nº da Contratação"
-        placeholder="Apenas números"
+        label="NÂº da ContrataÃ§Ã£o"
+        placeholder="Apenas nÃºmeros"
         type="number"
       />
 
