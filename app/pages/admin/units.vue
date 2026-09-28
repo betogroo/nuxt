@@ -2,7 +2,7 @@
 import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
 
 definePageMeta({
-  middleware: ['auth', 'admin'],
+  middleware: ['admin'],
   })
 
 const {
