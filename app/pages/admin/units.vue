@@ -230,8 +230,8 @@ const submitResolve = async () => {
       <v-tab value="aliases">Registros Alternativos (Aliases)</v-tab>
     </v-tabs>
 
-    <v-window v-model="activeTab">
-      <v-window-item value="units">
+    <div class="mt-4">
+      <div v-if="activeTab === 'units'">
         <v-row>
           <v-col v-if="pendingUnits && pendingUnits.length > 0" cols="12">
             <UiCard title="Unidades Pendentes">
@@ -309,9 +309,9 @@ const submitResolve = async () => {
             </UiCard>
           </v-col>
         </v-row>
-      </v-window-item>
+      </div>
 
-      <v-window-item value="aliases">
+      <div v-if="activeTab === 'aliases'">
         <UiCard>
           <template #header>
             <span class="text-subtitle-1 font-weight-bold">Todos os Registros Alternativos</span>
@@ -343,8 +343,8 @@ const submitResolve = async () => {
             </template>
           </UiTable>
         </UiCard>
-      </v-window-item>
-    </v-window>
+      </div>
+    </div>
 
     <!-- Modal Form (Units) -->
     <UiModal v-model="isModalOpen" max-width="500px" :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'" transparent-header>
