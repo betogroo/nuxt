@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
@@ -212,7 +212,13 @@
               </NuxtLink>
             </template>
             <template #item-expense_nature="{ item }">
-              {{ item.expense_natures?.name || '-' }}
+              <div v-if="item.expense_natures" class="d-flex align-center">
+                <UiChip size="small" variant="tonal" color="grey-darken-2" class="mr-2">
+                  {{ item.expense_natures.id }}
+                </UiChip>
+                <span>{{ item.expense_natures.name }}</span>
+              </div>
+              <span v-else>-</span>
             </template>
             <template #item-is_active="{ item }">
               <v-tooltip location="top" text="Clique para ativar/desativar">
