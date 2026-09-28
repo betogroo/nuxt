@@ -83,4 +83,27 @@ describe('useExpenseNatures', () => {
     expect(mockSupabase.from).toHaveBeenCalledWith('expense_natures')
     // We can't easily assert chained calls without better mock setup, but the function should succeed without throwing
   })
-})
+
+  it('toggleExpenseNatureStatus should update is_active and log action', async () => {
+    const { toggleExpenseNatureStatus } = useExpenseNatures()
+    const mockEq = vi.fn().mockResolvedValue({ error: null })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq })
+
+    mockSupabase.from.mockImplementation((table) => {
+      if (table === 'expense_natures') {
+        return { update: mockUpdate }
+      }
+    })
+
+    const nature = { id: '33903000', name: 'Material', is_active: true } as ExpenseNatureRow
+    await toggleExpenseNatureStatus(nature)
+
+    expect(mockUpdate).toHaveBeenCalledWith({ is_active: false })
+    expect(mockEq).toHaveBeenCalledWith('id', '33903000')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'TOGGLE_EXPENSE_NATURE_STATUS',
+      expect.stringContaining('Inativo'),
+      'user-123'
+    )
+  })
+});

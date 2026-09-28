@@ -11,7 +11,8 @@
     fetchExpenseNatures,
     createExpenseNature,
     updateExpenseNature,
-    deleteExpenseNature
+    deleteExpenseNature,
+    toggleExpenseNatureStatus
   } = useExpenseNatures()
 
   // Pagination and Search State
@@ -121,6 +122,16 @@
     }
   }
 
+  
+  const toggleStatus = async (item: ExpenseNatureRow) => {
+    try {
+      await toggleExpenseNatureStatus(item)
+      await refresh()
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e))
+    }
+  }
+
   const deleteNature = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta Natureza de Despesa?')) return
     try {
@@ -192,9 +203,20 @@
               <span v-else class="text-grey">-</span>
             </template>
             <template #item-is_active="{ item }">
-              <UiChip :color="item.is_active ? 'success' : 'error'" size="small">
-                {{ item.is_active ? 'Ativo' : 'Inativo' }}
-              </UiChip>
+              <v-tooltip text="Clique para ativar/desativar" location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props">
+                    <UiChip
+                      :color="item.is_active ? 'success' : 'error'"
+                      size="small"
+                      style="cursor: pointer"
+                      @click="toggleStatus(item)"
+                    >
+                      {{ item.is_active ? 'Ativo' : 'Inativo' }}
+                    </UiChip>
+                  </span>
+                </template>
+              </v-tooltip>
             </template>
             <template #item-actions="{ item }">
               <UiButton

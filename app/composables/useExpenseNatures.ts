@@ -66,6 +66,23 @@ export const useExpenseNatures = () => {
     )
   }
 
+  
+  const toggleExpenseNatureStatus = async (expenseNature: ExpenseNatureRow) => {
+    const newStatus = !expenseNature.is_active
+    const { error } = await supabase
+      .from('expense_natures')
+      .update({ is_active: newStatus })
+      .eq('id', expenseNature.id)
+
+    if (error) throw error
+
+    await logAction(
+      'TOGGLE_EXPENSE_NATURE_STATUS',
+      `Status da Natureza de Despesa ${expenseNature.id} alterado para ${newStatus ? 'Ativo' : 'Inativo'}`,
+      user.value?.id,
+    )
+  }
+
   const updateExpenseNature = async (id: string, payload: Partial<ExpenseNatureInsert>) => {
     const { error } = await supabase.from('expense_natures').update(payload).eq('id', id)
 
@@ -93,5 +110,6 @@ export const useExpenseNatures = () => {
     createExpenseNature,
     updateExpenseNature,
     deleteExpenseNature,
+    toggleExpenseNatureStatus,
   }
 }
