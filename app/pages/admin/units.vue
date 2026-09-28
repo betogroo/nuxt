@@ -196,7 +196,7 @@
           <UiTable
             :headers="[
               { text: 'Unidade Sugerida', value: 'name' },
-              { text: 'Apelido (Se houver)', value: 'legacy_alias' },
+              { text: 'Registros Alternativos', value: 'aliases' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="pendingUnits"
@@ -237,17 +237,19 @@
           <UiTable
             :headers="[
               { text: 'Nome da Unidade', value: 'name' },
-              { text: 'Apelido (Sistema Legado)', value: 'legacy_alias' },
+              { text: 'Registros Alternativos', value: 'aliases' },
               { text: 'Status', value: 'is_active', align: 'center' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="activeUnits"
             :loading="pending"
           >
-            <template #item-legacy_alias="{ item }">
-              <UiChip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
-                {{ item.legacy_alias }}
-              </UiChip>
+            <template #item-aliases="{ item }">
+              <div v-if="item.measurement_unit_aliases?.length > 0">
+                <UiChip v-for="alias in item.measurement_unit_aliases" :key="alias.id" color="info" size="small" variant="tonal" class="mr-1 mb-1">
+                  {{ alias.name }} (Cód: {{ alias.code }})
+                </UiChip>
+              </div>
               <span v-else class="text-grey">-</span>
             </template>
             <template #item-is_active="{ item }">
@@ -285,17 +287,19 @@
           <UiTable
             :headers="[
               { text: 'Nome da Unidade', value: 'name' },
-              { text: 'Apelido (Sistema Legado)', value: 'legacy_alias' },
+              { text: 'Registros Alternativos', value: 'aliases' },
               { text: 'Status', value: 'is_active', align: 'center' },
               { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="inactiveUnits"
             :loading="pending"
           >
-            <template #item-legacy_alias="{ item }">
-              <UiChip v-if="item.legacy_alias" color="info" size="small" variant="tonal">
-                {{ item.legacy_alias }}
-              </UiChip>
+            <template #item-aliases="{ item }">
+              <div v-if="item.measurement_unit_aliases?.length > 0">
+                <UiChip v-for="alias in item.measurement_unit_aliases" :key="alias.id" color="info" size="small" variant="tonal" class="mr-1 mb-1">
+                  {{ alias.name }} (Cód: {{ alias.code }})
+                </UiChip>
+              </div>
               <span v-else class="text-grey">-</span>
             </template>
             <template #item-is_active="{ item }">
@@ -335,7 +339,15 @@
       </UiAlert>
 
       <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote, Bisnaga 90g)" />
-      <UiInput v-model="form.legacy_alias" label="Apelido do Sistema Legado (opcional)" />
+      <v-combobox
+        v-model="form.aliases"
+        label="Registros Alternativos (pressione Enter para adicionar)"
+        multiple
+        chips
+        closable-chips
+        clearable
+        variant="outlined"
+      />
 
       <UiSwitch
         v-model="form.is_active"

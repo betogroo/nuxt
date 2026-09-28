@@ -10,7 +10,7 @@ vi.mock('~/composables/useMeasurementUnits', () => {
     useMeasurementUnits: () => ({
       fetchUnits: vi.fn().mockResolvedValue([
         { id: '1', name: 'Metro', is_active: true, is_pending: false, legacy_alias: 'm' },
-        { id: '2', name: 'Pend', is_active: false, is_pending: true, legacy_alias: null },
+        { id: '2', name: 'Pend', is_active: false, is_pending: true, measurement_unit_aliases: [] },
       ]),
       createUnit: vi.fn(),
       updateUnit: vi.fn(),

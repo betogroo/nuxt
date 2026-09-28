@@ -1,6 +1,9 @@
 import type { Database } from '~/types/database.types'
 
-export type UnitRow = Database['public']['Tables']['measurement_units']['Row']
+export type UnitAliasRow = Database['public']['Tables']['measurement_unit_aliases']['Row']
+export type UnitRow = Database['public']['Tables']['measurement_units']['Row'] & {
+  measurement_unit_aliases?: UnitAliasRow[]
+}
 
 export const useMeasurementUnits = () => {
   const supabase = useSupabaseClient<Database>()
@@ -8,7 +11,7 @@ export const useMeasurementUnits = () => {
   const { logAction } = useLogger()
 
   const fetchUnits = async () => {
-    const { data, error } = await supabase.from('measurement_units').select('*').order('name')
+    const { data, error } = await supabase.from('measurement_units').select('*, measurement_unit_aliases(*)').order('name')
     if (error) throw error
     return data || []
   }
@@ -16,7 +19,7 @@ export const useMeasurementUnits = () => {
   const fetchAllActiveUnits = async () => {
     const { data, error } = await supabase
       .from('measurement_units')
-      .select('*')
+      .select('*, measurement_unit_aliases(*)')
       .eq('is_active', true)
       .order('name')
     if (error) throw error
@@ -25,20 +28,49 @@ export const useMeasurementUnits = () => {
 
   const createUnit = async (payload: {
     name: string
-    legacy_alias: string | null
+    aliases: string[]
     is_active: boolean
   }) => {
-    const { error } = await supabase.from('measurement_units').insert(payload)
+    const { data: unit, error } = await supabase.from('measurement_units').insert({
+      name: payload.name,
+      is_active: payload.is_active
+    }).select().single()
+    
     if (error) throw error
+    
+    if ((payload.aliases || []).length > 0 && unit) {
+      const aliasesToInsert = payload.aliases.map(a => ({
+        unit_id: unit.id,
+        name: a
+      }))
+      const { error: aliasErr } = await supabase.from('measurement_unit_aliases').insert(aliasesToInsert)
+      if (aliasErr) throw aliasErr
+    }
+    
     await logAction('CREATE_UNIT', `Nova unidade de medida criada: ${payload.name}`, user.value?.id)
   }
 
   const updateUnit = async (
     id: string,
-    payload: { name: string; legacy_alias: string | null; is_active: boolean },
+    payload: { name: string; aliases: string[]; is_active: boolean },
   ) => {
-    const { error } = await supabase.from('measurement_units').update(payload).eq('id', id)
+    const { error } = await supabase.from('measurement_units').update({
+      name: payload.name,
+      is_active: payload.is_active
+    }).eq('id', id)
     if (error) throw error
+
+    // Sync aliases
+    await supabase.from('measurement_unit_aliases').delete().eq('unit_id', id)
+    if ((payload.aliases || []).length > 0) {
+      const aliasesToInsert = payload.aliases.map(a => ({
+        unit_id: id,
+        name: a
+      }))
+      const { error: aliasErr } = await supabase.from('measurement_unit_aliases').insert(aliasesToInsert)
+      if (aliasErr) throw aliasErr
+    }
+
     await logAction('UPDATE_UNIT', `Unidade de medida atualizada: ${payload.name}`, user.value?.id)
   }
 
@@ -83,7 +115,7 @@ export const useMeasurementUnits = () => {
     // Atualizar product_units
     const { data: productLinks } = await supabase
       .from('product_units')
-      .select('*')
+      .select('*, measurement_unit_aliases(*)')
       .eq('unit_id', targetUnit.id)
 
     if (productLinks) {
@@ -101,7 +133,7 @@ export const useMeasurementUnits = () => {
     // Atualizar demand_products
     const { data: demandLinks } = await supabase
       .from('demand_products')
-      .select('*')
+      .select('*, measurement_unit_aliases(*)')
       .eq('unit_id', targetUnit.id)
 
     if (demandLinks) {
