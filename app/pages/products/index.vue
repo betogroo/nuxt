@@ -117,11 +117,13 @@
         await updateProduct(modal.payload.value.id as string, payload)
       } else {
         await createProduct(payload)
+      
       }
       await refresh()
       modal.close()
+      modal.stopSaving()
     } catch (e: unknown) {
-      modal.handleError(e)
+      modal.stopSaving(e instanceof Error ? e.message : String(e))
     }
   }
 
@@ -298,5 +300,7 @@
     </UiModal>
   </div>
 </template>
+
+
 
 
