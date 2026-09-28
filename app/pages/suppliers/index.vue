@@ -99,7 +99,7 @@
 
   const saveSupplier = async () => {
     if (!form.value.cnpj || !form.value.company_name || !form.value.email) {
-      saveError.value = 'CNPJ, Nome da Empresa e E-mail sÃ£o obrigatÃ³rios.'
+      saveError.value = 'CNPJ, Nome da Empresa e E-mail são obrigatórios.'
       return
     }
 
@@ -107,7 +107,7 @@
     saveError.value = ''
 
     try {
-      // Se a opÃ§Ã£o do simples mudar, atualiza a data de verificaÃ§Ã£o.
+      // Se a opção do simples mudar, atualiza a data de verificação.
       let verifiedAt = form.value.simples_optant_verified_at
       if (isEditing.value) {
         const original = suppliers.value?.find((s) => s.id === form.value.id)
@@ -208,7 +208,7 @@
               { text: 'E-mail', value: 'email' },
               { text: 'Optante Simples', value: 'is_simples_optant' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="activeSuppliers"
           >
@@ -221,7 +221,7 @@
                 <span
                   :class="item.is_simples_optant ? 'text-success font-weight-bold' : 'text-grey'"
                 >
-                  {{ item.is_simples_optant ? 'Sim' : 'NÃ£o' }}
+                  {{ item.is_simples_optant ? 'Sim' : 'Não' }}
                 </span>
                 <span v-if="item.simples_optant_verified_at" class="text-caption text-grey">
                   Verif: {{ formatDate(item.simples_optant_verified_at) }}
@@ -252,7 +252,7 @@
             </template>
           </UiTable>
 
-          <!-- PaginaÃ§Ã£o -->
+          <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -277,7 +277,7 @@
               { text: 'E-mail', value: 'email' },
               { text: 'Optante Simples', value: 'is_simples_optant' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="inactiveSuppliers"
             :loading="pending"
@@ -287,7 +287,7 @@
                 <span
                   :class="item.is_simples_optant ? 'text-success font-weight-bold' : 'text-grey'"
                 >
-                  {{ item.is_simples_optant ? 'Sim' : 'NÃ£o' }}
+                  {{ item.is_simples_optant ? 'Sim' : 'Não' }}
                 </span>
                 <span v-if="item.simples_optant_verified_at" class="text-caption text-grey">
                   Verif: {{ formatDate(item.simples_optant_verified_at) }}
@@ -344,7 +344,7 @@
             </v-col>
 
             <v-col cols="12" md="6">
-              <UiInput v-model="form.responsible_name" label="Nome do ResponsÃ¡vel" />
+              <UiInput v-model="form.responsible_name" label="Nome do Responsável" />
             </v-col>
             <v-col cols="12" md="6">
               <UiInput v-model="form.email" label="E-mail *" required type="email" />
@@ -358,7 +358,7 @@
             </v-col>
 
             <v-col cols="12">
-              <UiInput v-model="form.address" label="EndereÃ§o" />
+              <UiInput v-model="form.address" label="Endereço" />
             </v-col>
 
             <v-col cols="12">
@@ -374,7 +374,7 @@
               <UiSwitch
                 v-model="form.is_simples_optant"
                 color="primary"
-                hint="A data e hora da verificaÃ§Ã£o serÃ£o salvas automaticamente."
+                hint="A data e hora da verificação serão salvas automaticamente."
                 label="Optante pelo Simples Nacional"
                 persistent-hint
               />
@@ -384,7 +384,7 @@
               <UiSwitch
                 v-model="form.is_active"
                 color="success"
-                hint="Indica se o fornecedor estÃ¡ ativo no sistema"
+                hint="Indica se o fornecedor está ativo no sistema"
                 label="Fornecedor Ativo"
                 persistent-hint
               />

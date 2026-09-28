@@ -75,7 +75,7 @@ export const useSuppliers = () => {
 
     await logAction(
       'CREATE_SUPPLIER_FAST',
-      `Fornecedor cadastrado rapidamente na cotaÃ§Ã£o: ${company_name} (${cnpj})`,
+      `Fornecedor cadastrado rapidamente na cotação: ${company_name} (${cnpj})`,
       user.value?.id,
     )
 

@@ -159,7 +159,7 @@
 
       if (bidForm.value.isNewSupplier) {
         if (!bidForm.value.newSupplierCnpj || !bidForm.value.newSupplierName || !bidForm.value.newSupplierEmail) {
-          throw new Error('Preencha os dados do fornecedor: CNPJ, RazÃ£o Social e E-mail.')
+          throw new Error('Preencha os dados do fornecedor: CNPJ, Razão Social e E-mail.')
         }
         
         // Remove non-numeric chars from CNPJ
@@ -176,7 +176,7 @@
 
       // Check if this supplier already has a bid for this product
       if (bids.value?.find(b => b.supplier_id === selectedSupplierId)) {
-         throw new Error('Este fornecedor jÃ¡ possui um lance para este produto.')
+         throw new Error('Este fornecedor já possui um lance para este produto.')
       }
 
       await addBid(itemId, selectedSupplierId, bidForm.value.amount)
@@ -249,8 +249,8 @@
           </template>
 
           <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
-            Esta Ã© a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
-            documentos enviados pelos fornecedores aparecerÃ£o aqui.
+            Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
+            documentos enviados pelos fornecedores aparecerão aqui.
           </UiAlert>
 
           <!-- Card de Lances -->
@@ -280,7 +280,7 @@
                 { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
                 { text: 'Fornecedor', value: 'supplier' },
                 { text: 'Valor do Lance', value: 'amount', align: 'right' },
-                { text: 'AÃ§Ãµes', value: 'actions', align: 'center', sortable: false }
+                { text: 'Ações', value: 'actions', align: 'center', sortable: false }
               ]"
               :items="bids || []"
             >
@@ -292,7 +292,7 @@
               
               <template #item-pos="{ index }">
                 <UiChip :color="index === 0 ? 'success' : 'default'" size="small">
-                  {{ index + 1 }}Âº
+                  {{ index + 1 }}º
                 </UiChip>
               </template>
 
@@ -336,7 +336,7 @@
 
       <v-col cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
-        <UiCard title="InformaÃ§Ãµes" variant="outlined">
+        <UiCard title="Informações" variant="outlined">
           <v-list class="bg-transparent" density="compact">
             <v-list-item v-if="item?.reference_price">
               <template #prepend>
@@ -416,7 +416,7 @@
           hide-details
           :items="[
             { title: 'Percentual (%)', value: 'percentage' },
-            { title: 'MonetÃ¡rio (R$)', value: 'monetary' },
+            { title: 'Monetário (R$)', value: 'monetary' },
           ]"
           label="Tipo de Intervalo"
           variant="outlined"
@@ -434,11 +434,11 @@
       <UiCombobox
         v-model="editForm.unitSearch"
         density="comfortable"
-        hint="Selecione ou digite uma nova embalagem se nÃ£o existir."
+        hint="Selecione ou digite uma nova embalagem se não existir."
         item-title="displayName"
         item-value="name"
         :items="availableUnits"
-        label="ApresentaÃ§Ã£o (Unidade de Medida)"
+        label="Apresentação (Unidade de Medida)"
         persistent-hint
         :return-object="false"
         variant="outlined"
@@ -463,7 +463,7 @@
       <v-switch
         v-model="bidForm.isNewSupplier"
         color="primary"
-        label="Fornecedor nÃ£o estÃ¡ na lista? Cadastrar Novo."
+        label="Fornecedor não está na lista? Cadastrar Novo."
         density="compact"
         hide-details
         class="mb-4"
@@ -477,7 +477,7 @@
         item-title="company_name"
         item-value="id"
         label="Selecionar Fornecedor*"
-        placeholder="Busque pela razÃ£o social..."
+        placeholder="Busque pela razão social..."
         variant="outlined"
         density="comfortable"
         class="mb-3"
@@ -489,12 +489,12 @@
         <UiInput
           v-model="bidForm.newSupplierCnpj"
           label="CNPJ do Fornecedor*"
-          placeholder="Apenas nÃºmeros"
+          placeholder="Apenas números"
           v-maska="'##.###.###/####-##'"
         />
         <UiInput
           v-model="bidForm.newSupplierName"
-          label="RazÃ£o Social*"
+          label="Razão Social*"
           placeholder="Nome da empresa"
         />
         <UiInput

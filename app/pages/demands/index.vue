@@ -140,10 +140,10 @@
                   item-value="value"
                   :items="[
                     { title: 'Planejamento', value: 'planning' },
-                    { title: 'Aviso de ContrataÃ§Ã£o', value: 'bidding_notice' },
+                    { title: 'Aviso de Contratação', value: 'bidding_notice' },
                     { title: 'Disputa', value: 'dispute' },
-                    { title: 'HomologaÃ§Ã£o', value: 'homologation' },
-                    { title: 'ConcluÃ­do', value: 'completed' },
+                    { title: 'Homologação', value: 'homologation' },
+                    { title: 'Concluído', value: 'completed' },
                     { title: 'Cancelado', value: 'cancelled' },
                     { title: 'Aguardando Retorno (Admin)', value: 'returns' },
                   ]"
@@ -162,7 +162,7 @@
               { text: 'Tipo', value: 'type' },
               { text: 'Status', value: 'status' },
               { text: 'Criado por', value: 'creator' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'Ações', value: 'actions', align: 'right' },
             ]"
             :items="demands || []"
             :loading="pending"
@@ -171,7 +171,7 @@
               <div v-if="item.process_number" class="font-weight-bold text-primary">
                 {{ item.process_number }}
               </div>
-              <div v-else class="text-caption text-grey font-italic">Sem nÂº oficial</div>
+              <div v-else class="text-caption text-grey font-italic">Sem nº oficial</div>
               <div class="text-caption text-grey-darken-1">
                 Interno: {{ item.internal_process_number || '-' }}
               </div>
@@ -213,7 +213,7 @@
             </template>
             <template #item-creator="{ item }">
               <span class="text-caption text-grey">
-                {{ item.profiles?.name || `UsuÃ¡rio (${item.user_id.split('-')[0]})` }}
+                {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
               </span>
             </template>
             <template #item-actions="{ item }">
@@ -235,7 +235,7 @@
             </template>
           </UiTable>
 
-          <!-- PaginaÃ§Ã£o -->
+          <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <v-pagination
               v-model="currentPage"
@@ -275,23 +275,23 @@
 
       <UiInput
         v-model="modal.payload.value.process_number"
-        hint="Opcional. PadrÃ£o: XXX.XXXXXXXX/YYYY-ZZ"
-        label="NÂº do Processo (Oficial)"
+        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        label="Nº do Processo (Oficial)"
         placeholder="Ex: 058.00100793/2026-21"
       />
 
       <UiInput
         v-model="modal.payload.value.id_pca"
-        hint="Opcional. ID do Plano de ContrataÃ§Ãµes Anual"
+        hint="Opcional. ID do Plano de Contratações Anual"
         label="ID PCA"
         placeholder="Ex: 46377800000127-0-000132/2026"
       />
 
       <UiInput
         v-model="modal.payload.value.contract_number"
-        hint="Opcional. NÃºmero da contrataÃ§Ã£o."
-        label="NÂº da ContrataÃ§Ã£o"
-        placeholder="Apenas nÃºmeros"
+        hint="Opcional. Número da contratação."
+        label="Nº da Contratação"
+        placeholder="Apenas números"
         type="number"
       />
 

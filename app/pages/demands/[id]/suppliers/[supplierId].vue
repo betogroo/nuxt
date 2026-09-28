@@ -69,7 +69,7 @@
               <template #prepend>
                 <v-icon color="grey">mdi-domain</v-icon>
               </template>
-              <v-list-item-title>RazÃ£o Social</v-list-item-title>
+              <v-list-item-title>Razão Social</v-list-item-title>
               <v-list-item-subtitle class="text-wrap">{{ supplier.company_name }}</v-list-item-subtitle>
             </v-list-item>
             <v-list-item>
