@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -1057,7 +1057,7 @@
           v-model="newProductExpenseNatureId"
           item-value="id"
           :items="expenseNatures || []"
-          :item-title="(item) => `${item.id} - ${item.name}`"
+          :item-title="(item) => typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''"
           label="Natureza de Despesa"
           variant="outlined"
           density="comfortable"
@@ -1328,6 +1328,7 @@
     </UiModal>
   </v-container>
 </template>
+
 
 
 

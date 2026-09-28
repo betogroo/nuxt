@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
@@ -51,7 +51,7 @@
   const modal = useModal({
     id: '',
     name: '',
-    expense_nature_id: '',
+    expense_nature_id: null,
     is_suggesting_nature: false,
     suggested_nature_id: '',
     suggested_nature_name: '',
@@ -64,7 +64,7 @@
     modal.open({
       id: '',
       name: '',
-      expense_nature_id: '',
+      expense_nature_id: null,
       is_suggesting_nature: false,
       suggested_nature_id: '',
       suggested_nature_name: '',
@@ -75,7 +75,7 @@
   const openEditModal = (product: ProductRow) => {
     modal.open({
       ...product,
-      expense_nature_id: product.expense_nature_id || '',
+      expense_nature_id: product.expense_nature_id || null,
       is_suggesting_nature: false,
       suggested_nature_id: '',
       suggested_nature_name: '',
@@ -85,12 +85,12 @@
   const saveProduct = async () => {
     if (modal.payload.value.is_suggesting_nature) {
       if (!modal.payload.value.name || !modal.payload.value.suggested_nature_id || !modal.payload.value.suggested_nature_name) {
-        modal.error.value = 'Nome do Produto e Código/Nome da Natureza são obrigatórios.'
+        modal.error.value = 'Nome do Produto e CÃ³digo/Nome da Natureza sÃ£o obrigatÃ³rios.'
         return
       }
     } else {
       if (!modal.payload.value.name || !modal.payload.value.expense_nature_id) {
-        modal.error.value = 'Nome e Natureza de Despesa são obrigatórios.'
+        modal.error.value = 'Nome e Natureza de Despesa sÃ£o obrigatÃ³rios.'
         return
       }
     }
@@ -196,7 +196,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Natureza de Despesa', value: 'expense_nature' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'Ações', value: 'actions', align: 'right' },
+              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
             ]"
             :items="products || []"
             :loading="pending"
@@ -264,14 +264,14 @@
 
       <UiInput v-model="modal.payload.value.name" label="Nome do Produto" />
 
-      <UiSwitch v-model="modal.payload.value.is_suggesting_nature" label="Não encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
+      <UiSwitch v-model="modal.payload.value.is_suggesting_nature" label="NÃ£o encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
 
       <v-autocomplete
         v-if="!modal.payload.value.is_suggesting_nature"
         v-model="modal.payload.value.expense_nature_id"
         item-value="id"
         :items="expenseNatures || []"
-        :item-title="(item) => `${item.id} - ${item.name}`"
+        :item-title="(item) => typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''"
         label="Natureza de Despesa"
         variant="outlined"
         density="comfortable"
@@ -279,7 +279,7 @@
       />
 
       <div v-else class="d-flex gap-4 mb-4">
-        <UiInput v-model="modal.payload.value.suggested_nature_id" label="Código (Ex: 33903000)" />
+        <UiInput v-model="modal.payload.value.suggested_nature_id" label="CÃ³digo (Ex: 33903000)" />
         <UiInput v-model="modal.payload.value.suggested_nature_name" label="Nome da Natureza" />
       </div>
 
@@ -298,3 +298,5 @@
     </UiModal>
   </div>
 </template>
+
+
