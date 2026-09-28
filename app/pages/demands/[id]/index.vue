@@ -954,6 +954,17 @@
             </div>
           </template>
         </v-autocomplete>
+          <div class="d-flex justify-end mt-1 mb-2">
+            <UiButton
+              color="primary"
+              size="small"
+              variant="text"
+              prepend-icon="mdi-plus"
+              @click="activateNewProductMode"
+            >
+              Não encontrou? Cadastrar novo produto
+            </UiButton>
+          </div>
 
         <UiCombobox
           v-if="selectedProductId"
