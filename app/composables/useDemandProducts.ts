@@ -51,6 +51,9 @@ export const useDemandProducts = () => {
     isNewProductMode: boolean
     newProductName?: string | null
     newProductExpenseNatureId?: string | null
+    isSuggestingNature?: boolean
+    suggestedNatureId?: string
+    suggestedNatureName?: string
     selectedProductId?: string | null
     finalUnitId: string
     itemQuantity: number
@@ -60,7 +63,34 @@ export const useDemandProducts = () => {
     let finalUnitId = params.finalUnitId
 
     if (params.isNewProductMode) {
-      if (!params.newProductName || !params.newProductExpenseNatureId) {
+      let expenseNatureId = params.newProductExpenseNatureId
+
+      if (params.isSuggestingNature) {
+        if (!params.suggestedNatureId || !params.suggestedNatureName) {
+          throw new Error('Código e Nome da nova natureza são obrigatórios.')
+        }
+        
+        // Register pending nature if it doesn't exist
+        const { data: existing } = await supabase
+          .from('expense_natures')
+          .select('id')
+          .eq('id', params.suggestedNatureId)
+          .maybeSingle()
+          
+        if (!existing) {
+          const { error: insErr } = await supabase.from('expense_natures').insert({
+            id: params.suggestedNatureId,
+            name: params.suggestedNatureName,
+            is_pending: true,
+            is_active: false,
+          })
+          if (insErr) throw insErr
+          await logAction('CREATE_PENDING_EXPENSE_NATURE', `Sugerida via Demanda: ${params.suggestedNatureName}`, user.value?.id)
+        }
+        expenseNatureId = params.suggestedNatureId
+      }
+
+      if (!params.newProductName || !expenseNatureId) {
         throw new Error('Nome e Natureza de Despesa são obrigatórios para novo produto.')
       }
 
@@ -68,7 +98,7 @@ export const useDemandProducts = () => {
         .from('products')
         .insert({
           name: params.newProductName,
-          expense_nature_id: params.newProductExpenseNatureId,
+          expense_nature_id: expenseNatureId,
         })
         .select()
         .single()

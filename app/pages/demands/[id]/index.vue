@@ -194,6 +194,9 @@
   // New Product Form state
   const newProductName = ref('')
   const newProductExpenseNatureId = ref<string | null>(null)
+  const isSuggestingNature = ref(false)
+  const suggestedNatureId = ref('')
+  const suggestedNatureName = ref('')
 
   const openAddModal = () => {
     selectedProductId.value = null
@@ -204,6 +207,9 @@
     isNewProductMode.value = false
     newProductName.value = ''
     newProductExpenseNatureId.value = null
+    isSuggestingNature.value = false
+    suggestedNatureId.value = ''
+    suggestedNatureName.value = ''
     saveError.value = ''
     isModalOpen.value = true
   }
@@ -266,6 +272,9 @@
         isNewProductMode: isNewProductMode.value,
         newProductName: newProductName.value,
         newProductExpenseNatureId: newProductExpenseNatureId.value,
+          isSuggestingNature: isSuggestingNature.value,
+          suggestedNatureId: suggestedNatureId.value,
+          suggestedNatureName: suggestedNatureName.value,
 
 
         selectedProductId: selectedProductId.value,
@@ -1040,13 +1049,25 @@
         </UiAlert>
 
         <UiInput v-model="newProductName" label="Nome do Produto" />
-        <UiSelect
+
+        <UiSwitch v-model="isSuggestingNature" label="Não encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
+
+        <v-autocomplete
+          v-if="!isSuggestingNature"
           v-model="newProductExpenseNatureId"
-          item-title="name"
           item-value="id"
           :items="expenseNatures || []"
+          :item-title="(item) => `${item.id} - ${item.name}`"
           label="Natureza de Despesa"
+          variant="outlined"
+          density="comfortable"
+          class="mb-4"
         />
+
+        <div v-else class="d-flex gap-4 mb-4">
+          <UiInput v-model="suggestedNatureId" label="Código (Ex: 33903000)" />
+          <UiInput v-model="suggestedNatureName" label="Nome da Natureza" />
+        </div>
 
         
 
@@ -1307,6 +1328,13 @@
     </UiModal>
   </v-container>
 </template>
+
+
+
+
+
+
+
 
 
 
