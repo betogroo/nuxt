@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+﻿import { describe, it, expect, vi } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemsPage from '~/pages/demands/[id]/index.vue'
@@ -37,7 +37,7 @@ mockNuxtImport('useDemands', () => () => ({
 mockNuxtImport('useProducts', () => () => ({
   fetchProducts: vi.fn().mockResolvedValue([])
 }))
-mockNuxtImport('useCategories', () => () => ({
+mockNuxtImport('useExpenseNatures', () => () => ({
   fetchCategories: vi.fn().mockResolvedValue([])
 }))
 

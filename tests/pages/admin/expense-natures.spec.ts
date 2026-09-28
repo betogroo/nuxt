@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+﻿import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import ExpenseNaturesPage from '~/pages/admin/expense-natures.vue'
@@ -62,7 +62,7 @@ describe('Expense Natures Admin Page', () => {
           'v-row': true,
           'v-col': true,
           'v-spacer': true,
-          'v-pagination': true,
+          'v-pagination': true, 'v-tabs': true, 'v-tab': true, 'v-badge': true, 'v-radio-group': true, 'v-radio': true, 'v-autocomplete': true,
         },
       },
     })
@@ -87,7 +87,7 @@ describe('Expense Natures Admin Page', () => {
           'v-row': true,
           'v-col': true,
           'v-spacer': true,
-          'v-pagination': true,
+          'v-pagination': true, 'v-tabs': true, 'v-tab': true, 'v-badge': true, 'v-radio-group': true, 'v-radio': true, 'v-autocomplete': true,
           'v-tooltip': true, // Mock tooltip
         },
       },

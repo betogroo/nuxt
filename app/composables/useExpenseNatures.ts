@@ -103,6 +103,80 @@ export const useExpenseNatures = () => {
     await logAction('DELETE_EXPENSE_NATURE', `Natureza de despesa removida: ${id}`, user.value?.id)
   }
 
+  const registerPendingExpenseNature = async (payload: { id: string; name: string }) => {
+    const { data, error } = await supabase
+      .from('expense_natures')
+      .insert({
+        id: payload.id,
+        name: payload.name,
+        is_pending: true,
+        is_active: false,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    await logAction(
+      'CREATE_PENDING_EXPENSE_NATURE',
+      `Usuário sugeriu nova natureza de despesa: ${payload.name} (${payload.id})`,
+      user.value?.id,
+    )
+    return data
+  }
+
+  const approvePendingExpenseNature = async (targetNature: ExpenseNatureRow, newName?: string) => {
+    const updatePayload: Partial<ExpenseNatureInsert> = {
+      is_pending: false,
+      is_active: true,
+    }
+    if (newName && newName.trim() !== '') {
+      updatePayload.name = newName.trim()
+    }
+
+    const { error } = await supabase
+      .from('expense_natures')
+      .update(updatePayload)
+      .eq('id', targetNature.id)
+
+    if (error) throw error
+
+    await logAction('APPROVE_EXPENSE_NATURE', `Natureza sugerida aprovada: ${targetNature.name} (${targetNature.id})`, user.value?.id)
+  }
+
+  const mergePendingExpenseNature = async (targetNature: ExpenseNatureRow, finalNatureId: string) => {
+    if (!finalNatureId) throw new Error('Selecione uma natureza de despesa existente para mesclar.')
+
+    // Atualizar products
+    const { data: productLinks } = await supabase
+      .from('products')
+      .select('id')
+      .eq('expense_nature_id', targetNature.id)
+
+    if (productLinks && productLinks.length > 0) {
+      for (const link of productLinks) {
+        await supabase
+          .from('products')
+          .update({ expense_nature_id: finalNatureId })
+          .eq('id', link.id)
+      }
+    }
+
+    // Deletar a pendente
+    const { error: delError } = await supabase
+      .from('expense_natures')
+      .delete()
+      .eq('id', targetNature.id)
+    
+    if (delError) throw delError
+
+    await logAction(
+      'MERGE_EXPENSE_NATURE',
+      `Natureza sugerida "${targetNature.name}" mesclada na oficial (${finalNatureId}).`,
+      user.value?.id,
+    )
+  }
+
   return {
     fetchExpenseNatures,
     fetchAllActiveExpenseNatures,
@@ -111,5 +185,8 @@ export const useExpenseNatures = () => {
     updateExpenseNature,
     deleteExpenseNature,
     toggleExpenseNatureStatus,
+    registerPendingExpenseNature,
+    approvePendingExpenseNature,
+    mergePendingExpenseNature,
   }
 }

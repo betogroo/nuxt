@@ -1,7 +1,7 @@
 import type { Database } from '~/types/database.types'
 
 export type ProductRow = Database['public']['Tables']['products']['Row'] & {
-  product_categories?: { id: string; name: string } | null
+  expense_natures?: { id: string; name: string } | null
 }
 
 export const useProducts = () => {
@@ -12,7 +12,7 @@ export const useProducts = () => {
   const fetchProducts = async (
     currentPage: number,
     itemsPerPage: number,
-    categoryId: string | null,
+    expenseNatureId: string | null,
     statusFilter: string | null = 'active',
   ) => {
     const from = (currentPage - 1) * itemsPerPage
@@ -20,12 +20,12 @@ export const useProducts = () => {
 
     let query = supabase
       .from('products')
-      .select('*, product_categories(id, name)', { count: 'exact' })
+      .select('*, expense_natures(id, name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
 
-    if (categoryId) {
-      query = query.eq('category_id', categoryId)
+    if (expenseNatureId) {
+      query = query.eq('expense_nature_id', expenseNatureId)
     }
 
     if (statusFilter === 'active') {
@@ -77,25 +77,10 @@ export const useProducts = () => {
     )
   }
 
-  const fetchPendingProductSuggestions = async () => {
-    const { data, error } = await supabase
-      .from('products')
-      .select('suggested_category')
-      .not('suggested_category', 'is', null)
-
-    if (error) {
-      console.error(error)
-      throw error
-    }
-
-    const unique = [...new Set(data.map((p) => p.suggested_category as string))]
-    return unique.sort()
-  }
-
   const fetchAllActiveProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, product_categories(id, name), product_units(unit_id, measurement_units(*))')
+      .select('*, expense_natures(id, name), product_units(unit_id, measurement_units(*))')
       .eq('is_active', true)
       .order('name', { ascending: true })
 
@@ -106,7 +91,7 @@ export const useProducts = () => {
   const fetchProductById = async (id: string) => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, product_categories(id, name), expense_natures(id, name)')
+      .select('*, expense_natures(id, name)')
       .eq('id', id)
       .single()
 
@@ -171,7 +156,7 @@ export const useProducts = () => {
       .insert({ product_id: productId, unit_id: unitId })
 
     if (linkError) {
-      if (linkError.code === '23505') throw new Error('Esta unidade já está vinculada ao produto.')
+      if (linkError.code === '23505') throw new Error('Esta unidade jǭ estǭ vinculada ao produto.')
       throw linkError
     }
   }
@@ -193,7 +178,6 @@ export const useProducts = () => {
     createProduct,
     updateProduct,
     toggleProductStatus,
-    fetchPendingProductSuggestions,
     addProductUnit,
     removeProductUnit,
   }

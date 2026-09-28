@@ -62,10 +62,10 @@ export type Database = {
         Row: {
           bid_interval: number | null
           bid_interval_type: string | null
-          category_name_snapshot: string | null
           created_at: string
           created_by: string | null
           demand_id: string
+          expense_nature_name_snapshot: string | null
           id: string
           product_id: string
           product_name_snapshot: string | null
@@ -78,10 +78,10 @@ export type Database = {
         Insert: {
           bid_interval?: number | null
           bid_interval_type?: string | null
-          category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null
           demand_id: string
+          expense_nature_name_snapshot?: string | null
           id?: string
           product_id: string
           product_name_snapshot?: string | null
@@ -94,10 +94,10 @@ export type Database = {
         Update: {
           bid_interval?: number | null
           bid_interval_type?: string | null
-          category_name_snapshot?: string | null
           created_at?: string
           created_by?: string | null
           demand_id?: string
+          expense_nature_name_snapshot?: string | null
           id?: string
           product_id?: string
           product_name_snapshot?: string | null
@@ -350,30 +350,6 @@ export type Database = {
         }
         Relationships: []
       }
-      product_categories: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       product_units: {
         Row: {
           created_at: string
@@ -412,46 +388,33 @@ export type Database = {
       }
       products: {
         Row: {
-          category_id: string
           created_at: string
           created_by: string | null
-          expense_nature_id: string | null
+          expense_nature_id: string
           id: string
           is_active: boolean
           name: string
-          suggested_category: string | null
           updated_at: string
         }
         Insert: {
-          category_id: string
           created_at?: string
           created_by?: string | null
-          expense_nature_id?: string | null
+          expense_nature_id: string
           id?: string
           is_active?: boolean
           name: string
-          suggested_category?: string | null
           updated_at?: string
         }
         Update: {
-          category_id?: string
           created_at?: string
           created_by?: string | null
-          expense_nature_id?: string | null
+          expense_nature_id?: string
           id?: string
           is_active?: boolean
           name?: string
-          suggested_category?: string | null
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "product_categories"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "products_expense_nature_id_fkey"
             columns: ["expense_nature_id"]

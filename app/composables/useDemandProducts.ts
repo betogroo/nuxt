@@ -15,7 +15,7 @@ export const useDemandProducts = () => {
   const fetchDemandProducts = async (demandId: string) => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*, product_categories(id, name)), measurement_units(*), demand_product_bids(*, suppliers(*))')
+      .select('*, product:products(*, expense_natures(id, name)), measurement_units(*), demand_product_bids(*, suppliers(*))')
       .eq('demand_id', demandId)
       .order('created_at', { ascending: true })
 
@@ -50,46 +50,37 @@ export const useDemandProducts = () => {
     demandId: string
     isNewProductMode: boolean
     newProductName?: string | null
-    newProductCategoryId?: string | null
-    newProductSuggestedCategory?: string | Record<string, unknown> | null
-    isNewProductOutrosCategory?: boolean
+    newProductExpenseNatureId?: string | null
     selectedProductId?: string | null
     finalUnitId: string
-      itemQuantity: number
+    itemQuantity: number
     itemReferencePrice: number
   }) => {
     let finalProductId = params.selectedProductId || ''
-      let finalUnitId = params.finalUnitId
+    let finalUnitId = params.finalUnitId
 
-      if (params.isNewProductMode) {
-        if (!params.newProductName || !params.newProductCategoryId) {
-          throw new Error('Nome e Categoria são obrigatórios para novo produto.')
-        }
-
-        const suggestedStr = params.isNewProductOutrosCategory
-          ? params.newProductSuggestedCategory
-            ? String((params.newProductSuggestedCategory as Record<string, unknown>).name || (params.newProductSuggestedCategory as Record<string, unknown>).title || params.newProductSuggestedCategory).trim()
-            : null
-          : null
-
-        const { data: newProd, error: prodError } = await supabase
-          .from('products')
-          .insert({
-            name: params.newProductName,
-            category_id: params.newProductCategoryId,
-            suggested_category: suggestedStr,
-          })
-          .select()
-          .single()
-
-        if (prodError) throw prodError
-        await logAction('CREATE_PRODUCT', `Novo produto criado via demanda: ${newProd.name}`, user.value?.id)
-        finalProductId = newProd.id
+    if (params.isNewProductMode) {
+      if (!params.newProductName || !params.newProductExpenseNatureId) {
+        throw new Error('Nome e Natureza de Despesa são obrigatórios para novo produto.')
       }
 
-      if (!finalUnitId) throw new Error('Unidade de medida inválida.')
+      const { data: newProd, error: prodError } = await supabase
+        .from('products')
+        .insert({
+          name: params.newProductName,
+          expense_nature_id: params.newProductExpenseNatureId,
+        })
+        .select()
+        .single()
 
-      // 3. Ensure unit is linked to product
+      if (prodError) throw prodError
+      await logAction('CREATE_PRODUCT', `Novo produto criado via demanda: ${newProd.name}`, user.value?.id)
+      finalProductId = newProd.id
+    }
+
+    if (!finalUnitId) throw new Error('Unidade de medida inválida.')
+
+    // 3. Ensure unit is linked to product
     const { data: existingLink } = await supabase
       .from('product_units')
       .select('id')
@@ -156,7 +147,7 @@ export const useDemandProducts = () => {
     bidInterval?: number | null
     bidIntervalType?: 'percentage' | 'monetary'
     finalUnitId: string
-    }) => {
+  }) => {
     let finalUnitId = params.finalUnitId
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
