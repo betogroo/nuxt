@@ -119,10 +119,7 @@
               <div class="text-caption text-grey mb-1">ID do Produto</div>
               <div class="text-body-1 font-weight-mono">{{ product.id }}</div>
             </v-col>
-            <v-col cols="12" sm="6">
-              <div class="text-caption text-grey mb-1">Categoria de Material</div>
-              <div class="text-body-1">{{ product.product_categories?.name || '-' }}</div>
-            </v-col>
+            
 
             <v-col cols="12">
               <div class="text-caption text-grey mb-1">Natureza de Despesa</div>
@@ -230,4 +227,5 @@
     </v-row>
   </v-container>
 </template>
+
 

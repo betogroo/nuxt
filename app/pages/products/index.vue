@@ -206,7 +206,7 @@
             <template #item-name="{ item }">
               <NuxtLink
                 class="font-weight-medium text-primary text-decoration-none"
-                :to="`/admin/products/${item.id}`"
+                :to="`/products/${item.id}`"
               >
                 {{ item.name }}
               </NuxtLink>
@@ -300,6 +300,7 @@
     </UiModal>
   </div>
 </template>
+
 
 
 
