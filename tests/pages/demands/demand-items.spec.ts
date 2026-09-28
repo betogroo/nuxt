@@ -42,8 +42,21 @@ mockNuxtImport('useExpenseNatures', () => () => ({
 }))
 
 describe('Demand Items Page', () => {
+  it('should successfully open the Add Modal without errors', async () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    const vm = wrapper.vm as any
+    
+    // Call the function
+    vm.openAddModal()
+    
+    // Check state
+    expect(vm.isModalOpen).toBe(true)
+    expect(vm.selectedUnitSearch).toBe('')
+    expect(vm.selectedProductId).toBe(null)
+  })
   it('should render successfully with shallowMount', () => {
     const wrapper = shallowMount(DemandItemsPage)
     expect(wrapper.exists()).toBe(true)
   })
 })
+
