@@ -6,34 +6,38 @@ Este arquivo serve para transferir o contexto de desenvolvimento entre sessões 
 
 O projeto está passando por uma fase pesada de **Desacoplamento e Clean Architecture**. Estamos removendo lógica de banco de dados (Supabase) de dentro dos componentes Vue (UI) e movendo para **Composables** orientados a domínio. Também estamos substituindo o uso cru de componentes do Vuetify por **Componentes Ui*** encapsulados (`UiModal`, `UiCombobox`, `UiAlert`, `UiChip`, etc.).
 
-### O que acabou de ser concluído (Sessão Atual):
+### O que acabou de ser concluído (Final de Semana):
 
-1. **Bugfix de Autenticação e Redirecionamento**:
-   - Corrigido o loop/flash de redirecionamento para login no ambiente local ajustando `cookieOptions: { secure: false }` no ambiente de desenvolvimento no `nuxt.config.ts`.
-   
-2. **Refatoração das Regras de Negócio de Demandas (Planejamento)**:
-   - Adicionadas novas colunas via migrations: `internal_process_number` (automático por ano), `process_number`, `id_pca` e `contract_number`.
-   - **Regra de Negócio implementada**: A inserção de itens (produtos) em uma demanda agora é bloqueada enquanto ela estiver na fase de planejamento (`status === 'planning'`).
-   - **Regra de Avanço implementada**: Não é possível avançar a demanda para "Cotação" caso os campos obrigatórios do planejamento (Processo, ID PCA e Nº Contratação) não estejam preenchidos.
-   
-3. **Redesign da Tela de Detalhes da Demanda (`[id]/index.vue`)**:
-   - Os dados foram reestruturados visualmente em blocos elegantes: "Dados do Planejamento" e "Dados da Disputa e Contratação".
-   - Implementada a **Edição Inline** dos dados do planejamento na própria tela de detalhes da demanda por meio de um `UiModal`.
-   
-4. **Desacoplamento Visual e Limpeza de Código**:
-   - Criados os componentes base `<UiChip>`, `<UiTooltip>` e `<UiOtpInput>`.
-   - Feita uma varredura em todo o projeto, substituindo o uso direto de `<v-alert>`, `<v-dialog>`, `<v-chip>`, `<v-tooltip>` e `<v-otp-input>` para suas respectivas versões `Ui*`.
-   - Removidas variáveis inúteis acusadas pelo ESLint (ex: em `useDemandProducts`, `useProducts`, e `profile.vue`).
-   - Mock dos testes de `usePendingTasks` consertado para cobrir a consulta recém-adicionada à tabela `demands` (24/24 testes rodando limpos).
-   - Deletados todos os scripts `.cjs` e arquivos temporários `.txt` gerados na raiz do repositório.
+1. **Gestão de Papéis e Dashboards Isolados (Auth & Middlewares)**:
+   - Foram adicionadas novas roles/perfis: `iirgd` e `uge`.
+   - Criação de Middlewares dedicados (`iirgd.ts` e `uge.ts`) para proteger e isolar as rotas correspondentes.
+   - Criação do dashboard independente para IIRGD (`app/pages/iirgd/index.vue`) e isolamento das páginas de disputa (bidding) em relação ao IIRGD.
+
+2. **Novos Módulos e Tabelas (CRUD)**:
+   - **Naturezas de Despesa (Expense Natures)**: Adicionado o composable `useExpenseNatures.ts` e a respectiva tela de administração `app/pages/admin/expense-natures.vue`.
+   - **Lances/Ofertas de Produtos (Product Bids)**: Adicionado o composable `useProductBids.ts` e scripts de migração no banco (`demand_product_bids`).
+
+3. **Sub-telas de Demanda**:
+   - Criação das páginas aninhadas na visualização de Demanda para itens e fornecedores: `app/pages/demands/[id]/items/[itemId].vue` e `app/pages/demands/[id]/suppliers/[supplierId].vue`.
+
+4. **Testes Massivos (Vitest)**:
+   - O projeto ganhou uma suíte de testes muito mais robusta, incluindo um arquivo centralizado de mocks: `tests/mocks/supabaseMock.ts`.
+   - Cobertura de testes adicionada para: `useAuth`, `useDemandProducts`, `useDemandWorkflow`, `useExpenseNatures`, `useProductBids`, `useSuppliers`, `useThemeManager`, além dos novos middlewares e páginas administrativas.
+
+5. **Limpeza Contínua**:
+   - Foram apagados os restos de arquivos temporários (`temp_detail.txt`, `temp_full.txt`).
+   - Todos os testes recém adicionados foram validados.
 
 ### Próximos Passos Imediatos:
 
-1. **Continuar a varredura por Acoplamento**:
-   - Verificar se ainda restam componentes Vuetify isolados que seriam úteis se tornarem genéricos (ex: tabelas complexas, steppers).
-   - Manter a regra de não escrever `supabase.from()` dentro de arquivos `.vue`.
+1. **Garantir a Estabilidade do Novo Fluxo**:
+   - Validar se o dashboard IIRGD recém-criado possui todas as métricas ou botões de ação que o perfil necessita.
+   - Analisar o fluxo de lances (`product_bids`) dentro da etapa de disputa da demanda.
+
 2. **Refatorar Sub-telas e Funcionalidades**:
-   - O fluxo de Disputa/Cotação ("Dados da Disputa e Contratação") precisará em breve receber a mesma possibilidade de "edição inline" conforme a demanda avança nas etapas (Cotação, Disputa, etc).
+   - O fluxo de Disputa/Cotação precisará receber a "edição inline" conforme a demanda avança nas etapas, similar ao que foi feito no Planejamento.
+   - Utilizar sempre os componentes desacoplados (`UiModal`, `UiChip`, etc.) em vez das tags cruas do Vuetify.
+
 3. **Novas Funcionalidades**:
    - Seguir com as pendências de negócio listadas pelo usuário ou aprimoramentos no fluxo de orçamentos, sempre respeitando as regras estritas descritas no arquivo `GEMINI.md`.
 
