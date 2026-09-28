@@ -17,8 +17,8 @@
 
   const { logAction } = useLogger()
 
-  // Central de PendÃªncias
-  const { pendingCategoriesCount, pendingUnitsCount, pendingExpenseNaturesCount, pendingReturnsCount, totalPending } =
+  // Central de Pendências
+  const { pendingUnitsCount, pendingExpenseNaturesCount, pendingReturnsCount, totalPending } =
     usePendingTasks()
 
   const signOut = async () => {
@@ -47,13 +47,28 @@
         <v-divider class="my-2" />
 
         <v-list-subheader v-if="user">Gestão</v-list-subheader>
-        <v-list-item v-if="user && profile?.role !== 'iirgd'" prepend-icon="mdi-clipboard-list" title="Demandas" to="/demands">
+        <v-list-item
+          v-if="user && profile?.role !== 'iirgd'"
+          prepend-icon="mdi-clipboard-list"
+          title="Demandas"
+          to="/demands"
+        >
           <template v-if="pendingReturnsCount > 0" #append>
             <v-badge color="error" :content="pendingReturnsCount" inline />
           </template>
         </v-list-item>
-        <v-list-item v-if="user && profile?.role !== 'iirgd'" prepend-icon="mdi-package-variant" title="Produtos" to="/products" />
-        <v-list-item v-if="user && profile?.role !== 'iirgd'" prepend-icon="mdi-truck-outline" title="Fornecedores" to="/suppliers" />
+        <v-list-item
+          v-if="user && profile?.role !== 'iirgd'"
+          prepend-icon="mdi-package-variant"
+          title="Produtos"
+          to="/products"
+        />
+        <v-list-item
+          v-if="user && profile?.role !== 'iirgd'"
+          prepend-icon="mdi-truck-outline"
+          title="Fornecedores"
+          to="/suppliers"
+        />
 
         <v-list-item
           v-if="profile?.role === 'admin' || profile?.role === 'iirgd'"
@@ -64,17 +79,11 @@
 
         <template v-if="profile?.role === 'admin'">
           <v-divider class="my-2" />
-          <v-list-subheader>AdministraÃÂ§ÃÂ£o</v-list-subheader>
+          <v-list-subheader>Administração</v-list-subheader>
 
           <v-list-item prepend-icon="mdi-view-dashboard" title="Painel" to="/admin" />
-          <v-list-item prepend-icon="mdi-account-group" title="UsuÃÂ¡rios" to="/users" />
+          <v-list-item prepend-icon="mdi-account-group" title="Usuários" to="/users" />
           <v-list-item prepend-icon="mdi-format-list-bulleted-type" title="Logs" to="/logs" />
-
-          <v-list-item prepend-icon="mdi-shape" title="Categorias" to="/admin/categories">
-            <template v-if="pendingCategoriesCount > 0" #append>
-              <v-badge color="error" :content="pendingCategoriesCount" inline />
-            </template>
-          </v-list-item>
 
           <v-list-item prepend-icon="mdi-scale-balance" title="Unidades" to="/admin/units">
             <template v-if="pendingUnitsCount > 0" #append>
@@ -82,7 +91,11 @@
             </template>
           </v-list-item>
 
-          <v-list-item prepend-icon="mdi-cash-multiple" title="Naturezas de Despesa" to="/admin/expense-natures">
+          <v-list-item
+            prepend-icon="mdi-cash-multiple"
+            title="Naturezas de Despesa"
+            to="/admin/expense-natures"
+          >
             <template v-if="pendingExpenseNaturesCount > 0" #append>
               <v-badge color="error" :content="pendingExpenseNaturesCount" inline />
             </template>
@@ -108,14 +121,7 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-subheader>PendÃªncias</v-list-subheader>
-          <v-list-item
-            v-if="pendingCategoriesCount > 0"
-            prepend-icon="mdi-shape"
-            to="/admin/categories"
-          >
-            <v-list-item-title>{{ pendingCategoriesCount }} categorias sugeridas</v-list-item-title>
-          </v-list-item>
+          <v-list-subheader>Pendências</v-list-subheader>
           <v-list-item
             v-if="pendingUnitsCount > 0"
             prepend-icon="mdi-scale-balance"
@@ -128,7 +134,9 @@
             prepend-icon="mdi-cash-multiple"
             to="/admin/expense-natures"
           >
-            <v-list-item-title>{{ pendingExpenseNaturesCount }} naturezas sugeridas</v-list-item-title>
+            <v-list-item-title
+              >{{ pendingExpenseNaturesCount }} naturezas sugeridas</v-list-item-title
+            >
           </v-list-item>
           <v-list-item
             v-if="pendingReturnsCount > 0"
@@ -177,6 +185,3 @@
     </v-main>
   </v-app>
 </template>
-
-
-
