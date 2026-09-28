@@ -225,42 +225,31 @@
   }
 
   
-    const resolveFinalUnitId = async () => {
-      let finalUnitId = ''
-      if (isNewAliasMode.value) {
-        if (!newAliasCode.value || !newAliasName.value) throw new Error('Preencha o cÃƒÂ³digo e o nome do novo registro alternativo.')
-        const { unit } = await registerPendingAliasAndUnit({ code: newAliasCode.value, name: newAliasName.value })
-        finalUnitId = unit.id
-      } else {
-        if (!selectedAliasId.value) {
-           // Fallback to "Unidade" alias if possible
-           const defaultAlias = allAliases.value?.find(a => a.name === 'Unidade')
-           if (defaultAlias && defaultAlias.unit_id) {
-             finalUnitId = defaultAlias.unit_id
-           } else {
-             throw new Error('Selecione um registro alternativo.')
-           }
-        } else {
-          const alias = allAliases.value?.find(a => a.id === selectedAliasId.value)
-          if (!alias) throw new Error('Registro nÃƒÂ£o encontrado.')
-          
-          if (alias.unit_id) {
-            finalUnitId = alias.unit_id
-          } else {
-            // Unlinked alias, needs to create pending unit
-            const { data: newUnit, error: unitErr } = await supabase.from('measurement_units').insert({
-              name: alias.name,
-              is_pending: true,
-              is_active: false
-            }).select().single()
-            if (unitErr || !newUnit) throw unitErr || new Error('Failed to create pending unit')
-            
-            await supabase.from('measurement_unit_aliases').update({ unit_id: newUnit.id }).eq('id', alias.id)
-            finalUnitId = newUnit.id
-          }
-        }
+        const resolveFinalUnitId = async () => {
+      const rawVal = selectedUnitSearch.value
+      const searchStr = typeof rawVal === 'string' ? rawVal.trim() : (rawVal as any)?.name?.trim()
+
+      if (!searchStr) {
+        // Fallback to "Unidade"
+        const defaultUnit = allMeasurementUnits.value?.find((u: any) => u.name === 'Unidade')
+        if (defaultUnit) return defaultUnit.id
+        throw new Error('Unidade de medida nǟo informada.')
       }
-      return finalUnitId
+
+      // 1. Procurar na lista existente
+      const existingUnit = allMeasurementUnits.value?.find((u: any) => u.name.toLowerCase() === searchStr.toLowerCase())
+      if (existingUnit) return existingUnit.id
+
+      // 2. Criar nova como pendente
+      const { data: newUnit, error } = await supabase.from('measurement_units').insert({
+        name: searchStr,
+        is_pending: true,
+        is_active: false
+      }).select().single()
+
+      if (error || !newUnit) throw error || new Error('Failed to create pending unit')
+      
+      return newUnit.id
     }
 
     const saveToDemand = async () => {
@@ -1329,6 +1318,8 @@
     </UiModal>
   </v-container>
 </template>
+
+
 
 
 
