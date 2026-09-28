@@ -130,7 +130,11 @@
 
   // Form states
   const selectedProductId = ref<string | null>(null)
-  const selectedUnitSearch = ref<unknown>('')
+  const selectedAliasId = ref<string | null>(null)
+    const isNewAliasMode = ref(false)
+    const newAliasCode = ref<number | null>(null)
+    const newAliasName = ref('')
+    const supabase = useSupabaseClient()
   const itemQuantity = ref<number>(1)
   const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')
@@ -173,12 +177,12 @@
   watch(selectedProductId, (newVal) => {
     if (newVal) {
       if (availableUnitsForSelectedProduct.value.length > 0) {
-        selectedUnitSearch.value = availableUnitsForSelectedProduct.value[0]?.name || 'Unidade'
+        selectedAliasId.value = null // Reset on product change
       } else {
-        selectedUnitSearch.value = 'Unidade'
+        selectedAliasId.value = null
       }
     } else {
-      selectedUnitSearch.value = ''
+      selectedAliasId.value = null
     }
   })
 
@@ -223,7 +227,46 @@
     isNewProductMode.value = true
   }
 
-  const saveToDemand = async () => {
+  
+    const resolveFinalUnitId = async () => {
+      let finalUnitId = ''
+      if (isNewAliasMode.value) {
+        if (!newAliasCode.value || !newAliasName.value) throw new Error('Preencha o código e o nome do novo registro alternativo.')
+        const { unit } = await registerPendingAliasAndUnit({ code: newAliasCode.value, name: newAliasName.value })
+        finalUnitId = unit.id
+      } else {
+        if (!selectedAliasId.value) {
+           // Fallback to "Unidade" alias if possible
+           const defaultAlias = allAliases.value?.find(a => a.name === 'Unidade')
+           if (defaultAlias && defaultAlias.unit_id) {
+             finalUnitId = defaultAlias.unit_id
+           } else {
+             throw new Error('Selecione um registro alternativo.')
+           }
+        } else {
+          const alias = allAliases.value?.find(a => a.id === selectedAliasId.value)
+          if (!alias) throw new Error('Registro não encontrado.')
+          
+          if (alias.unit_id) {
+            finalUnitId = alias.unit_id
+          } else {
+            // Unlinked alias, needs to create pending unit
+            const { data: newUnit, error: unitErr } = await supabase.from('measurement_units').insert({
+              name: alias.name,
+              is_pending: true,
+              is_active: false
+            }).select().single()
+            if (unitErr || !newUnit) throw unitErr || new Error('Failed to create pending unit')
+            
+            await supabase.from('measurement_unit_aliases').update({ unit_id: newUnit.id }).eq('id', alias.id)
+            finalUnitId = newUnit.id
+          }
+        }
+      }
+      return finalUnitId
+    }
+
+    const saveToDemand = async () => {
     isSaving.value = true
     saveError.value = ''
 
@@ -236,7 +279,7 @@
         newProductSuggestedCategory: newProductSuggestedCategory.value,
         isNewProductOutrosCategory: isNewProductOutrosCategory.value,
         selectedProductId: selectedProductId.value,
-        selectedUnitSearch: selectedUnitSearch.value as string,
+        finalUnitId: await resolveFinalUnitId(),
         itemQuantity: Number(itemQuantity.value),
         itemReferencePrice: Number(itemReferencePrice.value),
       })

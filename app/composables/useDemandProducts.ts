@@ -54,102 +54,42 @@ export const useDemandProducts = () => {
     newProductSuggestedCategory?: string | Record<string, unknown> | null
     isNewProductOutrosCategory?: boolean
     selectedProductId?: string | null
-    selectedUnitSearch: string | { name?: string }
-    itemQuantity: number
+    finalUnitId: string
+      itemQuantity: number
     itemReferencePrice: number
   }) => {
     let finalProductId = params.selectedProductId || ''
-    let finalUnitId: string
+      let finalUnitId = params.finalUnitId
 
-    // Parse unit search string
-    const rawVal = params.selectedUnitSearch
-    const searchStr =
-      typeof rawVal === 'string' ? rawVal.trim() : (rawVal as { name?: string })?.name?.trim() || ''
-
-    if (params.isNewProductMode) {
-      if (!params.newProductName || !params.newProductCategoryId) {
-        throw new Error('Nome e Categoria são obrigatórios para novo produto.')
-      }
-
-      // 1. Create Product
-      const suggestedStr = params.isNewProductOutrosCategory
-        ? typeof params.newProductSuggestedCategory === 'string'
-          ? params.newProductSuggestedCategory.trim()
-          : params.newProductSuggestedCategory
-            ? String(
-                (params.newProductSuggestedCategory as Record<string, unknown>).name ||
-                  (params.newProductSuggestedCategory as Record<string, unknown>).title ||
-                  params.newProductSuggestedCategory,
-              ).trim()
-            : null
-        : null
-
-      const { data: newProd, error: prodError } = await supabase
-        .from('products')
-        .insert({
-          name: params.newProductName,
-          category_id: params.newProductCategoryId,
-          suggested_category: suggestedStr,
-          is_active: true,
-        })
-        .select()
-        .single()
-
-      if (prodError) throw prodError
-
-      await logAction(
-        'CREATE_PRODUCT',
-        `Novo produto criado via demanda: ${newProd.name}`,
-        user.value?.id,
-      )
-      finalProductId = newProd.id
-
-      // 2. Handle Unit for New Product
-      if (!searchStr) {
-        const { data: units } = await supabase
-          .from('measurement_units')
-          .select('id')
-          .eq('name', 'Unidade')
-          .maybeSingle()
-        finalUnitId = units?.id || ''
-      } else {
-        const { data: existingUnits } = await supabase.from('measurement_units').select('id, name')
-        const existingUnit = existingUnits?.find(
-          (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-        )
-        if (existingUnit) {
-          finalUnitId = existingUnit.id
-        } else {
-          const { data: newUnit, error: insertError } = await supabase
-            .from('measurement_units')
-            .insert({ name: searchStr, is_active: false, is_pending: true })
-            .select()
-            .single()
-          if (insertError) throw insertError
-          finalUnitId = newUnit.id
+      if (params.isNewProductMode) {
+        if (!params.newProductName || !params.newProductCategoryId) {
+          throw new Error('Nome e Categoria são obrigatórios para novo produto.')
         }
-      }
-    } else {
-      if (!searchStr) throw new Error('Selecione ou digite uma apresentação/unidade de medida.')
 
-      const { data: existingUnits } = await supabase.from('measurement_units').select('id, name')
-      const existingUnit = existingUnits?.find(
-        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-      )
-      if (existingUnit) {
-        finalUnitId = existingUnit.id
-      } else {
-        const { data: newUnit, error: insertError } = await supabase
-          .from('measurement_units')
-          .insert({ name: searchStr, is_active: false, is_pending: true })
+        const suggestedStr = params.isNewProductOutrosCategory
+          ? params.newProductSuggestedCategory
+            ? String((params.newProductSuggestedCategory as Record<string, unknown>).name || (params.newProductSuggestedCategory as Record<string, unknown>).title || params.newProductSuggestedCategory).trim()
+            : null
+          : null
+
+        const { data: newProd, error: prodError } = await supabase
+          .from('products')
+          .insert({
+            name: params.newProductName,
+            category_id: params.newProductCategoryId,
+            suggested_category: suggestedStr,
+          })
           .select()
           .single()
-        if (insertError) throw insertError
-        finalUnitId = newUnit.id
-      }
-    }
 
-    // 3. Ensure unit is linked to product
+        if (prodError) throw prodError
+        await logAction('CREATE_PRODUCT', `Novo produto criado via demanda: ${newProd.name}`, user.value?.id)
+        finalProductId = newProd.id
+      }
+
+      if (!finalUnitId) throw new Error('Unidade de medida inválida.')
+
+      // 3. Ensure unit is linked to product
     const { data: existingLink } = await supabase
       .from('product_units')
       .select('id')
@@ -215,52 +155,10 @@ export const useDemandProducts = () => {
     referencePrice: number | null
     bidInterval?: number | null
     bidIntervalType?: 'percentage' | 'monetary'
-    unitSearch: string | { name?: string; id?: string }
-  }) => {
-    let finalUnitId: string
-
-    // Determine unit search string or object
-    let selectedUnitId: string | null = null
-    let searchStr = ''
-
-    if (typeof params.unitSearch === 'object' && params.unitSearch?.id) {
-      selectedUnitId = params.unitSearch.id
-    } else if (typeof params.unitSearch === 'string') {
-      searchStr = params.unitSearch.trim()
-      // check if it's an uuid
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(searchStr)) {
-        selectedUnitId = searchStr
-        searchStr = ''
-      }
-    } else if (typeof params.unitSearch === 'object' && params.unitSearch?.name) {
-      searchStr = params.unitSearch.name.trim()
-    }
-
-    if (selectedUnitId) {
-      finalUnitId = selectedUnitId
-    } else if (searchStr) {
-      // Look for existing
-      const { data: existingUnits } = await supabase.from('measurement_units').select('id, name')
-      const existingUnit = existingUnits?.find(
-        (u) => u.name.toLowerCase() === searchStr.toLowerCase() || u.id === searchStr,
-      )
-
-      if (existingUnit) {
-        finalUnitId = existingUnit.id
-      } else {
-        // Create new pending unit
-        const { data: newUnit, error: insertError } = await supabase
-          .from('measurement_units')
-          .insert({ name: searchStr, is_active: false, is_pending: true })
-          .select()
-          .single()
-
-        if (insertError) throw insertError
-        finalUnitId = newUnit.id
-      }
-    } else {
-      throw new Error('Selecione ou digite uma unidade de medida válida.')
-    }
+    finalUnitId: string
+    }) => {
+    let finalUnitId = params.finalUnitId
+    if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
     // Link unit to product if productId is provided
     if (params.productId && finalUnitId) {
