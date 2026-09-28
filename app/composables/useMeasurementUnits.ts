@@ -13,7 +13,10 @@ export const useMeasurementUnits = () => {
   // --- Units ---
 
   const fetchUnits = async () => {
-    const { data, error } = await supabase.from('measurement_units').select('*, measurement_unit_aliases(*)').order('name')
+    const { data, error } = await supabase
+      .from('measurement_units')
+      .select('*, measurement_unit_aliases(*)')
+      .order('name')
     if (error) throw error
     return data || []
   }
@@ -28,18 +31,18 @@ export const useMeasurementUnits = () => {
     return data || []
   }
 
-  const createUnit = async (payload: {
-    name: string
-    aliasIds: string[]
-    is_active: boolean
-  }) => {
-    const { data: unit, error } = await supabase.from('measurement_units').insert({
-      name: payload.name,
-      is_active: payload.is_active
-    }).select().single()
-    
+  const createUnit = async (payload: { name: string; aliasIds: string[]; is_active: boolean }) => {
+    const { data: unit, error } = await supabase
+      .from('measurement_units')
+      .insert({
+        name: payload.name,
+        is_active: payload.is_active,
+      })
+      .select()
+      .single()
+
     if (error) throw error
-    
+
     if ((payload.aliasIds || []).length > 0 && unit) {
       const { error: aliasErr } = await supabase
         .from('measurement_unit_aliases')
@@ -47,7 +50,7 @@ export const useMeasurementUnits = () => {
         .in('id', payload.aliasIds)
       if (aliasErr) throw aliasErr
     }
-    
+
     await logAction('CREATE_UNIT', `Nova unidade de medida criada: ${payload.name}`, user.value?.id)
   }
 
@@ -55,10 +58,13 @@ export const useMeasurementUnits = () => {
     id: string,
     payload: { name: string; aliasIds: string[]; is_active: boolean },
   ) => {
-    const { error } = await supabase.from('measurement_units').update({
-      name: payload.name,
-      is_active: payload.is_active
-    }).eq('id', id)
+    const { error } = await supabase
+      .from('measurement_units')
+      .update({
+        name: payload.name,
+        is_active: payload.is_active,
+      })
+      .eq('id', id)
     if (error) throw error
 
     // Remove all old aliases from this unit
@@ -95,7 +101,10 @@ export const useMeasurementUnits = () => {
   // --- Aliases ---
 
   const fetchAliases = async () => {
-    const { data, error } = await supabase.from('measurement_unit_aliases').select('*').order('name')
+    const { data, error } = await supabase
+      .from('measurement_unit_aliases')
+      .select('*')
+      .order('code')
     if (error) throw error
     return data || []
   }
@@ -105,7 +114,7 @@ export const useMeasurementUnits = () => {
       .from('measurement_unit_aliases')
       .select('*')
       .is('unit_id', null)
-      .order('name')
+      .order('code')
     if (error) throw error
     return data || []
   }
@@ -117,16 +126,27 @@ export const useMeasurementUnits = () => {
       is_pending: false,
     })
     if (error) throw error
-    await logAction('CREATE_ALIAS', `Novo registro alternativo criado: ${payload.name} (Cód: ${payload.code})`, user.value?.id)
+    await logAction(
+      'CREATE_ALIAS',
+      `Novo registro alternativo criado: ${payload.name} (Cód: ${payload.code})`,
+      user.value?.id,
+    )
   }
 
   const updateAliasAsAdmin = async (id: string, payload: { code: number; name: string }) => {
-    const { error } = await supabase.from('measurement_unit_aliases').update({
-      code: payload.code,
-      name: payload.name,
-    }).eq('id', id)
+    const { error } = await supabase
+      .from('measurement_unit_aliases')
+      .update({
+        code: payload.code,
+        name: payload.name,
+      })
+      .eq('id', id)
     if (error) throw error
-    await logAction('UPDATE_ALIAS', `Registro alternativo atualizado: ${payload.name} (Cód: ${payload.code})`, user.value?.id)
+    await logAction(
+      'UPDATE_ALIAS',
+      `Registro alternativo atualizado: ${payload.name} (Cód: ${payload.code})`,
+      user.value?.id,
+    )
   }
 
   const deleteAliasAsAdmin = async (id: string, name: string) => {
@@ -139,21 +159,29 @@ export const useMeasurementUnits = () => {
 
   const registerPendingAliasAndUnit = async (payload: { code: number; name: string }) => {
     // 1. Create pending unit
-    const { data: unit, error: unitErr } = await supabase.from('measurement_units').insert({
-      name: payload.name,
-      is_pending: true,
-      is_active: false
-    }).select().single()
+    const { data: unit, error: unitErr } = await supabase
+      .from('measurement_units')
+      .insert({
+        name: payload.name,
+        is_pending: true,
+        is_active: false,
+      })
+      .select()
+      .single()
 
     if (unitErr || !unit) throw unitErr || new Error('Failed to create pending unit')
 
     // 2. Create pending alias linked to unit
-    const { data: alias, error: aliasErr } = await supabase.from('measurement_unit_aliases').insert({
-      code: payload.code,
-      name: payload.name,
-      unit_id: unit.id,
-      is_pending: true
-    }).select().single()
+    const { data: alias, error: aliasErr } = await supabase
+      .from('measurement_unit_aliases')
+      .insert({
+        code: payload.code,
+        name: payload.name,
+        unit_id: unit.id,
+        is_pending: true,
+      })
+      .select()
+      .single()
 
     if (aliasErr) {
       // rollback unit
@@ -161,7 +189,11 @@ export const useMeasurementUnits = () => {
       throw aliasErr
     }
 
-    await logAction('CREATE_PENDING_ALIAS_UNIT', `Usuário sugeriu nova unidade/registro: ${payload.name}`, user.value?.id)
+    await logAction(
+      'CREATE_PENDING_ALIAS_UNIT',
+      `Usuário sugeriu nova unidade/registro: ${payload.name}`,
+      user.value?.id,
+    )
     return { unit, alias }
   }
 
@@ -184,7 +216,10 @@ export const useMeasurementUnits = () => {
     if (updateError) throw updateError
 
     // Also unpend all its aliases
-    await supabase.from('measurement_unit_aliases').update({ is_pending: false }).eq('unit_id', targetUnit.id)
+    await supabase
+      .from('measurement_unit_aliases')
+      .update({ is_pending: false })
+      .eq('unit_id', targetUnit.id)
 
     await logAction('APPROVE_UNIT', `Unidade sugerida aprovada: ${targetUnit.name}`, user.value?.id)
   }
