@@ -9,6 +9,7 @@
     addDemandItemWithDependencies,
     removeDemandProduct,
     updateDemandItemWithDependencies,
+    reorderDemandItems,
   } = useDemandProducts()
 
   const {
@@ -284,7 +285,41 @@
     }
   }
 
-  const removeItem = async (itemId: string, productName: string) => {
+    const isReordering = ref(false)
+
+    const moveItemUp = async (index: number) => {
+      if (!items.value || index <= 0) return
+      const newItems = [...items.value]
+      const temp = newItems[index]
+      newItems[index] = newItems[index - 1]
+      newItems[index - 1] = temp
+      await saveNewOrder(newItems)
+    }
+
+    const moveItemDown = async (index: number) => {
+      if (!items.value || index >= items.value.length - 1) return
+      const newItems = [...items.value]
+      const temp = newItems[index]
+      newItems[index] = newItems[index + 1]
+      newItems[index + 1] = temp
+      await saveNewOrder(newItems)
+    }
+
+    const saveNewOrder = async (newItems: any[]) => {
+      isReordering.value = true
+      try {
+        const updates = newItems.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }))
+        if (items.value) items.value = newItems as any
+        await reorderDemandItems(updates)
+      } catch (err) {
+        alert(err instanceof Error ? err.message : String(err))
+        await refreshItems()
+      } finally {
+        isReordering.value = false
+      }
+    }
+
+    const removeItem = async (itemId: string, productName: string) => {
     if (!confirm(`Deseja realmente remover '${productName}' da demanda?`)) return
     try {
       await removeDemandProduct(itemId, demandId as string)
@@ -731,7 +766,8 @@
 
       <UiTable
         :headers="[
-          { text: 'Produto', value: 'product' },
+          { text: 'Ordem', value: 'order', align: 'center', sortable: false },
+            { text: 'Produto', value: 'product' },
           { text: 'Natureza', value: 'category' },
           { text: 'Qtd.', value: 'quantity', align: 'center' },
           { text: 'Valor Ref.', value: 'reference_price', align: 'right' },
@@ -744,8 +780,27 @@
       >
         <template v-if="!items?.length && !itemsPending" #empty>
           Nenhum produto adicionado a esta demanda ainda.
-        </template>
-        <template #item-product="{ item }">
+        </template>          <template #item-order="{ index }">
+            <div class="d-flex flex-column align-center justify-center">
+              <v-btn
+                icon="mdi-chevron-up"
+                variant="text"
+                size="x-small"
+                density="compact"
+                :disabled="index === 0 || isReordering"
+                @click.stop="moveItemUp(index)"
+              />
+              <v-btn
+                icon="mdi-chevron-down"
+                variant="text"
+                size="x-small"
+                density="compact"
+                :disabled="index === (items?.length || 0) - 1 || isReordering"
+                @click.stop="moveItemDown(index)"
+              />
+            </div>
+          </template>
+          <template #item-product="{ item }">
           <NuxtLink
             class="text-decoration-none text-primary font-weight-bold"
             :to="`/demands/${demandId}/items/${item.id}`"
@@ -1318,6 +1373,11 @@
     </UiModal>
   </v-container>
 </template>
+
+
+
+
+
 
 
 
