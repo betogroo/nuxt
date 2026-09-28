@@ -3,8 +3,7 @@ import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
 
 definePageMeta({
   middleware: ['auth', 'admin'],
-  layout: 'admin',
-})
+  })
 
 const {
   fetchUnits,
