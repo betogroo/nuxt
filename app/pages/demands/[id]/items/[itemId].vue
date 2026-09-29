@@ -4,7 +4,7 @@
   const router = useRouter()
 
   const { fetchDemandItemDetails, updateDemandItemWithDependencies } = useDemandProducts()
-  const { fetchUnits } = useMeasurementUnits()
+  const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
 
   const demandId = route.params.id as string
   const itemId = route.params.itemId as string
@@ -80,7 +80,7 @@
         referencePrice: editForm.value.reference_price,
         bidInterval: editForm.value.bid_interval,
         bidIntervalType: editForm.value.bid_interval_type,
-        unitSearch: editForm.value.unitSearch,
+        finalUnitId: await resolveOrCreateUnit(editForm.value.unitSearch || ''),
       })
 
       await refresh()
@@ -521,4 +521,6 @@
     </UiModal>
   </v-container>
 </template>
+
+
 

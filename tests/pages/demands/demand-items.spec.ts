@@ -7,6 +7,7 @@ mockNuxtImport('useAsyncData', () => vi.fn().mockReturnValue({ data: { value: []
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAliases: vi.fn().mockResolvedValue([]),
+  resolveOrCreateUnit: vi.fn().mockResolvedValue('unit-1'),
   registerPendingAliasAndUnit: vi.fn().mockResolvedValue({ alias: {}, unit: {} }),
 }))
 mockNuxtImport('useSupabaseClient', () => () => ({ from: vi.fn().mockReturnValue({ insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'new-unit' } }) }) }) }) }))
@@ -79,6 +80,7 @@ describe('Demand Items Page', () => {
     expect(wrapper.exists()).toBe(true)
   })
 })
+
 
 
 

@@ -22,7 +22,7 @@
 
   const { fetchAllActiveProducts } = useProducts()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
-  const { fetchUnits } = useMeasurementUnits()
+  const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
 
   const demandId = route.params.id as string
 
@@ -226,32 +226,11 @@
   }
 
   
-        const resolveFinalUnitId = async () => {
-      const rawVal = selectedUnitSearch.value
-      const searchStr = typeof rawVal === 'string' ? rawVal.trim() : (rawVal as any)?.name?.trim()
-
-      if (!searchStr) {
-        // Fallback to "Unidade"
-        const defaultUnit = allMeasurementUnits.value?.find((u: any) => u.name === 'Unidade')
-        if (defaultUnit) return defaultUnit.id
-        throw new Error('Unidade de medida nǟo informada.')
+              const resolveFinalUnitId = async () => {
+        const rawVal = selectedUnitSearch.value
+        const searchStr = typeof rawVal === 'string' ? rawVal.trim() : (rawVal as any)?.name?.trim()
+        return await resolveOrCreateUnit(searchStr || '')
       }
-
-      // 1. Procurar na lista existente
-      const existingUnit = allMeasurementUnits.value?.find((u: any) => u.name.toLowerCase() === searchStr.toLowerCase())
-      if (existingUnit) return existingUnit.id
-
-      // 2. Criar nova como pendente
-      const { data: newUnit, error } = await supabase.from('measurement_units').insert({
-        name: searchStr,
-        is_pending: true,
-        is_active: false
-      }).select().single()
-
-      if (error || !newUnit) throw error || new Error('Failed to create pending unit')
-      
-      return newUnit.id
-    }
 
     const saveToDemand = async () => {
     isSaving.value = true
@@ -381,7 +360,7 @@
         productId: editItemForm.value.productId,
         quantity: editItemForm.value.quantity,
         referencePrice: editItemForm.value.reference_price,
-        unitSearch: editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id,
+        finalUnitId: await resolveOrCreateUnit(editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id || ''),
       })
 
       await refreshAllMeasurementUnits()
@@ -1373,6 +1352,9 @@
     </UiModal>
   </v-container>
 </template>
+
+
+
 
 
 

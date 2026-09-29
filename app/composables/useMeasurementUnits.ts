@@ -1,4 +1,4 @@
-import type { Database } from '~/types/database.types'
+﻿import type { Database } from '~/types/database.types'
 
 export type UnitAliasRow = Database['public']['Tables']['measurement_unit_aliases']['Row']
 export type UnitRow = Database['public']['Tables']['measurement_units']['Row'] & {
@@ -128,7 +128,7 @@ export const useMeasurementUnits = () => {
     if (error) throw error
     await logAction(
       'CREATE_ALIAS',
-      `Novo registro alternativo criado: ${payload.name} (Cód: ${payload.code})`,
+      `Novo registro alternativo criado: ${payload.name} (CÃ³d: ${payload.code})`,
       user.value?.id,
     )
   }
@@ -144,7 +144,7 @@ export const useMeasurementUnits = () => {
     if (error) throw error
     await logAction(
       'UPDATE_ALIAS',
-      `Registro alternativo atualizado: ${payload.name} (Cód: ${payload.code})`,
+      `Registro alternativo atualizado: ${payload.name} (CÃ³d: ${payload.code})`,
       user.value?.id,
     )
   }
@@ -152,7 +152,7 @@ export const useMeasurementUnits = () => {
   const deleteAliasAsAdmin = async (id: string, name: string) => {
     const { error } = await supabase.from('measurement_unit_aliases').delete().eq('id', id)
     if (error) throw error
-    await logAction('DELETE_ALIAS', `Registro alternativo excluído: ${name}`, user.value?.id)
+    await logAction('DELETE_ALIAS', `Registro alternativo excluÃ­do: ${name}`, user.value?.id)
   }
 
   // --- User Flow (Pending) ---
@@ -191,7 +191,7 @@ export const useMeasurementUnits = () => {
 
     await logAction(
       'CREATE_PENDING_ALIAS_UNIT',
-      `Usuário sugeriu nova unidade/registro: ${payload.name}`,
+      `UsuÃ¡rio sugeriu nova unidade/registro: ${payload.name}`,
       user.value?.id,
     )
     return { unit, alias }
@@ -282,8 +282,32 @@ export const useMeasurementUnits = () => {
       user.value?.id,
     )
   }
+  const resolveOrCreateUnit = async (searchStr: string) => {
+    if (!searchStr) {
+      // Fallback to "Unidade"
+      const { data: defaultUnit } = await supabase.from('measurement_units').select('id').eq('name', 'Unidade').maybeSingle()
+      if (defaultUnit) return defaultUnit.id
+      throw new Error('Unidade de medida não informada.')
+    }
+    
+    // 1. Procurar na lista existente (case-insensitive)
+    const { data: existingUnit } = await supabase.from('measurement_units').select('id').ilike('name', searchStr.trim()).maybeSingle()
+    if (existingUnit) return existingUnit.id
+
+    // 2. Criar nova como pendente
+    const { data: newUnit, error } = await supabase.from('measurement_units').insert({
+      name: searchStr.trim(),
+      is_pending: true,
+      is_active: false
+    }).select().single()
+
+    if (error || !newUnit) throw error || new Error('Failed to create pending unit')
+    
+    return newUnit.id
+  }
 
   return {
+    resolveOrCreateUnit,
     fetchUnits,
     fetchAllActiveUnits,
     createUnit,
@@ -299,3 +323,4 @@ export const useMeasurementUnits = () => {
     mergePendingUnit,
   }
 }
+
