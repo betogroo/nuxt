@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
@@ -85,12 +85,12 @@
   const saveProduct = async () => {
     if (modal.payload.value.is_suggesting_nature) {
       if (!modal.payload.value.name || !modal.payload.value.suggested_nature_id || !modal.payload.value.suggested_nature_name) {
-        modal.error.value = 'Nome do Produto e CÃ³digo/Nome da Natureza sÃ£o obrigatÃ³rios.'
+        modal.error.value = 'Nome do Produto e CÃƒÂ³digo/Nome da Natureza sÃƒÂ£o obrigatÃƒÂ³rios.'
         return
       }
     } else {
       if (!modal.payload.value.name || !modal.payload.value.expense_nature_id) {
-        modal.error.value = 'Nome e Natureza de Despesa sÃ£o obrigatÃ³rios.'
+        modal.error.value = 'Nome e Natureza de Despesa sÃƒÂ£o obrigatÃƒÂ³rios.'
         return
       }
     }
@@ -100,10 +100,10 @@
       let finalExpenseNatureId = modal.payload.value.expense_nature_id
       
       if (modal.payload.value.is_suggesting_nature) {
-        const { expenseNature } = await registerPendingExpenseNature(
-          modal.payload.value.suggested_nature_id,
-          modal.payload.value.suggested_nature_name
-        )
+        const expenseNature = await registerPendingExpenseNature({
+            id: modal.payload.value.suggested_nature_id,
+            name: modal.payload.value.suggested_nature_name
+          })
         finalExpenseNatureId = expenseNature.id
       }
 
@@ -198,7 +198,7 @@
               { text: 'Nome', value: 'name' },
               { text: 'Natureza de Despesa', value: 'expense_nature' },
               { text: 'Status', value: 'is_active', align: 'center' },
-              { text: 'AÃ§Ãµes', value: 'actions', align: 'right' },
+              { text: 'AÃƒÂ§ÃƒÂµes', value: 'actions', align: 'right' },
             ]"
             :items="products || []"
             :loading="pending"
@@ -272,7 +272,7 @@
 
       <UiInput v-model="modal.payload.value.name" label="Nome do Produto" />
 
-      <UiSwitch v-model="modal.payload.value.is_suggesting_nature" label="NÃ£o encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
+      <UiSwitch v-model="modal.payload.value.is_suggesting_nature" label="NÃƒÂ£o encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
 
       <v-autocomplete
         v-if="!modal.payload.value.is_suggesting_nature"
@@ -287,7 +287,7 @@
       />
 
       <div v-else class="d-flex gap-4 mb-4">
-        <UiInput v-model="modal.payload.value.suggested_nature_id" label="CÃ³digo (Ex: 33903000)" />
+        <UiInput v-model="modal.payload.value.suggested_nature_id" label="CÃƒÂ³digo (Ex: 33903000)" />
         <UiInput v-model="modal.payload.value.suggested_nature_name" label="Nome da Natureza" />
       </div>
 
@@ -306,6 +306,7 @@
     </UiModal>
   </div>
 </template>
+
 
 
 
