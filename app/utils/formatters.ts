@@ -1,4 +1,4 @@
-export function formatCurrency(value: number): string {
+﻿export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -26,8 +26,8 @@ export const formatDemandStatus = (status: string) => {
     planning: 'Planejamento',
     quotation: 'Cotação',
     bidding_notice: 'Aviso de Contratação',
-    dispute: 'Disputa',
-    homologation: 'Homologação',
+    dispute: 'Cadastro de Lances',
+    homologation: 'Documentação',
     completed: 'Concluído',
     cancelled: 'Cancelado',
   }
@@ -37,6 +37,7 @@ export const formatDemandStatus = (status: string) => {
 export const getDemandStatusColor = (status: string) => {
   const map: Record<string, string> = {
     planning: 'grey',
+    quotation: 'deep-purple',
     bidding_notice: 'info',
     dispute: 'warning',
     homologation: 'primary',

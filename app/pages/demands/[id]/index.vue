@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -78,8 +78,8 @@
   // Verifica se o planejamento está incompleto (faltando campos obrigatórios para avançar)
   const isPlanningIncomplete = computed(() => {
     if (demand.value?.status !== 'planning') return false
-    const { process_number, id_pca, contract_number } = demand.value
-    return !process_number || !id_pca || !contract_number
+    const { process_number, internal_process_number, id_pca, type, contract_number } = demand.value
+    return !process_number || !internal_process_number || !id_pca || !type || !contract_number
   })
 
 

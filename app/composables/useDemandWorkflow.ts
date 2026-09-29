@@ -113,7 +113,9 @@ export function useDemandWorkflow(
 
       if (targetStatus.value === 'bidding_notice') {
         if (!items.value || items.value.length === 0) {
-          throw new Error('Você precisa adicionar pelo menos um produto antes de avançar para o aviso de contratação.')
+          throw new Error(
+            'Você precisa adicionar pelo menos um produto antes de avançar para o aviso de contratação.',
+          )
         }
 
         const invalidItems = items.value?.filter(
@@ -128,10 +130,9 @@ export function useDemandWorkflow(
             'Todos os produtos devem ter quantidade, unidade de medida e valor referencial preenchidos antes de avançar.',
           )
         }
-        if (!advanceModal.payload.value.bidding_notice_number)
-          throw new Error('O número do aviso é obrigatório.')
-        payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number
       } else if (targetStatus.value === 'dispute') {
+        if (!advanceModal.payload.value.bidding_notice_number)
+          throw new Error('O número do aviso de contratação é obrigatório.')
         if (!advanceModal.payload.value.dispute_number)
           throw new Error('O número da disputa é obrigatório.')
         if (!advanceModal.payload.value.dispute_date)
@@ -139,26 +140,41 @@ export function useDemandWorkflow(
 
         let offerOpening = null
         if (
-          advanceModal.payload.value.offer_opening_date ||
-          advanceModal.payload.value.offer_opening_time
+          !advanceModal.payload.value.offer_opening_date ||
+          !advanceModal.payload.value.offer_opening_time
         ) {
-          if (
-            !advanceModal.payload.value.offer_opening_date ||
-            !advanceModal.payload.value.offer_opening_time
-          ) {
-            throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
-          }
+          throw new Error('A data e hora de abertura de ofertas são obrigatórias.')
+        } else {
           offerOpening = new Date(
             `${advanceModal.payload.value.offer_opening_date}T${advanceModal.payload.value.offer_opening_time}`,
           ).toISOString()
         }
 
+        payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number
         payload.dispute_number = advanceModal.payload.value.dispute_number
         payload.dispute_date = advanceModal.payload.value.dispute_date
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
+        const supabase = useSupabaseClient()
+        const { data: bids } = await supabase
+          .from('product_bids')
+          .select('id, amount, product_id, is_winner')
+          .in('product_id', items.value?.map((i) => i.id) || [])
+
+        if (items.value) {
+          for (const item of items.value) {
+            const itemBids = bids?.filter((b) => b.product_id === item.id) || []
+            const hasWinner = itemBids.some((b) => b.is_winner)
+            const isFailed = itemBids.length === 0 || !itemBids.some((b) => b.amount <= (item.reference_price || 0))
+            
+            if (!hasWinner && !isFailed) {
+               throw new Error(`O produto "${item.products?.name || 'Sem nome'}" não possui um vencedor válido e nem foi declarado fracassado. Todos os produtos devem ser resolvidos para avançar para a Documentação.`)
+            }
+          }
+        }
+
         if (!advanceModal.payload.value.contract_number)
-          throw new Error('O número da contratação é obrigatório.')
+          throw new Error('O número da contratação (Contrato/Ata) é obrigatório.')
         payload.contract_number = advanceModal.payload.value.contract_number
       }
 
