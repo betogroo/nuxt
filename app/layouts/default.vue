@@ -4,7 +4,7 @@
   const { profile, fetchProfile } = useProfile()
   const drawer = ref(true)
 
-  // Sincroniza o perfil reativamente assim que o ID do usuÃÂ¡rio estiver pronto
+  // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
   watchEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = user.value?.id || (user.value as any)?.sub
@@ -23,7 +23,7 @@
 
   const signOut = async () => {
     if (user.value) {
-      await logAction('LOGOUT', 'UsuÃÂ¡rio fez logoff do sistema.', user.value.id)
+      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
     navigateTo('/login')
@@ -104,14 +104,14 @@
       </v-list>
     </v-navigation-drawer>
 
-    <!-- CabeÃÂ§alho (App Bar) -->
+    <!-- Cabeçalho (App Bar) -->
     <v-app-bar app border="b" elevation="0">
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-spacer />
 
       <ThemeToggle />
 
-      <!-- NotificaÃÂ§ÃÂµes (apenas Admin) -->
+      <!-- Notificações (apenas Admin) -->
       <v-menu v-if="profile?.role === 'admin' && totalPending > 0">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="mx-2" icon>
@@ -150,7 +150,7 @@
         </v-list>
       </v-menu>
 
-      <!-- Menu do usuÃÂ¡rio -->
+      <!-- Menu do usuário -->
       <v-menu v-if="user">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="ml-2" icon>
@@ -166,7 +166,7 @@
                 <span class="text-white text-uppercase">{{ user.email?.charAt(0) || 'U' }}</span>
               </v-avatar>
             </template>
-            <v-list-item-title>{{ profile?.name || 'UsuÃÂ¡rio' }}</v-list-item-title>
+            <v-list-item-title>{{ profile?.name || 'Usuário' }}</v-list-item-title>
             <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
           </v-list-item>
           <v-divider class="my-2" />

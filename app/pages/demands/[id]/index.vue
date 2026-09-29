@@ -31,7 +31,7 @@
     return await fetchDemandById(demandId)
   })
 
-  // Modal de EdiÃƒÂ§ÃƒÂ£o RÃƒÂ¡pida de Planejamento
+  // Modal de Edição Rápida de Planejamento
   const editPlanningModal = useModal<Partial<DemandRow>>({
     name: '',
     type: 'consumption',
@@ -75,7 +75,7 @@
     }
   }
 
-  // Verifica se o planejamento estÃƒÂ¡ incompleto (faltando campos obrigatÃƒÂ³rios para avanÃƒÂ§ar)
+  // Verifica se o planejamento está incompleto (faltando campos obrigatórios para avançar)
   const isPlanningIncomplete = computed(() => {
     if (demand.value?.status !== 'planning') return false
     const { process_number, id_pca, contract_number } = demand.value
@@ -386,7 +386,7 @@
 
   const addResponsible = async () => {
     if (!responsibleUserId.value) {
-      alert('Selecione um usuÃƒÂ¡rio.')
+      alert('Selecione um usuário.')
       return
     }
     isAddingResponsible.value = true
@@ -403,7 +403,7 @@
   }
 
   const removeResponsible = async (userId: string) => {
-    if (!confirm('Deseja realmente remover este responsÃƒÂ¡vel?')) return
+    if (!confirm('Deseja realmente remover este responsável?')) return
     try {
       await removeResponsibleDb(demandId as string, userId)
       await refreshResponsibles()
@@ -481,7 +481,7 @@
       Voltar para Demandas
     </UiButton>
 
-    <!-- CabeÃƒÂ§alho da Demanda -->
+    <!-- Cabeçalho da Demanda -->
     <UiCard v-if="demand" class="mb-6" transparent-header>
       <template #header>
         <div class="d-flex align-center w-100">
@@ -513,7 +513,7 @@
           <UiTooltip
             v-if="getNextStatus(demand.status)"
             :disabled="!isPlanningIncomplete"
-            text="Preencha todos os Dados do Planejamento para avanÃƒÂ§ar"
+            text="Preencha todos os Dados do Planejamento para avançar"
           >
             <template #activator="{ props }">
               <span v-bind="props" class="d-inline-block">
@@ -523,7 +523,7 @@
                   prepend-icon="mdi-arrow-right-bold"
                   @click="openAdvanceModal"
                 >
-                  AvanÃƒÂ§ar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
+                  Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
                 </UiButton>
               </span>
             </template>
@@ -575,7 +575,7 @@
               <v-col cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Processo Oficial</div>
                 <div class="text-body-1 font-weight-bold text-primary">
-                  {{ demand.process_number || 'Aguardando autuaÃƒÂ§ÃƒÂ£o' }}
+                  {{ demand.process_number || 'Aguardando autuação' }}
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
@@ -597,7 +597,7 @@
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">NÃ‚Âº da ContrataÃƒÂ§ÃƒÂ£o</div>
+                <div class="text-caption text-grey">Nº da Contratação</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.contract_number || '-' }}
                 </div>
@@ -610,10 +610,10 @@
                   type="warning"
                   variant="tonal"
                 >
-                  Para avanÃƒÂ§ar para a CotaÃƒÂ§ÃƒÂ£o, preencha os dados do planejamento (Processo Oficial,
-                  ID PCA e NÃ‚Âº ContrataÃƒÂ§ÃƒÂ£o).
+                  Para avançar para a Cotação, preencha os dados do planejamento (Processo Oficial,
+                  ID PCA e Nº Contratação).
                   <br />
-                  <small>VocÃƒÂª pode editar a demanda voltando ÃƒÆ’Ã‚Â  tela de listagem.</small>
+                  <small>Você pode editar a demanda voltando à tela de listagem.</small>
                 </UiAlert>
               </v-col>
             </v-row>
@@ -622,18 +622,18 @@
           <!-- Dados da Disputa -->
           <UiCard
             v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
-            title="Dados da Disputa e ContrataÃƒÂ§ÃƒÂ£o"
+            title="Dados da Disputa e Contratação"
             variant="outlined"
           >
             <v-row class="px-2 pb-2 mt-2">
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">Aviso de ContrataÃƒÂ§ÃƒÂ£o</div>
+                <div class="text-caption text-grey">Aviso de Contratação</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.bidding_notice_number || '-' }}
                 </div>
               </v-col>
               <v-col cols="12" md="4" sm="6">
-                <div class="text-caption text-grey">NÃ‚Âº Disputa</div>
+                <div class="text-caption text-grey">Nº Disputa</div>
                 <div class="text-body-1">
                   {{ demand.dispute_number || '-' }}
                 </div>
@@ -667,10 +667,10 @@
           </UiCard>
         </v-col>
 
-        <!-- ResponsÃƒÂ¡veis -->
+        <!-- Responsáveis -->
         <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
-            <span class="text-subtitle-2 font-weight-bold">ResponsÃƒÂ¡veis</span>
+            <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
             <v-spacer />
             <UiButton
               icon="mdi-plus"
@@ -691,7 +691,7 @@
                 </v-avatar>
               </template>
               <v-list-item-title class="text-body-2">{{
-                resp?.profiles?.name || 'UsuÃƒÂ¡rio Desconhecido'
+                resp?.profiles?.name || 'Usuário Desconhecido'
               }}</v-list-item-title>
               <template #append>
                 <UiButton
@@ -706,7 +706,7 @@
             </v-list-item>
             <v-list-item v-if="!responsibles?.length" class="px-0">
               <v-list-item-title class="text-caption text-grey"
-                >Nenhum responsÃƒÂ¡vel definido.</v-list-item-title
+                >Nenhum responsável definido.</v-list-item-title
               >
             </v-list-item>
           </v-list>
@@ -737,7 +737,7 @@
         type="info"
         variant="tonal"
       >
-        A inserÃƒÂ§ÃƒÂ£o ou alteraÃƒÂ§ÃƒÂ£o de itens sÃƒÂ³ ÃƒÂ© permitida na fase de CotaÃƒÂ§ÃƒÂ£o.
+        A inserção ou alteração de itens só é permitida na fase de Cotação.
       </UiAlert>
 
       <UiTable
@@ -750,7 +750,7 @@
           { text: 'Total Ref.', value: 'total_reference', align: 'right' },
           { text: 'Melhor Lance', value: 'best_bid', align: 'right' },
           { text: 'Total Final', value: 'total_final', align: 'right' },
-          { text: 'AÃƒÂ§ÃƒÂµes', value: 'actions', align: 'right' },
+          { text: 'Ações', value: 'actions', align: 'right' },
         ]"
         :items="items || []"
       >
@@ -980,7 +980,7 @@
         {{ saveError }}
       </UiAlert>
 
-      <!-- SeÃƒÂ§ÃƒÂ£o de Busca de Produto Existente -->
+      <!-- Seção de Busca de Produto Existente -->
       <template v-if="!isNewProductMode">
         <v-autocomplete
           v-model="selectedProductId"
@@ -997,7 +997,7 @@
           <!-- Personalizando a pesquisa no front-end para simplificar -->
           <template #no-data>
             <div class="pa-3 text-center">
-              <span class="text-grey mr-2">Produto nÃƒÂ£o encontrado.</span>
+              <span class="text-grey mr-2">Produto não encontrado.</span>
               <UiButton
                 color="primary"
                 size="small"
@@ -1017,7 +1017,7 @@
               prepend-icon="mdi-plus"
               @click="activateNewProductMode"
             >
-              NÃƒÂ£o encontrou? Cadastrar novo produto
+              Não encontrou? Cadastrar novo produto
             </UiButton>
           </div>
 
@@ -1045,16 +1045,16 @@
         />
       </template>
 
-      <!-- SeÃƒÂ§ÃƒÂ£o de Cadastro RÃƒÂ¡pido de Novo Produto -->
+      <!-- Seção de Cadastro Rápido de Novo Produto -->
       <template v-else>
         <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
-          VocÃƒÂª estÃƒÂ¡ cadastrando um novo produto. Ele serÃƒÂ¡ salvo no sistema e automaticamente
-          adicionado ÃƒÆ’Ã‚Â  demanda.
+          Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
+          adicionado à demanda.
         </UiAlert>
 
         <UiInput v-model="newProductName" label="Nome do Produto" />
 
-        <UiSwitch v-model="isSuggestingNature" label="NÃ£o encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
+        <UiSwitch v-model="isSuggestingNature" label="Não encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
 
         <v-autocomplete
           v-if="!isSuggestingNature"
@@ -1069,7 +1069,7 @@
         />
 
         <div v-else class="d-flex gap-4 mb-4">
-          <UiInput v-model="suggestedNatureId" label="CÃ³digo (Ex: 33903000)" />
+          <UiInput v-model="suggestedNatureId" label="Código (Ex: 33903000)" />
           <UiInput v-model="suggestedNatureName" label="Nome da Natureza" />
         </div>
 
@@ -1090,7 +1090,7 @@
 
         <div class="text-right">
           <UiButton size="small" variant="text" @click="isNewProductMode = false">
-            Voltar ÃƒÆ’Ã‚Â  Busca
+            Voltar à Busca
           </UiButton>
         </div>
       </template>
@@ -1098,16 +1098,16 @@
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
-          Adicionar ÃƒÆ’Ã‚Â  Demanda
+          Adicionar à Demanda
         </UiButton>
       </template>
     </UiModal>
 
-    <!-- Modal Adicionar ResponsÃƒÂ¡vel -->
+    <!-- Modal Adicionar Responsável -->
     <UiModal
       v-model="isResponsibleModalOpen"
       max-width="400px"
-      title="Adicionar ResponsÃƒÂ¡vel"
+      title="Adicionar Responsável"
       transparent-header
     >
       <UiAlert v-if="responsibleError" class="mb-4" density="compact" type="error" variant="tonal">
@@ -1118,7 +1118,7 @@
         item-title="name"
         item-value="id"
         :items="availableProfiles"
-        label="Selecione o UsuÃƒÂ¡rio"
+        label="Selecione o Usuário"
       />
       <template #actions>
         <UiButton
@@ -1133,11 +1133,11 @@
       </template>
     </UiModal>
 
-    <!-- Modal AvanÃƒÂ§ar Status -->
+    <!-- Modal Avançar Status -->
     <UiModal
       v-model="advanceModal.isOpen.value"
       max-width="500px"
-      :title="`AvanÃƒÂ§ar para: ${formatDemandStatus(targetStatus)}`"
+      :title="`Avançar para: ${formatDemandStatus(targetStatus)}`"
       transparent-header
     >
       <UiAlert
@@ -1153,7 +1153,7 @@
       <div v-if="targetStatus === 'bidding_notice'">
         <UiInput
           v-model="advanceModal.payload.value.bidding_notice_number"
-          label="NÃƒÂºmero do Aviso de ContrataÃƒÂ§ÃƒÂ£o"
+          label="Número do Aviso de Contratação"
           required
         />
       </div>
@@ -1161,7 +1161,7 @@
       <div v-if="targetStatus === 'dispute'">
         <UiInput
           v-model="advanceModal.payload.value.dispute_number"
-          label="NÃƒÂºmero da Disputa"
+          label="Número da Disputa"
           required
         />
         <UiInput
@@ -1191,7 +1191,7 @@
       <div v-if="targetStatus === 'homologation'">
         <UiInput
           v-model="advanceModal.payload.value.contract_number"
-          label="NÃƒÂºmero da ContrataÃƒÂ§ÃƒÂ£o (Contrato/Ata)"
+          label="Número da Contratação (Contrato/Ata)"
           required
         />
       </div>
@@ -1211,7 +1211,7 @@
           color="success"
           :loading="advanceModal.isSaving.value"
           @click="confirmAdvanceStatus"
-          >Confirmar AvanÃƒÂ§o</UiButton
+          >Confirmar Avanço</UiButton
         >
       </template>
     </UiModal>
@@ -1239,8 +1239,8 @@
         >?
       </p>
       <p class="text-body-2 text-warning mt-2">
-        Isto reabrirÃƒÂ¡ a possibilidade de ediÃƒÂ§ÃƒÂ£o dos itens (dependendo da fase) e limparÃƒÂ¡ qualquer
-        solicitaÃƒÂ§ÃƒÂ£o de retorno pendente.
+        Isto reabrirá a possibilidade de edição dos itens (dependendo da fase) e limpará qualquer
+        solicitação de retorno pendente.
       </p>
 
       <template #actions>
@@ -1289,8 +1289,8 @@
 
       <UiInput
         v-model="editPlanningModal.payload.value.process_number"
-        hint="Opcional. PadrÃƒÂ£o: XXX.XXXXXXXX/YYYY-ZZ"
-        label="NÃ‚Âº do Processo (Oficial)"
+        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        label="Nº do Processo (Oficial)"
         placeholder="Ex: 058.00100793/2026-21"
       />
 
@@ -1304,8 +1304,8 @@
       <UiInput
         v-model="editPlanningModal.payload.value.contract_number"
         hint="Opcional."
-        label="NÃ‚Âº da ContrataÃƒÂ§ÃƒÂ£o"
-        placeholder="Apenas nÃƒÂºmeros"
+        label="Nº da Contratação"
+        placeholder="Apenas números"
         type="number"
       />
 

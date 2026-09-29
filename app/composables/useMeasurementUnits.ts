@@ -128,7 +128,7 @@ export const useMeasurementUnits = () => {
     if (error) throw error
     await logAction(
       'CREATE_ALIAS',
-      `Novo registro alternativo criado: ${payload.name} (CÃ³d: ${payload.code})`,
+      `Novo registro alternativo criado: ${payload.name} (Cód: ${payload.code})`,
       user.value?.id,
     )
   }
@@ -144,7 +144,7 @@ export const useMeasurementUnits = () => {
     if (error) throw error
     await logAction(
       'UPDATE_ALIAS',
-      `Registro alternativo atualizado: ${payload.name} (CÃ³d: ${payload.code})`,
+      `Registro alternativo atualizado: ${payload.name} (Cód: ${payload.code})`,
       user.value?.id,
     )
   }
@@ -152,7 +152,7 @@ export const useMeasurementUnits = () => {
   const deleteAliasAsAdmin = async (id: string, name: string) => {
     const { error } = await supabase.from('measurement_unit_aliases').delete().eq('id', id)
     if (error) throw error
-    await logAction('DELETE_ALIAS', `Registro alternativo excluÃ­do: ${name}`, user.value?.id)
+    await logAction('DELETE_ALIAS', `Registro alternativo excluído: ${name}`, user.value?.id)
   }
 
   // --- User Flow (Pending) ---
@@ -191,7 +191,7 @@ export const useMeasurementUnits = () => {
 
     await logAction(
       'CREATE_PENDING_ALIAS_UNIT',
-      `UsuÃ¡rio sugeriu nova unidade/registro: ${payload.name}`,
+      `Usuário sugeriu nova unidade/registro: ${payload.name}`,
       user.value?.id,
     )
     return { unit, alias }
