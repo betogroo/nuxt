@@ -9,5 +9,5 @@ UPDATE public.profiles SET role = 'admin', name = 'Administrador Teste', is_acti
 UPDATE public.profiles SET role = 'user', name = 'Usuário Comum Teste', is_active = true WHERE id = '22222222-2222-2222-2222-222222222222';
 
 -- Seed suppliers
-INSERT INTO public.suppliers (cnpj, company_name, email, responsible_name, is_simples_optant, is_active) VALUES ('12345678000199', 'Fornecedor Master Ltda', 'contato@master.com', 'Jo�o Silva', true, true), ('98765432000111', 'Distribuidora Global', 'vendas@global.com', 'Maria Souza', false, true) ON CONFLICT DO NOTHING;
+INSERT INTO public.suppliers (cnpj, company_name, email, responsible_name, is_simples_optant, is_active) VALUES ('12345678000199', 'Fornecedor Master Ltda', 'contato@master.com', 'João Silva', true, true), ('98765432000111', 'Distribuidora Global', 'vendas@global.com', 'Maria Souza', false, true) ON CONFLICT DO NOTHING;
 
