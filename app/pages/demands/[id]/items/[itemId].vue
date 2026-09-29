@@ -431,17 +431,9 @@
         />
       </div>
 
-      <UiCombobox
+            <MeasurementUnitSelect
         v-model="editForm.unitSearch"
-        density="comfortable"
-        hint="Selecione ou digite uma nova embalagem se não existir."
-        item-title="displayName"
-        item-value="name"
-        :items="availableUnits"
-        label="Apresentação (Unidade de Medida)"
-        persistent-hint
-        :return-object="false"
-        variant="outlined"
+        class="mb-4"
       />
 
       <template #actions>
@@ -521,6 +513,7 @@
     </UiModal>
   </v-container>
 </template>
+
 
 
 

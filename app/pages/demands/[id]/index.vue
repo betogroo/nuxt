@@ -337,10 +337,7 @@
       productName: item.product?.name || 'Produto',
       quantity: Number(item.quantity),
       reference_price: item.reference_price != null ? Number(item.reference_price) : null,
-      unit_id: item.unit_id
-        ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id) || item.unit_id
-        : null,
-      searchUnitText: '',
+      searchUnitText: item.unit_id ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || '' : '',
     }
     editItemError.value = ''
     isEditItemModalOpen.value = true
@@ -951,17 +948,9 @@
 
       <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
 
-      <UiCombobox
-        v-model="editItemForm.unit_id"
-        v-model:search="editItemForm.searchUnitText"
+            <MeasurementUnitSelect
+        v-model="editItemForm.searchUnitText"
         class="mt-3"
-        clearable
-        hint="Selecione ou digite uma nova unidade de medida se nÃƒÂ£o existir."
-        item-title="name"
-        item-value="id"
-        :items="allMeasurementUnits || []"
-        label="Unidade de Medida"
-        persistent-hint
       />
 
       <UiInput
@@ -1032,19 +1021,10 @@
             </UiButton>
           </div>
 
-        <UiCombobox
+                <MeasurementUnitSelect
           v-if="selectedProductId"
           v-model="selectedUnitSearch"
           class="mt-3"
-          density="comfortable"
-          hint="Selecione ou digite uma nova embalagem se nÃƒÂ£o existir."
-          item-title="displayName"
-          item-value="name"
-          :items="computedMeasurementUnits"
-          label="ApresentaÃƒÂ§ÃƒÂ£o (Unidade de Medida)"
-          persistent-hint
-          :return-object="false"
-          variant="outlined"
         />
 
         <UiInput
@@ -1095,18 +1075,9 @@
 
         
 
-        <UiCombobox
+                <MeasurementUnitSelect
           v-model="selectedUnitSearch"
           class="mb-4"
-          density="comfortable"
-          hint="Deixe em branco para usar 'Unidade', ou digite uma nova embalagem."
-          item-title="displayName"
-          item-value="name"
-          :items="computedMeasurementUnits"
-          label="ApresentaÃƒÂ§ÃƒÂ£o (Unidade de Medida)"
-          persistent-hint
-          :return-object="false"
-          variant="outlined"
         />
 
         <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
@@ -1352,6 +1323,10 @@
     </UiModal>
   </v-container>
 </template>
+
+
+
+
 
 
 
