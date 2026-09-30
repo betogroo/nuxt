@@ -117,19 +117,6 @@
       subtitle="Gerencie os atendimentos e registros independentes do IIRGD"
       title="Demandas IIRGD"
     >
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="pending"
-          size="small"
-          variant="tonal"
-          @click="refresh"
-        />
-        <UiButton color="primary" prepend-icon="mdi-plus" variant="flat" @click="openAddModal">
-          Nova Demanda
-        </UiButton>
-      </template>
     </PageHeader>
 
     <UiCard>
@@ -139,6 +126,19 @@
         <v-chip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ demands.length }}
         </v-chip>
+        <v-spacer />
+        <UiButton
+          class="mr-2"
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="pending"
+          size="small"
+          variant="tonal"
+          @click="refresh"
+        />
+        <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+          >Nova Demanda</UiButton
+        >
       </template>
 
       <UiTable

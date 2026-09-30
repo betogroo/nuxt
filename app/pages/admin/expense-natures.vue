@@ -215,25 +215,6 @@
 <template>
   <div>
     <PageHeader subtitle="Gerencie as Naturezas de Despesa do sistema" title="Naturezas de Despesa">
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="pending"
-          size="small"
-          variant="tonal"
-          @click="refresh"
-        />
-        <UiButton
-          v-if="activeTab === 'active'"
-          color="primary"
-          prepend-icon="mdi-plus"
-          variant="flat"
-          @click="openAddModal"
-        >
-          Nova Natureza
-        </UiButton>
-      </template>
     </PageHeader>
 
     <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
@@ -260,6 +241,19 @@
         <template #header>
           <v-icon class="mr-2" color="primary" icon="mdi-cash-multiple" />
           Lista de Naturezas de Despesa
+          <v-spacer />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+            >Nova Natureza</UiButton
+          >
           <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
           </v-chip>

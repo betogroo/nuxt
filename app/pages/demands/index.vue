@@ -107,21 +107,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas">
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="pending"
-          size="small"
-          variant="tonal"
-          @click="refresh"
-        />
-        <UiButton color="primary" prepend-icon="mdi-plus" variant="flat" @click="modal.open()">
-          Nova Demanda
-        </UiButton>
-      </template>
-    </PageHeader>
+    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas"> </PageHeader>
 
     <UiCard>
       <template #header>
@@ -133,6 +119,19 @@
         <v-spacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="modal.open()"
+            >Nova Demanda</UiButton
+          >
+          <v-divider class="mx-2" vertical />
           <v-text-field
             v-model="searchQuery"
             clearable

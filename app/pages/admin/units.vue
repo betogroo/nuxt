@@ -228,24 +228,6 @@
 <template>
   <div>
     <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="unitsPending || aliasesPending"
-          size="small"
-          variant="tonal"
-          @click="activeTab === 'units' ? refreshUnits() : refreshAliases()"
-        />
-        <UiButton
-          color="primary"
-          prepend-icon="mdi-plus"
-          variant="flat"
-          @click="activeTab === 'units' ? openAddModal() : openAddAliasModal()"
-        >
-          {{ activeTab === 'units' ? 'Nova Unidade' : 'Novo Registro' }}
-        </UiButton>
-      </template>
     </PageHeader>
 
     <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
@@ -318,6 +300,19 @@
         <template #header>
           <v-icon class="mr-2" color="primary" icon="mdi-scale-balance" />
           Unidades de Medida Oficiais
+          <v-spacer />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="unitsPending"
+            size="small"
+            variant="tonal"
+            @click="refreshUnits"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+            >Nova Unidade</UiButton
+          >
         </template>
 
         <UiTable
@@ -372,6 +367,19 @@
         <template #header>
           <v-icon class="mr-2" color="primary" icon="mdi-tag-multiple-outline" />
           Todos os Registros Alternativos
+          <v-spacer />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="aliasesPending"
+            size="small"
+            variant="tonal"
+            @click="refreshAliases"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddAliasModal"
+            >Novo Registro</UiButton
+          >
         </template>
 
         <UiTable

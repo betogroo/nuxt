@@ -162,24 +162,6 @@
 <template>
   <div>
     <PageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários">
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="pending"
-          size="small"
-          variant="tonal"
-          @click="refresh"
-        />
-        <UiButton
-          color="primary"
-          prepend-icon="mdi-account-plus"
-          variant="flat"
-          @click="openAddModal"
-        >
-          Novo Usuário
-        </UiButton>
-      </template>
     </PageHeader>
 
     <!-- Card de usuários ativos -->
@@ -204,6 +186,18 @@
           style="max-width: 260px"
           variant="outlined"
         />
+        <UiButton
+          class="ml-4 mr-2"
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="pending"
+          size="small"
+          variant="tonal"
+          @click="refresh"
+        />
+        <UiButton color="primary" prepend-icon="mdi-account-plus" @click="openAddModal"
+          >Novo Usuário</UiButton
+        >
       </template>
 
       <UiTable

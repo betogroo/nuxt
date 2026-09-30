@@ -142,19 +142,6 @@
 <template>
   <div>
     <PageHeader subtitle="Cadastre e gerencie os produtos do sistema" title="Produtos">
-      <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
-          :loading="pending"
-          size="small"
-          variant="tonal"
-          @click="refresh"
-        />
-        <UiButton color="primary" prepend-icon="mdi-plus" variant="flat" @click="openAddModal">
-          Novo Produto
-        </UiButton>
-      </template>
     </PageHeader>
 
     <UiCard>
@@ -166,36 +153,51 @@
         </v-chip>
         <v-spacer />
         <!-- Filtros inline -->
-        <div class="d-flex gap-2">
-          <v-select
-            v-model="selectedExpenseNature"
-            clearable
-            density="compact"
-            hide-details
-            item-title="name"
-            item-value="id"
-            :items="expenseNatures || []"
-            label="Natureza de Despesa"
-            rounded="lg"
-            style="min-width: 200px; max-width: 260px"
-            variant="outlined"
+        <div class="d-flex gap-2 align-center">
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
           />
-          <v-select
-            v-model="statusFilter"
-            density="compact"
-            hide-details
-            item-title="title"
-            item-value="value"
-            :items="[
-              { title: 'Ativos', value: 'active' },
-              { title: 'Inativos', value: 'inactive' },
-              { title: 'Todos', value: 'all' },
-            ]"
-            label="Status"
-            rounded="lg"
-            style="min-width: 130px; max-width: 160px"
-            variant="outlined"
-          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+            >Novo Produto</UiButton
+          >
+          <v-divider class="mx-2" vertical />
+          <div class="d-flex gap-2">
+            <v-select
+              v-model="selectedExpenseNature"
+              clearable
+              density="compact"
+              hide-details
+              item-title="name"
+              item-value="id"
+              :items="expenseNatures || []"
+              label="Natureza de Despesa"
+              rounded="lg"
+              style="min-width: 200px; max-width: 260px"
+              variant="outlined"
+            />
+            <v-select
+              v-model="statusFilter"
+              density="compact"
+              hide-details
+              item-title="title"
+              item-value="value"
+              :items="[
+                { title: 'Ativos', value: 'active' },
+                { title: 'Inativos', value: 'inactive' },
+                { title: 'Todos', value: 'all' },
+              ]"
+              label="Status"
+              rounded="lg"
+              style="min-width: 130px; max-width: 160px"
+              variant="outlined"
+            />
+          </div>
         </div>
       </template>
 
