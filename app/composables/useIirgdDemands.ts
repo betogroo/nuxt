@@ -52,7 +52,10 @@ export const useIirgdDemands = () => {
     }
 
     if (data) {
-      await logAction('create', 'iirgd_demand', data.id, null, { name: demand.name, rg: demand.rg })
+      await logAction(
+        'CREATE_IIRGD_DEMAND',
+        `Nova demanda IIRGD criada para ${demand.name} (RG: ${demand.rg})`,
+      )
     }
 
     return data
