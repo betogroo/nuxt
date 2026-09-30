@@ -102,7 +102,7 @@
       <v-col v-for="link in visibleLinks" :key="link.to" cols="12" md="4" sm="6">
         <v-card border class="quick-link-card pa-1" elevation="0" hover rounded="xl" :to="link.to">
           <v-card-text class="d-flex align-center gap-4 pa-5">
-            <v-avatar :color="link.color" rounded="lg" size="52" variant="tonal">
+            <v-avatar :color="link.color" rounded="lg" size="52" variant="text">
               <v-icon :icon="link.icon" size="26" />
             </v-avatar>
             <div>

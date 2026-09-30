@@ -218,7 +218,7 @@
             <div class="d-flex flex-column gap-2">
               <v-btn
                 block
-                class="justify-start"
+                class="justify-start mb-1"
                 color="primary"
                 :prepend-icon="getIcon('/users')"
                 rounded="lg"
@@ -231,7 +231,7 @@
 
               <v-btn
                 block
-                class="justify-start"
+                class="justify-start mb-1"
                 color="info"
                 :prepend-icon="getIcon('/products')"
                 rounded="lg"
@@ -244,7 +244,7 @@
 
               <v-btn
                 block
-                class="justify-start"
+                class="justify-start mb-1"
                 color="blue-grey"
                 :prepend-icon="getIcon('/logs')"
                 rounded="lg"
@@ -257,7 +257,7 @@
 
               <v-btn
                 block
-                class="justify-start"
+                class="justify-start mb-1"
                 color="warning"
                 prepend-icon="mdi-scale-balance"
                 rounded="lg"
