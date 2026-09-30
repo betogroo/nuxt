@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatCurrency, slugify } from '../app/utils/formatters'
+import { formatCurrency, slugify, formatCpf, padAndFormatRg } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
   describe('formatCurrency', () => {
@@ -27,6 +27,19 @@ describe('Formatadores (utils/formatters.ts)', () => {
 
     it('deve tratar hifens duplicados', () => {
       expect(slugify('Algo   com     muito espaço')).toBe('algo-com-muito-espaco')
+    })
+  })
+
+  describe('formatCpf', () => {
+    it('deve formatar CPF', () => {
+      expect(formatCpf('12345678901')).toBe('123.456.789-01')
+    })
+  })
+
+  describe('padAndFormatRg', () => {
+    it('deve formatar e preencher RG', () => {
+      expect(padAndFormatRg('12345X', true)).toBe('00012345-X')
+      expect(padAndFormatRg('123456789', false)).toBe('12345678-9')
     })
   })
 })

@@ -46,3 +46,32 @@ export const getDemandStatusColor = (status: string) => {
   }
   return map[status] || 'grey'
 }
+export function formatCpf(value: string): string {
+  let v = value.replace(/\D/g, '')
+  if (v.length > 11) v = v.slice(0, 11)
+
+  if (v.length <= 3) return v
+  if (v.length <= 6) return `${v.slice(0, 3)}.${v.slice(3)}`
+  if (v.length <= 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`
+  return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`
+}
+
+export function padAndFormatRg(value: string, pad: boolean = false): string {
+  let v = value.replace(/[^0-9xX]/g, '').toUpperCase()
+  if (v.length > 9) v = v.slice(0, 9)
+
+  if (pad && v.length > 0) {
+    v = v.padStart(9, '0')
+  }
+
+  if (v.length === 9) {
+    return `${v.slice(0, 8)}-${v.slice(8)}`
+  }
+
+  // se ainda estiver digitando e nao pediu padding (pad=false)
+  if (v.length > 8) {
+    return `${v.slice(0, 8)}-${v.slice(8)}`
+  }
+
+  return v
+}
