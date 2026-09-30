@@ -1,5 +1,6 @@
 <script setup lang="ts">
   definePageMeta({
+    icon: 'mdi-text-box-search-outline',
     middleware: ['admin'],
   })
   useHead({ title: 'Registros de Acessos e Ações' })

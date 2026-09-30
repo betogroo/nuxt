@@ -1,6 +1,9 @@
 ﻿<script setup lang="ts">
-  definePageMeta({ middleware: ['uge'] })
   import type { SupplierRow } from '~/composables/useSuppliers'
+  definePageMeta({
+    icon: 'mdi-truck-delivery-outline',
+    middleware: ['uge'],
+  })
 
   useHead({ title: 'Fornecedores' })
 
@@ -402,4 +405,3 @@
     </UiModal>
   </div>
 </template>
-

@@ -28,34 +28,40 @@
     to: string
   }
 
+  const router = useRouter()
+  const getIcon = (path: string) => {
+    const route = router.getRoutes().find((r) => r.path === path || r.path === path + '/')
+    return (route?.meta?.icon as string) || 'mdi-circle-outline'
+  }
+
   const metricCards = computed<MetricCard[]>(() => [
     {
       label: 'Usuários',
       value: metrics.value?.usersCount,
-      icon: 'mdi-account-group-outline',
+      icon: getIcon('/users'),
       color: 'primary',
       to: '/users',
     },
     {
       label: 'Demandas',
       value: metrics.value?.demandsCount,
-      icon: 'mdi-clipboard-list-outline',
+      icon: getIcon('/demands'),
       color: 'success',
       to: '/demands',
     },
     {
       label: 'Produtos Ativos',
       value: metrics.value?.productsCount,
-      icon: 'mdi-package-variant-outline',
+      icon: getIcon('/products'),
       color: 'info',
       to: '/products',
     },
     {
       label: 'Categorias',
       value: metrics.value?.categoriesCount,
-      icon: 'mdi-shape-outline',
+      icon: 'mdi-shape-outline', // Categoria de produtos don't have a page yet or are just part of products
       color: 'deep-purple',
-      to: '/admin',
+      to: '/admin', // Wait, earlier there was /admin/categories
     },
   ])
 </script>
@@ -251,7 +257,7 @@
                 block
                 class="justify-start"
                 color="primary"
-                prepend-icon="mdi-account-group-outline"
+                :prepend-icon="getIcon('/users')"
                 rounded="lg"
                 size="large"
                 to="/users"
@@ -277,7 +283,7 @@
                 block
                 class="justify-start"
                 color="info"
-                prepend-icon="mdi-package-variant-outline"
+                :prepend-icon="getIcon('/products')"
                 rounded="lg"
                 size="large"
                 to="/products"
@@ -290,7 +296,7 @@
                 block
                 class="justify-start"
                 color="blue-grey"
-                prepend-icon="mdi-text-box-search-outline"
+                :prepend-icon="getIcon('/logs')"
                 rounded="lg"
                 size="large"
                 to="/logs"

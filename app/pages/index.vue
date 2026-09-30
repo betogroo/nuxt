@@ -1,4 +1,7 @@
 <script setup lang="ts">
+  definePageMeta({
+    icon: 'mdi-home-outline',
+  })
   const title = 'Início'
   useHead({ title })
 

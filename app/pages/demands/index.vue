@@ -1,7 +1,10 @@
 <script setup lang="ts">
   import type { DemandRow } from '~/composables/useDemands'
 
-  definePageMeta({ middleware: ['uge'] })
+  definePageMeta({
+    icon: 'mdi-clipboard-list-outline',
+    middleware: ['uge'],
+  })
   useHead({ title: 'Demandas' })
 
   const { profile } = useProfile()

@@ -2,6 +2,7 @@
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
 
   definePageMeta({
+    icon: 'mdi-badge-account-outline',
     middleware: ['iirgd'],
     layout: 'default',
   })

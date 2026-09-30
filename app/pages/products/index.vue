@@ -2,6 +2,7 @@
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
+    icon: 'mdi-package-variant-outline',
     middleware: ['uge'],
   })
 

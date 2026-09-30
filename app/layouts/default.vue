@@ -42,6 +42,12 @@
     iirgd: 'IIRGD',
     user: 'Usuário',
   }
+
+  const router = useRouter()
+  const getIcon = (path: string) => {
+    const route = router.getRoutes().find((r) => r.path === path || r.path === path + '/')
+    return (route?.meta?.icon as string) || 'mdi-circle-outline'
+  }
 </script>
 
 <template>
@@ -63,13 +69,8 @@
 
       <!-- Navegação principal -->
       <v-list class="px-3" density="compact" nav>
-        <v-list-item prepend-icon="mdi-home-outline" rounded="lg" title="Início" to="/" />
-        <v-list-item
-          prepend-icon="mdi-information-outline"
-          rounded="lg"
-          title="Sobre"
-          to="/about"
-        />
+        <v-list-item :prepend-icon="getIcon('/')" rounded="lg" title="Início" to="/" />
+        <v-list-item :prepend-icon="getIcon('/about')" rounded="lg" title="Sobre" to="/about" />
 
         <template v-if="user && (profile?.role === 'admin' || profile?.role === 'uge')">
           <div class="mt-3 mb-1">
@@ -79,7 +80,7 @@
           </div>
 
           <v-list-item
-            prepend-icon="mdi-clipboard-list-outline"
+            :prepend-icon="getIcon('/demands')"
             rounded="lg"
             title="Demandas"
             to="/demands"
@@ -89,10 +90,15 @@
             </template>
           </v-list-item>
 
-          <v-list-item prepend-icon="mdi-package" rounded="lg" title="Produtos" to="/products" />
+          <v-list-item
+            :prepend-icon="getIcon('/products')"
+            rounded="lg"
+            title="Produtos"
+            to="/products"
+          />
 
           <v-list-item
-            prepend-icon="mdi-truck-delivery-outline"
+            :prepend-icon="getIcon('/suppliers')"
             rounded="lg"
             title="Fornecedores"
             to="/suppliers"
@@ -101,7 +107,7 @@
 
         <v-list-item
           v-if="profile?.role === 'admin' || profile?.role === 'iirgd'"
-          prepend-icon="mdi-card-account-details-outline"
+          :prepend-icon="getIcon('/iirgd')"
           rounded="lg"
           title="IIRGD"
           to="/iirgd"
@@ -114,27 +120,17 @@
             </span>
           </div>
 
+          <v-list-item :prepend-icon="getIcon('/admin')" rounded="lg" title="Painel" to="/admin" />
           <v-list-item
-            prepend-icon="mdi-view-dashboard-outline"
-            rounded="lg"
-            title="Painel"
-            to="/admin"
-          />
-          <v-list-item
-            prepend-icon="mdi-account-group-outline"
+            :prepend-icon="getIcon('/users')"
             rounded="lg"
             title="Usuários"
             to="/users"
           />
-          <v-list-item
-            prepend-icon="mdi-text-box-search-outline"
-            rounded="lg"
-            title="Logs"
-            to="/logs"
-          />
+          <v-list-item :prepend-icon="getIcon('/logs')" rounded="lg" title="Logs" to="/logs" />
 
           <v-list-item
-            prepend-icon="mdi-scale-balance"
+            :prepend-icon="getIcon('/admin/units')"
             rounded="lg"
             title="Unidades de Medida"
             to="/admin/units"
@@ -145,7 +141,7 @@
           </v-list-item>
 
           <v-list-item
-            prepend-icon="mdi-cash-multiple"
+            :prepend-icon="getIcon('/admin/expense-natures')"
             rounded="lg"
             title="Naturezas de Despesa"
             to="/admin/expense-natures"
@@ -219,7 +215,7 @@
           <v-list density="compact" nav>
             <v-list-item
               v-if="pendingUnitsCount > 0"
-              prepend-icon="mdi-scale-balance"
+              :prepend-icon="getIcon('/admin/units')"
               rounded="lg"
               :subtitle="`${pendingUnitsCount} unidade(s) aguardando aprovação`"
               title="Unidades de Medida"
@@ -227,7 +223,7 @@
             />
             <v-list-item
               v-if="pendingExpenseNaturesCount > 0"
-              prepend-icon="mdi-cash-multiple"
+              :prepend-icon="getIcon('/admin/expense-natures')"
               rounded="lg"
               :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovação`"
               title="Naturezas de Despesa"
@@ -235,11 +231,11 @@
             />
             <v-list-item
               v-if="pendingReturnsCount > 0"
-              prepend-icon="mdi-keyboard-return"
+              :prepend-icon="getIcon('/demands')"
               rounded="lg"
               :subtitle="`${pendingReturnsCount} pedido(s) de retorno em demandas`"
               title="Retornos de Status"
-              to="/admin"
+              to="/demands"
             />
           </v-list>
         </v-card>
@@ -283,7 +279,7 @@
           <v-divider />
           <v-list density="compact" nav>
             <v-list-item
-              prepend-icon="mdi-account-circle-outline"
+              :prepend-icon="getIcon('/profile')"
               rounded="lg"
               title="Meu Perfil"
               to="/profile"

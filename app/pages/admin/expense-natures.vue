@@ -2,6 +2,7 @@
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
 
   definePageMeta({
+    icon: 'mdi-cash-multiple',
     middleware: ['admin'],
   })
 

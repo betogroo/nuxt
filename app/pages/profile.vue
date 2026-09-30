@@ -3,6 +3,7 @@
 
   // Proteção básica: apenas usuários logados
   definePageMeta({
+    icon: 'mdi-account-circle-outline',
     middleware: [
       function () {
         const { user } = useAuth()

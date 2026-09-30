@@ -3,6 +3,7 @@
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
+    icon: 'mdi-account-group-outline',
     middleware: ['admin'],
   })
   useHead({ title: 'Gerenciar Usuários' })

@@ -2,6 +2,7 @@
   import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
 
   definePageMeta({
+    icon: 'mdi-scale-balance',
     middleware: ['admin'],
   })
 

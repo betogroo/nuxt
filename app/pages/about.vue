@@ -1,4 +1,7 @@
 <script setup lang="ts">
+  definePageMeta({
+    icon: 'mdi-information-outline',
+  })
   const title = 'Sobre'
   useHead({ title })
 </script>
