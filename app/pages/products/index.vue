@@ -154,19 +154,6 @@
         <v-spacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="mdi-refresh"
-            :loading="pending"
-            size="small"
-            variant="tonal"
-            @click="refresh"
-          />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
-            >Novo Produto</UiButton
-          >
-          <v-divider class="mx-2" vertical />
           <div class="d-flex gap-2">
             <v-select
               v-model="selectedExpenseNature"
@@ -198,6 +185,19 @@
               variant="outlined"
             />
           </div>
+          <v-divider class="mx-2" vertical />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            Novo Produto
+          </UiButton>
         </div>
       </template>
 
