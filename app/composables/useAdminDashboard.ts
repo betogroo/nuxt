@@ -8,30 +8,26 @@ export const useAdminDashboard = () => {
   const supabase = useSupabaseClient<Database>()
 
   const fetchDashboardMetrics = async () => {
-    // Run all count queries concurrently for maximum performance
-    const [usersRes, productsRes, demandsRes, categoriesRes, logsRes, returnDemandsRes] =
-      await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('demands').select('*', { count: 'exact', head: true }),
-        supabase.from('product_categories').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('logs')
-          .select('*, profiles(name)')
-          .order('created_at', { ascending: false })
-          .limit(6),
-        supabase
-          .from('demands')
-          .select('id, name, status')
-          .eq('is_return_requested', true)
-          .order('created_at', { ascending: false }),
-      ])
+    const [usersRes, productsRes, demandsRes, logsRes, returnDemandsRes] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('demands').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('logs')
+        .select('*, profiles(name)')
+        .order('created_at', { ascending: false })
+        .limit(6),
+      supabase
+        .from('demands')
+        .select('id, name, status')
+        .eq('is_return_requested', true)
+        .order('created_at', { ascending: false }),
+    ])
 
     return {
       usersCount: usersRes.count || 0,
       productsCount: productsRes.count || 0,
       demandsCount: demandsRes.count || 0,
-      categoriesCount: categoriesRes.count || 0,
       recentLogs: (logsRes.data as RecentLog[]) || [],
       pendingReturnDemands: returnDemandsRes.data || [],
     }

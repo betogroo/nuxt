@@ -43,10 +43,10 @@ describe('useIirgdDemands', () => {
 
     const result = await createDemand(payload)
     expect(supabaseFromMock.insert).toHaveBeenCalledWith([{ ...payload, status: 'Novo' }])
-    expect(logActionMock).toHaveBeenCalledWith('create', 'iirgd_demand', 'new-id', null, {
-      name: payload.name,
-      rg: payload.rg,
-    })
+    expect(logActionMock).toHaveBeenCalledWith(
+      'CREATE_IIRGD_DEMAND',
+      `Nova demanda IIRGD criada para ${payload.name} (RG: ${payload.rg})`,
+    )
     expect(result).toEqual({ id: 'new-id' })
   })
 })

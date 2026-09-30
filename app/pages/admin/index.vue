@@ -8,7 +8,7 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
-  const { pendingCategoriesCount, pendingUnitsCount, totalPending } = usePendingTasks()
+  const { pendingUnitsCount, totalPending } = usePendingTasks()
 
   // Formatters
   const formatDate = (dateStr: string) => {
@@ -55,13 +55,6 @@
       icon: getIcon('/products'),
       color: 'info',
       to: '/products',
-    },
-    {
-      label: 'Categorias',
-      value: metrics.value?.categoriesCount,
-      icon: 'mdi-shape-outline', // Categoria de produtos don't have a page yet or are just part of products
-      color: 'deep-purple',
-      to: '/admin', // Wait, earlier there was /admin/categories
     },
   ])
 </script>
@@ -114,27 +107,6 @@
             variant="tonal"
           >
             <div class="d-flex flex-column gap-3 mt-3">
-              <!-- Categorias -->
-              <div
-                v-if="pendingCategoriesCount > 0"
-                class="d-flex align-center justify-space-between"
-              >
-                <div class="d-flex align-center gap-2">
-                  <v-icon color="warning" icon="mdi-shape-outline" size="18" />
-                  <span class="text-body-2">
-                    Categorias Sugeridas
-                    <v-chip class="ml-1" color="warning" label size="x-small">
-                      {{ pendingCategoriesCount }}
-                    </v-chip>
-                  </span>
-                </div>
-                <UiButton color="warning" size="small" to="/admin/categories" variant="tonal">
-                  Revisar
-                </UiButton>
-              </div>
-
-              <v-divider v-if="pendingCategoriesCount > 0 && pendingUnitsCount > 0" />
-
               <!-- Unidades -->
               <div v-if="pendingUnitsCount > 0" class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center gap-2">
@@ -151,12 +123,7 @@
                 </UiButton>
               </div>
 
-              <v-divider
-                v-if="
-                  (pendingCategoriesCount > 0 || pendingUnitsCount > 0) &&
-                  metrics.pendingReturnDemands.length > 0
-                "
-              />
+              <v-divider v-if="pendingUnitsCount > 0 && metrics.pendingReturnDemands.length > 0" />
 
               <!-- Retornos de demandas -->
               <div v-if="metrics.pendingReturnDemands.length > 0">
@@ -264,19 +231,6 @@
                 variant="tonal"
               >
                 Gerenciar Usuários
-              </v-btn>
-
-              <v-btn
-                block
-                class="justify-start"
-                color="deep-purple"
-                prepend-icon="mdi-shape-outline"
-                rounded="lg"
-                size="large"
-                to="/admin/categories"
-                variant="tonal"
-              >
-                Categorias de Produtos
               </v-btn>
 
               <v-btn

@@ -82,8 +82,6 @@
     return !process_number || !internal_process_number || !id_pca || !type || !contract_number
   })
 
-
-
   useHead({
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
   })
@@ -117,8 +115,6 @@
     return await fetchAllActiveExpenseNatures()
   })
 
-  
-
   // Modal State
   const isModalOpen = ref(false)
   const isSaving = ref(false)
@@ -130,10 +126,6 @@
   const selectedProductId = ref<string | null>(null)
   const selectedUnitSearch = ref('')
   const selectedAliasId = ref<string | null>(null)
-    const isNewAliasMode = ref(false)
-    const newAliasCode = ref<number | null>(null)
-    const newAliasName = ref('')
-    const supabase = useSupabaseClient()
   const itemQuantity = ref<number>(1)
   const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')
@@ -161,15 +153,6 @@
   const availableUnitsForSelectedProduct = computed(() => {
     //
     return selectedProductObj.value?.product_units?.map((pu) => pu.measurement_units) || []
-  })
-
-  const computedMeasurementUnits = computed(() => {
-    return (allMeasurementUnits.value || []).map(
-      (u: { name: string; legacy_alias?: string | null } | undefined | null) => ({
-        ...u,
-        displayName: u?.legacy_alias ? `${u?.name} (Legado: ${u?.legacy_alias})` : u?.name,
-      }),
-    )
   })
 
   // Whenever a product is selected, auto-select the first unit if available
@@ -225,14 +208,16 @@
     isNewProductMode.value = true
   }
 
-  
-              const resolveFinalUnitId = async () => {
-        const rawVal = selectedUnitSearch.value
-        const searchStr = typeof rawVal === 'string' ? rawVal.trim() : (rawVal as any)?.name?.trim()
-        return await resolveOrCreateUnit(searchStr || '')
-      }
+  const resolveFinalUnitId = async () => {
+    const rawVal = selectedUnitSearch.value
+    const searchStr =
+      typeof rawVal === 'string'
+        ? rawVal.trim()
+        : ((rawVal as Record<string, unknown>)?.name as string | undefined)
+    return await resolveOrCreateUnit(searchStr || '')
+  }
 
-    const saveToDemand = async () => {
+  const saveToDemand = async () => {
     isSaving.value = true
     saveError.value = ''
 
@@ -242,10 +227,9 @@
         isNewProductMode: isNewProductMode.value,
         newProductName: newProductName.value,
         newProductExpenseNatureId: newProductExpenseNatureId.value,
-          isSuggestingNature: isSuggestingNature.value,
-          suggestedNatureId: suggestedNatureId.value,
-          suggestedNatureName: suggestedNatureName.value,
-
+        isSuggestingNature: isSuggestingNature.value,
+        suggestedNatureId: suggestedNatureId.value,
+        suggestedNatureName: suggestedNatureName.value,
 
         selectedProductId: selectedProductId.value,
         finalUnitId: await resolveFinalUnitId(),
@@ -264,41 +248,44 @@
     }
   }
 
-    const isReordering = ref(false)
+  const isReordering = ref(false)
 
-    const moveItemUp = async (index: number) => {
-      if (!items.value || index <= 0) return
-      const newItems = [...items.value]
-      const temp = newItems[index]
-      newItems[index] = newItems[index - 1]
-      newItems[index - 1] = temp
-      await saveNewOrder(newItems)
+  const moveItemUp = async (index: number) => {
+    if (!items.value || index <= 0) return
+    const newItems = [...items.value]
+    const temp = newItems[index]
+    newItems[index] = newItems[index - 1]
+    newItems[index - 1] = temp
+    await saveNewOrder(newItems)
+  }
+
+  const moveItemDown = async (index: number) => {
+    if (!items.value || index >= items.value.length - 1) return
+    const newItems = [...items.value]
+    const temp = newItems[index]
+    newItems[index] = newItems[index + 1]
+    newItems[index + 1] = temp
+    await saveNewOrder(newItems)
+  }
+
+  const saveNewOrder = async (newItems: unknown[]) => {
+    isReordering.value = true
+    try {
+      const updates = newItems.map((item: Record<string, unknown>, idx) => ({
+        id: item.id,
+        sort_order: idx + 1,
+      }))
+      if (items.value) items.value = newItems as typeof items.value
+      await reorderDemandItems(updates)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err))
+      await refreshItems()
+    } finally {
+      isReordering.value = false
     }
+  }
 
-    const moveItemDown = async (index: number) => {
-      if (!items.value || index >= items.value.length - 1) return
-      const newItems = [...items.value]
-      const temp = newItems[index]
-      newItems[index] = newItems[index + 1]
-      newItems[index + 1] = temp
-      await saveNewOrder(newItems)
-    }
-
-    const saveNewOrder = async (newItems: any[]) => {
-      isReordering.value = true
-      try {
-        const updates = newItems.map((item, idx) => ({ id: item.id, sort_order: idx + 1 }))
-        if (items.value) items.value = newItems as any
-        await reorderDemandItems(updates)
-      } catch (err) {
-        alert(err instanceof Error ? err.message : String(err))
-        await refreshItems()
-      } finally {
-        isReordering.value = false
-      }
-    }
-
-    const removeItem = async (itemId: string, productName: string) => {
+  const removeItem = async (itemId: string, productName: string) => {
     if (!confirm(`Deseja realmente remover '${productName}' da demanda?`)) return
     try {
       await removeDemandProduct(itemId, demandId as string)
@@ -337,7 +324,9 @@
       productName: item.product?.name || 'Produto',
       quantity: Number(item.quantity),
       reference_price: item.reference_price != null ? Number(item.reference_price) : null,
-      searchUnitText: item.unit_id ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || '' : '',
+      searchUnitText: item.unit_id
+        ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
+        : '',
     }
     editItemError.value = ''
     isEditItemModalOpen.value = true
@@ -357,7 +346,9 @@
         productId: editItemForm.value.productId,
         quantity: editItemForm.value.quantity,
         referencePrice: editItemForm.value.reference_price,
-        finalUnitId: await resolveOrCreateUnit(editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id || ''),
+        finalUnitId: await resolveOrCreateUnit(
+          editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id || '',
+        ),
       })
 
       await refreshAllMeasurementUnits()
@@ -417,21 +408,24 @@
     if (!items.value) return []
 
     // Map: supplier_id -> { supplier, productsParticipated: Set, productsWon: Set }
-    const supplierStats = new Map<string, {
-      supplier: any,
-      participated: Set<string>,
-      won: Set<string>,
-      totalAmountWon: number
-    }>()
+    const supplierStats = new Map<
+      string,
+      {
+        supplier: Record<string, unknown>
+        participated: Set<string>
+        won: Set<string>
+        totalAmountWon: number
+      }
+    >()
 
-    items.value.forEach(product => {
+    items.value.forEach((product) => {
       const bids = product.demand_product_bids || []
       if (bids.length === 0) return
 
       let minAmount = Infinity
-      let winningBid: any = null
+      let winningBid: Record<string, unknown> | null = null
 
-      bids.forEach(bid => {
+      bids.forEach((bid) => {
         if (bid.amount < minAmount) {
           minAmount = bid.amount
           winningBid = bid
@@ -445,7 +439,7 @@
               supplier: bid.suppliers,
               participated: new Set(),
               won: new Set(),
-              totalAmountWon: 0
+              totalAmountWon: 0,
             })
           }
           supplierStats.get(suppId)!.participated.add(product.id)
@@ -456,20 +450,20 @@
       if (winningBid && winningBid.suppliers) {
         const stats = supplierStats.get(winningBid.supplier_id)!
         stats.won.add(product.id)
-        stats.totalAmountWon += (minAmount * (product.quantity || 1))
+        stats.totalAmountWon += minAmount * (product.quantity || 1)
       }
     })
 
     // Filter to only those who won at least one product
     const winners = Array.from(supplierStats.values())
-      .filter(s => s.won.size > 0)
-      .map(s => ({
+      .filter((s) => s.won.size > 0)
+      .map((s) => ({
         ...s.supplier,
         participatedCount: s.participated.size,
         wonCount: s.won.size,
-        totalAmountWon: s.totalAmountWon
+        totalAmountWon: s.totalAmountWon,
       }))
-      
+
     // Sort by most won products
     return winners.sort((a, b) => b.wonCount - a.wonCount)
   })
@@ -743,8 +737,8 @@
       <UiTable
         :headers="[
           { text: 'Ordem', value: 'order', align: 'center', sortable: false },
-            { text: 'Produto', value: 'product' },
-          { text: 'Natureza', value: 'category' },
+          { text: 'Produto', value: 'product' },
+          { text: 'Natureza', value: 'expense_nature' },
           { text: 'Qtd.', value: 'quantity', align: 'center' },
           { text: 'Valor Ref.', value: 'reference_price', align: 'right' },
           { text: 'Total Ref.', value: 'total_reference', align: 'right' },
@@ -756,27 +750,28 @@
       >
         <template v-if="!items?.length && !itemsPending" #empty>
           Nenhum produto adicionado a esta demanda ainda.
-        </template>          <template #item-order="{ index }">
-            <div class="d-flex flex-column align-center justify-center">
-              <v-btn
-                icon="mdi-chevron-up"
-                variant="text"
-                size="x-small"
-                density="compact"
-                :disabled="index === 0 || isReordering"
-                @click.stop="moveItemUp(index)"
-              />
-              <v-btn
-                icon="mdi-chevron-down"
-                variant="text"
-                size="x-small"
-                density="compact"
-                :disabled="index === (items?.length || 0) - 1 || isReordering"
-                @click.stop="moveItemDown(index)"
-              />
-            </div>
-          </template>
-          <template #item-product="{ item }">
+        </template>
+        <template #item-order="{ index }">
+          <div class="d-flex flex-column align-center justify-center">
+            <v-btn
+              density="compact"
+              :disabled="index === 0 || isReordering"
+              icon="mdi-chevron-up"
+              size="x-small"
+              variant="text"
+              @click.stop="moveItemUp(index)"
+            />
+            <v-btn
+              density="compact"
+              :disabled="index === (items?.length || 0) - 1 || isReordering"
+              icon="mdi-chevron-down"
+              size="x-small"
+              variant="text"
+              @click.stop="moveItemDown(index)"
+            />
+          </div>
+        </template>
+        <template #item-product="{ item }">
           <NuxtLink
             class="text-decoration-none text-primary font-weight-bold"
             :to="`/demands/${demandId}/items/${item.id}`"
@@ -802,7 +797,7 @@
             variant="text"
           />
         </template>
-        <template #item-category="{ item }">
+        <template #item-expense_nature="{ item }">
           {{
             item.expense_nature_name_snapshot ||
             (item.product as { expense_natures?: { name: string } })?.expense_natures?.name ||
@@ -828,7 +823,7 @@
             {{
               item.reference_price != null && item.quantity != null
                 ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    Number(item.reference_price) * Number(item.quantity)
+                    Number(item.reference_price) * Number(item.quantity),
                   )
                 : '-'
             }}
@@ -839,7 +834,7 @@
             <span class="text-success font-weight-bold">
               {{
                 new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount))
+                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)),
                 )
               }}
             </span>
@@ -847,11 +842,18 @@
           <span v-else class="text-grey">-</span>
         </template>
         <template #item-total_final="{ item }">
-          <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0 && item.quantity != null">
+          <template
+            v-if="
+              item.demand_product_bids &&
+              item.demand_product_bids.length > 0 &&
+              item.quantity != null
+            "
+          >
             <span class="text-success font-weight-bold">
               {{
                 new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) * Number(item.quantity)
+                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) *
+                    Number(item.quantity),
                 )
               }}
             </span>
@@ -896,7 +898,7 @@
           { text: 'Fornecedor', value: 'supplier' },
           { text: 'Participou (Itens)', value: 'participated', align: 'center' },
           { text: 'Venceu (Itens)', value: 'won', align: 'center' },
-          { text: 'Total Arrematado', value: 'total_amount', align: 'right' }
+          { text: 'Total Arrematado', value: 'total_amount', align: 'right' },
         ]"
         :items="winningSuppliersSummary"
       >
@@ -926,7 +928,11 @@
 
         <template #item-total_amount="{ item: supplier }">
           <span class="text-success font-weight-bold">
-            {{ new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(supplier.totalAmountWon) }}
+            {{
+              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                supplier.totalAmountWon,
+              )
+            }}
           </span>
         </template>
       </UiTable>
@@ -948,10 +954,7 @@
 
       <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
 
-            <MeasurementUnitSelect
-        v-model="editItemForm.searchUnitText"
-        class="mt-3"
-      />
+      <MeasurementUnitSelect v-model="editItemForm.searchUnitText" class="mt-3" />
 
       <UiInput
         v-model.number="editItemForm.reference_price"
@@ -1009,23 +1012,19 @@
             </div>
           </template>
         </v-autocomplete>
-          <div class="d-flex justify-end mt-1 mb-2">
-            <UiButton
-              color="primary"
-              size="small"
-              variant="text"
-              prepend-icon="mdi-plus"
-              @click="activateNewProductMode"
-            >
-              Não encontrou? Cadastrar novo produto
-            </UiButton>
-          </div>
+        <div class="d-flex justify-end mt-1 mb-2">
+          <UiButton
+            color="primary"
+            prepend-icon="mdi-plus"
+            size="small"
+            variant="text"
+            @click="activateNewProductMode"
+          >
+            Não encontrou? Cadastrar novo produto
+          </UiButton>
+        </div>
 
-                <MeasurementUnitSelect
-          v-if="selectedProductId"
-          v-model="selectedUnitSearch"
-          class="mt-3"
-        />
+        <MeasurementUnitSelect v-if="selectedProductId" v-model="selectedUnitSearch" class="mt-3" />
 
         <UiInput
           v-if="selectedProductId"
@@ -1054,18 +1053,25 @@
 
         <UiInput v-model="newProductName" label="Nome do Produto" />
 
-        <UiSwitch v-model="isSuggestingNature" label="Não encontrou a natureza? Sugerir nova" color="primary" class="mb-2" />
+        <UiSwitch
+          v-model="isSuggestingNature"
+          class="mb-2"
+          color="primary"
+          label="Não encontrou a natureza? Sugerir nova"
+        />
 
         <v-autocomplete
           v-if="!isSuggestingNature"
           v-model="newProductExpenseNatureId"
+          class="mb-4"
+          density="comfortable"
+          :item-title="
+            (item) => (typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : '')
+          "
           item-value="id"
           :items="expenseNatures || []"
-          :item-title="(item) => typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''"
           label="Natureza de Despesa"
           variant="outlined"
-          density="comfortable"
-          class="mb-4"
         />
 
         <div v-else class="d-flex gap-4 mb-4">
@@ -1073,12 +1079,7 @@
           <UiInput v-model="suggestedNatureName" label="Nome da Natureza" />
         </div>
 
-        
-
-                <MeasurementUnitSelect
-          v-model="selectedUnitSearch"
-          class="mb-4"
-        />
+        <MeasurementUnitSelect v-model="selectedUnitSearch" class="mb-4" />
 
         <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
         <UiInput
@@ -1323,29 +1324,3 @@
     </UiModal>
   </v-container>
 </template>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

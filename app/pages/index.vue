@@ -28,7 +28,7 @@
     },
     {
       title: 'Produtos',
-      subtitle: 'Catálogo de produtos e categorias',
+      subtitle: 'Catálogo de produtos e naturezas de despesa',
       icon: 'mdi-package',
       to: '/products',
       color: 'info',
