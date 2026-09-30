@@ -28,11 +28,7 @@
     to: string
   }
 
-  const router = useRouter()
-  const getIcon = (path: string) => {
-    const route = router.getRoutes().find((r) => r.path === path || r.path === path + '/')
-    return (route?.meta?.icon as string) || 'mdi-circle-outline'
-  }
+  const { getIcon } = usePageIcon()
 
   const metricCards = computed<MetricCard[]>(() => [
     {

@@ -17,11 +17,13 @@
     roles: string[]
   }
 
+  const { getIcon } = usePageIcon()
+
   const quickLinks: QuickLink[] = [
     {
       title: 'Demandas',
       subtitle: 'Gerencie processos e demandas de compras',
-      icon: 'mdi-clipboard-list-outline',
+      icon: getIcon('/demands'),
       to: '/demands',
       color: 'primary',
       roles: ['admin', 'uge', 'user'],
@@ -29,7 +31,7 @@
     {
       title: 'Produtos',
       subtitle: 'Catálogo de produtos e naturezas de despesa',
-      icon: 'mdi-package',
+      icon: getIcon('/products'),
       to: '/products',
       color: 'info',
       roles: ['admin', 'uge', 'user'],
@@ -37,7 +39,7 @@
     {
       title: 'Fornecedores',
       subtitle: 'Cadastro e gestão de fornecedores',
-      icon: 'mdi-truck-delivery-outline',
+      icon: getIcon('/suppliers'),
       to: '/suppliers',
       color: 'secondary',
       roles: ['admin', 'uge', 'user'],
@@ -45,7 +47,7 @@
     {
       title: 'IIRGD',
       subtitle: 'Módulo de gestão IIRGD',
-      icon: 'mdi-card-account-details-outline',
+      icon: getIcon('/iirgd'),
       to: '/iirgd',
       color: 'deep-purple',
       roles: ['admin', 'iirgd'],
@@ -53,7 +55,7 @@
     {
       title: 'Painel Admin',
       subtitle: 'Métricas e atividade do sistema',
-      icon: 'mdi-view-dashboard-outline',
+      icon: getIcon('/admin'),
       to: '/admin',
       color: 'success',
       roles: ['admin'],
