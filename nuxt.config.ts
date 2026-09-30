@@ -28,26 +28,34 @@ export default defineNuxtConfig({
     vuetifyOptions: {
       theme: {
         defaultTheme: 'light',
-        /* themes: {
+        themes: {
           light: {
             colors: {
-              primary: '#3451D9',
-              secondary: '#2F29B0',
-              background: '#F8F9FC',
+              primary: '#4F46E5',
+              secondary: '#06B6D4',
+              background: '#F8FAFC',
               surface: '#FFFFFF',
-              warning: '#FDD835',
+              'surface-variant': '#F1F5F9',
+              success: '#10B981',
+              error: '#EF4444',
+              warning: '#F59E0B',
+              info: '#3B82F6',
             },
           },
           dark: {
             colors: {
-              primary: '#859FFF',
-              secondary: '#A5B4FC',
-              background: '#0B0E14',
-              surface: '#151920',
-              warning: '#FDD835',
+              primary: '#818CF8',
+              secondary: '#67E8F9',
+              background: '#0F172A',
+              surface: '#1E293B',
+              'surface-variant': '#334155',
+              success: '#34D399',
+              error: '#F87171',
+              warning: '#FBBF24',
+              info: '#60A5FA',
             },
           },
-        }, */
+        },
       },
     },
   },

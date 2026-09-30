@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { DemandRow } from '~/composables/useDemands'
 
   definePageMeta({ middleware: ['uge'] })
@@ -92,174 +92,180 @@
       modal.stopSaving()
     }
   }
+
+  const statusOptions = [
+    { title: 'Planejamento', value: 'planning', color: 'blue-grey' },
+    { title: 'Aviso de Contratação', value: 'bidding_notice', color: 'info' },
+    { title: 'Cotação', value: 'quotation', color: 'secondary' },
+    { title: 'Disputa', value: 'dispute', color: 'warning' },
+    { title: 'Homologação', value: 'homologation', color: 'deep-purple' },
+    { title: 'Concluído', value: 'completed', color: 'success' },
+    { title: 'Cancelado', value: 'cancelled', color: 'error' },
+    { title: 'Retorno (Admin)', value: 'returns', color: 'orange' },
+  ]
 </script>
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas" />
+    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas">
+      <template #actions>
+        <UiButton
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="pending"
+          size="small"
+          variant="tonal"
+          @click="refresh"
+        />
+        <UiButton color="primary" prepend-icon="mdi-plus" variant="flat" @click="modal.open()">
+          Nova Demanda
+        </UiButton>
+      </template>
+    </PageHeader>
 
-    <v-row>
-      <v-col cols="12">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Lista de Demandas</span>
-            <v-spacer />
-            <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="mdi-refresh"
-              :loading="pending"
-              size="small"
-              variant="tonal"
-              @click="refresh"
-            />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="modal.open()">
-              Nova Demanda
-            </UiButton>
-          </template>
+    <UiCard>
+      <template #header>
+        <v-icon class="mr-2" color="primary" icon="mdi-clipboard-list-outline" />
+        Lista de Demandas
+        <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+          {{ totalItems }}
+        </v-chip>
+        <v-spacer />
+        <!-- Filtros inline -->
+        <div class="d-flex gap-2 align-center">
+          <v-text-field
+            v-model="searchQuery"
+            clearable
+            density="compact"
+            hide-details
+            label="Buscar..."
+            prepend-inner-icon="mdi-magnify"
+            rounded="lg"
+            style="min-width: 200px; max-width: 260px"
+            variant="outlined"
+          />
+          <v-select
+            v-model="statusFilter"
+            clearable
+            density="compact"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="statusOptions"
+            label="Status"
+            rounded="lg"
+            style="min-width: 180px; max-width: 220px"
+            variant="outlined"
+          />
+        </div>
+      </template>
 
-          <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
-            <v-row align="center" no-gutters>
-              <v-col class="pr-sm-2 mb-2 mb-sm-0" cols="12" md="6" sm="6">
-                <UiInput
-                  v-model="searchQuery"
-                  append-inner-icon="mdi-magnify"
-                  class="mb-0"
-                  clearable
-                  hide-details
-                  label="Buscar demanda..."
-                />
-              </v-col>
-              <v-col class="pl-sm-2" cols="12" md="4" sm="6">
-                <UiSelect
-                  v-model="statusFilter"
-                  class="mb-0"
-                  clearable
-                  hide-details
-                  item-title="title"
-                  item-value="value"
-                  :items="[
-                    { title: 'Planejamento', value: 'planning' },
-                    { title: 'Aviso de Contratação', value: 'bidding_notice' },
-                    { title: 'Disputa', value: 'dispute' },
-                    { title: 'Homologação', value: 'homologation' },
-                    { title: 'Concluído', value: 'completed' },
-                    { title: 'Cancelado', value: 'cancelled' },
-                    { title: 'Aguardando Retorno (Admin)', value: 'returns' },
-                  ]"
-                  label="Status"
-                />
-              </v-col>
-            </v-row>
+      <UiTable
+        :headers="[
+          { text: 'Nº Processo', value: 'internal_process_number' },
+          { text: 'Nome', value: 'name' },
+          { text: 'Tipo', value: 'type' },
+          { text: 'Status', value: 'status' },
+          { text: 'Criado por', value: 'creator' },
+          { text: 'Ações', value: 'actions', align: 'right' },
+        ]"
+        :items="demands || []"
+        :loading="pending"
+      >
+        <template v-if="!demands?.length && !pending" #empty>
+          Nenhuma demanda encontrada.
+        </template>
+        <template #item-internal_process_number="{ item }">
+          <div v-if="item.process_number" class="font-weight-bold text-primary">
+            {{ item.process_number }}
           </div>
-
-          <v-divider />
-
-          <UiTable
-            :headers="[
-              { text: 'Processo', value: 'internal_process_number' },
-              { text: 'Nome', value: 'name' },
-              { text: 'Tipo', value: 'type' },
-              { text: 'Status', value: 'status' },
-              { text: 'Criado por', value: 'creator' },
-              { text: 'Ações', value: 'actions', align: 'right' },
-            ]"
-            :items="demands || []"
-            :loading="pending"
+          <div v-else class="text-caption text-medium-emphasis font-italic">Sem nº oficial</div>
+          <div class="text-caption text-medium-emphasis">
+            Interno: {{ item.internal_process_number || '-' }}
+          </div>
+        </template>
+        <template #item-name="{ item }">
+          <NuxtLink
+            class="text-decoration-none text-primary font-weight-medium"
+            :to="`/demands/${item.id}`"
           >
-            <template #item-internal_process_number="{ item }">
-              <div v-if="item.process_number" class="font-weight-bold text-primary">
-                {{ item.process_number }}
-              </div>
-              <div v-else class="text-caption text-grey font-italic">Sem nº oficial</div>
-              <div class="text-caption text-grey-darken-1">
-                Interno: {{ item.internal_process_number || '-' }}
-              </div>
-            </template>
-            <template v-if="!demands?.length && !pending" #empty>
-              Nenhuma demanda encontrada.
-            </template>
-            <template #item-name="{ item }">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/demands/${item.id}`"
-              >
-                {{ item.name }}
-              </NuxtLink>
-            </template>
-            <template #item-type="{ item }">
-              <UiChip
-                :color="item.type === 'consumption' ? 'info' : 'warning'"
-                size="small"
-                variant="flat"
-              >
-                {{ formatDemandType(item.type) }}
-              </UiChip>
-            </template>
-            <template #item-status="{ item }">
-              <UiChip :color="getDemandStatusColor(item.status)" size="small" variant="outlined">
-                {{ formatDemandStatus(item.status) }}
-              </UiChip>
-              <UiChip
-                v-if="item.is_return_requested"
-                class="ml-2"
-                color="warning"
-                size="small"
-                variant="flat"
-              >
-                <v-icon left size="small">mdi-keyboard-return</v-icon>
-                Retorno Solicitado
-              </UiChip>
-            </template>
-            <template #item-creator="{ item }">
-              <span class="text-caption text-grey">
-                {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
-              </span>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-arrow-right"
-                size="small"
-                :to="`/demands/${item.id}`"
-                variant="text"
-              />
-              <UiButton
-                v-if="canEdit(item)"
-                color="grey"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="modal.open(item)"
-              />
-            </template>
-          </UiTable>
-
-          <!-- Paginação -->
-          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-            <v-pagination
-              v-model="currentPage"
-              density="comfortable"
-              :length="totalPages"
-              :total-visible="7"
-            />
+            {{ item.name }}
+          </NuxtLink>
+        </template>
+        <template #item-type="{ item }">
+          <v-chip
+            :color="item.type === 'consumption' ? 'info' : 'warning'"
+            label
+            size="small"
+            variant="tonal"
+          >
+            {{ formatDemandType(item.type) }}
+          </v-chip>
+        </template>
+        <template #item-status="{ item }">
+          <div class="d-flex align-center gap-1 flex-wrap">
+            <v-chip :color="getDemandStatusColor(item.status)" label size="small" variant="tonal">
+              {{ formatDemandStatus(item.status) }}
+            </v-chip>
+            <v-chip
+              v-if="item.is_return_requested"
+              color="warning"
+              label
+              size="small"
+              variant="outlined"
+            >
+              <v-icon size="12" start>mdi-keyboard-return</v-icon>
+              Retorno
+            </v-chip>
           </div>
-        </UiCard>
-      </v-col>
-    </v-row>
+        </template>
+        <template #item-creator="{ item }">
+          <span class="text-body-2 text-medium-emphasis">
+            {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
+          </span>
+        </template>
+        <template #item-actions="{ item }">
+          <UiButton
+            color="primary"
+            icon="mdi-arrow-right"
+            size="small"
+            :to="`/demands/${item.id}`"
+            variant="text"
+          />
+          <UiButton
+            v-if="canEdit(item)"
+            color="default"
+            icon="mdi-pencil-outline"
+            size="small"
+            variant="text"
+            @click="modal.open(item)"
+          />
+        </template>
+      </UiTable>
+
+      <!-- Paginação -->
+      <div v-if="totalPages > 1" class="d-flex justify-center py-4">
+        <v-pagination
+          v-model="currentPage"
+          density="comfortable"
+          :length="totalPages"
+          rounded="lg"
+          :total-visible="7"
+        />
+      </div>
+    </UiCard>
 
     <!-- Modal Form -->
     <UiModal
       v-model="modal.isOpen.value"
-      max-width="500px"
+      max-width="520px"
       :title="modal.payload.value.id ? 'Editar Demanda' : 'Nova Demanda'"
-      transparent-header
     >
       <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
         {{ modal.error.value }}
       </UiAlert>
 
-      <UiInput v-model="modal.payload.value.name" label="Nome da Demanda*" required />
+      <UiInput v-model="modal.payload.value.name" label="Nome da Demanda *" required />
 
       <UiSelect
         v-model="modal.payload.value.type"
@@ -269,7 +275,7 @@
           { title: 'Consumo', value: 'consumption' },
           { title: 'Permanente', value: 'permanent' },
         ]"
-        label="Tipo*"
+        label="Tipo *"
         required
       />
 
@@ -296,14 +302,18 @@
       />
 
       <template #actions>
-        <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close"
-          >Cancelar</UiButton
+        <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close">
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :loading="modal.isSaving.value"
+          variant="flat"
+          @click="saveDemand"
         >
-        <UiButton color="primary" :loading="modal.isSaving.value" @click="saveDemand">
           Salvar
         </UiButton>
       </template>
     </UiModal>
   </div>
 </template>
-

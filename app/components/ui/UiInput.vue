@@ -1,7 +1,6 @@
 <script setup lang="ts">
   defineProps<{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modelValue: any
+    modelValue: string | number | null | undefined
     label: string
     type?: string
     placeholder?: string
@@ -20,8 +19,10 @@
     :model-value="modelValue"
     :persistent-hint="!!hint"
     :placeholder="placeholder"
+    rounded="lg"
     :type="type || 'text'"
     variant="outlined"
+    v-bind="$attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   />
 </template>

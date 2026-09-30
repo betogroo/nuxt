@@ -10,6 +10,7 @@
     placeholder?: string
     clearable?: boolean
     hideDetails?: boolean
+    required?: boolean
   }>()
 
   defineEmits(['update:modelValue'])
@@ -27,7 +28,10 @@
     :label="label"
     :model-value="modelValue"
     :placeholder="placeholder"
+    :required="required"
+    rounded="lg"
     variant="outlined"
+    v-bind="$attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   />
 </template>

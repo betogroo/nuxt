@@ -89,143 +89,168 @@
 </script>
 
 <template>
-  <v-container>
-    <UiButton class="mb-4" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
-      Voltar
-    </UiButton>
+  <div>
+    <div class="mb-6">
+      <UiButton color="default" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
+        Voltar para Produtos
+      </UiButton>
+    </div>
 
-    <v-row v-if="pending">
-      <v-col class="text-center" cols="12">
-        <v-progress-circular color="primary" indeterminate></v-progress-circular>
-      </v-col>
-    </v-row>
+    <!-- Loading state -->
+    <div v-if="pending" class="d-flex justify-center my-16">
+      <v-progress-circular color="primary" indeterminate size="48" width="3" />
+    </div>
 
-    <v-row v-else-if="product">
-      <v-col cols="12" md="8" offset-md="2">
-        <UiCard transparent-header>
-          <template #header>
-            <div class="d-flex align-center w-100 bg-primary text-white pa-4" style="margin: -16px">
-              <v-icon class="mr-3" size="large">mdi-package-variant</v-icon>
-              {{ product.name }}
+    <div v-else-if="product">
+      <v-row justify="center">
+        <v-col cols="12" lg="6" md="8">
+          <UiCard>
+            <template #header>
+              <v-icon class="mr-2" color="primary" icon="mdi-package-variant-outline" />
+              <span class="text-subtitle-1 font-weight-bold">{{ product.name }}</span>
               <v-spacer />
-              <UiChip :color="product.is_active ? 'success' : 'error'" variant="elevated">
-                {{ product.is_active ? 'ATIVO' : 'INATIVO' }}
-              </UiChip>
-            </div>
-          </template>
+              <v-chip
+                :color="product.is_active ? 'success' : 'error'"
+                label
+                size="small"
+                variant="tonal"
+              >
+                {{ product.is_active ? 'Ativo' : 'Inativo' }}
+              </v-chip>
+            </template>
 
-          <v-row class="mt-4">
-            <v-col cols="12" sm="6">
-              <div class="text-caption text-grey mb-1">ID do Produto</div>
-              <div class="text-body-1 font-weight-mono">{{ product.id }}</div>
-            </v-col>
-            
-
-            <v-col cols="12">
-              <div class="text-caption text-grey mb-1">Natureza de Despesa</div>
-              <div class="text-body-1">
-                {{ product.expense_natures ? product.expense_natures.id + ' - ' + product.expense_natures.name : 'Não informada' }}
-              </div>
-            </v-col>
-            <!-- Apresentações do Produto -->
-            <v-col cols="12">
-              <v-divider class="mb-4" />
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="text-subtitle-1 font-weight-bold">
-                  Apresentações (Unidades de Medida)
+            <!-- Informações básicas -->
+            <div class="d-flex flex-column gap-5">
+              <div>
+                <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis mb-2">
+                  Identificação
                 </div>
-                <UiButton
-                  v-if="!isAddingUnit"
-                  color="primary"
-                  prepend-icon="mdi-plus"
-                  size="small"
-                  variant="text"
-                  @click="isAddingUnit = true"
-                >
-                  Vincular Nova
-                </UiButton>
+                <v-row dense>
+                  <v-col cols="12">
+                    <div class="text-caption text-medium-emphasis">ID do Produto</div>
+                    <div class="text-body-2 font-weight-mono">{{ product.id }}</div>
+                  </v-col>
+                  <v-col cols="12">
+                    <div class="text-caption text-medium-emphasis">Natureza de Despesa</div>
+                    <div class="text-body-2">
+                      <span v-if="product.expense_natures">
+                        <v-chip class="mr-2" color="blue-grey" label size="small" variant="tonal">
+                          {{ product.expense_natures.id }}
+                        </v-chip>
+                        {{ product.expense_natures.name }}
+                      </span>
+                      <span v-else class="text-medium-emphasis">Não informada</span>
+                    </div>
+                  </v-col>
+                </v-row>
               </div>
 
-              <v-slide-y-transition>
-                <div v-if="isAddingUnit" class="mb-4 bg-grey-lighten-4 pa-4 rounded">
-                  <div class="text-caption mb-2">
-                    Busque uma unidade existente ou digite para criar uma nova:
+              <v-divider />
+
+              <!-- Apresentações (Unidades) -->
+              <div>
+                <div class="d-flex align-center justify-space-between mb-3">
+                  <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis">
+                    Apresentações (Unidades de Medida)
                   </div>
-                  <v-combobox
-                    v-model="addUnitSearch"
-                    density="comfortable"
-                    hide-details
-                    item-title="displayName"
-                    item-value="name"
-                    :items="computedMeasurementUnits"
-                    label="Nome da Unidade (ex: Bisnaga 90g)"
-                    :return-object="false"
-                    variant="outlined"
-                  />
-                  <UiAlert
-                    v-if="addUnitError"
-                    class="mt-2 text-caption"
-                    density="compact"
-                    type="error"
+                  <UiButton
+                    v-if="!isAddingUnit"
+                    color="primary"
+                    prepend-icon="mdi-plus"
+                    size="small"
+                    variant="tonal"
+                    @click="isAddingUnit = true"
                   >
-                    {{ addUnitError }}
-                  </UiAlert>
-                  <div class="d-flex justify-end mt-2">
-                    <UiButton variant="text" @click="cancelAddUnit">Cancelar</UiButton>
-                    <UiButton class="ml-2" color="primary" :loading="adding" @click="addUnit"
-                      >Adicionar</UiButton
-                    >
-                  </div>
+                    Vincular Nova
+                  </UiButton>
                 </div>
-              </v-slide-y-transition>
 
-              <div class="d-flex flex-wrap gap-2">
-                <UiChip
-                  v-for="unit in product.units"
-                  :key="unit.id"
-                  closable
-                  :color="unit.is_pending ? 'warning' : 'primary'"
-                  :variant="unit.is_pending ? 'flat' : 'tonal'"
-                  @click:close="removeUnit(unit.id)"
-                >
-                  {{ unit.name }} {{ unit.is_pending ? '(Pendente)' : '' }}
-                </UiChip>
-                <span
-                  v-if="!product.units || product.units.length === 0"
-                  class="text-grey text-caption"
-                  >Nenhuma apresentação vinculada.</span
-                >
+                <v-slide-y-transition>
+                  <div v-if="isAddingUnit" class="mb-4 pa-4 rounded-xl bg-surface-variant">
+                    <div class="text-caption text-medium-emphasis mb-3">
+                      Busque uma unidade existente ou digite para criar uma nova:
+                    </div>
+                    <v-combobox
+                      v-model="addUnitSearch"
+                      density="comfortable"
+                      hide-details
+                      item-title="displayName"
+                      item-value="name"
+                      :items="computedMeasurementUnits"
+                      label="Nome da Unidade (ex: Bisnaga 90g)"
+                      :return-object="false"
+                      rounded="lg"
+                      variant="outlined"
+                    />
+                    <UiAlert v-if="addUnitError" class="mt-2" density="compact" type="error">
+                      {{ addUnitError }}
+                    </UiAlert>
+                    <div class="d-flex justify-end mt-3 gap-2">
+                      <UiButton variant="text" @click="cancelAddUnit">Cancelar</UiButton>
+                      <UiButton color="primary" :loading="adding" variant="flat" @click="addUnit">
+                        Adicionar
+                      </UiButton>
+                    </div>
+                  </div>
+                </v-slide-y-transition>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <UiChip
+                    v-for="unit in product.units"
+                    :key="unit.id"
+                    closable
+                    :color="unit.is_pending ? 'warning' : 'primary'"
+                    :variant="unit.is_pending ? 'tonal' : 'tonal'"
+                    @click:close="removeUnit(unit.id)"
+                  >
+                    {{ unit.name }}
+                    <span v-if="unit.is_pending" class="ml-1 text-caption">(Pendente)</span>
+                  </UiChip>
+                  <span
+                    v-if="!product.units || product.units.length === 0"
+                    class="text-medium-emphasis text-body-2"
+                  >
+                    Nenhuma apresentação vinculada.
+                  </span>
+                </div>
               </div>
-            </v-col>
 
-            <v-col cols="12"><v-divider class="mt-2 mb-2" /></v-col>
+              <v-divider />
 
-            <v-col cols="12" sm="6">
-              <div class="text-caption text-grey mb-1">Criado em</div>
-              <div class="text-body-1">{{ new Date(product.created_at).toLocaleString() }}</div>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <div class="text-caption text-grey mb-1">Última atualização</div>
-              <div class="text-body-1">{{ new Date(product.updated_at).toLocaleString() }}</div>
-            </v-col>
-
-            <v-col v-if="product.created_by" cols="12">
-              <div class="text-caption text-grey mb-1">Criado por</div>
-              <div class="text-body-1">
-                {{ product.profiles?.name || product.created_by }}
+              <!-- Metadados -->
+              <div>
+                <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis mb-2">
+                  Informações de Registro
+                </div>
+                <v-row dense>
+                  <v-col cols="12" sm="6">
+                    <div class="text-caption text-medium-emphasis">Criado em</div>
+                    <div class="text-body-2">
+                      {{ new Date(product.created_at).toLocaleString('pt-BR') }}
+                    </div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div class="text-caption text-medium-emphasis">Última atualização</div>
+                    <div class="text-body-2">
+                      {{ new Date(product.updated_at).toLocaleString('pt-BR') }}
+                    </div>
+                  </v-col>
+                  <v-col v-if="product.created_by" cols="12">
+                    <div class="text-caption text-medium-emphasis">Criado por</div>
+                    <div class="text-body-2">
+                      {{ product.profiles?.name || product.created_by }}
+                    </div>
+                  </v-col>
+                </v-row>
               </div>
-            </v-col>
-          </v-row>
-        </UiCard>
-      </v-col>
-    </v-row>
+            </div>
+          </UiCard>
+        </v-col>
+      </v-row>
+    </div>
 
-    <v-row v-else>
-      <v-col cols="12">
-        <UiAlert type="error" variant="tonal"> Produto não encontrado. </UiAlert>
-      </v-col>
-    </v-row>
-  </v-container>
+    <div v-else>
+      <UiAlert type="error" variant="tonal">Produto não encontrado.</UiAlert>
+    </div>
+  </div>
 </template>
-
-

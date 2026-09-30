@@ -78,80 +78,133 @@
 </script>
 
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center">
-      <v-col cols="12" md="5" sm="8">
-        <UiCard>
-          <template #header>
-            <div class="text-center w-100">Entrar</div>
-          </template>
+  <UiCard class="w-100" rounded="xl">
+    <template #header>
+      <span class="text-subtitle-1 font-weight-bold">
+        {{ tab === 'password' ? 'Acesse sua conta' : 'Acesso por código' }}
+      </span>
+    </template>
 
-          <v-tabs v-model="tab" align-tabs="center">
-            <v-tab value="password">Email e Senha</v-tab>
-            <v-tab value="magic">Código (E-mail)</v-tab>
-          </v-tabs>
+    <UiAlert v-if="inactiveError" class="mb-4" type="error" variant="tonal">
+      Sua conta foi desativada por um administrador.
+    </UiAlert>
 
-          <UiAlert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
-            Sua conta foi desativada por um administrador.
-          </UiAlert>
+    <!-- Seletor de método de login -->
+    <v-btn-toggle
+      v-model="tab"
+      class="mb-5 w-100"
+      density="compact"
+      divided
+      mandatory
+      rounded="lg"
+      variant="outlined"
+    >
+      <v-btn class="flex-1-1" size="small" value="password">
+        <v-icon class="mr-2" size="16">mdi-lock-outline</v-icon>
+        Senha
+      </v-btn>
+      <v-btn class="flex-1-1" size="small" value="magic">
+        <v-icon class="mr-2" size="16">mdi-email-outline</v-icon>
+        Código por E-mail
+      </v-btn>
+    </v-btn-toggle>
 
-          <!-- ABA: SENHA -->
-          <template v-if="tab === 'password'">
-            <UiAlert v-if="errorPassword" class="mb-4" type="error">
-              {{ errorPassword }}
-            </UiAlert>
+    <!-- ABA: SENHA -->
+    <template v-if="tab === 'password'">
+      <UiAlert v-if="errorPassword" class="mb-4" type="error">
+        {{ errorPassword }}
+      </UiAlert>
 
-            <UiInput v-model="emailPassword" label="E-mail" type="email" />
+      <UiInput
+        v-model="emailPassword"
+        label="E-mail"
+        prepend-inner-icon="mdi-email-outline"
+        type="email"
+      />
 
-            <UiInput
-              v-model="password"
-              label="Senha"
-              type="password"
-              @keyup.enter="signInWithPassword"
-            />
+      <UiInput
+        v-model="password"
+        label="Senha"
+        prepend-inner-icon="mdi-lock-outline"
+        type="password"
+        @keyup.enter="signInWithPassword"
+      />
 
-            <UiButton block color="primary" :loading="loadingPassword" @click="signInWithPassword">
-              Entrar
-            </UiButton>
-          </template>
+      <UiButton
+        block
+        color="primary"
+        :loading="loadingPassword"
+        rounded="lg"
+        size="large"
+        variant="flat"
+        @click="signInWithPassword"
+      >
+        Entrar
+      </UiButton>
+    </template>
 
-          <!-- ABA: CÓDIGO OTP -->
-          <template v-else>
-            <UiAlert v-if="errorOtp" class="mb-4" type="error">
-              {{ errorOtp }}
-            </UiAlert>
+    <!-- ABA: CÓDIGO OTP -->
+    <template v-else>
+      <UiAlert v-if="errorOtp" class="mb-4" type="error">
+        {{ errorOtp }}
+      </UiAlert>
 
-            <UiAlert v-if="messageOtp" class="mb-4" type="success">
-              {{ messageOtp }}
-            </UiAlert>
+      <UiAlert v-if="messageOtp" class="mb-4" type="success">
+        {{ messageOtp }}
+      </UiAlert>
 
-            <template v-if="!isOtpSent">
-              <UiInput
-                v-model="emailOtp"
-                label="E-mail"
-                type="email"
-                @keyup.enter="handleSendOtp"
-              />
+      <template v-if="!isOtpSent">
+        <UiInput
+          v-model="emailOtp"
+          label="E-mail"
+          prepend-inner-icon="mdi-email-outline"
+          type="email"
+          @keyup.enter="handleSendOtp"
+        />
 
-              <UiButton block color="primary" :loading="loadingOtp" @click="handleSendOtp">
-                Enviar Código
-              </UiButton>
-            </template>
-            <template v-else>
-              <UiOtpInput v-model="otpCode" @finish="handleVerifyOtp" />
+        <UiButton
+          block
+          color="primary"
+          :loading="loadingOtp"
+          rounded="lg"
+          size="large"
+          variant="flat"
+          @click="handleSendOtp"
+        >
+          Enviar Código
+        </UiButton>
+      </template>
 
-              <UiButton block color="primary" :loading="loadingOtp" @click="handleVerifyOtp">
-                Acessar
-              </UiButton>
-            </template>
-          </template>
-        </UiCard>
-
-        <p class="text-center mt-4">
-          Não tem uma conta?
-          <NuxtLink to="/register">Registre-se</NuxtLink>
+      <template v-else>
+        <p class="text-body-2 text-medium-emphasis text-center mb-4">
+          Digite o código de 6 dígitos enviado para <strong>{{ emailOtp }}</strong>
         </p>
-      </v-col>
-    </v-row>
-  </v-container>
+        <UiOtpInput v-model="otpCode" @finish="handleVerifyOtp" />
+
+        <UiButton
+          block
+          class="mt-4"
+          color="primary"
+          :loading="loadingOtp"
+          rounded="lg"
+          size="large"
+          variant="flat"
+          @click="handleVerifyOtp"
+        >
+          Verificar e Acessar
+        </UiButton>
+
+        <v-btn block class="mt-2" size="small" variant="text" @click="isOtpSent = false">
+          Usar outro e-mail
+        </v-btn>
+      </template>
+    </template>
+
+    <p class="text-center text-body-2 text-medium-emphasis mt-5 mb-0">
+      Não tem uma conta?
+      <NuxtLink class="text-primary font-weight-medium text-decoration-none" to="/register">
+        Registre-se
+      </NuxtLink>
+    </p>
+  </UiCard>
 </template>

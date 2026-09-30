@@ -35,6 +35,7 @@
   const activeUnits = computed(
     () => allUnits.value?.filter((u) => u.is_active && !u.is_pending) || [],
   )
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const inactiveUnits = computed(
     () => allUnits.value?.filter((u) => !u.is_active && !u.is_pending) || [],
   )
@@ -66,7 +67,6 @@
       aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
       is_active: unit.is_active,
     }
-    isEditing.value = false
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -99,8 +99,8 @@
       await refreshUnits()
       await refreshAliases()
       closeModal()
-    } catch (e: any) {
-      saveError.value = e.message || String(e)
+    } catch (e: unknown) {
+      saveError.value = e instanceof Error ? e.message : String(e)
     } finally {
       isSaving.value = false
     }
@@ -159,8 +159,8 @@
 
       await refreshAliases()
       closeAliasModal()
-    } catch (e: any) {
-      saveError.value = e.message || String(e)
+    } catch (e: unknown) {
+      saveError.value = e instanceof Error ? e.message : String(e)
     } finally {
       isSaving.value = false
     }
@@ -171,8 +171,8 @@
       try {
         await deleteAliasAsAdmin(alias.id, alias.name)
         await refreshAliases()
-      } catch (e: any) {
-        alert(e.message)
+      } catch (e: unknown) {
+        alert(e instanceof Error ? e.message : String(e))
       }
     }
   }
@@ -217,8 +217,8 @@
       await refreshUnits()
       await refreshAliases()
       closeResolveModal()
-    } catch (e: any) {
-      resolveError.value = e.message || String(e)
+    } catch (e: unknown) {
+      resolveError.value = e instanceof Error ? e.message : String(e)
     } finally {
       isResolving.value = false
     }
@@ -227,173 +227,191 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida" />
+    <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
+      <template #actions>
+        <UiButton
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="unitsPending || aliasesPending"
+          size="small"
+          variant="tonal"
+          @click="activeTab === 'units' ? refreshUnits() : refreshAliases()"
+        />
+        <UiButton
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="activeTab === 'units' ? openAddModal() : openAddAliasModal()"
+        >
+          {{ activeTab === 'units' ? 'Nova Unidade' : 'Novo Registro' }}
+        </UiButton>
+      </template>
+    </PageHeader>
 
-    <v-tabs v-model="activeTab" class="mb-4" color="primary">
-      <v-tab value="units">Unidades Oficiais</v-tab>
-      <v-tab value="aliases">Registros Alternativos (Aliases)</v-tab>
+    <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+      <v-tab value="units">
+        <v-icon class="mr-2" size="18">mdi-scale-balance</v-icon>
+        Unidades Oficiais
+        <v-chip
+          v-if="activeUnits.length"
+          class="ml-2"
+          color="primary"
+          label
+          size="x-small"
+          variant="tonal"
+        >
+          {{ activeUnits.length }}
+        </v-chip>
+      </v-tab>
+      <v-tab value="aliases">
+        <v-icon class="mr-2" size="18">mdi-tag-multiple-outline</v-icon>
+        Registros Alternativos
+        <v-chip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
+          {{ allAliases.length }}
+        </v-chip>
+      </v-tab>
     </v-tabs>
 
-    <div class="mt-4">
-      <div v-if="activeTab === 'units'">
-        <v-row>
-          <v-col v-if="pendingUnits && pendingUnits.length > 0" cols="12">
-            <UiCard title="Unidades Pendentes">
-              <template #header>
-                <div class="text-warning d-flex align-center">
-                  <v-icon class="mr-2">mdi-alert-circle</v-icon>
-                  Unidades Pendentes ({{ pendingUnits.length }})
-                </div>
-              </template>
-
-              <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
-                Usuários sugeriram as unidades abaixo ao não encontrarem um registro alternativo.
-              </UiAlert>
-
-              <UiTable
-                :headers="[
-                  { text: 'Unidade Sugerida', value: 'name' },
-                  { text: 'Ações', value: 'actions', align: 'right' },
-                ]"
-                :items="pendingUnits"
+    <!-- Aba Unidades -->
+    <div v-if="activeTab === 'units'">
+      <!-- Pendentes -->
+      <v-expand-transition>
+        <div v-if="pendingUnits && pendingUnits.length > 0" class="mb-4">
+          <v-alert
+            border="start"
+            color="warning"
+            density="compact"
+            icon="mdi-alert-circle-outline"
+            rounded="xl"
+            :title="`${pendingUnits.length} unidade(s) pendente(s) de revisão`"
+            variant="tonal"
+          >
+            <div class="mt-3 text-body-2 text-medium-emphasis mb-2">
+              Usuários sugeriram as unidades abaixo ao não encontrarem um registro alternativo.
+            </div>
+            <div class="d-flex flex-column gap-2">
+              <div
+                v-for="unit in pendingUnits"
+                :key="unit.id"
+                class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface"
               >
-                <template #item-actions="{ item }">
-                  <UiButton
-                    color="primary"
-                    size="small"
-                    variant="outlined"
-                    @click="openResolveModal(item)"
-                  >
-                    Resolver
-                  </UiButton>
-                </template>
-              </UiTable>
-            </UiCard>
-          </v-col>
-
-          <v-col cols="12">
-            <UiCard>
-              <template #header>
-                <span class="text-subtitle-1 font-weight-bold">Unidades de Medida Oficiais</span>
-                <v-spacer />
+                <div class="d-flex align-center gap-2">
+                  <v-icon color="warning" icon="mdi-scale-balance" size="18" />
+                  <span class="text-body-2 font-weight-medium">{{ unit.name }}</span>
+                </div>
                 <UiButton
-                  class="mr-2"
-                  color="secondary"
-                  icon="mdi-refresh"
-                  :loading="unitsPending"
+                  color="warning"
                   size="small"
                   variant="tonal"
-                  @click="refreshUnits"
-                />
-                <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
-                  Nova Unidade
+                  @click="openResolveModal(unit)"
+                >
+                  Resolver
                 </UiButton>
-              </template>
+              </div>
+            </div>
+          </v-alert>
+        </div>
+      </v-expand-transition>
 
-              <UiTable
-                :headers="[
-                  { text: 'Nome da Unidade', value: 'name' },
-                  { text: 'Registros Alternativos', value: 'aliases' },
-                  { text: 'Status', value: 'is_active', align: 'center' },
-                  { text: 'Ações', value: 'actions', align: 'right' },
-                ]"
-                :items="activeUnits"
-                :loading="unitsPending"
+      <!-- Unidades Oficiais -->
+      <UiCard>
+        <template #header>
+          <v-icon class="mr-2" color="primary" icon="mdi-scale-balance" />
+          Unidades de Medida Oficiais
+        </template>
+
+        <UiTable
+          :headers="[
+            { text: 'Nome da Unidade', value: 'name' },
+            { text: 'Registros Alternativos', value: 'aliases' },
+            { text: 'Status', value: 'is_active', align: 'center' },
+            { text: 'Ações', value: 'actions', align: 'right' },
+          ]"
+          :items="activeUnits"
+          :loading="unitsPending"
+        >
+          <template #item-aliases="{ item }">
+            <div v-if="item.measurement_unit_aliases?.length > 0" class="d-flex flex-wrap gap-1">
+              <UiChip
+                v-for="alias in item.measurement_unit_aliases"
+                :key="alias.id"
+                color="info"
+                size="small"
+                variant="tonal"
               >
-                <template #item-aliases="{ item }">
-                  <div v-if="item.measurement_unit_aliases?.length > 0">
-                    <UiChip
-                      v-for="alias in item.measurement_unit_aliases"
-                      :key="alias.id"
-                      class="mr-1 mb-1"
-                      color="info"
-                      size="small"
-                      variant="tonal"
-                    >
-                      {{ alias.name }} (Cód: {{ alias.code }})
-                    </UiChip>
-                  </div>
-                  <span v-else class="text-grey">-</span>
-                </template>
-                <template #item-is_active="{ item }">
-                  <UiChip
-                    class="cursor-pointer"
-                    :color="item.is_active ? 'success' : 'error'"
-                    size="small"
-                    variant="flat"
-                    @click="toggleStatus(item)"
-                  >
-                    {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-                  </UiChip>
-                </template>
-                <template #item-actions="{ item }">
-                  <UiButton
-                    color="primary"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openEditModal(item)"
-                  />
-                </template>
-              </UiTable>
-            </UiCard>
-          </v-col>
-        </v-row>
-      </div>
-
-      <div v-if="activeTab === 'aliases'">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Todos os Registros Alternativos</span>
-            <v-spacer />
+                {{ alias.name }} (Cód: {{ alias.code }})
+              </UiChip>
+            </div>
+            <span v-else class="text-medium-emphasis">—</span>
+          </template>
+          <template #item-is_active="{ item }">
+            <v-switch
+              color="success"
+              density="compact"
+              hide-details
+              :model-value="item.is_active"
+              @update:model-value="toggleStatus(item)"
+            />
+          </template>
+          <template #item-actions="{ item }">
             <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="mdi-refresh"
-              :loading="aliasesPending"
+              color="primary"
+              icon="mdi-pencil-outline"
+              size="small"
+              variant="text"
+              @click="openEditModal(item)"
+            />
+          </template>
+        </UiTable>
+      </UiCard>
+    </div>
+
+    <!-- Aba Aliases -->
+    <div v-if="activeTab === 'aliases'">
+      <UiCard>
+        <template #header>
+          <v-icon class="mr-2" color="primary" icon="mdi-tag-multiple-outline" />
+          Todos os Registros Alternativos
+        </template>
+
+        <UiTable
+          :headers="[
+            { text: 'Código', value: 'code' },
+            { text: 'Nome / Descrição', value: 'name' },
+            { text: 'Status', value: 'is_pending', align: 'center' },
+            { text: 'Ações', value: 'actions', align: 'right' },
+          ]"
+          :items="allAliases || []"
+          :loading="aliasesPending"
+        >
+          <template #item-is_pending="{ item }">
+            <v-chip
+              :color="item.is_pending ? 'warning' : 'success'"
+              label
               size="small"
               variant="tonal"
-              @click="refreshAliases"
-            />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddAliasModal">
-              Novo Registro
-            </UiButton>
+            >
+              {{ item.is_pending ? 'Pendente' : 'Ativo' }}
+            </v-chip>
           </template>
-
-          <UiTable
-            :headers="[
-              { text: 'Código', value: 'code' },
-              { text: 'Nome / Descrição', value: 'name' },
-              { text: 'Status', value: 'is_pending', align: 'center' },
-              { text: 'Ações', value: 'actions', align: 'right' },
-            ]"
-            :items="allAliases || []"
-            :loading="aliasesPending"
-          >
-            <template #item-is_pending="{ item }">
-              <UiChip :color="item.is_pending ? 'warning' : 'success'" size="small" variant="flat">
-                {{ item.is_pending ? 'PENDENTE' : 'OK' }}
-              </UiChip>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="openEditAliasModal(item)"
-              />
-              <UiButton
-                color="error"
-                icon="mdi-delete"
-                size="small"
-                variant="text"
-                @click="removeAlias(item)"
-              />
-            </template>
-          </UiTable>
-        </UiCard>
-      </div>
+          <template #item-actions="{ item }">
+            <UiButton
+              color="primary"
+              icon="mdi-pencil-outline"
+              size="small"
+              variant="text"
+              @click="openEditAliasModal(item)"
+            />
+            <UiButton
+              color="error"
+              icon="mdi-delete-outline"
+              size="small"
+              variant="text"
+              @click="removeAlias(item)"
+            />
+          </template>
+        </UiTable>
+      </UiCard>
     </div>
 
     <!-- Modal Form (Units) -->
@@ -401,11 +419,10 @@
       v-model="isModalOpen"
       max-width="500px"
       :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'"
-      transparent-header
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">{{
-        saveError
-      }}</UiAlert>
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
 
       <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote)" />
 
@@ -413,25 +430,29 @@
         v-model="form.aliasIds"
         chips
         closable-chips
+        density="comfortable"
         :item-title="(item) => (item.code ? `${item.code} - ${item.name}` : item.name)"
         item-value="id"
         :items="allAliases || []"
-        label="Vincular Registros Alternativos (Aliases)"
+        label="Vincular Registros Alternativos"
         multiple
+        rounded="lg"
         variant="outlined"
-      ></v-autocomplete>
+      />
 
       <UiSwitch
         v-model="form.is_active"
         color="success"
-        hint="Indica se a unidade está disponível"
+        hint="Indica se a unidade está disponível para uso"
         label="Unidade Ativa"
         persistent-hint
       />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" @click="saveUnit">Salvar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveUnit"
+          >Salvar</UiButton
+        >
       </template>
     </UiModal>
 
@@ -440,37 +461,37 @@
       v-model="isAliasModalOpen"
       max-width="500px"
       :title="isAliasEditing ? 'Editar Registro Alternativo' : 'Novo Registro Alternativo'"
-      transparent-header
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">{{
-        saveError
-      }}</UiAlert>
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
 
       <UiInput v-model.number="aliasForm.code" label="Código (Numeral único)" type="number" />
       <UiInput v-model="aliasForm.name" label="Nome / Descrição (ex: Pacote 500g)" />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeAliasModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" @click="saveAlias">Salvar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveAlias"
+          >Salvar</UiButton
+        >
       </template>
     </UiModal>
 
-    <!-- Modal Resolve Suggestion -->
-    <UiModal
-      v-model="isResolveModalOpen"
-      max-width="600px"
-      title="Resolver Unidade Pendente"
-      transparent-header
-    >
-      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">{{
-        resolveError
-      }}</UiAlert>
+    <!-- Modal Resolver Pendência -->
+    <UiModal v-model="isResolveModalOpen" max-width="600px" title="Resolver Unidade Pendente">
+      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ resolveError }}
+      </UiAlert>
 
-      <div class="text-subtitle-1 mb-4">
-        Unidade Sugerida: <strong class="text-warning">{{ resolveTarget?.name }}</strong>
+      <div class="pa-3 mb-4 rounded-lg bg-surface-variant d-flex align-center gap-3">
+        <v-icon color="warning" icon="mdi-scale-balance" />
+        <div>
+          <div class="text-caption text-medium-emphasis">Unidade Sugerida</div>
+          <div class="text-subtitle-2 font-weight-bold text-warning">{{ resolveTarget?.name }}</div>
+        </div>
       </div>
 
-      <v-radio-group v-model="resolveMode">
+      <v-radio-group v-model="resolveMode" class="mb-2">
         <v-radio label="Aprovar como Nova Unidade Oficial" value="new" />
         <v-radio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
       </v-radio-group>
@@ -479,12 +500,12 @@
         <div v-if="resolveMode === 'new'" class="mt-2">
           <UiInput
             v-model="resolveNewName"
-            hint="Ajustar o nome oficial se necessário."
+            hint="Ajuste o nome oficial se necessário."
             label="Nome da Nova Unidade"
             persistent-hint
           />
         </div>
-        <div v-else class="mt-4">
+        <div v-else class="mt-2">
           <UiSelect
             v-model="resolveLinkUnitId"
             item-title="name"
@@ -499,7 +520,9 @@
         <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
           >Cancelar</UiButton
         >
-        <UiButton color="primary" :loading="isResolving" @click="submitResolve">Confirmar</UiButton>
+        <UiButton color="primary" :loading="isResolving" variant="flat" @click="submitResolve">
+          Confirmar
+        </UiButton>
       </template>
     </UiModal>
   </div>

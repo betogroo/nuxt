@@ -38,23 +38,40 @@
 </script>
 
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center">
-      <v-col cols="12" md="5" sm="8">
-        <UiCard title="Registrar" transparent-header>
-          <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
+  <UiCard class="w-100" rounded="xl">
+    <template #header>
+      <v-icon class="mr-2" color="primary" icon="mdi-account-plus-outline" />
+      Criar sua conta
+    </template>
 
-          <UiInput v-model="email" label="E-mail" type="email" />
-          <UiInput v-model="password" label="Senha" type="password" />
+    <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
 
-          <UiButton block color="primary" :loading="loading" @click="signUp"> Registrar </UiButton>
-        </UiCard>
+    <UiInput v-model="email" label="E-mail" prepend-inner-icon="mdi-email-outline" type="email" />
+    <UiInput
+      v-model="password"
+      label="Senha"
+      prepend-inner-icon="mdi-lock-outline"
+      type="password"
+      @keyup.enter="signUp"
+    />
 
-        <p class="text-center mt-4">
-          Já tem uma conta?
-          <NuxtLink to="/login">Entrar</NuxtLink>
-        </p>
-      </v-col>
-    </v-row>
-  </v-container>
+    <UiButton
+      block
+      color="primary"
+      :loading="loading"
+      rounded="lg"
+      size="large"
+      variant="flat"
+      @click="signUp"
+    >
+      Criar Conta
+    </UiButton>
+
+    <p class="text-center text-body-2 text-medium-emphasis mt-5 mb-0">
+      Já tem uma conta?
+      <NuxtLink class="text-primary font-weight-medium text-decoration-none" to="/login">
+        Entrar
+      </NuxtLink>
+    </p>
+  </UiCard>
 </template>

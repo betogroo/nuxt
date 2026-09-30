@@ -2,17 +2,21 @@
   defineProps<{
     title: string
     subtitle?: string
+    divider?: boolean
   }>()
 </script>
 
 <template>
-  <div class="d-flex flex-column flex-md-row align-md-center justify-space-between mb-6">
-    <div>
-      <h1 class="text-h4 font-weight-bold text-primary">{{ title }}</h1>
-      <p v-if="subtitle" class="text-subtitle-1 text-grey-darken-1 mt-1">{{ subtitle }}</p>
+  <div class="page-header mb-6">
+    <div class="d-flex flex-column flex-md-row align-md-center justify-space-between">
+      <div>
+        <h1 class="text-h5 font-weight-bold text-high-emphasis">{{ title }}</h1>
+        <p v-if="subtitle" class="text-body-2 text-medium-emphasis mt-1 mb-0">{{ subtitle }}</p>
+      </div>
+      <div v-if="$slots.actions" class="mt-4 mt-md-0 d-flex gap-3 align-center">
+        <slot name="actions" />
+      </div>
     </div>
-    <div v-if="$slots.actions" class="mt-4 mt-md-0 d-flex gap-4">
-      <slot name="actions" />
-    </div>
+    <v-divider class="mt-4" />
   </div>
 </template>

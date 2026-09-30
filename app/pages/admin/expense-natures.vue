@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
 
   definePageMeta({
@@ -16,7 +16,7 @@
     deleteExpenseNature,
     toggleExpenseNatureStatus,
     approvePendingExpenseNature,
-    mergePendingExpenseNature
+    mergePendingExpenseNature,
   } = useExpenseNatures()
 
   const activeTab = ref('active')
@@ -28,27 +28,33 @@
   const totalItems = ref(0)
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
-  const { data: expenseNatures, pending, refresh } = useAsyncData(
+  const {
+    data: expenseNatures,
+    pending,
+    refresh,
+  } = useAsyncData(
     'expense-natures-admin',
     async () => {
       const result = await fetchExpenseNatures(
         currentPage.value,
         itemsPerPage.value,
-        searchQuery.value
+        searchQuery.value,
       )
       totalItems.value = result.count
       return result.data
     },
-    { watch: [currentPage, itemsPerPage] }
+    { watch: [currentPage, itemsPerPage] },
   )
 
-  const {
-    data: pendingNatures,
-    pending: pendingPending,
-    refresh: refreshPending,
-  } = useAsyncData('expense-natures-pending', fetchPendingExpenseNatures)
+  const { data: pendingNatures, refresh: refreshPending } = useAsyncData(
+    'expense-natures-pending',
+    fetchPendingExpenseNatures,
+  )
 
-  const { data: allActiveNatures } = useAsyncData('expense-natures-all-active', fetchAllActiveExpenseNatures)
+  const { data: allActiveNatures } = useAsyncData(
+    'expense-natures-all-active',
+    fetchAllActiveExpenseNatures,
+  )
 
   let timeout: ReturnType<typeof setTimeout> | null = null
   const handleSearch = () => {
@@ -119,7 +125,7 @@
         name: form.value.name,
         id: form.value.id,
         is_active: form.value.is_active,
-        is_pending: false
+        is_pending: false,
       }
 
       if (isEditing.value) {
@@ -136,7 +142,7 @@
       isSaving.value = false
     }
   }
-  
+
   const toggleStatus = async (item: ExpenseNatureRow) => {
     try {
       await toggleExpenseNatureStatus(item)
@@ -162,7 +168,7 @@
   const resolveError = ref('')
   const resolveMode = ref<'approve' | 'merge'>('approve')
   const targetPendingNature = ref<ExpenseNatureRow | null>(null)
-  
+
   const resolveForm = ref({
     newName: '',
     finalNatureId: '',
@@ -208,170 +214,173 @@
 
 <template>
   <div>
-    <PageHeader
-      subtitle="Gerencie as Naturezas de Despesa do sistema"
-      title="Naturezas de Despesa"
-    />
+    <PageHeader subtitle="Gerencie as Naturezas de Despesa do sistema" title="Naturezas de Despesa">
+      <template #actions>
+        <UiButton
+          color="secondary"
+          icon="mdi-refresh"
+          :loading="pending"
+          size="small"
+          variant="tonal"
+          @click="refresh"
+        />
+        <UiButton
+          v-if="activeTab === 'active'"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="openAddModal"
+        >
+          Nova Natureza
+        </UiButton>
+      </template>
+    </PageHeader>
 
-    <v-tabs v-model="activeTab" class="mb-4" color="primary">
-      <v-tab value="active">Naturezas Oficiais</v-tab>
+    <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+      <v-tab value="active">
+        <v-icon class="mr-2" size="18">mdi-cash-multiple</v-icon>
+        Naturezas Oficiais
+      </v-tab>
       <v-tab value="pending">
-        Naturezas Pendentes
-        <v-badge v-if="pendingNatures && pendingNatures.length > 0" :content="pendingNatures.length" color="error" inline class="ml-2" />
+        <v-icon class="mr-2" size="18">mdi-clock-outline</v-icon>
+        Pendentes
+        <v-badge
+          v-if="pendingNatures && pendingNatures.length > 0"
+          class="ml-2"
+          color="error"
+          :content="pendingNatures.length"
+          inline
+        />
       </v-tab>
     </v-tabs>
 
-    <div class="mt-4">
-      <!-- Aba Ativas -->
-      <div v-if="activeTab === 'active'">
-        <v-row>
-          <v-col cols="12">
-            <UiCard>
-              <template #header>
-                <span class="text-subtitle-1 font-weight-bold">Lista de Naturezas de Despesa</span>
-                <v-spacer />
-                <UiButton
-                  class="mr-2"
-                  color="secondary"
-                  icon="mdi-refresh"
-                  :loading="pending"
-                  size="small"
-                  variant="tonal"
-                  @click="refresh"
-                />
-                <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
-                  Nova Natureza
-                </UiButton>
-              </template>
+    <!-- Aba Ativas -->
+    <div v-if="activeTab === 'active'">
+      <UiCard>
+        <template #header>
+          <v-icon class="mr-2" color="primary" icon="mdi-cash-multiple" />
+          Lista de Naturezas de Despesa
+          <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+            {{ totalItems }}
+          </v-chip>
+          <v-spacer />
+          <v-text-field
+            v-model="searchQuery"
+            clearable
+            density="compact"
+            hide-details
+            label="Buscar..."
+            prepend-inner-icon="mdi-magnify"
+            rounded="lg"
+            style="max-width: 260px"
+            variant="outlined"
+            @update:model-value="handleSearch"
+          />
+        </template>
 
-              <div class="pa-4 pb-0">
-                <v-row>
-                  <v-col cols="12" sm="8" md="6">
-                    <UiInput
-                      v-model="searchQuery"
-                      append-inner-icon="mdi-magnify"
-                      clearable
-                      hide-details
-                      label="Buscar por Código ou Nome"
-                      placeholder="Ex: 33903000 ou Consumo..."
-                      @update:model-value="handleSearch"
-                    />
-                  </v-col>
-                </v-row>
-              </div>
+        <UiTable
+          :headers="[
+            { text: 'Código', value: 'id' },
+            { text: 'Nome', value: 'name' },
+            { text: 'Status', value: 'is_active', align: 'center' },
+            { text: 'Ações', value: 'actions', align: 'right' },
+          ]"
+          :items="expenseNatures || []"
+          :loading="pending"
+        >
+          <template #item-id="{ item }">
+            <v-chip v-if="item.id" color="info" label size="small" variant="tonal">
+              {{ item.id }}
+            </v-chip>
+            <span v-else class="text-medium-emphasis">—</span>
+          </template>
+          <template #item-is_active="{ item }">
+            <v-switch
+              color="success"
+              density="compact"
+              hide-details
+              :model-value="item.is_active"
+              @update:model-value="toggleStatus(item)"
+            />
+          </template>
+          <template #item-actions="{ item }">
+            <UiButton
+              class="mr-1"
+              color="primary"
+              icon="mdi-pencil-outline"
+              size="small"
+              variant="text"
+              @click="openEditModal(item)"
+            />
+            <UiButton
+              color="error"
+              icon="mdi-delete-outline"
+              size="small"
+              variant="text"
+              @click="deleteNature(item.id)"
+            />
+          </template>
+        </UiTable>
 
-              <UiTable
-                :headers="[
-                  { text: 'Código', value: 'id' },
-                  { text: 'Nome', value: 'name' },
-                  { text: 'Status', value: 'is_active', align: 'center' },
-                  { text: 'Ações', value: 'actions', align: 'right' },
-                ]"
-                :items="expenseNatures || []"
-                :loading="pending"
-              >
-                <template #item-id="{ item }">
-                  <UiChip v-if="item.id" color="info" size="small" variant="tonal">
-                    {{ item.id }}
-                  </UiChip>
-                  <span v-else class="text-grey">-</span>
-                </template>
-                <template #item-is_active="{ item }">
-                  <v-tooltip text="Clique para ativar/desativar" location="top">
-                    <template #activator="{ props }">
-                      <span v-bind="props">
-                        <UiChip
-                          :color="item.is_active ? 'success' : 'error'"
-                          size="small"
-                          style="cursor: pointer"
-                          @click="toggleStatus(item)"
-                        >
-                          {{ item.is_active ? 'Ativo' : 'Inativo' }}
-                        </UiChip>
-                      </span>
-                    </template>
-                  </v-tooltip>
-                </template>
-                <template #item-actions="{ item }">
-                  <UiButton
-                    class="mr-2"
-                    color="primary"
-                    icon="mdi-pencil"
-                    size="small"
-                    variant="text"
-                    @click="openEditModal(item)"
-                  />
-                  <UiButton
-                    color="error"
-                    icon="mdi-delete"
-                    size="small"
-                    variant="text"
-                    @click="deleteNature(item.id)"
-                  />
-                </template>
-              </UiTable>
-
-              <div v-if="totalPages > 1" class="d-flex justify-center pa-4">
-                <v-pagination
-                  v-model="currentPage"
-                  active-color="primary"
-                  :length="totalPages"
-                  rounded="circle"
-                  total-visible="7"
-                />
-              </div>
-            </UiCard>
-          </v-col>
-        </v-row>
-      </div>
-
-      <!-- Aba Pendentes -->
-      <div v-if="activeTab === 'pending'">
-        <v-row>
-          <v-col cols="12">
-            <UiCard>
-              <template #header>
-                <span class="text-subtitle-1 font-weight-bold">Naturezas de Despesa Pendentes</span>
-                <v-spacer />
-                <UiButton
-                  color="secondary"
-                  icon="mdi-refresh"
-                  :loading="pendingPending"
-                  size="small"
-                  variant="tonal"
-                  @click="refreshPending"
-                />
-              </template>
-
-              <UiTable
-                :headers="[
-                  { text: 'Código Criado', value: 'id' },
-                  { text: 'Nome Sugerido', value: 'name' },
-                  { text: 'Ações', value: 'actions', align: 'right' },
-                ]"
-                :items="pendingNatures || []"
-                :loading="pendingPending"
-              >
-                <template #item-id="{ item }">
-                  <span class="font-weight-medium">{{ item.id }}</span>
-                </template>
-                <template #item-actions="{ item }">
-                  <UiButton color="primary" size="small" @click="openResolveModal(item)">
-                    Resolver
-                  </UiButton>
-                </template>
-              </UiTable>
-
-              <div v-if="!pendingNatures?.length" class="text-center pa-4 text-grey">
-                Nenhuma natureza de despesa pendente no momento.
-              </div>
-            </UiCard>
-          </v-col>
-        </v-row>
-      </div>
+        <div v-if="totalPages > 1" class="d-flex justify-center pa-4">
+          <v-pagination
+            v-model="currentPage"
+            active-color="primary"
+            :length="totalPages"
+            rounded="lg"
+            total-visible="7"
+          />
+        </div>
+      </UiCard>
     </div>
 
-    <!-- Add/Edit Modal (Active) -->
+    <!-- Aba Pendentes -->
+    <div v-if="activeTab === 'pending'">
+      <v-expand-transition>
+        <div v-if="pendingNatures && pendingNatures.length > 0" class="mb-4">
+          <v-alert
+            border="start"
+            color="warning"
+            density="compact"
+            icon="mdi-clock-alert-outline"
+            rounded="xl"
+            :title="`${pendingNatures.length} natureza(s) aguardando revisão`"
+            variant="tonal"
+          >
+            <div class="d-flex flex-column gap-2 mt-3">
+              <div
+                v-for="nature in pendingNatures"
+                :key="nature.id"
+                class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface"
+              >
+                <div>
+                  <div class="text-caption text-medium-emphasis">Código: {{ nature.id }}</div>
+                  <div class="text-body-2 font-weight-medium">{{ nature.name }}</div>
+                </div>
+                <UiButton
+                  color="warning"
+                  size="small"
+                  variant="tonal"
+                  @click="openResolveModal(nature)"
+                >
+                  Resolver
+                </UiButton>
+              </div>
+            </div>
+          </v-alert>
+        </div>
+        <div v-else>
+          <UiCard>
+            <div class="d-flex flex-column align-center py-10 text-medium-emphasis">
+              <v-icon class="mb-3" icon="mdi-check-circle-outline" size="40" />
+              <span class="text-body-2">Nenhuma natureza pendente no momento.</span>
+            </div>
+          </UiCard>
+        </div>
+      </v-expand-transition>
+    </div>
+
+    <!-- Modal Add/Edit -->
     <UiModal
       v-model="isModalOpen"
       max-width="500px"
@@ -384,56 +393,76 @@
       <UiInput
         v-model="form.id"
         :disabled="isEditing"
-        label="Código (ID)*"
+        label="Código (ID) *"
         placeholder="Ex: 33903000"
       />
-      <UiInput v-model="form.name" label="Nome da Natureza*" />
+      <UiInput v-model="form.name" label="Nome da Natureza *" />
 
-      <UiSwitch
-        v-model="form.is_active"
-        color="success"
-        label="Ativo no sistema"
-      />
+      <UiSwitch v-model="form.is_active" color="success" label="Ativo no sistema" />
 
       <template #actions>
         <UiButton variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" @click="saveExpenseNature">
+        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveExpenseNature">
           Salvar
         </UiButton>
       </template>
     </UiModal>
 
-    <!-- Modal Resolve Suggestion -->
-    <UiModal v-model="isResolveModalOpen" max-width="600px" title="Resolver Natureza Pendente" transparent-header>
-      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">{{ resolveError }}</UiAlert>
+    <!-- Modal Resolver Pendência -->
+    <UiModal v-model="isResolveModalOpen" max-width="600px" title="Resolver Natureza Pendente">
+      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ resolveError }}
+      </UiAlert>
+
+      <div class="pa-3 mb-4 rounded-lg bg-surface-variant d-flex align-center gap-3">
+        <v-icon color="warning" icon="mdi-cash-multiple" />
+        <div>
+          <div class="text-caption text-medium-emphasis">Natureza Sugerida</div>
+          <div class="text-subtitle-2 font-weight-bold text-warning">
+            {{ targetPendingNature?.name }}
+          </div>
+          <div class="text-caption text-medium-emphasis">Código: {{ targetPendingNature?.id }}</div>
+        </div>
+      </div>
 
       <v-radio-group v-model="resolveMode" class="mb-4">
-        <v-radio label="Aprovar como Nova Natureza Oficial" value="approve"></v-radio>
-        <v-radio label="Rejeitar e Mesclar para Natureza Existente (ex: Outros)" value="merge"></v-radio>
+        <v-radio label="Aprovar como Nova Natureza Oficial" value="approve" />
+        <v-radio label="Rejeitar e Mesclar para Natureza Existente" value="merge" />
       </v-radio-group>
 
       <div v-if="resolveMode === 'approve'">
-        <UiInput v-model="resolveForm.newName" hint="Você pode ajustar o nome antes de aprovar." label="Nome Oficial" persistent-hint />
+        <UiInput
+          v-model="resolveForm.newName"
+          hint="Você pode ajustar o nome antes de aprovar."
+          label="Nome Oficial"
+          persistent-hint
+        />
       </div>
 
       <div v-if="resolveMode === 'merge'">
-        <p class="text-body-2 mb-2">
-          Selecione uma natureza oficial existente. Todos os produtos vinculados à "{{ targetPendingNature?.name }}"
-          serão transferidos para a natureza selecionada, e a "{{ targetPendingNature?.name }}" será excluída.
+        <p class="text-body-2 text-medium-emphasis mb-3">
+          Todos os produtos vinculados à "{{ targetPendingNature?.name }}" serão transferidos para a
+          natureza selecionada e a sugerida será excluída.
         </p>
         <v-autocomplete
           v-model="resolveForm.finalNatureId"
-          :items="allActiveNatures || []"
+          density="comfortable"
           :item-title="(item) => `${item.id} - ${item.name}`"
           item-value="id"
+          :items="allActiveNatures || []"
           label="Natureza Oficial de Destino"
+          rounded="lg"
           variant="outlined"
         />
       </div>
 
       <template #actions>
-        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isResolving" @click="submitResolve">Confirmar</UiButton>
+        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+          >Cancelar</UiButton
+        >
+        <UiButton color="primary" :loading="isResolving" variant="flat" @click="submitResolve">
+          Confirmar
+        </UiButton>
       </template>
     </UiModal>
   </div>
