@@ -71,39 +71,33 @@
           to="/about"
         />
 
-        <div v-if="user" class="mt-3 mb-1">
-          <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
-            Gestão
-          </span>
-        </div>
+        <template v-if="user && (profile?.role === 'admin' || profile?.role === 'uge')">
+          <div class="mt-3 mb-1">
+            <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
+              Gestão
+            </span>
+          </div>
 
-        <v-list-item
-          v-if="user && profile?.role === 'user'"
-          prepend-icon="mdi-clipboard-list-outline"
-          rounded="lg"
-          title="Demandas"
-          to="/demands"
-        >
-          <template v-if="pendingReturnsCount > 0" #append>
-            <v-badge color="error" :content="pendingReturnsCount" inline />
-          </template>
-        </v-list-item>
+          <v-list-item
+            prepend-icon="mdi-clipboard-list-outline"
+            rounded="lg"
+            title="Demandas"
+            to="/demands"
+          >
+            <template v-if="pendingReturnsCount > 0" #append>
+              <v-badge color="error" :content="pendingReturnsCount" inline />
+            </template>
+          </v-list-item>
 
-        <v-list-item
-          v-if="user && profile?.role === 'user'"
-          prepend-icon="mdi-package"
-          rounded="lg"
-          title="Produtos"
-          to="/products"
-        />
+          <v-list-item prepend-icon="mdi-package" rounded="lg" title="Produtos" to="/products" />
 
-        <v-list-item
-          v-if="user && profile?.role === 'user'"
-          prepend-icon="mdi-truck-delivery-outline"
-          rounded="lg"
-          title="Fornecedores"
-          to="/suppliers"
-        />
+          <v-list-item
+            prepend-icon="mdi-truck-delivery-outline"
+            rounded="lg"
+            title="Fornecedores"
+            to="/suppliers"
+          />
+        </template>
 
         <v-list-item
           v-if="profile?.role === 'admin' || profile?.role === 'iirgd'"
