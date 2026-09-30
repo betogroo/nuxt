@@ -1,8 +1,8 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
-    middleware: ['admin'],
+    middleware: ['uge'],
   })
 
   useHead({ title: 'Gerenciar Produtos' })

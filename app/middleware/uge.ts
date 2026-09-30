@@ -1,4 +1,4 @@
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware(async () => {
   const user = useSupabaseUser()
 
   if (!user.value) {
@@ -12,7 +12,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     await fetchProfile()
   }
 
-  if (profile.value?.role !== 'admin' && profile.value?.role !== 'uge' && profile.value?.role !== 'user') {
+  if (profile.value?.role !== 'admin' && profile.value?.role !== 'uge') {
     return navigateTo('/')
   }
 })
