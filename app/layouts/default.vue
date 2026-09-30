@@ -43,7 +43,15 @@
     user: 'Usuário',
   }
 
+  const { drawerByGroup } = useNavLinks()
   const { getIcon } = usePageIcon()
+
+  // Pending badges per path (preserved as-is for badge-specific logic)
+  const pathBadge = computed<Record<string, number>>(() => ({
+    '/demands': pendingReturnsCount.value,
+    '/admin/units': pendingUnitsCount.value,
+    '/admin/expense-natures': pendingExpenseNaturesCount.value,
+  }))
 </script>
 
 <template>
@@ -63,87 +71,26 @@
 
       <v-divider class="mb-2" />
 
-      <!-- Navegação principal -->
+      <!-- Navegação principal: gerada automaticamente por definePageMeta -->
       <v-list class="px-3" density="compact" nav>
-        <v-list-item :prepend-icon="getIcon('/')" rounded="lg" title="Início" to="/" />
-        <v-list-item :prepend-icon="getIcon('/about')" rounded="lg" title="Sobre" to="/about" />
-
-        <template v-if="user && (profile?.role === 'admin' || profile?.role === 'uge')">
-          <div class="mt-3 mb-1">
+        <template v-for="section in drawerByGroup" :key="section.group">
+          <!-- Cabeçalho de seção (apenas para grupos com label) -->
+          <div v-if="section.label" class="mt-3 mb-1">
             <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
-              Gestão
+              {{ section.label }}
             </span>
           </div>
 
           <v-list-item
-            :prepend-icon="getIcon('/demands')"
+            v-for="link in section.links"
+            :key="link.path"
+            :prepend-icon="link.icon"
             rounded="lg"
-            title="Demandas"
-            to="/demands"
+            :title="link.label"
+            :to="link.path"
           >
-            <template v-if="pendingReturnsCount > 0" #append>
-              <v-badge color="error" :content="pendingReturnsCount" inline />
-            </template>
-          </v-list-item>
-
-          <v-list-item
-            :prepend-icon="getIcon('/products')"
-            rounded="lg"
-            title="Produtos"
-            to="/products"
-          />
-
-          <v-list-item
-            :prepend-icon="getIcon('/suppliers')"
-            rounded="lg"
-            title="Fornecedores"
-            to="/suppliers"
-          />
-        </template>
-
-        <v-list-item
-          v-if="profile?.role === 'admin' || profile?.role === 'iirgd'"
-          :prepend-icon="getIcon('/iirgd')"
-          rounded="lg"
-          title="IIRGD"
-          to="/iirgd"
-        />
-
-        <template v-if="profile?.role === 'admin'">
-          <div class="mt-3 mb-1">
-            <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
-              Administração
-            </span>
-          </div>
-
-          <v-list-item :prepend-icon="getIcon('/admin')" rounded="lg" title="Painel" to="/admin" />
-          <v-list-item
-            :prepend-icon="getIcon('/users')"
-            rounded="lg"
-            title="Usuários"
-            to="/users"
-          />
-          <v-list-item :prepend-icon="getIcon('/logs')" rounded="lg" title="Logs" to="/logs" />
-
-          <v-list-item
-            :prepend-icon="getIcon('/admin/units')"
-            rounded="lg"
-            title="Unidades de Medida"
-            to="/admin/units"
-          >
-            <template v-if="pendingUnitsCount > 0" #append>
-              <v-badge color="error" :content="pendingUnitsCount" inline />
-            </template>
-          </v-list-item>
-
-          <v-list-item
-            :prepend-icon="getIcon('/admin/expense-natures')"
-            rounded="lg"
-            title="Naturezas de Despesa"
-            to="/admin/expense-natures"
-          >
-            <template v-if="pendingExpenseNaturesCount > 0" #append>
-              <v-badge color="error" :content="pendingExpenseNaturesCount" inline />
+            <template v-if="pathBadge[link.path] > 0" #append>
+              <v-badge color="error" :content="pathBadge[link.path]" inline />
             </template>
           </v-list-item>
         </template>

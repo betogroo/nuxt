@@ -4,6 +4,13 @@
   definePageMeta({
     icon: 'mdi-package-variant',
     middleware: ['uge'],
+    navLabel: 'Produtos',
+    navSubtitle: 'Catálogo de produtos e naturezas de despesa',
+    navColor: 'info',
+    navGroup: 'management',
+    navOrder: 20,
+    roles: ['admin', 'uge'],
+    showIn: ['drawer', 'home'],
   })
 
   useHead({ title: 'Gerenciar Produtos' })

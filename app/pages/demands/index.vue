@@ -4,6 +4,13 @@
   definePageMeta({
     icon: 'mdi-clipboard-list-outline',
     middleware: ['uge'],
+    navLabel: 'Demandas',
+    navSubtitle: 'Gerencie processos e demandas de compras',
+    navColor: 'primary',
+    navGroup: 'management',
+    navOrder: 10,
+    roles: ['admin', 'uge'],
+    showIn: ['drawer', 'home'],
   })
   useHead({ title: 'Demandas' })
 

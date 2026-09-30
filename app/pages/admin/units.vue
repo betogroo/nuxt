@@ -4,6 +4,13 @@
   definePageMeta({
     icon: 'mdi-scale-balance',
     middleware: ['admin'],
+    navLabel: 'Unidades de Medida',
+    navSubtitle: 'Gerencie unidades e alias',
+    navColor: 'warning',
+    navGroup: 'admin',
+    navOrder: 80,
+    roles: ['admin'],
+    showIn: ['drawer', 'admin-shortcuts'],
   })
 
   const {

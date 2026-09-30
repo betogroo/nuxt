@@ -1,6 +1,14 @@
 <script setup lang="ts">
   definePageMeta({
     middleware: ['admin'],
+    icon: 'mdi-view-dashboard-outline',
+    navLabel: 'Painel Admin',
+    navSubtitle: 'Métricas e atividade do sistema',
+    navColor: 'success',
+    navGroup: 'admin',
+    navOrder: 50,
+    roles: ['admin'],
+    showIn: ['drawer', 'home'],
   })
   useHead({ title: 'Painel de Controle - Admin' })
 
@@ -29,6 +37,7 @@
   }
 
   const { getIcon } = usePageIcon()
+  const { adminShortcuts } = useNavLinks()
 
   const metricCards = computed<MetricCard[]>(() => [
     {
@@ -217,55 +226,18 @@
 
             <div class="d-flex flex-column gap-2">
               <v-btn
+                v-for="shortcut in adminShortcuts"
+                :key="shortcut.path"
                 block
                 class="justify-start mb-1"
-                color="primary"
-                :prepend-icon="getIcon('/users')"
+                :color="shortcut.color"
+                :prepend-icon="shortcut.icon"
                 rounded="lg"
                 size="large"
-                to="/users"
+                :to="shortcut.path"
                 variant="tonal"
               >
-                Gerenciar Usuários
-              </v-btn>
-
-              <v-btn
-                block
-                class="justify-start mb-1"
-                color="info"
-                :prepend-icon="getIcon('/products')"
-                rounded="lg"
-                size="large"
-                to="/products"
-                variant="tonal"
-              >
-                Ver Produtos
-              </v-btn>
-
-              <v-btn
-                block
-                class="justify-start mb-1"
-                color="blue-grey"
-                :prepend-icon="getIcon('/logs')"
-                rounded="lg"
-                size="large"
-                to="/logs"
-                variant="tonal"
-              >
-                Auditoria de Logs
-              </v-btn>
-
-              <v-btn
-                block
-                class="justify-start mb-1"
-                color="warning"
-                prepend-icon="mdi-scale-balance"
-                rounded="lg"
-                size="large"
-                to="/admin/units"
-                variant="tonal"
-              >
-                Unidades de Medida
+                {{ shortcut.label }}
               </v-btn>
             </div>
           </UiCard>

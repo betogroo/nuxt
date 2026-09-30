@@ -1,6 +1,11 @@
 <script setup lang="ts">
   definePageMeta({
     icon: 'mdi-information-outline',
+    navLabel: 'Sobre',
+    navGroup: 'public',
+    navOrder: 2,
+    roles: ['admin', 'uge', 'iirgd', 'user'],
+    showIn: ['drawer'],
   })
   const title = 'Sobre'
   useHead({ title })

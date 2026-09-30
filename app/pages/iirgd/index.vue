@@ -5,6 +5,13 @@
     icon: 'mdi-badge-account-outline',
     middleware: ['iirgd'],
     layout: 'default',
+    navLabel: 'IIRGD',
+    navSubtitle: 'Módulo de gestão IIRGD',
+    navColor: 'deep-purple',
+    navGroup: 'iirgd',
+    navOrder: 40,
+    roles: ['admin', 'iirgd'],
+    showIn: ['drawer', 'home'],
   })
 
   useHead({

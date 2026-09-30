@@ -1,8 +1,15 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { SupplierRow } from '~/composables/useSuppliers'
   definePageMeta({
     icon: 'mdi-truck-delivery-outline',
     middleware: ['uge'],
+    navLabel: 'Fornecedores',
+    navSubtitle: 'Cadastro e gestão de fornecedores',
+    navColor: 'secondary',
+    navGroup: 'management',
+    navOrder: 30,
+    roles: ['admin', 'uge'],
+    showIn: ['drawer', 'home'],
   })
 
   useHead({ title: 'Fornecedores' })

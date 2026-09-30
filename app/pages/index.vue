@@ -1,6 +1,11 @@
 <script setup lang="ts">
   definePageMeta({
     icon: 'mdi-home-outline',
+    navLabel: 'Início',
+    navGroup: 'public',
+    navOrder: 1,
+    roles: ['admin', 'uge', 'iirgd', 'user'],
+    showIn: ['drawer'],
   })
   const title = 'Início'
   useHead({ title })
@@ -8,72 +13,7 @@
   const { profile } = useProfile()
   const user = useSupabaseUser()
 
-  interface QuickLink {
-    title: string
-    subtitle: string
-    icon: string
-    to: string
-    color: string
-    roles: string[]
-  }
-
-  const { getIcon } = usePageIcon()
-
-  const quickLinks: QuickLink[] = [
-    {
-      title: 'Demandas',
-      subtitle: 'Gerencie processos e demandas de compras',
-      icon: getIcon('/demands'),
-      to: '/demands',
-      color: 'primary',
-      roles: ['admin', 'uge', 'user'],
-    },
-    {
-      title: 'Produtos',
-      subtitle: 'Catálogo de produtos e naturezas de despesa',
-      icon: getIcon('/products'),
-      to: '/products',
-      color: 'info',
-      roles: ['admin', 'uge', 'user'],
-    },
-    {
-      title: 'Fornecedores',
-      subtitle: 'Cadastro e gestão de fornecedores',
-      icon: getIcon('/suppliers'),
-      to: '/suppliers',
-      color: 'secondary',
-      roles: ['admin', 'uge', 'user'],
-    },
-    {
-      title: 'IIRGD',
-      subtitle: 'Módulo de gestão IIRGD',
-      icon: getIcon('/iirgd'),
-      to: '/iirgd',
-      color: 'deep-purple',
-      roles: ['admin', 'iirgd'],
-    },
-    {
-      title: 'Painel Admin',
-      subtitle: 'Métricas e atividade do sistema',
-      icon: getIcon('/admin'),
-      to: '/admin',
-      color: 'success',
-      roles: ['admin'],
-    },
-    {
-      title: 'Usuários',
-      subtitle: 'Gerenciar contas e permissões',
-      icon: 'mdi-account-group-outline',
-      to: '/users',
-      color: 'warning',
-      roles: ['admin'],
-    },
-  ]
-
-  const visibleLinks = computed(() => {
-    const role = profile.value?.role || 'user'
-    return quickLinks.filter((link) => link.roles.includes(role))
-  })
+  const { homeLinks } = useNavLinks()
 
   const greeting = computed(() => {
     const hour = new Date().getHours()
@@ -99,14 +39,21 @@
     </div>
 
     <v-row>
-      <v-col v-for="link in visibleLinks" :key="link.to" cols="12" md="4" sm="6">
-        <v-card border class="quick-link-card pa-1" elevation="0" hover rounded="xl" :to="link.to">
+      <v-col v-for="link in homeLinks" :key="link.path" cols="12" md="4" sm="6">
+        <v-card
+          border
+          class="quick-link-card pa-1"
+          elevation="0"
+          hover
+          rounded="xl"
+          :to="link.path"
+        >
           <v-card-text class="d-flex align-center gap-4 pa-5">
             <v-avatar :color="link.color" rounded="lg" size="52" variant="text">
               <v-icon :icon="link.icon" size="26" />
             </v-avatar>
             <div>
-              <div class="text-subtitle-2 font-weight-bold">{{ link.title }}</div>
+              <div class="text-subtitle-2 font-weight-bold">{{ link.label }}</div>
               <div class="text-caption text-medium-emphasis mt-1">{{ link.subtitle }}</div>
             </div>
           </v-card-text>

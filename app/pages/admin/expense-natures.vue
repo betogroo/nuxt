@@ -1,9 +1,16 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
 
   definePageMeta({
     icon: 'mdi-cash-multiple',
     middleware: ['admin'],
+    navLabel: 'Naturezas de Despesa',
+    navSubtitle: 'Gerencie naturezas de despesa',
+    navColor: 'orange',
+    navGroup: 'admin',
+    navOrder: 90,
+    roles: ['admin'],
+    showIn: ['drawer', 'admin-shortcuts'],
   })
 
   useHead({ title: 'Gerenciar Naturezas de Despesa' })

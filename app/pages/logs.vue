@@ -2,6 +2,13 @@
   definePageMeta({
     icon: 'mdi-text-box-search-outline',
     middleware: ['admin'],
+    navLabel: 'Logs',
+    navSubtitle: 'Auditoria de ações do sistema',
+    navColor: 'blue-grey',
+    navGroup: 'admin',
+    navOrder: 70,
+    roles: ['admin'],
+    showIn: ['drawer', 'admin-shortcuts'],
   })
   useHead({ title: 'Registros de Acessos e Ações' })
 

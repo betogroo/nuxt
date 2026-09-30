@@ -5,6 +5,13 @@
   definePageMeta({
     icon: 'mdi-account-group-outline',
     middleware: ['admin'],
+    navLabel: 'Usuários',
+    navSubtitle: 'Gerenciar contas e permissões',
+    navColor: 'primary',
+    navGroup: 'admin',
+    navOrder: 60,
+    roles: ['admin'],
+    showIn: ['drawer', 'home', 'admin-shortcuts'],
   })
   useHead({ title: 'Gerenciar Usuários' })
 
