@@ -36,6 +36,22 @@ export const usePendingTasks = () => {
     },
     { default: () => 0 },
   )
+  const { data: pendingProductClassesCount, refresh: refreshPendingProductClasses } = useAsyncData(
+    'pending-product-classes-count',
+    async () => {
+      const { count, error } = await supabase
+        .from('product_classes')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_pending', true)
+      if (error) {
+        console.error('Erro ao buscar classes pendentes:', error)
+        return 0
+      }
+      return count || 0
+    },
+    { default: () => 0 },
+  )
+
   const { data: pendingReturnsCount, refresh: refreshPendingReturns } = useAsyncData(
     'pending-returns-count',
     async () => {
@@ -57,23 +73,31 @@ export const usePendingTasks = () => {
   const totalPending = computed(() => {
     return (
       (pendingUnitsCount.value || 0) +
-      (pendingReturnsCount.value || 0) + 
-      (pendingExpenseNaturesCount.value || 0)
+      (pendingReturnsCount.value || 0) +
+      (pendingExpenseNaturesCount.value || 0) +
+      (pendingProductClassesCount.value || 0)
     )
   })
 
   const refreshAll = async () => {
-    await Promise.all([refreshPendingUnits(), refreshPendingReturns(), refreshPendingExpenseNatures()])
+    await Promise.all([
+      refreshPendingUnits(),
+      refreshPendingReturns(),
+      refreshPendingExpenseNatures(),
+      refreshPendingProductClasses(),
+    ])
   }
 
   return {
-    pendingUnitsCount, 
+    pendingUnitsCount,
     pendingExpenseNaturesCount,
+    pendingProductClassesCount,
     pendingReturnsCount,
     totalPending,
     refreshAll,
-    refreshPendingUnits, 
+    refreshPendingUnits,
     refreshPendingExpenseNatures,
+    refreshPendingProductClasses,
     refreshPendingReturns,
   }
 }

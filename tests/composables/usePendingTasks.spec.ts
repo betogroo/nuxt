@@ -14,9 +14,11 @@ mockNuxtImport('useSupabaseClient', () => {
 mockNuxtImport('useAsyncData', () => {
   return (key: string, handler: () => Promise<unknown>) => {
     const data = ref<unknown>(0)
-    handler().then((res) => {
-      data.value = res
-    }).catch(() => {})
+    handler()
+      .then((res) => {
+        data.value = res
+      })
+      .catch(() => {})
     return { data, refresh: vi.fn() }
   }
 })
@@ -30,6 +32,7 @@ describe('usePendingTasks', () => {
     const expenseNaturesMockEq = { count: 3, error: null }
     const unitsMockEq = { count: 2, error: null }
     const demandsMockEq = { count: 4, error: null }
+    const productClassesMockEq = { count: 1, error: null }
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'expense_natures') {
@@ -50,12 +53,18 @@ describe('usePendingTasks', () => {
           eq: vi.fn().mockResolvedValue(demandsMockEq),
         }
       }
+      if (table === 'product_classes') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(productClassesMockEq),
+        }
+      }
     })
 
     const { totalPending } = usePendingTasks()
 
     await new Promise((r) => setTimeout(r, 10))
 
-    expect(totalPending.value).toBe(9) // 3 + 2 + 4
+    expect(totalPending.value).toBe(10) // 3 + 2 + 4 + 1
   })
 })

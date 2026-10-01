@@ -16,7 +16,12 @@
 
   const { data: metrics, pending } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
-  const { pendingUnitsCount, totalPending } = usePendingTasks()
+  const {
+    pendingUnitsCount,
+    pendingExpenseNaturesCount,
+    pendingProductClassesCount,
+    totalPending,
+  } = usePendingTasks()
 
   // Formatters
   const formatDate = (dateStr: string) => {
@@ -128,7 +133,63 @@
                 </UiButton>
               </div>
 
-              <v-divider v-if="pendingUnitsCount > 0 && metrics.pendingReturnDemands.length > 0" />
+              <v-divider
+                v-if="
+                  pendingUnitsCount > 0 &&
+                  (pendingExpenseNaturesCount > 0 ||
+                    pendingProductClassesCount > 0 ||
+                    metrics.pendingReturnDemands.length > 0)
+                "
+              />
+
+              <!-- Naturezas de Despesa -->
+              <div
+                v-if="pendingExpenseNaturesCount > 0"
+                class="d-flex align-center justify-space-between"
+              >
+                <div class="d-flex align-center gap-2">
+                  <v-icon color="warning" icon="mdi-cash-multiple" size="18" />
+                  <span class="text-body-2">
+                    Naturezas de Despesa Pendentes
+                    <v-chip class="ml-1" color="warning" label size="x-small">
+                      {{ pendingExpenseNaturesCount }}
+                    </v-chip>
+                  </span>
+                </div>
+                <UiButton color="warning" size="small" to="/admin/expense-natures" variant="tonal">
+                  Revisar
+                </UiButton>
+              </div>
+
+              <v-divider
+                v-if="
+                  pendingExpenseNaturesCount > 0 &&
+                  (pendingProductClassesCount > 0 || metrics.pendingReturnDemands.length > 0)
+                "
+              />
+
+              <!-- Classes de Produtos -->
+              <div
+                v-if="pendingProductClassesCount > 0"
+                class="d-flex align-center justify-space-between"
+              >
+                <div class="d-flex align-center gap-2">
+                  <v-icon color="warning" icon="mdi-tag-multiple-outline" size="18" />
+                  <span class="text-body-2">
+                    Classes de Produtos Pendentes
+                    <v-chip class="ml-1" color="warning" label size="x-small">
+                      {{ pendingProductClassesCount }}
+                    </v-chip>
+                  </span>
+                </div>
+                <UiButton color="warning" size="small" to="/admin/product-classes" variant="tonal">
+                  Revisar
+                </UiButton>
+              </div>
+
+              <v-divider
+                v-if="pendingProductClassesCount > 0 && metrics.pendingReturnDemands.length > 0"
+              />
 
               <!-- Retornos de demandas -->
               <div v-if="metrics.pendingReturnDemands.length > 0">

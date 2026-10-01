@@ -18,6 +18,7 @@
   const { fetchProducts, createProduct, updateProduct, toggleProductStatus } = useProducts()
 
   const { fetchAllActiveExpenseNatures, registerPendingExpenseNature } = useExpenseNatures()
+  const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
 
   // Pagination & Filter State
   const currentPage = ref(1)
@@ -29,6 +30,7 @@
   const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   const { data: expenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
+  const { data: productClasses } = useAsyncData('product-classes', fetchAllActiveProductClasses)
 
   const {
     data: products,
@@ -58,10 +60,14 @@
   const modal = useModal({
     id: '',
     name: '',
-    expense_nature_id: null,
+    expense_nature_id: null as string | null,
     is_suggesting_nature: false,
     suggested_nature_id: '',
     suggested_nature_name: '',
+    product_class_id: null as string | null,
+    is_suggesting_class: false,
+    suggested_class_id: '',
+    suggested_class_name: '',
     is_active: true,
   })
 
@@ -75,6 +81,10 @@
       is_suggesting_nature: false,
       suggested_nature_id: '',
       suggested_nature_name: '',
+      product_class_id: null,
+      is_suggesting_class: false,
+      suggested_class_id: '',
+      suggested_class_name: '',
       is_active: true,
     })
   }
@@ -86,6 +96,10 @@
       is_suggesting_nature: false,
       suggested_nature_id: '',
       suggested_nature_name: '',
+      product_class_id: product.product_class_id || null,
+      is_suggesting_class: false,
+      suggested_class_id: '',
+      suggested_class_name: '',
     })
   }
 
@@ -106,9 +120,17 @@
       }
     }
 
+    if (modal.payload.value.is_suggesting_class) {
+      if (!modal.payload.value.suggested_class_id || !modal.payload.value.suggested_class_name) {
+        modal.error.value = 'Código e Nome da nova Classe são obrigatórios quando sugerida.'
+        return
+      }
+    }
+
     modal.startSaving()
     try {
       let finalExpenseNatureId = modal.payload.value.expense_nature_id
+      let finalProductClassId = modal.payload.value.product_class_id
 
       if (modal.payload.value.is_suggesting_nature) {
         const expenseNature = await registerPendingExpenseNature({
@@ -118,9 +140,18 @@
         finalExpenseNatureId = expenseNature.id
       }
 
+      if (modal.payload.value.is_suggesting_class) {
+        const pClass = await registerPendingProductClass({
+          id: modal.payload.value.suggested_class_id,
+          name: modal.payload.value.suggested_class_name,
+        })
+        finalProductClassId = pClass.id
+      }
+
       const payload = {
         name: modal.payload.value.name,
-        expense_nature_id: finalExpenseNatureId,
+        expense_nature_id: finalExpenseNatureId as string,
+        product_class_id: finalProductClassId,
         is_active: modal.payload.value.is_active,
       }
 
@@ -213,6 +244,7 @@
         :headers="[
           { text: 'Nome', value: 'name' },
           { text: 'Natureza de Despesa', value: 'expense_nature' },
+          { text: 'Classe', value: 'product_class' },
           { text: 'Status', value: 'is_active', align: 'center' },
           { text: 'Ações', value: 'actions', align: 'right' },
         ]"
@@ -233,6 +265,15 @@
               {{ item.expense_natures.id }}
             </v-chip>
             <span class="text-body-2">{{ item.expense_natures.name }}</span>
+          </div>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-product_class="{ item }">
+          <div v-if="item.product_classes" class="d-flex align-center gap-2">
+            <v-chip color="teal" label size="small" variant="tonal">
+              {{ item.product_classes.id }}
+            </v-chip>
+            <span class="text-body-2">{{ item.product_classes.name }}</span>
           </div>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
@@ -311,6 +352,34 @@
       <div v-else class="d-flex gap-3 mb-3">
         <UiInput v-model="modal.payload.value.suggested_nature_id" label="Código (Ex: 33903000)" />
         <UiInput v-model="modal.payload.value.suggested_nature_name" label="Nome da Natureza" />
+      </div>
+
+      <UiSwitch
+        v-model="modal.payload.value.is_suggesting_class"
+        class="mb-3"
+        color="primary"
+        label="Não encontrou a classe? Sugerir nova"
+      />
+
+      <v-autocomplete
+        v-if="!modal.payload.value.is_suggesting_class"
+        v-model="modal.payload.value.product_class_id"
+        class="mb-3"
+        clearable
+        density="comfortable"
+        :item-title="
+          (item) => (typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : '')
+        "
+        item-value="id"
+        :items="productClasses || []"
+        label="Classe de Produto"
+        rounded="lg"
+        variant="outlined"
+      />
+
+      <div v-else class="d-flex gap-3 mb-3">
+        <UiInput v-model="modal.payload.value.suggested_class_id" label="Código (Ex: 5915)" />
+        <UiInput v-model="modal.payload.value.suggested_class_name" label="Nome da Classe" />
       </div>
 
       <UiSwitch

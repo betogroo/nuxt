@@ -13,19 +13,26 @@ vi.mock('~/composables/useProducts', () => ({
   useProducts: () => ({
     fetchProducts: vi.fn().mockResolvedValue({
       data: [{ id: '1', name: 'Product 1', expense_nature_id: '33903000', is_active: true }],
-      count: 1
+      count: 1,
     }),
     createProduct: mockCreateProduct,
     updateProduct: mockUpdateProduct,
     toggleProductStatus: mockToggleProductStatus,
-  })
+  }),
 }))
 
 vi.mock('~/composables/useExpenseNatures', () => ({
   useExpenseNatures: () => ({
     fetchAllActiveExpenseNatures: vi.fn().mockResolvedValue([{ id: '33903000', name: 'NATURE' }]),
     registerPendingExpenseNature: mockRegisterPendingExpenseNature,
-  })
+  }),
+}))
+
+vi.mock('~/composables/useProductClasses', () => ({
+  useProductClasses: () => ({
+    fetchAllActiveProductClasses: vi.fn().mockResolvedValue([{ id: '5915', name: 'CLASSE' }]),
+    registerPendingProductClass: vi.fn().mockResolvedValue({ id: '5915', name: 'CLASSE' }),
+  }),
 }))
 
 mockNuxtImport('useAsyncData', () => {
@@ -46,7 +53,7 @@ describe('Products Admin Page', () => {
 
   it('should reset isSaving state when saveProduct finishes successfully', async () => {
     mockCreateProduct.mockResolvedValueOnce({})
-    
+
     const wrapper = mount(ProductsPage, {
       global: {
         stubs: {
@@ -71,7 +78,21 @@ describe('Products Admin Page', () => {
       },
     })
 
-    const vm = wrapper.vm as any
+    interface ProductsPageVm {
+      modal: {
+        payload: {
+          value: {
+            name: string
+            expense_nature_id: string
+            is_suggesting_nature: boolean
+          }
+        }
+        isSaving: { value: boolean }
+      }
+      saveProduct: () => Promise<void>
+    }
+
+    const vm = wrapper.vm as unknown as ProductsPageVm
 
     // Mock initial modal payload
     vm.modal.payload.value = {
@@ -82,7 +103,7 @@ describe('Products Admin Page', () => {
 
     // Call save
     const savePromise = vm.saveProduct()
-    
+
     // While saving, isSaving should be true
     expect(vm.modal.isSaving.value).toBe(true)
 
@@ -95,7 +116,7 @@ describe('Products Admin Page', () => {
 
   it('should reset isSaving state when saveProduct fails', async () => {
     mockCreateProduct.mockRejectedValueOnce(new Error('Simulated Error'))
-    
+
     const wrapper = mount(ProductsPage, {
       global: {
         stubs: {
@@ -120,7 +141,7 @@ describe('Products Admin Page', () => {
       },
     })
 
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as ProductsPageVm
 
     vm.modal.payload.value = {
       name: 'New Product',

@@ -2,6 +2,7 @@ import type { Database } from '~/types/database.types'
 
 export type ProductRow = Database['public']['Tables']['products']['Row'] & {
   expense_natures?: { id: string; name: string } | null
+  product_classes?: { id: string; name: string } | null
 }
 
 export const useProducts = () => {
@@ -20,7 +21,7 @@ export const useProducts = () => {
 
     let query = supabase
       .from('products')
-      .select('*, expense_natures(id, name)', { count: 'exact' })
+      .select('*, expense_natures(id, name), product_classes(id, name)', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -80,7 +81,9 @@ export const useProducts = () => {
   const fetchAllActiveProducts = async () => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, expense_natures(id, name), product_units(unit_id, measurement_units(*))')
+      .select(
+        '*, expense_natures(id, name), product_classes(id, name), product_units(unit_id, measurement_units(*))',
+      )
       .eq('is_active', true)
       .order('name', { ascending: true })
 
@@ -91,7 +94,7 @@ export const useProducts = () => {
   const fetchProductById = async (id: string) => {
     const { data, error } = await supabase
       .from('products')
-      .select('*, expense_natures(id, name)')
+      .select('*, expense_natures(id, name), product_classes(id, name)')
       .eq('id', id)
       .single()
 
@@ -104,7 +107,11 @@ export const useProducts = () => {
 
     let profiles = null
     if (data.created_by) {
-      const { data: p } = await supabase.from('profiles').select('name').eq('id', data.created_by).single()
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', data.created_by)
+        .single()
       profiles = p
     }
 

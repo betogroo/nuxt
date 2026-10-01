@@ -18,8 +18,13 @@
   const { logAction } = useLogger()
 
   // Central de Pendências
-  const { pendingUnitsCount, pendingExpenseNaturesCount, pendingReturnsCount, totalPending } =
-    usePendingTasks()
+  const {
+    pendingUnitsCount,
+    pendingExpenseNaturesCount,
+    pendingProductClassesCount,
+    pendingReturnsCount,
+    totalPending,
+  } = usePendingTasks()
 
   const signOut = async () => {
     if (user.value) {
@@ -51,6 +56,7 @@
     '/demands': pendingReturnsCount.value,
     '/admin/units': pendingUnitsCount.value,
     '/admin/expense-natures': pendingExpenseNaturesCount.value,
+    '/admin/product-classes': pendingProductClassesCount.value,
   }))
 </script>
 
@@ -171,6 +177,14 @@
               :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovação`"
               title="Naturezas de Despesa"
               to="/admin/expense-natures"
+            />
+            <v-list-item
+              v-if="pendingProductClassesCount > 0"
+              :prepend-icon="getIcon('/admin/product-classes')"
+              rounded="lg"
+              :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovação`"
+              title="Classes de Produtos"
+              to="/admin/product-classes"
             />
             <v-list-item
               v-if="pendingReturnsCount > 0"
