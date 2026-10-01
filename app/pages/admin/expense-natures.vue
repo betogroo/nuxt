@@ -145,7 +145,7 @@
       await refresh()
       closeModal()
     } catch (e: unknown) {
-      saveError.value = e instanceof Error ? e.message : String(e)
+      saveError.value = getErrorMessage(e, 'esta natureza de despesa')
     } finally {
       isSaving.value = false
     }
@@ -156,7 +156,7 @@
       await toggleExpenseNatureStatus(item)
       await refresh()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : String(e))
+      alert(getErrorMessage(e, 'esta natureza de despesa'))
     }
   }
 
@@ -166,7 +166,7 @@
       await deleteExpenseNature(id)
       await refresh()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : String(e))
+      alert(getErrorMessage(e, 'esta natureza de despesa'))
     }
   }
 
@@ -213,7 +213,7 @@
       await refresh()
       closeResolveModal()
     } catch (e: unknown) {
-      resolveError.value = e instanceof Error ? e.message : String(e)
+      resolveError.value = getErrorMessage(e, 'esta natureza de despesa')
     } finally {
       isResolving.value = false
     }
