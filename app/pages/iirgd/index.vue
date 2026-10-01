@@ -23,28 +23,6 @@
   // Data fetching
   const { data: demands, pending, refresh } = useAsyncData('iirgd-demands', fetchDemands)
 
-  // Status List
-  const statusOptions = [
-    'Novo',
-    'Consultado',
-    'Liberado',
-    'Emitido',
-    'Malote',
-    'Valid',
-    'Cegaf',
-    'Antecedentes',
-    'Protocolo Cancelado',
-    'Aguardando Nova Coleta',
-    'Pendência Prodesp',
-    'Registro Cancelado',
-    'ERRO',
-    'PROCURADO',
-    'Cadastro Cancelado',
-    'Aguardando Taxa',
-    'Sem Alpha',
-    'Sem dados para Confronto',
-  ]
-
   // Add Modal State
   const modal = ref({
     isOpen: false,
@@ -194,7 +172,7 @@
       </UiAlert>
 
       <v-row dense>
-        <v-col cols="12" sm="6">
+        <v-col cols="12" sm="4">
           <UiSelect
             v-model="modal.payload.station_code"
             :items="['1342-5', '1062-9']"
@@ -202,7 +180,7 @@
             placeholder="Selecione"
           />
         </v-col>
-        <v-col cols="12" sm="6">
+        <v-col cols="12" sm="4">
           <UiInput
             label="Número do RG *"
             :model-value="modal.payload.rg"
@@ -211,16 +189,13 @@
             @update:model-value="onRgInput"
           />
         </v-col>
-        <v-col cols="12" sm="6">
+        <v-col cols="12" sm="4">
           <UiInput
             label="CPF *"
             :model-value="modal.payload.cpf"
             placeholder="000.000.000-00"
             @update:model-value="onCpfInput"
           />
-        </v-col>
-        <v-col cols="12" sm="6">
-          <UiSelect v-model="modal.payload.status" :items="statusOptions" label="Status *" />
         </v-col>
         <v-col cols="12">
           <UiInput v-model="modal.payload.name" label="Nome do Cidadão *" />
