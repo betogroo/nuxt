@@ -248,19 +248,6 @@
         <template #header>
           <v-icon class="mr-2" color="primary" icon="mdi-tag-multiple-outline" />
           Lista de Classes de Produtos
-          <v-spacer />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="mdi-refresh"
-            :loading="pending"
-            size="small"
-            variant="tonal"
-            @click="refresh"
-          />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
-            Nova Classe
-          </UiButton>
           <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
           </v-chip>
@@ -277,6 +264,18 @@
             variant="outlined"
             @update:model-value="handleSearch"
           />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            Nova Classe
+          </UiButton>
         </template>
 
         <UiTable

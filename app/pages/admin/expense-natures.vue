@@ -249,19 +249,6 @@
         <template #header>
           <v-icon class="mr-2" color="primary" icon="mdi-cash-multiple" />
           Lista de Naturezas de Despesa
-          <v-spacer />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="mdi-refresh"
-            :loading="pending"
-            size="small"
-            variant="tonal"
-            @click="refresh"
-          />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
-            >Nova Natureza</UiButton
-          >
           <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
           </v-chip>
@@ -278,6 +265,18 @@
             variant="outlined"
             @update:model-value="handleSearch"
           />
+          <UiButton
+            class="mr-2"
+            color="secondary"
+            icon="mdi-refresh"
+            :loading="pending"
+            size="small"
+            variant="tonal"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+            >Nova Natureza</UiButton
+          >
         </template>
 
         <UiTable
