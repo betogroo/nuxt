@@ -100,11 +100,11 @@
       variant="outlined"
     >
       <v-btn class="flex-1-1" size="small" value="password">
-        <v-icon class="mr-2" size="16">mdi-lock-outline</v-icon>
+        <UiIcon class="mr-2" name="security" size="16" />
         Senha
       </v-btn>
       <v-btn class="flex-1-1" size="small" value="magic">
-        <v-icon class="mr-2" size="16">mdi-email-outline</v-icon>
+        <UiIcon class="mr-2" name="emailAlt" size="16" />
         Código por E-mail
       </v-btn>
     </v-btn-toggle>

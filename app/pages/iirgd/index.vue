@@ -2,7 +2,7 @@
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
 
   definePageMeta({
-    icon: 'mdi-badge-account-outline',
+    icon: 'userBadge',
     middleware: ['iirgd'],
     layout: 'default',
     navLabel: 'IIRGD',
@@ -107,7 +107,7 @@
 
     <UiCard>
       <template #header>
-        <v-icon class="mr-2" color="primary" icon="mdi-badge-account-outline" />
+        <UiIcon class="mr-2" color="primary" name="userBadge" />
         Lista de Demandas
         <v-chip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ demands.length }}

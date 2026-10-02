@@ -1,6 +1,6 @@
 <script setup lang="ts">
   definePageMeta({
-    icon: 'mdi-text-box-search-outline',
+    icon: 'searchDocument',
     middleware: ['admin'],
     navLabel: 'Logs',
     navSubtitle: 'Auditoria de ações do sistema',
@@ -59,7 +59,7 @@
 
     <UiCard>
       <template #header>
-        <v-icon class="mr-2" color="primary" icon="mdi-text-box-search-outline" />
+        <UiIcon class="mr-2" color="primary" name="searchDocument" />
         Auditoria de Logs
         <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}

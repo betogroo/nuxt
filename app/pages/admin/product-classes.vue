@@ -2,7 +2,7 @@
   import type { ProductClassRow } from '~/composables/useProductClasses'
 
   definePageMeta({
-    icon: 'mdi-tag-multiple-outline',
+    icon: 'categories',
     middleware: ['admin'],
     navLabel: 'Classes de Produtos',
     navSubtitle: 'Gerencie as classes de produtos',
@@ -226,11 +226,11 @@
 
     <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
       <v-tab value="active">
-        <v-icon class="mr-2" size="18">mdi-tag-multiple-outline</v-icon>
+        <UiIcon class="mr-2" name="categories" size="18" />
         Classes Oficiais
       </v-tab>
       <v-tab value="pending">
-        <v-icon class="mr-2" size="18">mdi-clock-outline</v-icon>
+        <UiIcon class="mr-2" name="time" size="18" />
         Pendentes
         <v-badge
           v-if="pendingClasses && pendingClasses.length > 0"
@@ -246,7 +246,7 @@
     <div v-if="activeTab === 'active'">
       <UiCard>
         <template #header>
-          <v-icon class="mr-2" color="primary" icon="mdi-tag-multiple-outline" />
+          <UiIcon class="mr-2" color="primary" name="categories" />
           Lista de Classes de Produtos
           <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
@@ -341,7 +341,7 @@
     <div v-else-if="activeTab === 'pending'">
       <UiCard>
         <template #header>
-          <v-icon class="mr-2" color="warning" icon="mdi-clock-outline" />
+          <UiIcon class="mr-2" color="warning" name="time" />
           Classes Sugeridas por Usuários
           <v-spacer />
           <UiButton
@@ -395,7 +395,7 @@
 
           <template #empty>
             <div class="text-center pa-6 text-medium-emphasis">
-              <v-icon class="mb-2" color="grey" icon="mdi-check-circle-outline" size="36" />
+              <UiIcon class="mb-2" color="grey" name="success" size="36" />
               <div>Nenhuma classe de produto pendente de revisão.</div>
             </div>
           </template>

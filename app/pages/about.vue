@@ -1,6 +1,6 @@
 <script setup lang="ts">
   definePageMeta({
-    icon: 'mdi-information-outline',
+    icon: 'info',
     navLabel: 'Sobre',
     navGroup: 'public',
     navOrder: 2,

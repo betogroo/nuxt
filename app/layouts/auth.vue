@@ -7,7 +7,7 @@
             <!-- Marca do sistema -->
             <div class="text-center mb-8">
               <v-avatar class="mb-3" color="primary" rounded="xl" size="56">
-                <v-icon color="white" icon="mdi-package-variant-closed" size="28" />
+                <UiIcon color="white" name="inventory" size="28" />
               </v-avatar>
               <div class="text-h6 font-weight-bold text-high-emphasis">SistemaGov</div>
               <div class="text-caption text-medium-emphasis">Gestão de Demandas Públicas</div>

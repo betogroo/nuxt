@@ -2,7 +2,7 @@
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
-    icon: 'mdi-package-variant',
+    icon: 'packageSolid',
     middleware: ['uge'],
     navLabel: 'Produtos',
     navSubtitle: 'Catálogo de produtos e naturezas de despesa',
@@ -185,7 +185,7 @@
 
     <UiCard>
       <template #header>
-        <v-icon class="mr-2" color="primary" icon="mdi-package-variant-outline" />
+        <UiIcon class="mr-2" color="primary" name="product" />
         Lista de Produtos
         <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}

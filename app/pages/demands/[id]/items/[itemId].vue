@@ -101,7 +101,11 @@
   const { fetchBidsByProduct, addBid, removeBid } = useProductBids()
   const { fetchAllActiveSuppliers, createSupplierFast } = useSuppliers()
 
-  const { data: bids, refresh: refreshBids, pending: bidsPending } = useAsyncData(`item-bids-${itemId}`, async () => {
+  const {
+    data: bids,
+    refresh: refreshBids,
+    pending: bidsPending,
+  } = useAsyncData(`item-bids-${itemId}`, async () => {
     return await fetchBidsByProduct(itemId)
   })
 
@@ -111,7 +115,7 @@
     const list = await fetchAllActiveSuppliers()
     suppliers.value = list
   }
-  
+
   onMounted(() => {
     fetchSuppliersList()
   })
@@ -119,7 +123,7 @@
   const isBidModalOpen = ref(false)
   const isBidSaving = ref(false)
   const bidError = ref('')
-  
+
   // Bid form state
   const bidForm = ref({
     isNewSupplier: false,
@@ -158,14 +162,22 @@
       let selectedSupplierId = bidForm.value.supplierId
 
       if (bidForm.value.isNewSupplier) {
-        if (!bidForm.value.newSupplierCnpj || !bidForm.value.newSupplierName || !bidForm.value.newSupplierEmail) {
+        if (
+          !bidForm.value.newSupplierCnpj ||
+          !bidForm.value.newSupplierName ||
+          !bidForm.value.newSupplierEmail
+        ) {
           throw new Error('Preencha os dados do fornecedor: CNPJ, Razão Social e E-mail.')
         }
-        
+
         // Remove non-numeric chars from CNPJ
         const cleanCnpj = bidForm.value.newSupplierCnpj.replace(/\D/g, '')
 
-        const newSupp = await createSupplierFast(cleanCnpj, bidForm.value.newSupplierName, bidForm.value.newSupplierEmail)
+        const newSupp = await createSupplierFast(
+          cleanCnpj,
+          bidForm.value.newSupplierName,
+          bidForm.value.newSupplierEmail,
+        )
         selectedSupplierId = newSupp.id
         await fetchSuppliersList() // refresh the list just in case
       }
@@ -175,8 +187,8 @@
       }
 
       // Check if this supplier already has a bid for this product
-      if (bids.value?.find(b => b.supplier_id === selectedSupplierId)) {
-         throw new Error('Este fornecedor já possui um lance para este produto.')
+      if (bids.value?.find((b) => b.supplier_id === selectedSupplierId)) {
+        throw new Error('Este fornecedor já possui um lance para este produto.')
       }
 
       await addBid(itemId, selectedSupplierId, bidForm.value.amount)
@@ -206,7 +218,6 @@
       alert('Erro ao remover lance.')
     }
   }
-
 </script>
 
 <template>
@@ -269,18 +280,18 @@
                 </UiButton>
               </div>
             </template>
-            
+
             <div v-if="bidsPending" class="text-center py-4">
               <v-progress-circular color="primary" indeterminate></v-progress-circular>
             </div>
-            
+
             <UiTable
               v-else
               :headers="[
                 { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
                 { text: 'Fornecedor', value: 'supplier' },
                 { text: 'Valor do Lance', value: 'amount', align: 'right' },
-                { text: 'Ações', value: 'actions', align: 'center', sortable: false }
+                { text: 'Ações', value: 'actions', align: 'center', sortable: false },
               ]"
               :items="bids || []"
             >
@@ -289,7 +300,7 @@
                   Nenhum lance registrado para este item ainda.
                 </div>
               </template>
-              
+
               <template #item-pos="{ index }">
                 <UiChip :color="index === 0 ? 'success' : 'default'" size="small">
                   {{ index + 1 }}º
@@ -302,11 +313,18 @@
               </template>
 
               <template #item-amount="{ item: bid }">
-                <div class="font-weight-bold" :class="{'text-success': bids && bids[0].id === bid.id}">
-                  {{ new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bid.amount) }}
+                <div
+                  class="font-weight-bold"
+                  :class="{ 'text-success': bids && bids[0].id === bid.id }"
+                >
+                  {{
+                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      bid.amount,
+                    )
+                  }}
                 </div>
               </template>
-              
+
               <template #item-actions="{ item: bid }">
                 <UiButton
                   v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
@@ -340,7 +358,7 @@
           <v-list class="bg-transparent" density="compact">
             <v-list-item v-if="item?.reference_price">
               <template #prepend>
-                <v-icon color="grey">mdi-currency-brl</v-icon>
+                <UiIcon color="grey" name="currency" />
               </template>
               <v-list-item-title>Valor Referencial</v-list-item-title>
               <v-list-item-subtitle>
@@ -353,7 +371,7 @@
             </v-list-item>
             <v-list-item>
               <template #prepend>
-                <v-icon color="grey">mdi-arrow-split-horizontal</v-icon>
+                <UiIcon color="grey" name="transfer" />
               </template>
               <v-list-item-title>Intervalo entre Lances</v-list-item-title>
               <v-list-item-subtitle v-if="item">
@@ -369,14 +387,14 @@
             <v-divider class="my-2" />
             <v-list-item>
               <template #prepend>
-                <v-icon color="grey">mdi-identifier</v-icon>
+                <UiIcon color="grey" name="identifier" />
               </template>
               <v-list-item-title>ID do Item</v-list-item-title>
               <v-list-item-subtitle>{{ item?.id }}</v-list-item-subtitle>
             </v-list-item>
             <v-list-item>
               <template #prepend>
-                <v-icon color="grey">mdi-calendar</v-icon>
+                <UiIcon color="grey" name="calendar" />
               </template>
               <v-list-item-title>Adicionado em</v-list-item-title>
               <v-list-item-subtitle>
@@ -431,10 +449,7 @@
         />
       </div>
 
-            <MeasurementUnitSelect
-        v-model="editForm.unitSearch"
-        class="mb-4"
-      />
+      <MeasurementUnitSelect v-model="editForm.unitSearch" class="mb-4" />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
@@ -454,35 +469,35 @@
 
       <v-switch
         v-model="bidForm.isNewSupplier"
+        class="mb-4"
         color="primary"
-        label="Fornecedor não está na lista? Cadastrar Novo."
         density="compact"
         hide-details
-        class="mb-4"
+        label="Fornecedor não está na lista? Cadastrar Novo."
       ></v-switch>
 
       <!-- Fornecedor Existente -->
       <v-autocomplete
         v-if="!bidForm.isNewSupplier"
         v-model="bidForm.supplierId"
-        :items="suppliers"
+        class="mb-3"
+        color="primary"
+        density="comfortable"
         item-title="company_name"
         item-value="id"
+        :items="suppliers"
         label="Selecionar Fornecedor*"
         placeholder="Busque pela razão social..."
         variant="outlined"
-        density="comfortable"
-        class="mb-3"
-        color="primary"
       ></v-autocomplete>
 
       <!-- Novo Fornecedor -->
       <template v-else>
         <UiInput
           v-model="bidForm.newSupplierCnpj"
+          v-maska="'##.###.###/####-##'"
           label="CNPJ do Fornecedor*"
           placeholder="Apenas números"
-          v-maska="'##.###.###/####-##'"
         />
         <UiInput
           v-model="bidForm.newSupplierName"
@@ -499,11 +514,11 @@
 
       <UiInput
         v-model.number="bidForm.amount"
+        class="mt-4"
         label="Valor do Lance (R$)*"
         placeholder="0,00"
-        type="number"
         step="0.01"
-        class="mt-4"
+        type="number"
       />
 
       <template #actions>
@@ -513,7 +528,3 @@
     </UiModal>
   </v-container>
 </template>
-
-
-
-

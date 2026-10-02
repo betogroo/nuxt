@@ -2,7 +2,7 @@
   import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
 
   definePageMeta({
-    icon: 'mdi-scale-balance',
+    icon: 'balance',
     middleware: ['admin'],
     navLabel: 'Unidades de Medida',
     navSubtitle: 'Gerencie unidades e alias',
@@ -240,7 +240,7 @@
 
     <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
       <v-tab value="units">
-        <v-icon class="mr-2" size="18">mdi-scale-balance</v-icon>
+        <UiIcon class="mr-2" name="balance" size="18" />
         Unidades Oficiais
         <v-chip
           v-if="activeUnits.length"
@@ -254,7 +254,7 @@
         </v-chip>
       </v-tab>
       <v-tab value="aliases">
-        <v-icon class="mr-2" size="18">mdi-tag-multiple-outline</v-icon>
+        <UiIcon class="mr-2" name="categories" size="18" />
         Registros Alternativos
         <v-chip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ allAliases.length }}
@@ -286,7 +286,7 @@
                 class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface"
               >
                 <div class="d-flex align-center gap-2">
-                  <v-icon color="warning" icon="mdi-scale-balance" size="18" />
+                  <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2 font-weight-medium">{{ unit.name }}</span>
                 </div>
                 <UiButton
@@ -306,7 +306,7 @@
       <!-- Unidades Oficiais -->
       <UiCard>
         <template #header>
-          <v-icon class="mr-2" color="primary" icon="mdi-scale-balance" />
+          <UiIcon class="mr-2" color="primary" name="balance" />
           Unidades de Medida Oficiais
           <v-spacer />
           <UiButton
@@ -373,7 +373,7 @@
     <div v-if="activeTab === 'aliases'">
       <UiCard>
         <template #header>
-          <v-icon class="mr-2" color="primary" icon="mdi-tag-multiple-outline" />
+          <UiIcon class="mr-2" color="primary" name="categories" />
           Todos os Registros Alternativos
           <v-spacer />
           <UiButton
@@ -500,7 +500,7 @@
       </UiAlert>
 
       <div class="pa-3 mb-4 rounded-lg bg-surface-variant d-flex align-center gap-3">
-        <v-icon color="warning" icon="mdi-scale-balance" />
+        <UiIcon color="warning" name="balance" />
         <div>
           <div class="text-caption text-medium-emphasis">Unidade Sugerida</div>
           <div class="text-subtitle-2 font-weight-bold text-warning">{{ resolveTarget?.name }}</div>

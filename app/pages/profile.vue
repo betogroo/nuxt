@@ -3,7 +3,7 @@
 
   // Proteção básica: apenas usuários logados
   definePageMeta({
-    icon: 'mdi-account-circle-outline',
+    icon: 'userProfile',
     middleware: [
       function () {
         const { user } = useAuth()
@@ -77,7 +77,7 @@
       <v-col cols="12" lg="6" md="8">
         <UiCard>
           <template #header>
-            <v-icon class="mr-2" color="primary" icon="mdi-account-circle-outline" />
+            <UiIcon class="mr-2" color="primary" name="userProfile" />
             Informações Pessoais
           </template>
 

@@ -106,7 +106,7 @@
         <v-col cols="12" lg="6" md="8">
           <UiCard>
             <template #header>
-              <v-icon class="mr-2" color="primary" icon="mdi-package-variant-outline" />
+              <UiIcon class="mr-2" color="primary" name="product" />
               <span class="text-subtitle-1 font-weight-bold">{{ product.name }}</span>
               <v-spacer />
               <v-chip

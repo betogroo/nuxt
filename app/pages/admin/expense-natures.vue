@@ -2,7 +2,7 @@
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
 
   definePageMeta({
-    icon: 'mdi-cash-multiple',
+    icon: 'finances',
     middleware: ['admin'],
     navLabel: 'Naturezas de Despesa',
     navSubtitle: 'Gerencie naturezas de despesa',
@@ -227,11 +227,11 @@
 
     <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
       <v-tab value="active">
-        <v-icon class="mr-2" size="18">mdi-cash-multiple</v-icon>
+        <UiIcon class="mr-2" name="finances" size="18" />
         Naturezas Oficiais
       </v-tab>
       <v-tab value="pending">
-        <v-icon class="mr-2" size="18">mdi-clock-outline</v-icon>
+        <UiIcon class="mr-2" name="time" size="18" />
         Pendentes
         <v-badge
           v-if="pendingNatures && pendingNatures.length > 0"
@@ -247,7 +247,7 @@
     <div v-if="activeTab === 'active'">
       <UiCard>
         <template #header>
-          <v-icon class="mr-2" color="primary" icon="mdi-cash-multiple" />
+          <UiIcon class="mr-2" color="primary" name="finances" />
           Lista de Naturezas de Despesa
           <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
@@ -373,7 +373,7 @@
         <div v-else>
           <UiCard>
             <div class="d-flex flex-column align-center py-10 text-medium-emphasis">
-              <v-icon class="mb-3" icon="mdi-check-circle-outline" size="40" />
+              <UiIcon class="mb-3" name="success" size="40" />
               <span class="text-body-2">Nenhuma natureza pendente no momento.</span>
             </div>
           </UiCard>
@@ -416,7 +416,7 @@
       </UiAlert>
 
       <div class="pa-3 mb-4 rounded-lg bg-surface-variant d-flex align-center gap-3">
-        <v-icon color="warning" icon="mdi-cash-multiple" />
+        <UiIcon color="warning" name="finances" />
         <div>
           <div class="text-caption text-medium-emphasis">Natureza Sugerida</div>
           <div class="text-subtitle-2 font-weight-bold text-warning">

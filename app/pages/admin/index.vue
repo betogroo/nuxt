@@ -1,7 +1,7 @@
 <script setup lang="ts">
   definePageMeta({
     middleware: ['admin'],
-    icon: 'mdi-view-dashboard-outline',
+    icon: 'dashboard',
     navLabel: 'Painel Admin',
     navSubtitle: 'Métricas e atividade do sistema',
     navColor: 'success',
@@ -97,7 +97,7 @@
                 </div>
               </div>
               <v-avatar :color="card.color" rounded="lg" size="52" variant="tonal">
-                <v-icon :icon="card.icon" size="26" />
+                <UiIcon :name="card.icon" size="26" />
               </v-avatar>
             </v-card-text>
           </v-card>
@@ -120,7 +120,7 @@
               <!-- Unidades -->
               <div v-if="pendingUnitsCount > 0" class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center gap-2">
-                  <v-icon color="warning" icon="mdi-scale-balance" size="18" />
+                  <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2">
                     Unidades de Medida Pendentes
                     <v-chip class="ml-1" color="warning" label size="x-small">
@@ -148,7 +148,7 @@
                 class="d-flex align-center justify-space-between"
               >
                 <div class="d-flex align-center gap-2">
-                  <v-icon color="warning" icon="mdi-cash-multiple" size="18" />
+                  <UiIcon color="warning" name="finances" size="18" />
                   <span class="text-body-2">
                     Naturezas de Despesa Pendentes
                     <v-chip class="ml-1" color="warning" label size="x-small">
@@ -174,7 +174,7 @@
                 class="d-flex align-center justify-space-between"
               >
                 <div class="d-flex align-center gap-2">
-                  <v-icon color="warning" icon="mdi-tag-multiple-outline" size="18" />
+                  <UiIcon color="warning" name="categories" size="18" />
                   <span class="text-body-2">
                     Classes de Produtos Pendentes
                     <v-chip class="ml-1" color="warning" label size="x-small">
@@ -194,7 +194,7 @@
               <!-- Retornos de demandas -->
               <div v-if="metrics.pendingReturnDemands.length > 0">
                 <div class="d-flex align-center gap-2 mb-2">
-                  <v-icon color="warning" icon="mdi-keyboard-return" size="18" />
+                  <UiIcon color="warning" name="back" size="18" />
                   <span class="text-body-2 font-weight-medium">
                     Retornos de Status em Demandas
                     <v-chip class="ml-1" color="warning" label size="x-small">
@@ -235,12 +235,12 @@
         <v-col cols="12" md="8">
           <UiCard class="h-100">
             <template #header>
-              <v-icon class="mr-2" color="primary" icon="mdi-history" />
+              <UiIcon class="mr-2" color="primary" name="history" />
               Atividade Recente
               <v-spacer />
               <UiButton color="primary" size="small" to="/logs" variant="text">
                 Ver todos
-                <v-icon end size="16">mdi-arrow-right</v-icon>
+                <UiIcon end name="next" size="16" />
               </UiButton>
             </template>
 
@@ -271,7 +271,7 @@
             </div>
 
             <div v-else class="d-flex flex-column align-center py-10 text-medium-emphasis">
-              <v-icon class="mb-2" icon="mdi-history" size="36" />
+              <UiIcon class="mb-2" name="history" size="36" />
               <span class="text-body-2">Nenhuma atividade registrada ainda.</span>
             </div>
           </UiCard>
@@ -281,7 +281,7 @@
         <v-col cols="12" md="4">
           <UiCard class="h-100">
             <template #header>
-              <v-icon class="mr-2" color="primary" icon="mdi-lightning-bolt-outline" />
+              <UiIcon class="mr-2" color="primary" name="energy" />
               Acesso Rápido
             </template>
 

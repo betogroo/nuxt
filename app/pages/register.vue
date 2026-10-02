@@ -40,7 +40,7 @@
 <template>
   <UiCard class="w-100" rounded="xl">
     <template #header>
-      <v-icon class="mr-2" color="primary" icon="mdi-account-plus-outline" />
+      <UiIcon class="mr-2" color="primary" name="addUser" />
       Criar sua conta
     </template>
 

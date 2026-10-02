@@ -2,7 +2,7 @@
   import type { DemandRow } from '~/composables/useDemands'
 
   definePageMeta({
-    icon: 'mdi-clipboard-list-outline',
+    icon: 'recordsList',
     middleware: ['uge'],
     navLabel: 'Demandas',
     navSubtitle: 'Gerencie processos e demandas de compras',
@@ -121,7 +121,7 @@
 
     <UiCard>
       <template #header>
-        <v-icon class="mr-2" color="primary" icon="mdi-clipboard-list-outline" />
+        <UiIcon class="mr-2" color="primary" name="recordsList" />
         Lista de Demandas
         <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}
@@ -223,7 +223,7 @@
               size="small"
               variant="outlined"
             >
-              <v-icon size="12" start>mdi-keyboard-return</v-icon>
+              <UiIcon name="back" size="12" start />
               Retorno
             </v-chip>
           </div>

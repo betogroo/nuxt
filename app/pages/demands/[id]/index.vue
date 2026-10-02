@@ -550,7 +550,7 @@
           <UiCard class="mb-4" variant="outlined">
             <template #header>
               <div class="d-flex align-center w-100">
-                <v-icon class="mr-2 text-primary" left>mdi-clipboard-text-outline</v-icon>
+                <UiIcon class="mr-2 text-primary" left name="document" />
                 <span class="text-subtitle-1 font-weight-bold">Dados do Planejamento</span>
                 <v-spacer />
                 <UiButton
@@ -869,7 +869,7 @@
             variant="text"
             @click="openEditItemModal(item)"
           >
-            <v-icon>mdi-pencil</v-icon>
+            <UiIcon name="edit" />
           </UiButton>
           <UiButton
             v-if="demand?.status === 'quotation'"

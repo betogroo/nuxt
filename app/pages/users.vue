@@ -3,7 +3,7 @@
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
-    icon: 'mdi-account-group-outline',
+    icon: 'usersGroup',
     middleware: ['admin'],
     navLabel: 'Usuários',
     navSubtitle: 'Gerenciar contas e permissões',
@@ -175,7 +175,7 @@
     <!-- Card de usuários ativos -->
     <UiCard class="mb-6">
       <template #header>
-        <v-icon class="mr-2" color="primary" icon="mdi-account-group-outline" />
+        <UiIcon class="mr-2" color="primary" name="usersGroup" />
         Usuários Ativos
         <v-chip class="ml-2" color="primary" label size="x-small" variant="tonal">
           {{ filteredActiveUsers.length }}
@@ -279,7 +279,7 @@
     <v-expand-transition>
       <UiCard v-if="inactiveUsers.length > 0">
         <template #header>
-          <v-icon class="mr-2" color="error" icon="mdi-account-off-outline" />
+          <UiIcon class="mr-2" color="error" name="disableUser" />
           <span class="text-medium-emphasis">Usuários Desativados</span>
           <v-chip class="ml-2" color="error" label size="x-small" variant="tonal">
             {{ inactiveUsers.length }}

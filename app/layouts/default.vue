@@ -90,11 +90,13 @@
           <v-list-item
             v-for="link in section.links"
             :key="link.path"
-            :prepend-icon="link.icon"
             rounded="lg"
             :title="link.label"
             :to="link.path"
           >
+            <template #prepend>
+              <UiIcon class="mr-4" :name="link.icon" />
+            </template>
             <template v-if="pathBadge[link.path] > 0" #append>
               <v-badge color="error" :content="pathBadge[link.path]" inline />
             </template>
@@ -235,12 +237,9 @@
           </v-list>
           <v-divider />
           <v-list density="compact" nav>
-            <v-list-item
-              :prepend-icon="getIcon('/profile')"
-              rounded="lg"
-              title="Meu Perfil"
-              to="/profile"
-            />
+            <v-list-item rounded="lg" title="Meu Perfil" to="/profile">
+              <template #prepend><UiIcon class="mr-4" :name="getIcon('/profile')" /></template>
+            </v-list-item>
             <v-list-item
               color="error"
               prepend-icon="mdi-logout"

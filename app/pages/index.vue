@@ -1,6 +1,6 @@
 <script setup lang="ts">
   definePageMeta({
-    icon: 'mdi-home-outline',
+    icon: 'home',
     navLabel: 'Início',
     navGroup: 'public',
     navOrder: 1,
@@ -50,7 +50,7 @@
         >
           <v-card-text class="d-flex align-center gap-4 pa-5">
             <v-avatar :color="link.color" rounded="lg" size="52" variant="text">
-              <v-icon :icon="link.icon" size="26" />
+              <UiIcon :name="link.icon" size="26" />
             </v-avatar>
             <div>
               <div class="text-subtitle-2 font-weight-bold">{{ link.label }}</div>
