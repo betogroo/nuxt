@@ -224,23 +224,23 @@
   <div>
     <PageHeader subtitle="Gerencie as Classes de Produtos do sistema" title="Classes de Produtos" />
 
-    <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
-      <v-tab value="active">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+      <UiTab value="active">
         <UiIcon class="mr-2" name="categories" size="18" />
         Classes Oficiais
-      </v-tab>
-      <v-tab value="pending">
+      </UiTab>
+      <UiTab value="pending">
         <UiIcon class="mr-2" name="time" size="18" />
         Pendentes
-        <v-badge
+        <UiBadge
           v-if="pendingClasses && pendingClasses.length > 0"
           class="ml-2"
           color="error"
           :content="pendingClasses.length"
           inline
         />
-      </v-tab>
-    </v-tabs>
+      </UiTab>
+    </UiTabs>
 
     <!-- Aba Ativas -->
     <div v-if="activeTab === 'active'">
@@ -252,7 +252,7 @@
             {{ totalItems }}
           </UiChip>
           <UiSpacer />
-          <v-text-field
+          <UiInput
             v-model="searchQuery"
             clearable
             density="compact"
@@ -296,7 +296,7 @@
           </template>
 
           <template #item-is_active="{ item }">
-            <v-switch
+            <UiSwitch
               class="d-inline-flex"
               color="primary"
               density="compact"
@@ -327,7 +327,7 @@
         </UiTable>
 
         <div v-if="totalPages > 1" class="d-flex justify-center pa-4 border-t">
-          <v-pagination
+          <UiPagination
             v-model="currentPage"
             density="comfortable"
             :length="totalPages"
@@ -412,8 +412,8 @@
         {{ saveError }}
       </UiAlert>
 
-      <v-form @submit.prevent="saveProductClass">
-        <v-text-field
+      <UiForm @submit.prevent="saveProductClass">
+        <UiInput
           v-model="form.id"
           class="mb-3"
           :disabled="isEditing"
@@ -424,7 +424,7 @@
           variant="outlined"
         />
 
-        <v-text-field
+        <UiInput
           v-model="form.name"
           class="mb-3"
           label="Nome da Classe"
@@ -433,14 +433,14 @@
           variant="outlined"
         />
 
-        <v-switch
+        <UiSwitch
           v-model="form.is_active"
           color="primary"
           density="compact"
           hide-details
           label="Classe Ativa"
         />
-      </v-form>
+      </UiForm>
 
       <template #actions>
         <UiButton color="grey" variant="text" @click="closeModal"> Cancelar </UiButton>
@@ -464,13 +464,13 @@
         >.
       </div>
 
-      <v-radio-group v-model="resolveMode" class="mb-4" color="primary">
-        <v-radio label="Aprovar e Ativar (tornar classe oficial no sistema)" value="approve" />
-        <v-radio label="Mesclar em uma Classe Oficial já existente" value="merge" />
-      </v-radio-group>
+      <UiRadioGroup v-model="resolveMode" class="mb-4" color="primary">
+        <UiRadio label="Aprovar e Ativar (tornar classe oficial no sistema)" value="approve" />
+        <UiRadio label="Mesclar em uma Classe Oficial já existente" value="merge" />
+      </UiRadioGroup>
 
       <div v-if="resolveMode === 'approve'">
-        <v-text-field
+        <UiInput
           v-model="resolveForm.newName"
           class="mb-2"
           label="Nome Oficial da Classe"
@@ -479,7 +479,7 @@
       </div>
 
       <div v-if="resolveMode === 'merge'">
-        <v-autocomplete
+        <UiAutocomplete
           v-model="resolveForm.finalClassId"
           class="mb-2"
           item-title="name"

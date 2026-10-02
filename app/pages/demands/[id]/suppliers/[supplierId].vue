@@ -59,40 +59,38 @@
 </script>
 
 <template>
-  <v-container>
+  <UiContainer>
     <div class="mb-4 d-flex align-center">
       <UiButton icon="arrowLeft" variant="text" @click="goBack" />
       <h2 class="text-h5 ml-2">Itens Vencidos pelo Fornecedor</h2>
     </div>
 
-    <v-row>
-      <v-col cols="12" md="4">
+    <UiRow>
+      <UiCol cols="12" md="4">
         <UiCard class="mb-4" title="Dados do Fornecedor" variant="outlined">
-          <v-list v-if="supplier" class="bg-transparent" density="compact">
-            <v-list-item>
+          <UiList v-if="supplier" class="bg-transparent" density="compact">
+            <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="company" />
               </template>
-              <v-list-item-title>Razão Social</v-list-item-title>
-              <v-list-item-subtitle class="text-wrap">{{
-                supplier.company_name
-              }}</v-list-item-subtitle>
-            </v-list-item>
-            <v-list-item>
+              <UiListItemTitle>Razão Social</UiListItemTitle>
+              <UiListItemSubtitle class="text-wrap">{{ supplier.company_name }}</UiListItemSubtitle>
+            </UiListItem>
+            <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="contactDetails" />
               </template>
-              <v-list-item-title>CNPJ</v-list-item-title>
-              <v-list-item-subtitle>{{ supplier.cnpj }}</v-list-item-subtitle>
-            </v-list-item>
-            <v-list-item v-if="supplier.email">
+              <UiListItemTitle>CNPJ</UiListItemTitle>
+              <UiListItemSubtitle>{{ supplier.cnpj }}</UiListItemSubtitle>
+            </UiListItem>
+            <UiListItem v-if="supplier.email">
               <template #prepend>
                 <UiIcon color="grey" name="email" />
               </template>
-              <v-list-item-title>E-mail</v-list-item-title>
-              <v-list-item-subtitle>{{ supplier.email }}</v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
+              <UiListItemTitle>E-mail</UiListItemTitle>
+              <UiListItemSubtitle>{{ supplier.email }}</UiListItemSubtitle>
+            </UiListItem>
+          </UiList>
         </UiCard>
 
         <UiCard title="Resumo" variant="outlined">
@@ -110,12 +108,12 @@
             <div class="text-body-2 text-grey mt-2">Em {{ wonItems.length }} itens</div>
           </div>
         </UiCard>
-      </v-col>
+      </UiCol>
 
-      <v-col cols="12" md="8">
+      <UiCol cols="12" md="8">
         <UiCard title="Itens Arrematados" variant="outlined">
           <div v-if="pending" class="text-center py-4">
-            <v-progress-circular color="primary" indeterminate></v-progress-circular>
+            <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
           </div>
           <UiTable
             v-else
@@ -164,7 +162,7 @@
             </template>
           </UiTable>
         </UiCard>
-      </v-col>
-    </v-row>
-  </v-container>
+      </UiCol>
+    </UiRow>
+  </UiContainer>
 </template>

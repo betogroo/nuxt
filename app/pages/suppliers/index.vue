@@ -173,8 +173,8 @@
   <div>
     <PageHeader subtitle="Gerenciamento de Fornecedores do Sistema" title="Fornecedores" />
 
-    <v-row>
-      <v-col cols="12">
+    <UiRow>
+      <UiCol cols="12">
         <UiCard>
           <template #header>
             <span class="text-subtitle-1 font-weight-bold">Lista de Fornecedores</span>
@@ -195,8 +195,8 @@
 
           <!-- Barra de Pesquisa -->
           <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
-            <v-row align="center" no-gutters>
-              <v-col cols="12" md="6" sm="8">
+            <UiRow align="center" no-gutters>
+              <UiCol cols="12" md="6" sm="8">
                 <UiInput
                   v-model="searchQuery"
                   class="mb-0"
@@ -205,8 +205,8 @@
                   label="Pesquisar por CNPJ, Nome ou E-mail"
                   prepend-inner-icon="search"
                 />
-              </v-col>
-            </v-row>
+              </UiCol>
+            </UiRow>
           </div>
 
           <UiDivider />
@@ -264,7 +264,7 @@
 
           <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-            <v-pagination
+            <UiPagination
               v-model="currentPage"
               density="comfortable"
               :length="totalPages"
@@ -272,9 +272,9 @@
             />
           </div>
         </UiCard>
-      </v-col>
+      </UiCol>
 
-      <v-col v-if="inactiveSuppliers.length > 0" cols="12">
+      <UiCol v-if="inactiveSuppliers.length > 0" cols="12">
         <UiCard>
           <template #header>
             <span class="text-subtitle-1 font-weight-bold text-grey">Fornecedores Desativados</span>
@@ -328,8 +328,8 @@
             </template>
           </UiTable>
         </UiCard>
-      </v-col>
-    </v-row>
+      </UiCol>
+    </UiRow>
 
     <!-- Modal Form -->
     <UiModal
@@ -339,48 +339,48 @@
       :title="isEditing ? 'Editar Fornecedor' : 'Novo Fornecedor'"
       transparent-header
     >
-      <v-card-text class="pa-0" style="max-height: 60vh; overflow-y: auto">
+      <div class="pa-0" style="max-height: 60vh; overflow-y: auto">
         <div class="pa-4">
           <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
             {{ saveError }}
           </UiAlert>
 
-          <v-row>
-            <v-col cols="12" md="4">
+          <UiRow>
+            <UiCol cols="12" md="4">
               <UiInput v-model="form.cnpj" label="CNPJ *" required />
-            </v-col>
-            <v-col cols="12" md="8">
+            </UiCol>
+            <UiCol cols="12" md="8">
               <UiInput v-model="form.company_name" label="Nome da Empresa *" required />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12" md="6">
+            <UiCol cols="12" md="6">
               <UiInput v-model="form.responsible_name" label="Nome do Responsável" />
-            </v-col>
-            <v-col cols="12" md="6">
+            </UiCol>
+            <UiCol cols="12" md="6">
               <UiInput v-model="form.email" label="E-mail *" required type="email" />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12" md="6">
+            <UiCol cols="12" md="6">
               <UiInput v-model="form.cell_phone" label="Telefone Celular" />
-            </v-col>
-            <v-col cols="12" md="6">
+            </UiCol>
+            <UiCol cols="12" md="6">
               <UiInput v-model="form.landline" label="Telefone Fixo" />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12">
+            <UiCol cols="12">
               <UiInput v-model="form.address" label="Endereço" />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12">
+            <UiCol cols="12">
               <UiInput
                 v-model="form.has_bb_account"
                 hint="Ex: Ag: 1234-5, CC: 12345-6"
                 label="Conta no Banco do Brasil"
                 persistent-hint
               />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12">
+            <UiCol cols="12">
               <UiSwitch
                 v-model="form.is_simples_optant"
                 color="primary"
@@ -388,9 +388,9 @@
                 label="Optante pelo Simples Nacional"
                 persistent-hint
               />
-            </v-col>
+            </UiCol>
 
-            <v-col cols="12">
+            <UiCol cols="12">
               <UiSwitch
                 v-model="form.is_active"
                 color="success"
@@ -398,10 +398,10 @@
                 label="Fornecedor Ativo"
                 persistent-hint
               />
-            </v-col>
-          </v-row>
+            </UiCol>
+          </UiRow>
         </div>
-      </v-card-text>
+      </div>
 
       <UiDivider />
 

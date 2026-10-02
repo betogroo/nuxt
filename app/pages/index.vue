@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   definePageMeta({
     icon: 'home',
     navLabel: 'Início',
@@ -38,9 +38,9 @@
       <UiDivider class="mt-4" />
     </div>
 
-    <v-row>
-      <v-col v-for="link in homeLinks" :key="link.path" cols="12" md="4" sm="6">
-        <v-card
+    <UiRow>
+      <UiCol v-for="link in homeLinks" :key="link.path" cols="12" md="4" sm="6">
+        <UiCard
           border
           class="quick-link-card pa-1"
           elevation="0"
@@ -48,18 +48,18 @@
           rounded="xl"
           :to="link.path"
         >
-          <v-card-text class="d-flex align-center gap-4 pa-5">
-            <v-avatar :color="link.color" rounded="lg" size="52" variant="text">
+          <div class="d-flex align-center gap-4 w-100">
+            <UiAvatar :color="link.color" rounded="lg" size="52" variant="text">
               <UiIcon :name="link.icon" size="26" />
-            </v-avatar>
+            </UiAvatar>
             <div>
               <div class="text-subtitle-2 font-weight-bold">{{ link.label }}</div>
               <div class="text-caption text-medium-emphasis mt-1">{{ link.subtitle }}</div>
             </div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+          </div>
+        </UiCard>
+      </UiCol>
+    </UiRow>
   </div>
 </template>
 

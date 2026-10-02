@@ -470,7 +470,7 @@
 </script>
 
 <template>
-  <v-container>
+  <UiContainer>
     <UiButton class="mb-4" prepend-icon="arrowLeft" variant="text" @click="router.back()">
       Voltar para Demandas
     </UiButton>
@@ -526,26 +526,26 @@
       </template>
 
       <!-- Stepper Visual -->
-      <v-stepper
+      <UiStepper
         class="elevation-0 bg-transparent mb-6"
         :model-value="statusList.indexOf(demand.status) + 1"
       >
-        <v-stepper-header>
+        <UiStepperHeader>
           <template v-for="(step, i) in statusList" :key="step">
-            <v-stepper-item
+            <UiStepperItem
               :color="statusList.indexOf(demand.status) >= i ? 'primary' : 'grey'"
               :complete="statusList.indexOf(demand.status) > i"
               :value="i + 1"
             >
               {{ formatDemandStatus(step) }}
-            </v-stepper-item>
+            </UiStepperItem>
             <UiDivider v-if="i < statusList.length - 1" />
           </template>
-        </v-stepper-header>
-      </v-stepper>
+        </UiStepperHeader>
+      </UiStepper>
 
-      <v-row>
-        <v-col cols="12" md="8">
+      <UiRow>
+        <UiCol cols="12" md="8">
           <!-- Dados do Planejamento -->
           <UiCard class="mb-4" variant="outlined">
             <template #header>
@@ -565,38 +565,38 @@
                 </UiButton>
               </div>
             </template>
-            <v-row class="px-2 pb-2 mt-2">
-              <v-col cols="12" md="4" sm="6">
+            <UiRow class="px-2 pb-2 mt-2">
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Processo Oficial</div>
                 <div class="text-body-1 font-weight-bold text-primary">
                   {{ demand.process_number || 'Aguardando autuação' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Processo Interno</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.internal_process_number || '-' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">ID PCA</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.id_pca || '-' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Tipo</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Nº da Contratação</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.contract_number || '-' }}
                 </div>
-              </v-col>
-              <v-col cols="12">
+              </UiCol>
+              <UiCol cols="12">
                 <UiAlert
                   v-if="isPlanningIncomplete"
                   class="mt-2 text-caption"
@@ -609,8 +609,8 @@
                   <br />
                   <small>Você pode editar a demanda voltando à tela de listagem.</small>
                 </UiAlert>
-              </v-col>
-            </v-row>
+              </UiCol>
+            </UiRow>
           </UiCard>
 
           <!-- Dados da Disputa -->
@@ -619,20 +619,20 @@
             title="Dados da Disputa e Contratação"
             variant="outlined"
           >
-            <v-row class="px-2 pb-2 mt-2">
-              <v-col cols="12" md="4" sm="6">
+            <UiRow class="px-2 pb-2 mt-2">
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Aviso de Contratação</div>
                 <div class="text-body-1 font-weight-medium">
                   {{ demand.bidding_notice_number || '-' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Nº Disputa</div>
                 <div class="text-body-1">
                   {{ demand.dispute_number || '-' }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Data da Disputa</div>
                 <div class="text-body-1">
                   {{
@@ -643,8 +643,8 @@
                       : '-'
                   }}
                 </div>
-              </v-col>
-              <v-col cols="12" md="4" sm="6">
+              </UiCol>
+              <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Abertura de Ofertas</div>
                 <div class="text-body-1">
                   {{
@@ -656,13 +656,13 @@
                       : '-'
                   }}
                 </div>
-              </v-col>
-            </v-row>
+              </UiCol>
+            </UiRow>
           </UiCard>
-        </v-col>
+        </UiCol>
 
         <!-- Responsáveis -->
-        <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
+        <UiCol class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
             <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
             <UiSpacer />
@@ -673,20 +673,20 @@
               @click="isResponsibleModalOpen = true"
             />
           </div>
-          <v-list class="bg-transparent pa-0" density="compact">
-            <v-list-item
+          <UiList class="bg-transparent pa-0" density="compact">
+            <UiListItem
               v-for="resp in responsibles"
               :key="resp?.user_id || Math.random()"
               class="px-0"
             >
               <template #prepend>
-                <v-avatar class="text-caption text-white" color="primary" size="32">
+                <UiAvatar class="text-caption text-white" color="primary" size="32">
                   {{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}
-                </v-avatar>
+                </UiAvatar>
               </template>
-              <v-list-item-title class="text-body-2">{{
+              <UiListItemTitle class="text-body-2">{{
                 resp?.profiles?.name || 'Usuário Desconhecido'
-              }}</v-list-item-title>
+              }}</UiListItemTitle>
               <template #append>
                 <UiButton
                   v-if="profile?.role === 'admin'"
@@ -697,15 +697,15 @@
                   @click="removeResponsible(resp?.user_id || '')"
                 />
               </template>
-            </v-list-item>
-            <v-list-item v-if="!responsibles?.length" class="px-0">
-              <v-list-item-title class="text-caption text-grey"
-                >Nenhum responsável definido.</v-list-item-title
+            </UiListItem>
+            <UiListItem v-if="!responsibles?.length" class="px-0">
+              <UiListItemTitle class="text-caption text-grey"
+                >Nenhum responsável definido.</UiListItemTitle
               >
-            </v-list-item>
-          </v-list>
-        </v-col>
-      </v-row>
+            </UiListItem>
+          </UiList>
+        </UiCol>
+      </UiRow>
     </UiCard>
 
     <!-- Lista de Produtos da Demanda -->
@@ -753,7 +753,7 @@
         </template>
         <template #item-order="{ index }">
           <div class="d-flex flex-column align-center justify-center">
-            <v-btn
+            <UiButton
               density="compact"
               :disabled="index === 0 || isReordering"
               icon="chevronUp"
@@ -761,7 +761,7 @@
               variant="text"
               @click.stop="moveItemUp(index)"
             />
-            <v-btn
+            <UiButton
               density="compact"
               :disabled="index === (items?.length || 0) - 1 || isReordering"
               icon="chevronDown"
@@ -883,14 +883,14 @@
         </template>
       </UiTable>
       <div v-if="itemsPending" class="text-center py-4">
-        <v-progress-circular color="primary" indeterminate></v-progress-circular>
+        <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
       </div>
     </UiCard>
 
     <!-- Resumo de Fornecedores da Demanda -->
     <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outlined">
       <div v-if="itemsPending" class="text-center py-4">
-        <v-progress-circular color="primary" indeterminate></v-progress-circular>
+        <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
       </div>
       <UiTable
         v-else
@@ -985,7 +985,7 @@
 
       <!-- Seção de Busca de Produto Existente -->
       <template v-if="!isNewProductMode">
-        <v-autocomplete
+        <UiAutocomplete
           v-model="selectedProductId"
           v-model:search="searchProductText"
           clearable
@@ -1011,7 +1011,7 @@
               </UiButton>
             </div>
           </template>
-        </v-autocomplete>
+        </UiAutocomplete>
         <div class="d-flex justify-end mt-1 mb-2">
           <UiButton
             color="primary"
@@ -1060,13 +1060,14 @@
           label="Não encontrou a natureza? Sugerir nova"
         />
 
-        <v-autocomplete
+        <UiAutocomplete
           v-if="!isSuggestingNature"
           v-model="newProductExpenseNatureId"
           class="mb-4"
           density="comfortable"
           :item-title="
-            (item) => (typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : '')
+            (item: Record<string, unknown>) =>
+              typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
           "
           item-value="id"
           :items="expenseNatures || []"
@@ -1171,22 +1172,22 @@
           required
           type="date"
         />
-        <v-row class="mt-2">
-          <v-col class="py-0" cols="12" sm="6">
+        <UiRow class="mt-2">
+          <UiCol class="py-0" cols="12" sm="6">
             <UiInput
               v-model="advanceModal.payload.value.offer_opening_date"
               label="Data de Abertura"
               type="date"
             />
-          </v-col>
-          <v-col class="py-0" cols="12" sm="6">
+          </UiCol>
+          <UiCol class="py-0" cols="12" sm="6">
             <UiInput
               v-model="advanceModal.payload.value.offer_opening_time"
               label="Hora de Abertura"
               type="time"
             />
-          </v-col>
-        </v-row>
+          </UiCol>
+        </UiRow>
       </div>
 
       <div v-if="targetStatus === 'homologation'">
@@ -1322,5 +1323,5 @@
         >
       </template>
     </UiModal>
-  </v-container>
+  </UiContainer>
 </template>

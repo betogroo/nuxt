@@ -221,14 +221,14 @@
 </script>
 
 <template>
-  <v-container>
+  <UiContainer>
     <div class="mb-4 d-flex align-center">
       <UiButton icon="arrowLeft" variant="text" @click="router.push(`/demands/${demandId}`)" />
       <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
     </div>
 
-    <v-row>
-      <v-col cols="12" md="8">
+    <UiRow>
+      <UiCol cols="12" md="8">
         <UiCard v-if="!pending && item" transparent-header>
           <template #header>
             <div class="d-flex align-center">
@@ -282,7 +282,7 @@
             </template>
 
             <div v-if="bidsPending" class="text-center py-4">
-              <v-progress-circular color="primary" indeterminate></v-progress-circular>
+              <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
             </div>
 
             <UiTable
@@ -348,33 +348,33 @@
         </UiCard>
 
         <div v-if="pending" class="text-center py-10">
-          <v-progress-circular color="primary" indeterminate></v-progress-circular>
+          <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
         </div>
-      </v-col>
+      </UiCol>
 
-      <v-col cols="12" md="4">
+      <UiCol cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
         <UiCard title="Informações" variant="outlined">
-          <v-list class="bg-transparent" density="compact">
-            <v-list-item v-if="item?.reference_price">
+          <UiList class="bg-transparent" density="compact">
+            <UiListItem v-if="item?.reference_price">
               <template #prepend>
                 <UiIcon color="grey" name="currency" />
               </template>
-              <v-list-item-title>Valor Referencial</v-list-item-title>
-              <v-list-item-subtitle>
+              <UiListItemTitle>Valor Referencial</UiListItemTitle>
+              <UiListItemSubtitle>
                 {{
                   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                     item.reference_price,
                   )
                 }}
-              </v-list-item-subtitle>
-            </v-list-item>
-            <v-list-item>
+              </UiListItemSubtitle>
+            </UiListItem>
+            <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="transfer" />
               </template>
-              <v-list-item-title>Intervalo entre Lances</v-list-item-title>
-              <v-list-item-subtitle v-if="item">
+              <UiListItemTitle>Intervalo entre Lances</UiListItemTitle>
+              <UiListItemSubtitle v-if="item">
                 {{
                   item.bid_interval_type === 'percentage'
                     ? `${item.bid_interval}%`
@@ -382,29 +382,29 @@
                         item.bid_interval || 0,
                       )
                 }}
-              </v-list-item-subtitle>
-            </v-list-item>
+              </UiListItemSubtitle>
+            </UiListItem>
             <UiDivider class="my-2" />
-            <v-list-item>
+            <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="identifier" />
               </template>
-              <v-list-item-title>ID do Item</v-list-item-title>
-              <v-list-item-subtitle>{{ item?.id }}</v-list-item-subtitle>
-            </v-list-item>
-            <v-list-item>
+              <UiListItemTitle>ID do Item</UiListItemTitle>
+              <UiListItemSubtitle>{{ item?.id }}</UiListItemSubtitle>
+            </UiListItem>
+            <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="calendar" />
               </template>
-              <v-list-item-title>Adicionado em</v-list-item-title>
-              <v-list-item-subtitle>
+              <UiListItemTitle>Adicionado em</UiListItemTitle>
+              <UiListItemSubtitle>
                 {{ item?.created_at ? new Date(item.created_at).toLocaleString() : '-' }}
-              </v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
+              </UiListItemSubtitle>
+            </UiListItem>
+          </UiList>
         </UiCard>
-      </v-col>
-    </v-row>
+      </UiCol>
+    </UiRow>
 
     <!-- Modal Editar Item -->
     <UiModal
@@ -467,17 +467,17 @@
         {{ bidError }}
       </UiAlert>
 
-      <v-switch
+      <UiSwitch
         v-model="bidForm.isNewSupplier"
         class="mb-4"
         color="primary"
         density="compact"
         hide-details
         label="Fornecedor não está na lista? Cadastrar Novo."
-      ></v-switch>
+      ></UiSwitch>
 
       <!-- Fornecedor Existente -->
-      <v-autocomplete
+      <UiAutocomplete
         v-if="!bidForm.isNewSupplier"
         v-model="bidForm.supplierId"
         class="mb-3"
@@ -489,7 +489,7 @@
         label="Selecionar Fornecedor*"
         placeholder="Busque pela razão social..."
         variant="outlined"
-      ></v-autocomplete>
+      ></UiAutocomplete>
 
       <!-- Novo Fornecedor -->
       <template v-else>
@@ -526,5 +526,5 @@
         <UiButton color="primary" :loading="isBidSaving" @click="saveBid"> Salvar Lance </UiButton>
       </template>
     </UiModal>
-  </v-container>
+  </UiContainer>
 </template>

@@ -169,16 +169,16 @@
         {{ modal.error }}
       </UiAlert>
 
-      <v-row dense>
-        <v-col cols="12" sm="4">
+      <UiRow dense>
+        <UiCol cols="12" sm="4">
           <UiSelect
             v-model="modal.payload.station_code"
             :items="['1342-5', '1062-9']"
             label="Código do Posto *"
             placeholder="Selecione"
           />
-        </v-col>
-        <v-col cols="12" sm="4">
+        </UiCol>
+        <UiCol cols="12" sm="4">
           <UiInput
             label="Número do RG *"
             :model-value="modal.payload.rg"
@@ -186,20 +186,20 @@
             @blur="onRgBlur"
             @update:model-value="onRgInput"
           />
-        </v-col>
-        <v-col cols="12" sm="4">
+        </UiCol>
+        <UiCol cols="12" sm="4">
           <UiInput
             label="CPF *"
             :model-value="modal.payload.cpf"
             placeholder="000.000.000-00"
             @update:model-value="onCpfInput"
           />
-        </v-col>
-        <v-col cols="12">
+        </UiCol>
+        <UiCol cols="12">
           <UiInput v-model="modal.payload.name" label="Nome do Cidadão *" />
-        </v-col>
-        <v-col cols="12">
-          <v-textarea
+        </UiCol>
+        <UiCol cols="12">
+          <UiTextarea
             v-model="modal.payload.observation"
             density="comfortable"
             label="Observação"
@@ -207,8 +207,8 @@
             rows="3"
             variant="outlined"
           />
-        </v-col>
-      </v-row>
+        </UiCol>
+      </UiRow>
 
       <template #actions>
         <UiButton variant="text" @click="closeAddModal">Cancelar</UiButton>

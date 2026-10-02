@@ -84,12 +84,12 @@
         </template>
         <template #item-user="{ item }">
           <div v-if="item.profiles" class="d-flex align-center py-2 gap-3">
-            <v-avatar color="primary" size="30" variant="tonal">
-              <v-img v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
+            <UiAvatar color="primary" size="30" variant="tonal">
+              <UiImg v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
               <span v-else class="text-caption font-weight-bold">
                 {{ (item.profiles.name || 'U').charAt(0).toUpperCase() }}
               </span>
-            </v-avatar>
+            </UiAvatar>
             <span class="text-body-2">{{ item.profiles.name || 'Sem nome' }}</span>
           </div>
           <span v-else class="text-medium-emphasis text-caption">Sistema</span>
@@ -106,7 +106,7 @@
 
       <!-- Paginação -->
       <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-        <v-pagination
+        <UiPagination
           v-model="currentPage"
           density="comfortable"
           :length="totalPages"

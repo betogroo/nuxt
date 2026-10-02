@@ -1,9 +1,9 @@
-<script setup lang="ts" generic="T">
+﻿<script setup lang="ts" generic="T">
   defineProps<{
     label?: string
-    items?: T[]
-    itemTitle?: string | ((item: T) => string)
-    itemValue?: string | ((item: T) => unknown)
+    items?: unknown[]
+    itemTitle?: unknown
+    itemValue?: unknown
     hint?: string
     persistentHint?: boolean
     multiple?: boolean
@@ -14,7 +14,7 @@
     hideDetails?: boolean
   }>()
 
-  const modelValue = defineModel<T | T[]>()
+  const modelValue = defineModel<unknown>()
 </script>
 
 <template>

@@ -182,7 +182,7 @@
         </UiChip>
         <UiSpacer />
         <!-- Busca inline -->
-        <v-text-field
+        <UiInput
           v-model="searchQuery"
           class="mt-0 mb-0"
           clearable
@@ -224,12 +224,12 @@
         </template>
         <template #item-name="{ item }">
           <div class="d-flex align-center py-2 gap-3">
-            <v-avatar color="primary" size="34" variant="tonal">
-              <v-img v-if="item.avatar_url" :src="item.avatar_url" />
+            <UiAvatar color="primary" size="34" variant="tonal">
+              <UiImg v-if="item.avatar_url" :src="item.avatar_url" />
               <span v-else class="text-caption font-weight-bold">
                 {{ (item.name || 'U').charAt(0).toUpperCase() }}
               </span>
-            </v-avatar>
+            </UiAvatar>
             <div>
               <div class="text-body-2 font-weight-medium">{{ item.name || 'Sem nome' }}</div>
               <div class="text-caption text-medium-emphasis font-weight-mono">
@@ -254,7 +254,7 @@
           </span>
         </template>
         <template #item-is_active="{ item }">
-          <v-switch
+          <UiSwitch
             color="success"
             density="compact"
             :disabled="item.id === loggedProfile?.id"
@@ -276,7 +276,7 @@
     </UiCard>
 
     <!-- Card de usuários desativados (colapsável) -->
-    <v-expand-transition>
+    <UiExpandTransition>
       <UiCard v-if="inactiveUsers.length > 0">
         <template #header>
           <UiIcon class="mr-2" color="error" name="disableUser" />
@@ -298,11 +298,11 @@
         >
           <template #item-name="{ item }">
             <div class="d-flex align-center py-2 gap-3">
-              <v-avatar color="default" size="34" variant="tonal">
+              <UiAvatar color="default" size="34" variant="tonal">
                 <span class="text-caption font-weight-bold text-medium-emphasis">
                   {{ (item.name || 'U').charAt(0).toUpperCase() }}
                 </span>
-              </v-avatar>
+              </UiAvatar>
               <div>
                 <div class="text-body-2 font-weight-medium text-medium-emphasis">
                   {{ item.name || 'Sem nome' }}
@@ -330,7 +330,7 @@
             </span>
           </template>
           <template #item-is_active="{ item }">
-            <v-switch
+            <UiSwitch
               color="success"
               density="compact"
               hide-details
@@ -349,23 +349,23 @@
           </template>
         </UiTable>
       </UiCard>
-    </v-expand-transition>
+    </UiExpandTransition>
 
     <!-- Modal de Edição -->
     <UiModal v-if="editingUser" v-model="isEditModalOpen" max-width="500px" title="Editar Usuário">
       <template #header>
         <div class="d-flex align-center gap-3">
-          <v-avatar color="primary" size="36" variant="tonal">
+          <UiAvatar color="primary" size="36" variant="tonal">
             <span class="text-caption font-weight-bold">
               {{ (editingUser.name || 'U').charAt(0).toUpperCase() }}
             </span>
-          </v-avatar>
+          </UiAvatar>
           <div>
             <div class="text-subtitle-2 font-weight-bold">{{ editingUser.name || 'Usuário' }}</div>
           </div>
         </div>
         <UiSpacer />
-        <v-btn density="compact" icon="close" variant="text" @click="closeEditModal" />
+        <UiButton density="compact" icon="close" variant="text" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
@@ -374,7 +374,7 @@
 
       <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
 
-      <v-select
+      <UiSelect
         v-model="editingUser.role"
         class="mb-3"
         density="comfortable"
@@ -398,7 +398,7 @@
         variant="outlined"
       />
 
-      <v-switch
+      <UiSwitch
         v-model="editingUser.is_active"
         class="mt-3"
         color="success"
@@ -440,7 +440,7 @@
         type="password"
       />
 
-      <v-select
+      <UiSelect
         v-model="newUserForm.role"
         class="mb-3"
         density="comfortable"

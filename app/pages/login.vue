@@ -90,7 +90,7 @@
     </UiAlert>
 
     <!-- Seletor de método de login -->
-    <v-btn-toggle
+    <UiBtnToggle
       v-model="tab"
       class="mb-5 w-100"
       density="compact"
@@ -99,15 +99,15 @@
       rounded="lg"
       variant="outlined"
     >
-      <v-btn class="flex-1-1" size="small" value="password">
+      <UiButton class="flex-1-1" size="small" value="password">
         <UiIcon class="mr-2" name="security" size="16" />
         Senha
-      </v-btn>
-      <v-btn class="flex-1-1" size="small" value="magic">
+      </UiButton>
+      <UiButton class="flex-1-1" size="small" value="magic">
         <UiIcon class="mr-2" name="emailAlt" size="16" />
         Código por E-mail
-      </v-btn>
-    </v-btn-toggle>
+      </UiButton>
+    </UiBtnToggle>
 
     <!-- ABA: SENHA -->
     <template v-if="tab === 'password'">
@@ -189,9 +189,9 @@
           Verificar e Acessar
         </UiButton>
 
-        <v-btn block class="mt-2" size="small" variant="text" @click="isOtpSent = false">
+        <UiButton block class="mt-2" size="small" variant="text" @click="isOtpSent = false">
           Usar outro e-mail
-        </v-btn>
+        </UiButton>
       </template>
     </template>
 

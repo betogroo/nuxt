@@ -1,16 +1,15 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   defineProps<{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modelValue: any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    items: Array<any>
+    modelValue: unknown
+
+    items: Array<unknown>
     label?: string
-    itemTitle?: string
-    itemValue?: string
+    itemTitle?: unknown
+    itemValue?: unknown
     placeholder?: string
     clearable?: boolean
     hideDetails?: boolean
-    customFilter?: any
+    customFilter?: unknown
   }>()
 
   defineEmits(['update:modelValue'])
@@ -20,6 +19,7 @@
   <v-autocomplete
     class="mb-3"
     :clearable="clearable"
+    :custom-filter="customFilter"
     density="comfortable"
     :hide-details="hideDetails"
     :item-title="itemTitle"
@@ -28,7 +28,6 @@
     :label="label"
     :model-value="modelValue"
     :placeholder="placeholder"
-    :custom-filter="customFilter"
     variant="outlined"
     @update:model-value="$emit('update:modelValue', $event)"
   >

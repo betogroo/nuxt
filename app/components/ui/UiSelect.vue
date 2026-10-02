@@ -1,12 +1,11 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   defineProps<{
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    modelValue: any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    items: Array<any>
+    modelValue: unknown
+
+    items: Array<unknown>
     label?: string
-    itemTitle?: string
-    itemValue?: string
+    itemTitle?: unknown
+    itemValue?: unknown
     placeholder?: string
     clearable?: boolean
     hideDetails?: boolean

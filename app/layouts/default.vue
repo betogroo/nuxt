@@ -61,14 +61,14 @@
 </script>
 
 <template>
-  <v-app>
+  <UiApp>
     <!-- Menu Lateral (Drawer) -->
-    <v-navigation-drawer v-model="drawer" :elevation="0" :mobile-breakpoint="960">
+    <UiNavigationDrawer v-model="drawer" :elevation="0" :mobile-breakpoint="960">
       <!-- Marca do sistema -->
       <div class="px-4 pt-5 pb-3 d-flex align-center gap-3">
-        <v-avatar color="primary" rounded="lg" size="36">
+        <UiAvatar color="primary" rounded="lg" size="36">
           <UiIcon color="white" name="inventory" size="20" />
-        </v-avatar>
+        </UiAvatar>
         <div>
           <div class="text-subtitle-2 font-weight-bold text-high-emphasis">SistemaGov</div>
           <div class="text-caption text-medium-emphasis">Gestão de Demandas</div>
@@ -78,7 +78,7 @@
       <UiDivider class="mb-2" />
 
       <!-- Navegação principal: gerada automaticamente por definePageMeta -->
-      <v-list class="px-3" density="compact" nav>
+      <UiList class="px-3" density="compact" nav>
         <template v-for="section in drawerByGroup" :key="section.group">
           <!-- Cabeçalho de seção (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
@@ -96,17 +96,17 @@
             :to="link.path"
           >
             <template v-if="pathBadge[link.path] > 0" #append>
-              <v-badge color="error" :content="pathBadge[link.path]" inline />
+              <UiBadge color="error" :content="pathBadge[link.path]" inline />
             </template>
           </UiListItem>
         </template>
-      </v-list>
+      </UiList>
 
       <!-- Rodapé do Drawer: perfil do usuário -->
       <template #append>
         <UiDivider />
         <div v-if="user" class="pa-3">
-          <v-list density="compact" nav>
+          <UiList density="compact" nav>
             <UiListItem
               rounded="lg"
               :subtitle="user.email"
@@ -114,12 +114,12 @@
               to="/profile"
             >
               <template #prepend>
-                <v-avatar color="primary" size="32">
+                <UiAvatar color="primary" size="32">
                   <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
-                </v-avatar>
+                </UiAvatar>
               </template>
               <template #append>
-                <v-tooltip location="top" text="Sair">
+                <UiTooltip location="top" text="Sair">
                   <template #activator="{ props }">
                     <UiButton
                       v-bind="props"
@@ -130,18 +130,18 @@
                       @click.prevent="signOut"
                     />
                   </template>
-                </v-tooltip>
+                </UiTooltip>
               </template>
             </UiListItem>
-          </v-list>
+          </UiList>
         </div>
       </template>
-    </v-navigation-drawer>
+    </UiNavigationDrawer>
 
     <!-- Cabeçalho (App Bar) -->
-    <v-app-bar :border="false" elevation="0" height="60">
+    <UiAppBar :border="false" elevation="0" height="60">
       <template #prepend>
-        <v-app-bar-nav-icon @click="drawer = !drawer" />
+        <UiAppBar-nav-icon @click="drawer = !drawer" />
       </template>
 
       <UiSpacer />
@@ -149,19 +149,26 @@
       <ThemeToggle />
 
       <!-- Notificações (apenas Admin) -->
-      <v-menu v-if="profile?.role === 'admin' && totalPending > 0" :close-on-content-click="false">
+      <UiMenu v-if="profile?.role === 'admin' && totalPending > 0" :close-on-content-click="false">
         <template #activator="{ props }">
-          <v-btn v-bind="props" class="mx-1" density="comfortable" icon rounded="lg" variant="text">
-            <v-badge color="error" :content="totalPending">
+          <UiButton
+            v-bind="props"
+            class="mx-1"
+            density="comfortable"
+            icon
+            rounded="lg"
+            variant="text"
+          >
+            <UiBadge color="error" :content="totalPending">
               <UiIcon name="notifications" />
-            </v-badge>
-          </v-btn>
+            </UiBadge>
+          </UiButton>
         </template>
-        <v-card elevation="4" min-width="280" rounded="xl">
-          <v-card-title class="text-subtitle-2 font-weight-bold pa-4 pb-2">
-            Pendências
-          </v-card-title>
-          <v-list density="compact" nav>
+        <UiCard elevation="4" min-width="280" rounded="xl">
+          <template #header
+            ><div class="text-subtitle-2 font-weight-bold">Pendências</div></template
+          >
+          <UiList density="compact" nav>
             <UiListItem
               v-if="pendingUnitsCount > 0"
               :prepend-icon="getIcon('/admin/units')"
@@ -194,14 +201,14 @@
               title="Retornos de Status"
               to="/demands"
             />
-          </v-list>
-        </v-card>
-      </v-menu>
+          </UiList>
+        </UiCard>
+      </UiMenu>
 
       <!-- Menu do usuário (mobile/alternativo) -->
-      <v-menu v-if="user">
+      <UiMenu v-if="user">
         <template #activator="{ props }">
-          <v-btn
+          <UiButton
             v-bind="props"
             class="ml-1 mr-2"
             density="comfortable"
@@ -209,32 +216,32 @@
             rounded="lg"
             variant="text"
           >
-            <v-avatar color="primary" size="32">
+            <UiAvatar color="primary" size="32">
               <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
-            </v-avatar>
-          </v-btn>
+            </UiAvatar>
+          </UiButton>
         </template>
-        <v-card elevation="4" min-width="240" rounded="xl">
-          <v-list>
+        <UiCard elevation="4" min-width="240" rounded="xl">
+          <UiList>
             <UiListItem>
               <template #prepend>
-                <v-avatar class="mr-1" color="primary" size="40">
+                <UiAvatar class="mr-1" color="primary" size="40">
                   <span class="text-subtitle-1 text-white font-weight-bold">{{ userInitial }}</span>
-                </v-avatar>
+                </UiAvatar>
               </template>
-              <v-list-item-title class="font-weight-semibold">
+              <UiListItemTitle class="font-weight-semibold">
                 {{ profile?.name || 'Usuário' }}
-              </v-list-item-title>
-              <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
-              <v-list-item-subtitle v-if="profile?.role" class="mt-1">
+              </UiListItemTitle>
+              <UiListItemSubtitle>{{ user.email }}</UiListItemSubtitle>
+              <UiListItemSubtitle v-if="profile?.role" class="mt-1">
                 <UiChip color="primary" label size="x-small" variant="tonal">
                   {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
                 </UiChip>
-              </v-list-item-subtitle>
+              </UiListItemSubtitle>
             </UiListItem>
-          </v-list>
+          </UiList>
           <UiDivider />
-          <v-list density="compact" nav>
+          <UiList density="compact" nav>
             <UiListItem
               :prepend-icon="getIcon('/profile')"
               rounded="lg"
@@ -248,19 +255,19 @@
               title="Sair"
               @click="signOut"
             />
-          </v-list>
-        </v-card>
-      </v-menu>
+          </UiList>
+        </UiCard>
+      </UiMenu>
 
-      <v-btn v-if="!user" class="mr-3" color="primary" rounded="lg" to="/login" variant="tonal">
+      <UiButton v-if="!user" class="mr-3" color="primary" rounded="lg" to="/login" variant="tonal">
         Entrar
-      </v-btn>
-    </v-app-bar>
+      </UiButton>
+    </UiAppBar>
 
-    <v-main class="bg-background">
-      <v-container class="pa-5 pa-md-7" fluid style="max-width: 1440px">
+    <UiMain class="bg-background">
+      <UiContainer class="pa-5 pa-md-7" fluid style="max-width: 1440px">
         <slot />
-      </v-container>
-    </v-main>
-  </v-app>
+      </UiContainer>
+    </UiMain>
+  </UiApp>
 </template>

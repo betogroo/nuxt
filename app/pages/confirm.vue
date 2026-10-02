@@ -21,7 +21,7 @@
 
 <template>
   <div>
-    <v-progress-circular indeterminate />
+    <UiProgressCircular indeterminate />
     <p>Autenticando...</p>
   </div>
 </template>

@@ -238,8 +238,8 @@
     <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
     </PageHeader>
 
-    <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
-      <v-tab value="units">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+      <UiTab value="units">
         <UiIcon class="mr-2" name="balance" size="18" />
         Unidades Oficiais
         <UiChip
@@ -252,22 +252,22 @@
         >
           {{ activeUnits.length }}
         </UiChip>
-      </v-tab>
-      <v-tab value="aliases">
+      </UiTab>
+      <UiTab value="aliases">
         <UiIcon class="mr-2" name="categories" size="18" />
         Registros Alternativos
         <UiChip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ allAliases.length }}
         </UiChip>
-      </v-tab>
-    </v-tabs>
+      </UiTab>
+    </UiTabs>
 
     <!-- Aba Unidades -->
     <div v-if="activeTab === 'units'">
       <!-- Pendentes -->
-      <v-expand-transition>
+      <UiExpandTransition>
         <div v-if="pendingUnits && pendingUnits.length > 0" class="mb-4">
-          <v-alert
+          <UiAlert
             border="start"
             color="warning"
             density="compact"
@@ -299,9 +299,9 @@
                 </UiButton>
               </div>
             </div>
-          </v-alert>
+          </UiAlert>
         </div>
-      </v-expand-transition>
+      </UiExpandTransition>
 
       <!-- Unidades Oficiais -->
       <UiCard>
@@ -346,7 +346,7 @@
             <span v-else class="text-medium-emphasis">—</span>
           </template>
           <template #item-is_active="{ item }">
-            <v-switch
+            <UiSwitch
               color="success"
               density="compact"
               hide-details
@@ -440,12 +440,14 @@
 
       <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote)" />
 
-      <v-autocomplete
+      <UiAutocomplete
         v-model="form.aliasIds"
         chips
         closable-chips
         density="comfortable"
-        :item-title="(item) => (item.code ? `${item.code} - ${item.name}` : item.name)"
+        :item-title="
+          (item: Record<string, unknown>) => (item.code ? `${item.code} - ${item.name}` : item.name)
+        "
         item-value="id"
         :items="allAliases || []"
         label="Vincular Registros Alternativos"
@@ -505,12 +507,12 @@
         </div>
       </div>
 
-      <v-radio-group v-model="resolveMode" class="mb-2">
-        <v-radio label="Aprovar como Nova Unidade Oficial" value="new" />
-        <v-radio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
-      </v-radio-group>
+      <UiRadioGroup v-model="resolveMode" class="mb-2">
+        <UiRadio label="Aprovar como Nova Unidade Oficial" value="new" />
+        <UiRadio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
+      </UiRadioGroup>
 
-      <v-slide-y-transition leave-absolute>
+      <UiSlideYTransition leave-absolute>
         <div v-if="resolveMode === 'new'" class="mt-2">
           <UiInput
             v-model="resolveNewName"
@@ -528,7 +530,7 @@
             label="Selecione a unidade oficial correspondente"
           />
         </div>
-      </v-slide-y-transition>
+      </UiSlideYTransition>
 
       <template #actions>
         <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import type { ProductRow } from '~/composables/useProducts'
 
   definePageMeta({
@@ -194,7 +194,7 @@
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
           <div class="d-flex gap-2">
-            <v-select
+            <UiSelect
               v-model="selectedExpenseNature"
               clearable
               density="compact"
@@ -207,7 +207,7 @@
               style="min-width: 200px; max-width: 260px"
               variant="outlined"
             />
-            <v-select
+            <UiSelect
               v-model="statusFilter"
               density="compact"
               hide-details
@@ -278,7 +278,7 @@
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-is_active="{ item }">
-          <v-switch
+          <UiSwitch
             color="success"
             density="compact"
             hide-details
@@ -305,7 +305,7 @@
       </UiTable>
 
       <div v-if="totalPages > 1" class="d-flex justify-center pa-4">
-        <v-pagination
+        <UiPagination
           v-model="currentPage"
           active-color="primary"
           :length="totalPages"
@@ -334,13 +334,14 @@
         label="Não encontrou a natureza? Sugerir nova"
       />
 
-      <v-autocomplete
+      <UiAutocomplete
         v-if="!modal.payload.value.is_suggesting_nature"
         v-model="modal.payload.value.expense_nature_id"
         class="mb-3"
         density="comfortable"
         :item-title="
-          (item) => (typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : '')
+          (item: Record<string, unknown>) =>
+            typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
         "
         item-value="id"
         :items="expenseNatures || []"
@@ -361,14 +362,15 @@
         label="Não encontrou a classe? Sugerir nova"
       />
 
-      <v-autocomplete
+      <UiAutocomplete
         v-if="!modal.payload.value.is_suggesting_class"
         v-model="modal.payload.value.product_class_id"
         class="mb-3"
         clearable
         density="comfortable"
         :item-title="
-          (item) => (typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : '')
+          (item: Record<string, unknown>) =>
+            typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
         "
         item-value="id"
         :items="productClasses || []"

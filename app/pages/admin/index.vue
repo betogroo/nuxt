@@ -76,36 +76,36 @@
     <!-- Loading state -->
     <div v-if="pending" class="d-flex justify-center my-16">
       <div class="text-center">
-        <v-progress-circular class="mb-4" color="primary" indeterminate size="48" width="3" />
+        <UiProgressCircular class="mb-4" color="primary" indeterminate size="48" width="3" />
         <div class="text-body-2 text-medium-emphasis">Carregando dados...</div>
       </div>
     </div>
 
     <template v-else-if="metrics">
       <!-- Métricas principais -->
-      <v-row class="mb-6">
-        <v-col v-for="card in metricCards" :key="card.label" cols="12" md="3" sm="6">
-          <v-card border class="metric-card" elevation="0" rounded="xl" :to="card.to">
-            <v-card-text class="d-flex align-center justify-space-between pa-5">
+      <UiRow class="mb-6">
+        <UiCol v-for="card in metricCards" :key="card.label" cols="12" md="3" sm="6">
+          <UiCard border class="metric-card" elevation="0" rounded="xl" :to="card.to">
+            <div class="d-flex align-center justify-space-between w-100">
               <div>
                 <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis mb-1">
                   {{ card.label }}
                 </div>
                 <div class="text-h4 font-weight-black" :class="`text-${card.color}`">
-                  <v-skeleton-loader v-if="card.value === undefined" type="text" width="40" />
+                  <UiSkeletonLoader v-if="card.value === undefined" type="text" width="40" />
                   <span v-else>{{ card.value }}</span>
                 </div>
               </div>
-              <v-avatar :color="card.color" rounded="lg" size="52" variant="tonal">
+              <UiAvatar :color="card.color" rounded="lg" size="52" variant="tonal">
                 <UiIcon :name="card.icon" size="26" />
-              </v-avatar>
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+              </UiAvatar>
+            </div>
+          </UiCard>
+        </UiCol>
+      </UiRow>
 
       <!-- Alerta de Pendências -->
-      <v-expand-transition>
+      <UiExpandTransition>
         <div v-if="totalPending > 0" class="mb-6">
           <UiAlert
             border="start"
@@ -123,9 +123,9 @@
                   <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2">
                     Unidades de Medida Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingUnitsCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/units" variant="tonal">
@@ -151,9 +151,9 @@
                   <UiIcon color="warning" name="finances" size="18" />
                   <span class="text-body-2">
                     Naturezas de Despesa Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingExpenseNaturesCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/expense-natures" variant="tonal">
@@ -177,9 +177,9 @@
                   <UiIcon color="warning" name="products" size="18" />
                   <span class="text-body-2">
                     Classes de Produtos Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingProductClassesCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/product-classes" variant="tonal">
@@ -197,9 +197,9 @@
                   <UiIcon color="warning" name="returns" size="18" />
                   <span class="text-body-2 font-weight-medium">
                     Retornos de Status em Demandas
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ metrics.pendingReturnDemands.length }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <div class="d-flex flex-column gap-2">
@@ -228,11 +228,11 @@
             </div>
           </UiAlert>
         </div>
-      </v-expand-transition>
+      </UiExpandTransition>
 
-      <v-row>
+      <UiRow>
         <!-- Atividade Recente -->
-        <v-col cols="12" md="8">
+        <UiCol cols="12" md="8">
           <UiCard class="h-100">
             <template #header>
               <UiIcon class="mr-2" color="primary" name="history" />
@@ -245,8 +245,8 @@
             </template>
 
             <div v-if="metrics.recentLogs.length">
-              <v-timeline align="start" density="compact" truncate-line="both">
-                <v-timeline-item
+              <UiTimeline align="start" density="compact" truncate-line="both">
+                <UiTimelineItem
                   v-for="log in metrics.recentLogs"
                   :key="log.id"
                   :dot-color="getLogColor(log.action)"
@@ -257,17 +257,17 @@
                       <span class="text-body-2 font-weight-semibold">
                         {{ log.action.replace(/_/g, ' ') }}
                       </span>
-                      <v-chip color="default" label size="x-small" variant="tonal">
+                      <UiChip color="default" label size="x-small" variant="tonal">
                         {{ log.profiles?.name || 'Sistema' }}
-                      </v-chip>
+                      </UiChip>
                     </div>
                     <div class="text-body-2 text-medium-emphasis mb-1">{{ log.description }}</div>
                     <div class="text-caption text-medium-emphasis">
                       {{ formatDate(log.created_at) }}
                     </div>
                   </div>
-                </v-timeline-item>
-              </v-timeline>
+                </UiTimelineItem>
+              </UiTimeline>
             </div>
 
             <div v-else class="d-flex flex-column align-center py-10 text-medium-emphasis">
@@ -275,10 +275,10 @@
               <span class="text-body-2">Nenhuma atividade registrada ainda.</span>
             </div>
           </UiCard>
-        </v-col>
+        </UiCol>
 
         <!-- Acesso Rápido -->
-        <v-col cols="12" md="4">
+        <UiCol cols="12" md="4">
           <UiCard class="h-100">
             <template #header>
               <UiIcon class="mr-2" color="primary" name="energy" />
@@ -302,8 +302,8 @@
               </UiButton>
             </div>
           </UiCard>
-        </v-col>
-      </v-row>
+        </UiCol>
+      </UiRow>
     </template>
   </div>
 </template>

@@ -225,23 +225,23 @@
     <PageHeader subtitle="Gerencie as Naturezas de Despesa do sistema" title="Naturezas de Despesa">
     </PageHeader>
 
-    <v-tabs v-model="activeTab" class="mb-5" color="primary" density="compact">
-      <v-tab value="active">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+      <UiTab value="active">
         <UiIcon class="mr-2" name="finances" size="18" />
         Naturezas Oficiais
-      </v-tab>
-      <v-tab value="pending">
+      </UiTab>
+      <UiTab value="pending">
         <UiIcon class="mr-2" name="time" size="18" />
         Pendentes
-        <v-badge
+        <UiBadge
           v-if="pendingNatures && pendingNatures.length > 0"
           class="ml-2"
           color="error"
           :content="pendingNatures.length"
           inline
         />
-      </v-tab>
-    </v-tabs>
+      </UiTab>
+    </UiTabs>
 
     <!-- Aba Ativas -->
     <div v-if="activeTab === 'active'">
@@ -253,7 +253,7 @@
             {{ totalItems }}
           </UiChip>
           <UiSpacer />
-          <v-text-field
+          <UiInput
             v-model="searchQuery"
             clearable
             density="compact"
@@ -296,7 +296,7 @@
             <span v-else class="text-medium-emphasis">—</span>
           </template>
           <template #item-is_active="{ item }">
-            <v-switch
+            <UiSwitch
               color="success"
               density="compact"
               hide-details
@@ -324,7 +324,7 @@
         </UiTable>
 
         <div v-if="totalPages > 1" class="d-flex justify-center pa-4">
-          <v-pagination
+          <UiPagination
             v-model="currentPage"
             active-color="primary"
             :length="totalPages"
@@ -337,9 +337,9 @@
 
     <!-- Aba Pendentes -->
     <div v-if="activeTab === 'pending'">
-      <v-expand-transition>
+      <UiExpandTransition>
         <div v-if="pendingNatures && pendingNatures.length > 0" class="mb-4">
-          <v-alert
+          <UiAlert
             border="start"
             color="warning"
             density="compact"
@@ -368,7 +368,7 @@
                 </UiButton>
               </div>
             </div>
-          </v-alert>
+          </UiAlert>
         </div>
         <div v-else>
           <UiCard>
@@ -378,7 +378,7 @@
             </div>
           </UiCard>
         </div>
-      </v-expand-transition>
+      </UiExpandTransition>
     </div>
 
     <!-- Modal Add/Edit -->
@@ -426,10 +426,10 @@
         </div>
       </div>
 
-      <v-radio-group v-model="resolveMode" class="mb-4">
-        <v-radio label="Aprovar como Nova Natureza Oficial" value="approve" />
-        <v-radio label="Rejeitar e Mesclar para Natureza Existente" value="merge" />
-      </v-radio-group>
+      <UiRadioGroup v-model="resolveMode" class="mb-4">
+        <UiRadio label="Aprovar como Nova Natureza Oficial" value="approve" />
+        <UiRadio label="Rejeitar e Mesclar para Natureza Existente" value="merge" />
+      </UiRadioGroup>
 
       <div v-if="resolveMode === 'approve'">
         <UiInput
@@ -445,10 +445,10 @@
           Todos os produtos vinculados à "{{ targetPendingNature?.name }}" serão transferidos para a
           natureza selecionada e a sugerida será excluída.
         </p>
-        <v-autocomplete
+        <UiAutocomplete
           v-model="resolveForm.finalNatureId"
           density="comfortable"
-          :item-title="(item) => `${item.id} - ${item.name}`"
+          :item-title="(item: Record<string, unknown>) => `${item.id} - ${item.name}`"
           item-value="id"
           :items="allActiveNatures || []"
           label="Natureza Oficial de Destino"

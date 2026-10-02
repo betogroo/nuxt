@@ -73,8 +73,8 @@
   <div>
     <PageHeader subtitle="Gerencie suas informações de conta" title="Meu Perfil" />
 
-    <v-row justify="center">
-      <v-col cols="12" lg="6" md="8">
+    <UiRow justify="center">
+      <UiCol cols="12" lg="6" md="8">
         <UiCard>
           <template #header>
             <UiIcon class="mr-2" color="primary" name="userProfile" />
@@ -91,10 +91,10 @@
 
           <!-- Avatar + Info do usuário -->
           <div class="d-flex align-center gap-5 mb-6 pa-4 rounded-xl bg-surface-variant">
-            <v-avatar color="primary" size="80" variant="tonal">
-              <v-img v-if="formData.avatar_url" :src="formData.avatar_url" />
+            <UiAvatar color="primary" size="80" variant="tonal">
+              <UiImg v-if="formData.avatar_url" :src="formData.avatar_url" />
               <span v-else class="text-h5 font-weight-bold">{{ userInitial }}</span>
-            </v-avatar>
+            </UiAvatar>
             <div>
               <div class="text-subtitle-1 font-weight-bold">
                 {{ profile?.name || 'Sem nome definido' }}
@@ -113,7 +113,7 @@
             </div>
           </div>
 
-          <v-form @submit.prevent="saveProfile">
+          <UiForm @submit.prevent="saveProfile">
             <!-- Campos Editáveis -->
             <UiInput
               v-model="formData.name"
@@ -143,8 +143,8 @@
               readonly
             />
 
-            <v-row>
-              <v-col cols="12" sm="6">
+            <UiRow>
+              <UiCol cols="12" sm="6">
                 <UiInput
                   disabled
                   label="Cargo (Role)"
@@ -154,8 +154,8 @@
                   prepend-inner-icon="shieldUser"
                   readonly
                 />
-              </v-col>
-              <v-col cols="12" sm="6">
+              </UiCol>
+              <UiCol cols="12" sm="6">
                 <UiInput
                   disabled
                   label="Membro Desde"
@@ -167,8 +167,8 @@
                   prepend-inner-icon="calendarOutline"
                   readonly
                 />
-              </v-col>
-            </v-row>
+              </UiCol>
+            </UiRow>
 
             <div class="d-flex justify-end mt-2">
               <UiButton
@@ -182,9 +182,9 @@
                 Salvar Alterações
               </UiButton>
             </div>
-          </v-form>
+          </UiForm>
         </UiCard>
-      </v-col>
-    </v-row>
+      </UiCol>
+    </UiRow>
   </div>
 </template>

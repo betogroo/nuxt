@@ -129,7 +129,7 @@
         <UiSpacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
-          <v-text-field
+          <UiInput
             v-model="searchQuery"
             clearable
             density="compact"
@@ -140,7 +140,7 @@
             style="min-width: 200px; max-width: 260px"
             variant="outlined"
           />
-          <v-select
+          <UiSelect
             v-model="statusFilter"
             clearable
             density="compact"
@@ -254,7 +254,7 @@
 
       <!-- Paginação -->
       <div v-if="totalPages > 1" class="d-flex justify-center py-4">
-        <v-pagination
+        <UiPagination
           v-model="currentPage"
           density="comfortable"
           :length="totalPages"

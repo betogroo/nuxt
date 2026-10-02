@@ -98,12 +98,12 @@
 
     <!-- Loading state -->
     <div v-if="pending" class="d-flex justify-center my-16">
-      <v-progress-circular color="primary" indeterminate size="48" width="3" />
+      <UiProgressCircular color="primary" indeterminate size="48" width="3" />
     </div>
 
     <div v-else-if="product">
-      <v-row justify="center">
-        <v-col cols="12" lg="6" md="8">
+      <UiRow justify="center">
+        <UiCol cols="12" lg="6" md="8">
           <UiCard>
             <template #header>
               <UiIcon class="mr-2" color="primary" name="product" />
@@ -125,12 +125,12 @@
                 <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis mb-2">
                   Identificação
                 </div>
-                <v-row dense>
-                  <v-col cols="12">
+                <UiRow dense>
+                  <UiCol cols="12">
                     <div class="text-caption text-medium-emphasis">ID do Produto</div>
                     <div class="text-body-2 font-weight-mono">{{ product.id }}</div>
-                  </v-col>
-                  <v-col cols="12">
+                  </UiCol>
+                  <UiCol cols="12">
                     <div class="text-caption text-medium-emphasis">Natureza de Despesa</div>
                     <div class="text-body-2">
                       <span v-if="product.expense_natures">
@@ -141,8 +141,8 @@
                       </span>
                       <span v-else class="text-medium-emphasis">Não informada</span>
                     </div>
-                  </v-col>
-                </v-row>
+                  </UiCol>
+                </UiRow>
               </div>
 
               <UiDivider />
@@ -165,12 +165,12 @@
                   </UiButton>
                 </div>
 
-                <v-slide-y-transition>
+                <UiSlideYTransition>
                   <div v-if="isAddingUnit" class="mb-4 pa-4 rounded-xl bg-surface-variant">
                     <div class="text-caption text-medium-emphasis mb-3">
                       Busque uma unidade existente ou digite para criar uma nova:
                     </div>
-                    <v-combobox
+                    <UiCombobox
                       v-model="addUnitSearch"
                       density="comfortable"
                       hide-details
@@ -192,7 +192,7 @@
                       </UiButton>
                     </div>
                   </div>
-                </v-slide-y-transition>
+                </UiSlideYTransition>
 
                 <div class="d-flex flex-wrap gap-2">
                   <UiChip
@@ -222,31 +222,31 @@
                 <div class="text-caption text-uppercase font-weight-bold text-medium-emphasis mb-2">
                   Informações de Registro
                 </div>
-                <v-row dense>
-                  <v-col cols="12" sm="6">
+                <UiRow dense>
+                  <UiCol cols="12" sm="6">
                     <div class="text-caption text-medium-emphasis">Criado em</div>
                     <div class="text-body-2">
                       {{ new Date(product.created_at).toLocaleString('pt-BR') }}
                     </div>
-                  </v-col>
-                  <v-col cols="12" sm="6">
+                  </UiCol>
+                  <UiCol cols="12" sm="6">
                     <div class="text-caption text-medium-emphasis">Última atualização</div>
                     <div class="text-body-2">
                       {{ new Date(product.updated_at).toLocaleString('pt-BR') }}
                     </div>
-                  </v-col>
-                  <v-col v-if="product.created_by" cols="12">
+                  </UiCol>
+                  <UiCol v-if="product.created_by" cols="12">
                     <div class="text-caption text-medium-emphasis">Criado por</div>
                     <div class="text-body-2">
                       {{ product.profiles?.name || product.created_by }}
                     </div>
-                  </v-col>
-                </v-row>
+                  </UiCol>
+                </UiRow>
               </div>
             </div>
           </UiCard>
-        </v-col>
-      </v-row>
+        </UiCol>
+      </UiRow>
     </div>
 
     <div v-else>
