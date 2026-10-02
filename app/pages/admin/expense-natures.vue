@@ -249,9 +249,9 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="finances" />
           Lista de Naturezas de Despesa
-          <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+          <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
-          </v-chip>
+          </UiChip>
           <v-spacer />
           <v-text-field
             v-model="searchQuery"
@@ -290,9 +290,9 @@
           :loading="pending"
         >
           <template #item-id="{ item }">
-            <v-chip v-if="item.id" color="info" label size="small" variant="tonal">
+            <UiChip v-if="item.id" color="info" label size="small" variant="tonal">
               {{ item.id }}
-            </v-chip>
+            </UiChip>
             <span v-else class="text-medium-emphasis">—</span>
           </template>
           <template #item-is_active="{ item }">

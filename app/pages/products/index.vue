@@ -187,9 +187,9 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="product" />
         Lista de Produtos
-        <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}
-        </v-chip>
+        </UiChip>
         <v-spacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
@@ -261,18 +261,18 @@
         </template>
         <template #item-expense_nature="{ item }">
           <div v-if="item.expense_natures" class="d-flex align-center gap-2">
-            <v-chip color="blue-grey" label size="small" variant="tonal">
+            <UiChip color="blue-grey" label size="small" variant="tonal">
               {{ item.expense_natures.id }}
-            </v-chip>
+            </UiChip>
             <span class="text-body-2">{{ item.expense_natures.name }}</span>
           </div>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-product_class="{ item }">
           <div v-if="item.product_classes" class="d-flex align-center gap-2">
-            <v-chip color="teal" label size="small" variant="tonal">
+            <UiChip color="teal" label size="small" variant="tonal">
               {{ item.product_classes.id }}
-            </v-chip>
+            </UiChip>
             <span class="text-body-2">{{ item.product_classes.name }}</span>
           </div>
           <span v-else class="text-medium-emphasis">—</span>

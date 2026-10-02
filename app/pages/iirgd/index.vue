@@ -109,9 +109,9 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="userBadge" />
         Lista de Demandas
-        <v-chip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ demands.length }}
-        </v-chip>
+        </UiChip>
         <v-spacer />
         <UiButton
           class="mr-2"
@@ -138,22 +138,22 @@
         :loading="pending"
       >
         <template #item-station_code="{ item }">
-          <v-chip color="blue-grey" label size="small" variant="tonal">
+          <UiChip color="blue-grey" label size="small" variant="tonal">
             {{ item.station_code }}
-          </v-chip>
+          </UiChip>
         </template>
         <template #item-name="{ item }">
           <span class="font-weight-medium">{{ item.name }}</span>
         </template>
         <template #item-status="{ item }">
-          <v-chip
+          <UiChip
             :color="item.status === 'Novo' ? 'info' : 'default'"
             label
             size="small"
             variant="tonal"
           >
             {{ item.status }}
-          </v-chip>
+          </UiChip>
         </template>
         <template #item-created_at="{ item }">
           <span class="text-caption text-medium-emphasis">

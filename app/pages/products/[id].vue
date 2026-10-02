@@ -109,14 +109,14 @@
               <UiIcon class="mr-2" color="primary" name="product" />
               <span class="text-subtitle-1 font-weight-bold">{{ product.name }}</span>
               <v-spacer />
-              <v-chip
+              <UiChip
                 :color="product.is_active ? 'success' : 'error'"
                 label
                 size="small"
                 variant="tonal"
               >
                 {{ product.is_active ? 'Ativo' : 'Inativo' }}
-              </v-chip>
+              </UiChip>
             </template>
 
             <!-- Informações básicas -->
@@ -134,9 +134,9 @@
                     <div class="text-caption text-medium-emphasis">Natureza de Despesa</div>
                     <div class="text-body-2">
                       <span v-if="product.expense_natures">
-                        <v-chip class="mr-2" color="blue-grey" label size="small" variant="tonal">
+                        <UiChip class="mr-2" color="blue-grey" label size="small" variant="tonal">
                           {{ product.expense_natures.id }}
-                        </v-chip>
+                        </UiChip>
                         {{ product.expense_natures.name }}
                       </span>
                       <span v-else class="text-medium-emphasis">Não informada</span>

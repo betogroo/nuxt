@@ -100,7 +100,7 @@
                 {{ profile?.name || 'Sem nome definido' }}
               </div>
               <div class="text-body-2 text-medium-emphasis">{{ user?.email }}</div>
-              <v-chip
+              <UiChip
                 v-if="profile?.role"
                 class="mt-2"
                 color="primary"
@@ -109,7 +109,7 @@
                 variant="tonal"
               >
                 {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
-              </v-chip>
+              </UiChip>
             </div>
           </div>
 

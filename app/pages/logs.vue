@@ -61,9 +61,9 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="searchDocument" />
         Auditoria de Logs
-        <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}
-        </v-chip>
+        </UiChip>
       </template>
 
       <UiTable
@@ -95,9 +95,9 @@
           <span v-else class="text-medium-emphasis text-caption">Sistema</span>
         </template>
         <template #item-action="{ item }">
-          <v-chip color="primary" label size="small" variant="tonal">
+          <UiChip color="primary" label size="small" variant="tonal">
             {{ item.action.replace(/_/g, ' ') }}
-          </v-chip>
+          </UiChip>
         </template>
         <template #item-description="{ item }">
           <span class="text-body-2">{{ item.description || '—' }}</span>

@@ -123,9 +123,9 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="recordsList" />
         Lista de Demandas
-        <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}
-        </v-chip>
+        </UiChip>
         <v-spacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
@@ -202,21 +202,21 @@
           </NuxtLink>
         </template>
         <template #item-type="{ item }">
-          <v-chip
+          <UiChip
             :color="item.type === 'consumption' ? 'info' : 'warning'"
             label
             size="small"
             variant="tonal"
           >
             {{ formatDemandType(item.type) }}
-          </v-chip>
+          </UiChip>
         </template>
         <template #item-status="{ item }">
           <div class="d-flex align-center gap-1 flex-wrap">
-            <v-chip :color="getDemandStatusColor(item.status)" label size="small" variant="tonal">
+            <UiChip :color="getDemandStatusColor(item.status)" label size="small" variant="tonal">
               {{ formatDemandStatus(item.status) }}
-            </v-chip>
-            <v-chip
+            </UiChip>
+            <UiChip
               v-if="item.is_return_requested"
               color="warning"
               label
@@ -225,7 +225,7 @@
             >
               <UiIcon name="back" size="12" start />
               Retorno
-            </v-chip>
+            </UiChip>
           </div>
         </template>
         <template #item-creator="{ item }">

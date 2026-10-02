@@ -242,7 +242,7 @@
       <v-tab value="units">
         <UiIcon class="mr-2" name="balance" size="18" />
         Unidades Oficiais
-        <v-chip
+        <UiChip
           v-if="activeUnits.length"
           class="ml-2"
           color="primary"
@@ -251,14 +251,14 @@
           variant="tonal"
         >
           {{ activeUnits.length }}
-        </v-chip>
+        </UiChip>
       </v-tab>
       <v-tab value="aliases">
         <UiIcon class="mr-2" name="categories" size="18" />
         Registros Alternativos
-        <v-chip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ allAliases.length }}
-        </v-chip>
+        </UiChip>
       </v-tab>
     </v-tabs>
 
@@ -399,14 +399,14 @@
           :loading="aliasesPending"
         >
           <template #item-is_pending="{ item }">
-            <v-chip
+            <UiChip
               :color="item.is_pending ? 'warning' : 'success'"
               label
               size="small"
               variant="tonal"
             >
               {{ item.is_pending ? 'Pendente' : 'Ativo' }}
-            </v-chip>
+            </UiChip>
           </template>
           <template #item-actions="{ item }">
             <UiButton

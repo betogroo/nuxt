@@ -248,9 +248,9 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="categories" />
           Lista de Classes de Produtos
-          <v-chip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+          <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
-          </v-chip>
+          </UiChip>
           <v-spacer />
           <v-text-field
             v-model="searchQuery"
@@ -289,9 +289,9 @@
           :loading="pending"
         >
           <template #item-id="{ item }">
-            <v-chip v-if="item.id" color="info" label size="small" variant="tonal">
+            <UiChip v-if="item.id" color="info" label size="small" variant="tonal">
               {{ item.id }}
-            </v-chip>
+            </UiChip>
             <span v-else class="text-medium-emphasis">—</span>
           </template>
 
@@ -363,9 +363,9 @@
           :items="pendingClasses || []"
         >
           <template #item-id="{ item }">
-            <v-chip color="warning" label size="small" variant="tonal">
+            <UiChip color="warning" label size="small" variant="tonal">
               {{ item.id }}
-            </v-chip>
+            </UiChip>
           </template>
 
           <template #item-created_at="{ item }">

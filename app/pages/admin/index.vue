@@ -123,9 +123,9 @@
                   <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2">
                     Unidades de Medida Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingUnitsCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/units" variant="tonal">
@@ -151,9 +151,9 @@
                   <UiIcon color="warning" name="finances" size="18" />
                   <span class="text-body-2">
                     Naturezas de Despesa Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingExpenseNaturesCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/expense-natures" variant="tonal">
@@ -177,9 +177,9 @@
                   <UiIcon color="warning" name="categories" size="18" />
                   <span class="text-body-2">
                     Classes de Produtos Pendentes
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ pendingProductClassesCount }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/product-classes" variant="tonal">
@@ -197,9 +197,9 @@
                   <UiIcon color="warning" name="back" size="18" />
                   <span class="text-body-2 font-weight-medium">
                     Retornos de Status em Demandas
-                    <v-chip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="x-small">
                       {{ metrics.pendingReturnDemands.length }}
-                    </v-chip>
+                    </UiChip>
                   </span>
                 </div>
                 <div class="d-flex flex-column gap-2">
@@ -257,9 +257,9 @@
                       <span class="text-body-2 font-weight-semibold">
                         {{ log.action.replace(/_/g, ' ') }}
                       </span>
-                      <v-chip color="default" label size="x-small" variant="tonal">
+                      <UiChip color="default" label size="x-small" variant="tonal">
                         {{ log.profiles?.name || 'Sistema' }}
-                      </v-chip>
+                      </UiChip>
                     </div>
                     <div class="text-body-2 text-medium-emphasis mb-1">{{ log.description }}</div>
                     <div class="text-caption text-medium-emphasis">

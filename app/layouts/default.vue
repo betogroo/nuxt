@@ -229,9 +229,9 @@
               </v-list-item-title>
               <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
               <v-list-item-subtitle v-if="profile?.role" class="mt-1">
-                <v-chip color="primary" label size="x-small" variant="tonal">
+                <UiChip color="primary" label size="x-small" variant="tonal">
                   {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
-                </v-chip>
+                </UiChip>
               </v-list-item-subtitle>
             </v-list-item>
           </v-list>

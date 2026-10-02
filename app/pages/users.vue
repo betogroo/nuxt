@@ -177,9 +177,9 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="usersGroup" />
         Usuários Ativos
-        <v-chip class="ml-2" color="primary" label size="x-small" variant="tonal">
+        <UiChip class="ml-2" color="primary" label size="x-small" variant="tonal">
           {{ filteredActiveUsers.length }}
-        </v-chip>
+        </UiChip>
         <v-spacer />
         <!-- Busca inline -->
         <v-text-field
@@ -239,14 +239,14 @@
           </div>
         </template>
         <template #item-role="{ item }">
-          <v-chip
+          <UiChip
             :color="roleConfig[item.role]?.color || 'default'"
             label
             size="small"
             :variant="roleConfig[item.role]?.variant || 'outlined'"
           >
             {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
-          </v-chip>
+          </UiChip>
         </template>
         <template #item-created_at="{ item }">
           <span class="text-body-2 text-medium-emphasis">
@@ -281,9 +281,9 @@
         <template #header>
           <UiIcon class="mr-2" color="error" name="disableUser" />
           <span class="text-medium-emphasis">Usuários Desativados</span>
-          <v-chip class="ml-2" color="error" label size="x-small" variant="tonal">
+          <UiChip class="ml-2" color="error" label size="x-small" variant="tonal">
             {{ inactiveUsers.length }}
-          </v-chip>
+          </UiChip>
         </template>
 
         <UiTable
@@ -314,7 +314,7 @@
             </div>
           </template>
           <template #item-role="{ item }">
-            <v-chip
+            <UiChip
               :color="roleConfig[item.role]?.color || 'default'"
               disabled
               label
@@ -322,7 +322,7 @@
               variant="outlined"
             >
               {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
-            </v-chip>
+            </UiChip>
           </template>
           <template #item-created_at="{ item }">
             <span class="text-body-2 text-medium-emphasis">
