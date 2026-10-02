@@ -19,13 +19,9 @@
   const { fetchDemands, createDemand, updateDemand } = useDemands()
   const route = useRoute()
 
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const totalItems = ref(0)
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const statusFilter = ref<string | null>((route.query.filter as string) || null)
   const searchQuery = ref('')
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   const {
     data: demands,
@@ -49,7 +45,7 @@
   )
 
   watch([statusFilter, searchQuery], () => {
-    currentPage.value = 1
+    resetPage()
   })
 
   const modal = useModal<Partial<DemandRow>>({

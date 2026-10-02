@@ -99,11 +99,7 @@
               Total Arrematado
             </div>
             <div class="text-h4 text-success font-weight-bold">
-              {{
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  grandTotal,
-                )
-              }}
+              {{ formatCurrency(grandTotal) }}
             </div>
             <div class="text-body-2 text-grey mt-2">Em {{ wonItems.length }} itens</div>
           </div>
@@ -144,20 +140,12 @@
             </template>
             <template #item-unit_price="{ item }">
               <span class="font-weight-bold">
-                {{
-                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    item.winning_bid_amount,
-                  )
-                }}
+                {{ formatCurrency(item.winning_bid_amount) }}
               </span>
             </template>
             <template #item-subtotal="{ item }">
               <span class="text-success font-weight-bold">
-                {{
-                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    item.subtotal,
-                  )
-                }}
+                {{ formatCurrency(item.subtotal) }}
               </span>
             </template>
           </UiTable>

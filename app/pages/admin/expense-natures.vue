@@ -1,7 +1,5 @@
 <script setup lang="ts">
-  import { useToast } from '~/composables/useToast'
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
-  const toast = useToast()
 
   definePageMeta({
     icon: 'finances',
@@ -29,197 +27,57 @@
     mergePendingExpenseNature,
   } = useExpenseNatures()
 
-  const activeTab = ref('active')
-
-  // Pagination and Search State (Active Natures)
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const searchQuery = ref('')
-  const totalItems = ref(0)
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
-
   const {
-    data: expenseNatures,
-    pending,
-    refresh,
-  } = useAsyncData(
-    'expense-natures-admin',
-    async () => {
-      const result = await fetchExpenseNatures(
-        currentPage.value,
-        itemsPerPage.value,
-        searchQuery.value,
-      )
-      totalItems.value = result.count
-      return result.data
-    },
-    { watch: [currentPage, itemsPerPage] },
-  )
+    activeTab,
+    pagination,
+    searchQuery,
+    handleSearch,
+    items: expenseNatures,
+    pendingItems: pendingNatures,
+    allActiveItems: allActiveNatures,
+    isLoadingActive: pending,
+    refreshActive: refresh,
 
-  const { data: pendingNatures, refresh: refreshPending } = useAsyncData(
-    'expense-natures-pending',
-    fetchPendingExpenseNatures,
-  )
+    // Modal
+    isModalOpen,
+    isEditing,
+    isSaving,
+    saveError,
+    form,
+    openAddModal,
+    openEditModal,
+    closeModal,
+    saveItem: saveExpenseNature,
 
-  const { data: allActiveNatures } = useAsyncData(
-    'expense-natures-all-active',
-    fetchAllActiveExpenseNatures,
-  )
+    // Actions
+    handleToggleStatus: toggleStatus,
+    handleDelete: deleteNature,
 
-  let timeout: ReturnType<typeof setTimeout> | null = null
-  const handleSearch = () => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => {
-      currentPage.value = 1
-      refresh()
-    }, 500)
-  }
-
-  // Modal State
-  const isModalOpen = ref(false)
-  const isEditing = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-
-  const form = ref<{
-    id: string
-    name: string
-    is_active: boolean
-  }>({
-    id: '',
-    name: '',
-    is_active: true,
+    // Resolve Pending
+    isResolveModalOpen,
+    isResolving,
+    resolveError,
+    resolveMode,
+    targetPendingItem: targetPendingNature,
+    resolveForm,
+    openResolveModal,
+    closeResolveModal,
+    executeResolve: submitResolve,
+  } = useAdminCrud<ExpenseNatureRow>({
+    entityName: 'esta natureza de despesa',
+    asyncDataKey: 'expense-natures-admin',
+    fetchActive: fetchExpenseNatures,
+    fetchPending: fetchPendingExpenseNatures,
+    fetchAllActive: fetchAllActiveExpenseNatures,
+    createItem: createExpenseNature,
+    updateItem: (id, payload) => updateExpenseNature(id, payload),
+    deleteItem: deleteExpenseNature,
+    toggleStatus: toggleExpenseNatureStatus,
+    approvePending: approvePendingExpenseNature,
+    mergePending: mergePendingExpenseNature,
   })
 
-  const openAddModal = () => {
-    form.value = {
-      id: '',
-      name: '',
-      is_active: true,
-    }
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const openEditModal = (expenseNature: ExpenseNatureRow) => {
-    form.value = {
-      id: expenseNature.id,
-      name: expenseNature.name,
-      is_active: expenseNature.is_active,
-    }
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const closeModal = () => {
-    isModalOpen.value = false
-  }
-
-  const saveExpenseNature = async () => {
-    if (!form.value.name) {
-      saveError.value = 'O Nome da Natureza é obrigatório.'
-      return
-    }
-    if (!form.value.id && !isEditing.value) {
-      saveError.value = 'O Código (ID) é obrigatório.'
-      return
-    }
-
-    isSaving.value = true
-    saveError.value = ''
-
-    try {
-      const payload = {
-        name: form.value.name,
-        id: form.value.id,
-        is_active: form.value.is_active,
-        is_pending: false,
-      }
-
-      if (isEditing.value) {
-        await updateExpenseNature(form.value.id, payload)
-      } else {
-        await createExpenseNature(payload)
-      }
-
-      await refresh()
-      closeModal()
-    } catch (e: unknown) {
-      saveError.value = getErrorMessage(e, 'esta natureza de despesa')
-    } finally {
-      isSaving.value = false
-    }
-  }
-
-  const toggleStatus = async (item: ExpenseNatureRow) => {
-    try {
-      await toggleExpenseNatureStatus(item)
-      await refresh()
-    } catch (e: unknown) {
-      alert(getErrorMessage(e, 'esta natureza de despesa'))
-    }
-  }
-
-  const deleteNature = async (id: string) => {
-    if (!(await toast.confirm('Tem certeza que deseja excluir esta Natureza de Despesa?'))) return
-    try {
-      await deleteExpenseNature(id)
-      await refresh()
-    } catch (e: unknown) {
-      alert(getErrorMessage(e, 'esta natureza de despesa'))
-    }
-  }
-
-  // --- Resolve Pending Modal ---
-  const isResolveModalOpen = ref(false)
-  const isResolving = ref(false)
-  const resolveError = ref('')
-  const resolveMode = ref<'approve' | 'merge'>('approve')
-  const targetPendingNature = ref<ExpenseNatureRow | null>(null)
-
-  const resolveForm = ref({
-    newName: '',
-    finalNatureId: '',
-  })
-
-  const openResolveModal = (nature: ExpenseNatureRow) => {
-    targetPendingNature.value = nature
-    resolveForm.value = {
-      newName: nature.name,
-      finalNatureId: '',
-    }
-    resolveMode.value = 'approve'
-    resolveError.value = ''
-    isResolveModalOpen.value = true
-  }
-
-  const closeResolveModal = () => {
-    isResolveModalOpen.value = false
-    targetPendingNature.value = null
-  }
-
-  const submitResolve = async () => {
-    if (!targetPendingNature.value) return
-    isResolving.value = true
-    resolveError.value = ''
-
-    try {
-      if (resolveMode.value === 'approve') {
-        await approvePendingExpenseNature(targetPendingNature.value, resolveForm.value.newName)
-      } else {
-        await mergePendingExpenseNature(targetPendingNature.value, resolveForm.value.finalNatureId)
-      }
-      await refreshPending()
-      await refresh()
-      closeResolveModal()
-    } catch (e: unknown) {
-      resolveError.value = getErrorMessage(e, 'esta natureza de despesa')
-    } finally {
-      isResolving.value = false
-    }
-  }
+  const { currentPage, totalPages } = pagination
 </script>
 
 <template>

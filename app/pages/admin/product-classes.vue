@@ -1,7 +1,5 @@
 <script setup lang="ts">
-  import { useToast } from '~/composables/useToast'
   import type { ProductClassRow } from '~/composables/useProductClasses'
-  const toast = useToast()
 
   definePageMeta({
     icon: 'categories',
@@ -29,197 +27,58 @@
     mergePendingProductClass,
   } = useProductClasses()
 
-  const activeTab = ref('active')
-
-  // Pagination and Search State (Active Classes)
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const searchQuery = ref('')
-  const totalItems = ref(0)
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
-
   const {
-    data: productClasses,
-    pending,
-    refresh,
-  } = useAsyncData(
-    'product-classes-admin',
-    async () => {
-      const result = await fetchProductClasses(
-        currentPage.value,
-        itemsPerPage.value,
-        searchQuery.value,
-      )
-      totalItems.value = result.count
-      return result.data
-    },
-    { watch: [currentPage, itemsPerPage] },
-  )
+    activeTab,
+    pagination,
+    searchQuery,
+    handleSearch,
+    items: productClasses,
+    pendingItems: pendingClasses,
+    allActiveItems: allActiveClasses,
+    isLoadingActive: pending,
+    refreshActive: refresh,
+    refreshPending,
 
-  const { data: pendingClasses, refresh: refreshPending } = useAsyncData(
-    'product-classes-pending',
-    fetchPendingProductClasses,
-  )
+    // Modal
+    isModalOpen,
+    isEditing,
+    isSaving,
+    saveError,
+    form,
+    openAddModal,
+    openEditModal,
+    closeModal,
+    saveItem: saveProductClass,
 
-  const { data: allActiveClasses } = useAsyncData(
-    'product-classes-all-active',
-    fetchAllActiveProductClasses,
-  )
+    // Actions
+    handleToggleStatus: toggleStatus,
+    handleDelete: deleteClass,
 
-  let timeout: ReturnType<typeof setTimeout> | null = null
-  const handleSearch = () => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => {
-      currentPage.value = 1
-      refresh()
-    }, 500)
-  }
-
-  // Modal State
-  const isModalOpen = ref(false)
-  const isEditing = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-
-  const form = ref<{
-    id: string
-    name: string
-    is_active: boolean
-  }>({
-    id: '',
-    name: '',
-    is_active: true,
+    // Resolve Pending
+    isResolveModalOpen,
+    isResolving,
+    resolveError,
+    resolveMode,
+    targetPendingItem: targetPendingClass,
+    resolveForm,
+    openResolveModal,
+    closeResolveModal,
+    executeResolve: submitResolve,
+  } = useAdminCrud<ProductClassRow>({
+    entityName: 'esta classe de produto',
+    asyncDataKey: 'product-classes-admin',
+    fetchActive: fetchProductClasses,
+    fetchPending: fetchPendingProductClasses,
+    fetchAllActive: fetchAllActiveProductClasses,
+    createItem: createProductClass,
+    updateItem: (id, payload) => updateProductClass(id, payload),
+    deleteItem: deleteProductClass,
+    toggleStatus: toggleProductClassStatus,
+    approvePending: approvePendingProductClass,
+    mergePending: mergePendingProductClass,
   })
 
-  const openAddModal = () => {
-    form.value = {
-      id: '',
-      name: '',
-      is_active: true,
-    }
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const openEditModal = (productClass: ProductClassRow) => {
-    form.value = {
-      id: productClass.id,
-      name: productClass.name,
-      is_active: productClass.is_active,
-    }
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const closeModal = () => {
-    isModalOpen.value = false
-  }
-
-  const saveProductClass = async () => {
-    if (!form.value.name) {
-      saveError.value = 'O Nome da Classe é obrigatório.'
-      return
-    }
-    if (!form.value.id && !isEditing.value) {
-      saveError.value = 'O Código (ID) é obrigatório.'
-      return
-    }
-
-    isSaving.value = true
-    saveError.value = ''
-
-    try {
-      const payload = {
-        name: form.value.name,
-        id: form.value.id,
-        is_active: form.value.is_active,
-        is_pending: false,
-      }
-
-      if (isEditing.value) {
-        await updateProductClass(form.value.id, payload)
-      } else {
-        await createProductClass(payload)
-      }
-
-      await refresh()
-      closeModal()
-    } catch (e: unknown) {
-      saveError.value = getErrorMessage(e, 'esta classe de produto')
-    } finally {
-      isSaving.value = false
-    }
-  }
-
-  const toggleStatus = async (item: ProductClassRow) => {
-    try {
-      await toggleProductClassStatus(item)
-      await refresh()
-    } catch (e: unknown) {
-      alert(getErrorMessage(e, 'esta classe de produto'))
-    }
-  }
-
-  const deleteClass = async (id: string) => {
-    if (!(await toast.confirm('Tem certeza que deseja excluir esta Classe de Produto?'))) return
-    try {
-      await deleteProductClass(id)
-      await refresh()
-    } catch (e: unknown) {
-      alert(getErrorMessage(e, 'esta classe de produto'))
-    }
-  }
-
-  // --- Resolve Pending Modal ---
-  const isResolveModalOpen = ref(false)
-  const isResolving = ref(false)
-  const resolveError = ref('')
-  const resolveMode = ref<'approve' | 'merge'>('approve')
-  const targetPendingClass = ref<ProductClassRow | null>(null)
-
-  const resolveForm = ref({
-    newName: '',
-    finalClassId: '',
-  })
-
-  const openResolveModal = (pClass: ProductClassRow) => {
-    targetPendingClass.value = pClass
-    resolveForm.value = {
-      newName: pClass.name,
-      finalClassId: '',
-    }
-    resolveMode.value = 'approve'
-    resolveError.value = ''
-    isResolveModalOpen.value = true
-  }
-
-  const closeResolveModal = () => {
-    isResolveModalOpen.value = false
-    targetPendingClass.value = null
-  }
-
-  const submitResolve = async () => {
-    if (!targetPendingClass.value) return
-    isResolving.value = true
-    resolveError.value = ''
-
-    try {
-      if (resolveMode.value === 'approve') {
-        await approvePendingProductClass(targetPendingClass.value, resolveForm.value.newName)
-      } else {
-        await mergePendingProductClass(targetPendingClass.value, resolveForm.value.finalClassId)
-      }
-      await refreshPending()
-      await refresh()
-      closeResolveModal()
-    } catch (e: unknown) {
-      resolveError.value = getErrorMessage(e, 'esta classe de produto')
-    } finally {
-      isResolving.value = false
-    }
-  }
+  const { currentPage, totalPages } = pagination
 </script>
 
 <template>

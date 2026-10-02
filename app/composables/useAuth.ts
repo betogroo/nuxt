@@ -69,12 +69,12 @@ export const useAuth = () => {
     return { data, error }
   }
 
-  const signOut = async () => {
+  const signOut = async (redirectTo: string = '/login') => {
     if (user.value) {
       await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
-    await navigateTo('/login')
+    await navigateTo(redirectTo)
   }
 
   return {

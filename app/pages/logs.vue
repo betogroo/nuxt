@@ -14,11 +14,9 @@
 
   const { fetchLogs } = useLogger()
 
-  const currentPage = ref(1)
-  const itemsPerPage = ref(15)
-  const totalItems = ref(0)
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
+  const { currentPage, itemsPerPage, totalItems, totalPages } = usePagination({
+    defaultItemsPerPage: 15,
+  })
 
   const {
     data: logs,

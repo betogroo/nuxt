@@ -16,10 +16,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Se o usuário estiver inativo, faz o logout e redireciona
   if (profile.value && profile.value.is_active === false) {
-    const supabase = useSupabaseClient()
-    await supabase.auth.signOut()
-
-    // Mostramos uma mensagem ou só redirecionamos
-    return navigateTo('/login?error=inactive')
+    const { signOut } = useAuth()
+    return await signOut('/login?error=inactive')
   }
 })

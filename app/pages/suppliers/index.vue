@@ -19,12 +19,8 @@
   const { fetchSuppliers, createSupplier, updateSupplier, toggleSupplierStatus } = useSuppliers()
 
   // Pagination State
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const totalItems = ref(0)
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const searchQuery = ref('')
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   // Fetch Suppliers with Pagination and Filter
   const {
@@ -49,7 +45,7 @@
 
   // When search changes, reset page to 1
   watch(searchQuery, () => {
-    currentPage.value = 1
+    resetPage()
   })
 
   const activeSuppliers = computed(() => suppliers.value?.filter((s) => s.is_active) || [])

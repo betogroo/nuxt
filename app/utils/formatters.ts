@@ -1,8 +1,50 @@
-﻿export function formatCurrency(value: number): string {
+export function formatCurrency(
+  value: number | string | null | undefined,
+  options?: { minimumFractionDigits?: number; maximumFractionDigits?: number; fallback?: string },
+): string {
+  if (value == null || value === '' || isNaN(Number(value))) {
+    return options?.fallback ?? '-'
+  }
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value)
+    minimumFractionDigits: options?.minimumFractionDigits ?? 2,
+    maximumFractionDigits: options?.maximumFractionDigits ?? 2,
+  }).format(Number(value))
+}
+
+export function formatReferencePrice(value: number | string | null | undefined): string {
+  return formatCurrency(value, {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  })
+}
+
+export function formatDate(
+  date: string | Date | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  if (!date) return '-'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(d.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', options ?? { dateStyle: 'short' }).format(d)
+}
+
+export function formatDateTime(date: string | Date | null | undefined): string {
+  if (!date) return '-'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(d.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(d)
+}
+
+export function formatCnpj(value: string | null | undefined): string {
+  if (!value) return '-'
+  const v = value.replace(/\D/g, '')
+  if (v.length !== 14) return value
+  return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`
 }
 
 export function slugify(text: string): string {
@@ -46,6 +88,7 @@ export const getDemandStatusColor = (status: string) => {
   }
   return map[status] || 'grey'
 }
+
 export function formatCpf(value: string): string {
   let v = value.replace(/\D/g, '')
   if (v.length > 11) v = v.slice(0, 11)

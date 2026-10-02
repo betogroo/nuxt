@@ -21,13 +21,9 @@
   const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
 
   // Pagination & Filter State
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const totalItems = ref(0)
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const selectedExpenseNature = ref<string | null>(null)
   const statusFilter = ref<string>('active')
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
 
   const { data: expenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
   const { data: productClasses } = useAsyncData('product-classes', fetchAllActiveProductClasses)
@@ -54,7 +50,7 @@
   )
 
   watch([selectedExpenseNature, statusFilter], () => {
-    currentPage.value = 1
+    resetPage()
   })
 
   const modal = useModal({

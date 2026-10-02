@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -309,7 +309,7 @@
 
               <template #item-supplier="{ item: bid }">
                 <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
-                <div class="text-caption text-grey">{{ bid.suppliers?.cnpj }}</div>
+                <div class="text-caption text-grey">{{ formatCnpj(bid.suppliers?.cnpj) }}</div>
               </template>
 
               <template #item-amount="{ item: bid }">
@@ -317,11 +317,7 @@
                   class="font-weight-bold"
                   :class="{ 'text-success': bids && bids[0].id === bid.id }"
                 >
-                  {{
-                    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                      bid.amount,
-                    )
-                  }}
+                  {{ formatCurrency(bid.amount) }}
                 </div>
               </template>
 
@@ -362,11 +358,7 @@
               </template>
               <UiListItemTitle>Valor Referencial</UiListItemTitle>
               <UiListItemSubtitle>
-                {{
-                  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    item.reference_price,
-                  )
-                }}
+                {{ formatCurrency(item.reference_price) }}
               </UiListItemSubtitle>
             </UiListItem>
             <UiListItem>
@@ -378,9 +370,7 @@
                 {{
                   item.bid_interval_type === 'percentage'
                     ? `${item.bid_interval}%`
-                    : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                        item.bid_interval || 0,
-                      )
+                    : formatCurrency(item.bid_interval || 0)
                 }}
               </UiListItemSubtitle>
             </UiListItem>

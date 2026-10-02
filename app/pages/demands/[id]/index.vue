@@ -651,24 +651,16 @@
           {{ item.quantity }}
         </template>
         <template #item-reference_price="{ item }">
-          {{
-            item.reference_price != null
-              ? 'R$ ' +
-                Number(item.reference_price).toLocaleString('pt-BR', {
-                  minimumFractionDigits: 4,
-                  maximumFractionDigits: 4,
-                })
-              : '-'
-          }}
+          {{ formatReferencePrice(item.reference_price) }}
         </template>
         <template #item-total_reference="{ item }">
           <span class="text-grey font-weight-bold">
             {{
-              item.reference_price != null && item.quantity != null
-                ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    Number(item.reference_price) * Number(item.quantity),
-                  )
-                : '-'
+              formatCurrency(
+                item.reference_price != null && item.quantity != null
+                  ? Number(item.reference_price) * Number(item.quantity)
+                  : null,
+              )
             }}
           </span>
         </template>
@@ -676,7 +668,7 @@
           <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
             <span class="text-success font-weight-bold">
               {{
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                formatCurrency(
                   Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)),
                 )
               }}
@@ -694,7 +686,7 @@
           >
             <span class="text-success font-weight-bold">
               {{
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                formatCurrency(
                   Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) *
                     Number(item.quantity),
                 )
@@ -771,11 +763,7 @@
 
         <template #item-total_amount="{ item: supplier }">
           <span class="text-success font-weight-bold">
-            {{
-              new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                supplier.totalAmountWon,
-              )
-            }}
+            {{ formatCurrency(supplier.totalAmountWon) }}
           </span>
         </template>
       </UiTable>
