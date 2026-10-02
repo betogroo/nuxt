@@ -66,7 +66,7 @@ describe('useExpenseNatures', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'CREATE_EXPENSE_NATURE',
       'Nova natureza de despesa cadastrada: Natureza 1',
-      'user-123'
+      'user-123',
     )
   })
 
@@ -103,7 +103,7 @@ describe('useExpenseNatures', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'TOGGLE_EXPENSE_NATURE_STATUS',
       expect.stringContaining('Inativo'),
-      'user-123'
+      'user-123',
     )
   })
-});
+})

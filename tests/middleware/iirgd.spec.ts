@@ -2,10 +2,10 @@
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import iirgdMiddleware from '~/middleware/iirgd'
 
-
-
 // Nuxt module mocks
-mockNuxtImport('navigateTo', () => { return () => {} })
+mockNuxtImport('navigateTo', () => {
+  return () => {}
+})
 
 mockNuxtImport('useSupabaseUser', () => {
   return () => ({ value: { id: '123' } })
@@ -14,7 +14,7 @@ mockNuxtImport('useSupabaseUser', () => {
 mockNuxtImport('useProfile', () => {
   return () => ({
     profile: { value: { role: 'admin' } },
-    fetchProfile: vi.fn()
+    fetchProfile: vi.fn(),
   })
 })
 

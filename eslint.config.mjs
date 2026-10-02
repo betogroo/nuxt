@@ -34,4 +34,47 @@ export default withNuxt([
       ],
     },
   },
+
+  {
+    ignores: [
+      'app/components/**/*.vue',
+      'app/components/**/*.ts',
+      'app/components/**/*.js',
+      'eslint.config.mjs',
+      'tests/**/*',
+    ],
+    rules: {
+      'vue/no-restricted-syntax': [
+        'error',
+        {
+          selector: 'VElement[name=/^v-/]',
+          message:
+            'Uso de tags do Vuetify (<v-*>) é proibido fora da pasta components. Utilize os componentes da pasta ui/ correspondentes.',
+        },
+        {
+          selector: 'VAttribute[value.value=/mdi-/]',
+          message:
+            'Uso de classes ou strings "mdi-*" é proibido. Utilize as propriedades nativas dos componentes Ui ou UiIcon.',
+        },
+        {
+          selector: 'VLiteral[value=/mdi-/]',
+          message:
+            'Uso de strings "mdi-*" é proibido. Utilize as propriedades nativas dos componentes Ui ou UiIcon.',
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'Literal[value=/mdi-/]',
+          message:
+            'Uso de strings "mdi-*" é proibido fora da pasta components. Mapeie ícones de forma agnóstica.',
+        },
+        {
+          selector: 'TemplateElement[value.raw=/mdi-/]',
+          message:
+            'Uso de strings "mdi-*" é proibido fora da pasta components. Mapeie ícones de forma agnóstica.',
+        },
+      ],
+    },
+  },
 ])

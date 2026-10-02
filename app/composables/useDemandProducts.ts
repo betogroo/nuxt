@@ -15,10 +15,12 @@ export const useDemandProducts = () => {
   const fetchDemandProducts = async (demandId: string) => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*, expense_natures(id, name)), measurement_units(*), demand_product_bids(*, suppliers(*))')
+      .select(
+        '*, product:products(*, expense_natures(id, name)), measurement_units(*), demand_product_bids(*, suppliers(*))',
+      )
       .eq('demand_id', demandId)
       .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (error) {
       console.error(error)
@@ -61,7 +63,7 @@ export const useDemandProducts = () => {
     itemReferencePrice: number
   }) => {
     let finalProductId = params.selectedProductId || ''
-    let finalUnitId = params.finalUnitId
+    const finalUnitId = params.finalUnitId
 
     if (params.isNewProductMode) {
       let expenseNatureId = params.newProductExpenseNatureId
@@ -70,14 +72,14 @@ export const useDemandProducts = () => {
         if (!params.suggestedNatureId || !params.suggestedNatureName) {
           throw new Error('Código e Nome da nova natureza são obrigatórios.')
         }
-        
+
         // Register pending nature if it doesn't exist
         const { data: existing } = await supabase
           .from('expense_natures')
           .select('id')
           .eq('id', params.suggestedNatureId)
           .maybeSingle()
-          
+
         if (!existing) {
           const { error: insErr } = await supabase.from('expense_natures').insert({
             id: params.suggestedNatureId,
@@ -86,7 +88,11 @@ export const useDemandProducts = () => {
             is_active: false,
           })
           if (insErr) throw insErr
-          await logAction('CREATE_PENDING_EXPENSE_NATURE', `Sugerida via Demanda: ${params.suggestedNatureName}`, user.value?.id)
+          await logAction(
+            'CREATE_PENDING_EXPENSE_NATURE',
+            `Sugerida via Demanda: ${params.suggestedNatureName}`,
+            user.value?.id,
+          )
         }
         expenseNatureId = params.suggestedNatureId
       }
@@ -105,7 +111,11 @@ export const useDemandProducts = () => {
         .single()
 
       if (prodError) throw prodError
-      await logAction('CREATE_PRODUCT', `Novo produto criado via demanda: ${newProd.name}`, user.value?.id)
+      await logAction(
+        'CREATE_PRODUCT',
+        `Novo produto criado via demanda: ${newProd.name}`,
+        user.value?.id,
+      )
       finalProductId = newProd.id
     }
 
@@ -179,7 +189,7 @@ export const useDemandProducts = () => {
     bidIntervalType?: 'percentage' | 'monetary'
     finalUnitId: string
   }) => {
-    let finalUnitId = params.finalUnitId
+    const finalUnitId = params.finalUnitId
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
     // Link unit to product if productId is provided
@@ -248,15 +258,18 @@ export const useDemandProducts = () => {
     )
   }
 
-    const reorderDemandItems = async (updates: { id: string, sort_order: number }[]) => {
-    // Supabase JS doesn't support bulk updates directly with a single call returning data nicely, 
-    // but we can do it via a loop since we don't have an RPC function right now, 
+  const reorderDemandItems = async (updates: { id: string; sort_order: number }[]) => {
+    // Supabase JS doesn't support bulk updates directly with a single call returning data nicely,
+    // but we can do it via a loop since we don't have an RPC function right now,
     // or use Promise.all
-    const promises = updates.map(update => 
-      supabase.from('demand_products').update({ sort_order: update.sort_order }).eq('id', update.id)
+    const promises = updates.map((update) =>
+      supabase
+        .from('demand_products')
+        .update({ sort_order: update.sort_order })
+        .eq('id', update.id),
     )
     const results = await Promise.all(promises)
-    const errors = results.filter(r => r.error).map(r => r.error)
+    const errors = results.filter((r) => r.error).map((r) => r.error)
     if (errors.length > 0) throw new Error('Erro ao reordenar os itens')
   }
   return {
@@ -270,6 +283,3 @@ export const useDemandProducts = () => {
     removeDemandProduct,
   }
 }
-
-
-

@@ -9,10 +9,8 @@ vi.mock('~/composables/useExpenseNatures', () => {
   return {
     useExpenseNatures: () => ({
       fetchExpenseNatures: vi.fn().mockResolvedValue({
-        data: [
-          { id: '33903000', name: 'MATERIAL DE CONSUMO', is_active: true },
-        ],
-        count: 1
+        data: [{ id: '33903000', name: 'MATERIAL DE CONSUMO', is_active: true }],
+        count: 1,
       }),
       createExpenseNature: vi.fn(),
       updateExpenseNature: vi.fn(),
@@ -26,9 +24,7 @@ vi.mock('~/composables/useExpenseNatures', () => {
 mockNuxtImport('useAsyncData', () => {
   return () => {
     return {
-      data: ref([
-        { id: '33903000', name: 'MATERIAL DE CONSUMO', is_active: true },
-      ]),
+      data: ref([{ id: '33903000', name: 'MATERIAL DE CONSUMO', is_active: true }]),
       pending: ref(false),
       refresh: vi.fn(),
     }
@@ -62,7 +58,13 @@ describe('Expense Natures Admin Page', () => {
           'v-row': true,
           'v-col': true,
           'v-spacer': true,
-          'v-pagination': true, 'v-tabs': true, 'v-tab': true, 'v-badge': true, 'v-radio-group': true, 'v-radio': true, 'v-autocomplete': true,
+          'v-pagination': true,
+          'v-tabs': true,
+          'v-tab': true,
+          'v-badge': true,
+          'v-radio-group': true,
+          'v-radio': true,
+          'v-autocomplete': true,
         },
       },
     })
@@ -87,18 +89,24 @@ describe('Expense Natures Admin Page', () => {
           'v-row': true,
           'v-col': true,
           'v-spacer': true,
-          'v-pagination': true, 'v-tabs': true, 'v-tab': true, 'v-badge': true, 'v-radio-group': true, 'v-radio': true, 'v-autocomplete': true,
+          'v-pagination': true,
+          'v-tabs': true,
+          'v-tab': true,
+          'v-badge': true,
+          'v-radio-group': true,
+          'v-radio': true,
+          'v-autocomplete': true,
           'v-tooltip': true, // Mock tooltip
         },
       },
     })
 
-    // We can't easily click a stubbed slot directly if vue-test-utils doesn't render it deeply, 
+    // We can't easily click a stubbed slot directly if vue-test-utils doesn't render it deeply,
     // but we can call the component's internal method if we extract it or just check it exists.
     // Instead of forcing a DOM click on a stubbed table, let's just make sure it mounts without errors
     // and that the mock function is available to the component.
     expect(wrapper.exists()).toBe(true)
-    
+
     // To properly test the method, we test the VM
     const vm = wrapper.vm as any
     expect(vm.toggleStatus).toBeDefined()

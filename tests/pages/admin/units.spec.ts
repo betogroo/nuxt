@@ -3,7 +3,9 @@ import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import UnitsPage from '~/pages/admin/units.vue'
 
-mockNuxtImport('useAsyncData', () => vi.fn().mockReturnValue({ data: { value: [] }, pending: { value: false }, refresh: vi.fn() }))
+mockNuxtImport('useAsyncData', () =>
+  vi.fn().mockReturnValue({ data: { value: [] }, pending: { value: false }, refresh: vi.fn() }),
+)
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchUnits: vi.fn().mockResolvedValue([]),
   fetchAliases: vi.fn().mockResolvedValue([]),

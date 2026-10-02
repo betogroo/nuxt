@@ -11,7 +11,7 @@ export const useExpenseNatures = () => {
   const fetchExpenseNatures = async (
     currentPage: number,
     itemsPerPage: number,
-    searchQuery?: string
+    searchQuery?: string,
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -66,7 +66,6 @@ export const useExpenseNatures = () => {
     )
   }
 
-  
   const toggleExpenseNatureStatus = async (expenseNature: ExpenseNatureRow) => {
     const newStatus = !expenseNature.is_active
     const { error } = await supabase
@@ -141,10 +140,17 @@ export const useExpenseNatures = () => {
 
     if (error) throw error
 
-    await logAction('APPROVE_EXPENSE_NATURE', `Natureza sugerida aprovada: ${targetNature.name} (${targetNature.id})`, user.value?.id)
+    await logAction(
+      'APPROVE_EXPENSE_NATURE',
+      `Natureza sugerida aprovada: ${targetNature.name} (${targetNature.id})`,
+      user.value?.id,
+    )
   }
 
-  const mergePendingExpenseNature = async (targetNature: ExpenseNatureRow, finalNatureId: string) => {
+  const mergePendingExpenseNature = async (
+    targetNature: ExpenseNatureRow,
+    finalNatureId: string,
+  ) => {
     if (!finalNatureId) throw new Error('Selecione uma natureza de despesa existente para mesclar.')
 
     // Atualizar products
@@ -167,7 +173,7 @@ export const useExpenseNatures = () => {
       .from('expense_natures')
       .delete()
       .eq('id', targetNature.id)
-    
+
     if (delError) throw delError
 
     await logAction(

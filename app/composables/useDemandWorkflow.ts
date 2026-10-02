@@ -165,10 +165,14 @@ export function useDemandWorkflow(
           for (const item of items.value) {
             const itemBids = bids?.filter((b) => b.product_id === item.id) || []
             const hasWinner = itemBids.some((b) => b.is_winner)
-            const isFailed = itemBids.length === 0 || !itemBids.some((b) => b.amount <= (item.reference_price || 0))
-            
+            const isFailed =
+              itemBids.length === 0 ||
+              !itemBids.some((b) => b.amount <= (item.reference_price || 0))
+
             if (!hasWinner && !isFailed) {
-               throw new Error(`O produto "${item.products?.name || 'Sem nome'}" não possui um vencedor válido e nem foi declarado fracassado. Todos os produtos devem ser resolvidos para avançar para a Documentação.`)
+              throw new Error(
+                `O produto "${item.products?.name || 'Sem nome'}" não possui um vencedor válido e nem foi declarado fracassado. Todos os produtos devem ser resolvidos para avançar para a Documentação.`,
+              )
             }
           }
         }

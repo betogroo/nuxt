@@ -33,7 +33,10 @@ describe('useMeasurementUnits', () => {
 
   it('fetchUnits should return data', async () => {
     const { fetchUnits } = useMeasurementUnits()
-    mockSupabase.from('measurement_units').select().order.mockResolvedValueOnce({ data: [], error: null })
+    mockSupabase
+      .from('measurement_units')
+      .select()
+      .order.mockResolvedValueOnce({ data: [], error: null })
     await fetchUnits()
     expect(mockSupabase.from).toHaveBeenCalledWith('measurement_units')
   })
@@ -45,7 +48,7 @@ describe('useMeasurementUnits', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'CREATE_UNIT',
       'Nova unidade de medida criada: Caixa',
-      'user-123'
+      'user-123',
     )
   })
 
@@ -56,33 +59,37 @@ describe('useMeasurementUnits', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'UPDATE_UNIT',
       'Unidade de medida atualizada: Pacote Atualizado',
-      'user-123'
+      'user-123',
     )
   })
 
   it('toggleUnitStatus should switch status and log action', async () => {
     const { toggleUnitStatus } = useMeasurementUnits()
     const mockEq = vi.fn().mockResolvedValue({ error: null })
-    mockSupabase.from.mockImplementation(() => ({ update: vi.fn().mockReturnValue({ eq: mockEq }) }))
+    mockSupabase.from.mockImplementation(() => ({
+      update: vi.fn().mockReturnValue({ eq: mockEq }),
+    }))
     await toggleUnitStatus({ id: '1', name: 'Cx', is_active: true } as UnitRow)
     expect(mockEq).toHaveBeenCalledWith('id', '1')
     expect(mockLogAction).toHaveBeenCalledWith(
       'TOGGLE_UNIT_STATUS',
       'Unidade Cx alterada para INATIVO',
-      'user-123'
+      'user-123',
     )
   })
 
   it('approvePendingUnit should update unit to active and not pending', async () => {
     const { approvePendingUnit } = useMeasurementUnits()
     const mockEq = vi.fn().mockResolvedValue({ error: null })
-    mockSupabase.from.mockImplementation(() => ({ update: vi.fn().mockReturnValue({ eq: mockEq }) }))
+    mockSupabase.from.mockImplementation(() => ({
+      update: vi.fn().mockReturnValue({ eq: mockEq }),
+    }))
     await approvePendingUnit({ id: '2', name: 'Test', is_pending: true } as UnitRow)
     expect(mockEq).toHaveBeenCalledWith('id', '2')
     expect(mockLogAction).toHaveBeenCalledWith(
       'APPROVE_UNIT',
       'Unidade sugerida aprovada: Test',
-      'user-123'
+      'user-123',
     )
   })
 })

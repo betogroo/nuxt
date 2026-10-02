@@ -47,14 +47,16 @@ describe('useProducts', () => {
     mockSupabase.from.mockReturnValue({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValueOnce({ data: mockProduct, error: null }) // mock product fetch
-               .mockResolvedValueOnce({ data: [], error: null }) // mock units fetch
-               .mockResolvedValueOnce({ data: { name: 'User Name' }, error: null }), // mock profile fetch
+      single: vi
+        .fn()
+        .mockResolvedValueOnce({ data: mockProduct, error: null }) // mock product fetch
+        .mockResolvedValueOnce({ data: [], error: null }) // mock units fetch
+        .mockResolvedValueOnce({ data: { name: 'User Name' }, error: null }), // mock profile fetch
     })
 
     const { fetchProductById } = useProducts()
     const result = await fetchProductById('prod-1')
-    
+
     expect(result).toBeDefined()
     expect(result.id).toBe('prod-1')
     expect(mockSupabase.from).toHaveBeenCalledWith('products')
@@ -73,7 +75,7 @@ describe('useProducts', () => {
     expect(mockLogAction).toHaveBeenCalledWith(
       'CREATE_PRODUCT',
       'Novo produto criado: Prod B',
-      'user-123'
+      'user-123',
     )
   })
 

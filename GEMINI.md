@@ -29,3 +29,10 @@ Always use and enforce UTF-8 encoding when creating or modifying files. This is 
 # Tests (CRITICAL / MANDATORY)
 
 **STOP AND READ THIS**: For every feature created, altered, or deleted, the corresponding unit and/or integration tests MUST be updated or created to reflect the changes. Code modifications are NOT considered complete until tests are written and passing. You MUST execute the tests and prove they pass before finalizing your turn. Skipping this step is strictly forbidden.
+
+# UI Layer & Decoupling (CRITICAL / MANDATORY)
+
+**STOP AND READ THIS**: O projeto implementa um desacoplamento total do Vuetify e de bibliotecas de ícones na sua camada de apresentação (Páginas e Layouts).
+É **ESTRITAMENTE PROIBIDO** utilizar tags brutas do Vuetify (e.g. <v-row>, <v-btn>, <v-card>) ou strings/classes de ícones nativos (e.g. mdi-home, <v-icon>) fora da pasta pp/components/.
+Você deve SEMPRE usar os componentes wrappers desacoplados com o prefixo genérico Ui (e.g. <UiRow>, <UiButton>, <UiCard>, <UiIcon>).
+Caso sinta a necessidade de um componente do Vuetify que ainda não possua wrapper, seu dever é **criar o wrapper** na pasta pp/components/ui/ e utilizar o wrapper.

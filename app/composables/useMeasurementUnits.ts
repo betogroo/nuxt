@@ -285,24 +285,36 @@ export const useMeasurementUnits = () => {
   const resolveOrCreateUnit = async (searchStr: string) => {
     if (!searchStr) {
       // Fallback to "Unidade"
-      const { data: defaultUnit } = await supabase.from('measurement_units').select('id').eq('name', 'Unidade').maybeSingle()
+      const { data: defaultUnit } = await supabase
+        .from('measurement_units')
+        .select('id')
+        .eq('name', 'Unidade')
+        .maybeSingle()
       if (defaultUnit) return defaultUnit.id
       throw new Error('Unidade de medida não informada.')
     }
-    
+
     // 1. Procurar na lista existente (case-insensitive)
-    const { data: existingUnit } = await supabase.from('measurement_units').select('id').ilike('name', searchStr.trim()).maybeSingle()
+    const { data: existingUnit } = await supabase
+      .from('measurement_units')
+      .select('id')
+      .ilike('name', searchStr.trim())
+      .maybeSingle()
     if (existingUnit) return existingUnit.id
 
     // 2. Criar nova como pendente
-    const { data: newUnit, error } = await supabase.from('measurement_units').insert({
-      name: searchStr.trim(),
-      is_pending: true,
-      is_active: false
-    }).select().single()
+    const { data: newUnit, error } = await supabase
+      .from('measurement_units')
+      .insert({
+        name: searchStr.trim(),
+        is_pending: true,
+        is_active: false,
+      })
+      .select()
+      .single()
 
     if (error || !newUnit) throw error || new Error('Failed to create pending unit')
-    
+
     return newUnit.id
   }
 
@@ -323,4 +335,3 @@ export const useMeasurementUnits = () => {
     mergePendingUnit,
   }
 }
-
