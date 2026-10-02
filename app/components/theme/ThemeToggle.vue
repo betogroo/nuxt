@@ -6,7 +6,7 @@
 </script>
 
 <template>
-  <v-icon-btn
+  <UiButton
     :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
     :icon="isDark ? 'sun' : 'moon'"
     variant="text"

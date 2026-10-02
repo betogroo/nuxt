@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   const user = useSupabaseUser()
   const supabase = useSupabaseClient()
   const { profile, fetchProfile } = useProfile()
@@ -123,7 +123,7 @@
               <template #append>
                 <v-tooltip location="top" text="Sair">
                   <template #activator="{ props }">
-                    <v-btn
+                    <UiButton
                       v-bind="props"
                       color="error"
                       density="compact"
@@ -240,13 +240,11 @@
             <v-list-item rounded="lg" title="Meu Perfil" to="/profile">
               <template #prepend><UiIcon class="mr-4" :name="getIcon('/profile')" /></template>
             </v-list-item>
-            <v-list-item
-              color="error"
-              prepend-icon="logout"
-              rounded="lg"
-              title="Sair"
-              @click="signOut"
-            />
+            <v-list-item color="error" rounded="lg" title="Sair" @click="signOut">
+              <template #prepend>
+                <UiIcon class="mr-4" name="logout" />
+              </template>
+            </v-list-item>
           </v-list>
         </v-card>
       </v-menu>
