@@ -1,6 +1,8 @@
 <script setup lang="ts">
+  import { ROLES, ROLE_LABELS } from '~/constants/roles'
+
   const user = useSupabaseUser()
-  const supabase = useSupabaseClient()
+  const { signOut } = useAuth()
   const { profile, fetchProfile } = useProfile()
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
 
@@ -15,8 +17,6 @@
     }
   })
 
-  const { logAction } = useLogger()
-
   // Central de Pendências
   const {
     pendingUnitsCount,
@@ -26,27 +26,14 @@
     totalPending,
   } = usePendingTasks()
 
-  const signOut = async () => {
-    if (user.value) {
-      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
-    }
-    await supabase.auth.signOut()
-    navigateTo('/login')
-  }
-
   // Inicial do nome/email do usuário
   const userInitial = computed(() => {
     const name = profile.value?.name || user.value?.email || 'U'
     return name.charAt(0).toUpperCase()
   })
 
-  // Label do role formatado
-  const roleLabel: Record<string, string> = {
-    admin: 'Administrador',
-    uge: 'UGE',
-    iirgd: 'IIRGD',
-    user: 'Usuário',
-  }
+  // Label do role formatado (usando constante centralizada)
+  const roleLabel = ROLE_LABELS
 
   const { drawerByGroup } = useNavLinks()
   const { getIcon } = usePageIcon()
@@ -62,6 +49,8 @@
 
 <template>
   <UiApp>
+    <!-- Sistema de notificações global -->
+    <UiToast />
     <!-- Menu Lateral (Drawer) -->
     <UiNavigationDrawer v-model="drawer" :elevation="0" :mobile-breakpoint="960">
       <!-- Marca do sistema -->
@@ -149,7 +138,10 @@
       <ThemeToggle />
 
       <!-- Notificações (apenas Admin) -->
-      <UiMenu v-if="profile?.role === 'admin' && totalPending > 0" :close-on-content-click="false">
+      <UiMenu
+        v-if="profile?.role === ROLES.ADMIN && totalPending > 0"
+        :close-on-content-click="false"
+      >
         <template #activator="{ props }">
           <UiButton
             v-bind="props"

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+  import { useToast } from '~/composables/useToast'
   import type { ExpenseNatureRow } from '~/composables/useExpenseNatures'
+  const toast = useToast()
 
   definePageMeta({
     icon: 'finances',
@@ -161,7 +163,7 @@
   }
 
   const deleteNature = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta Natureza de Despesa?')) return
+    if (!(await toast.confirm('Tem certeza que deseja excluir esta Natureza de Despesa?'))) return
     try {
       await deleteExpenseNature(id)
       await refresh()

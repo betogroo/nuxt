@@ -1,5 +1,8 @@
+import { ROLES } from '~/constants/roles'
 <script setup lang="ts">
+  import { useToast } from '~/composables/useToast'
   import type { ProfileRow } from '~/composables/useUsers'
+  const toast = useToast()
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
@@ -85,7 +88,7 @@
 
   const toggleUserStatus = async (user: ProfileRow) => {
     if (user.id === loggedProfile.value?.id) {
-      alert('Você não pode desativar seu próprio usuário.')
+      toast.warning('Você não pode desativar seu próprio usuário.')
       return
     }
 
@@ -101,7 +104,7 @@
       await refresh()
     } catch (e: unknown) {
       const err = e as Error
-      alert(`Erro ao alterar status: ${err.message}`)
+      toast.error(`Erro ao alterar status: ${err.message}`)
     }
   }
 

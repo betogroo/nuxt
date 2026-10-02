@@ -1,35 +1,46 @@
 <script setup lang="ts">
+  import { ROLES } from '~/constants/roles'
+
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
   const { profile, fetchAllProfiles } = useProfile()
 
-  const {
-    fetchDemandProducts,
-    addDemandItemWithDependencies,
-    removeDemandProduct,
-    updateDemandItemWithDependencies,
-    reorderDemandItems,
-  } = useDemandProducts()
-
-  const {
-    fetchDemandById,
-    fetchDemandResponsibles,
-    addResponsible: addResponsibleDb,
-    removeResponsible: removeResponsibleDb,
-    updateDemand,
-  } = useDemands()
+  const { addDemandItemWithDependencies, updateDemandItemWithDependencies } = useDemandProducts()
 
   const { fetchAllActiveProducts } = useProducts()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
-  const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
+  const { resolveOrCreateUnit } = useMeasurementUnits()
 
   const demandId = route.params.id as string
 
-  // Fetch Demand Details
-  const { data: demand, refresh: refreshDemand } = useAsyncData(`demand-${demandId}`, async () => {
-    return await fetchDemandById(demandId)
-  })
+  const {
+    demand,
+    refreshDemand,
+    updateDemand,
+    isPlanningIncomplete,
+    responsibles,
+    refreshResponsibles: _refreshResponsibles,
+    isAddingResponsible,
+    addResponsible,
+    removeResponsible,
+    items,
+    itemsPending,
+    refreshItems,
+    isReordering,
+    moveItemUp,
+    moveItemDown,
+    removeItem,
+    winningSuppliersSummary,
+  } = useDemandDetail(demandId)
+
+  const handleAddResponsible = async () => {
+    const success = await addResponsible(responsibleUserId.value || '')
+    if (success) {
+      isResponsibleModalOpen.value = false
+      responsibleUserId.value = null
+    }
+  }
 
   // Modal de Edição Rápida de Planejamento
   const editPlanningModal = useModal<Partial<DemandRow>>({
@@ -65,7 +76,7 @@
           : null,
       }
       //
-      await updateDemand(demandId, payload)
+      await updateDemand(payload)
       await refreshDemand()
       editPlanningModal.close()
     } catch (err: unknown) {
@@ -75,32 +86,8 @@
     }
   }
 
-  // Verifica se o planejamento está incompleto (faltando campos obrigatórios para avançar)
-  const isPlanningIncomplete = computed(() => {
-    if (demand.value?.status !== 'planning') return false
-    const { process_number, internal_process_number, id_pca, type, contract_number } = demand.value
-    return !process_number || !internal_process_number || !id_pca || !type || !contract_number
-  })
-
   useHead({
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
-  })
-
-  // Fetch Demand Responsibles
-  const { data: responsibles, refresh: refreshResponsibles } = useAsyncData(
-    `demand-responsibles-${demandId}`,
-    async () => {
-      return await fetchDemandResponsibles(demandId)
-    },
-  )
-
-  // Fetch Demand Products
-  const {
-    data: items,
-    pending: itemsPending,
-    refresh: refreshItems,
-  } = useAsyncData(`demand-items-${demandId}`, async () => {
-    return await fetchDemandProducts(demandId)
   })
 
   // Fetch all active products for the autocomplete
@@ -133,7 +120,6 @@
   // Add Responsible Modal State
   const isResponsibleModalOpen = ref(false)
   const responsibleUserId = ref<string | null>(null)
-  const isAddingResponsible = ref(false)
   const responsibleError = ref('')
 
   const { data: allProfiles } = useAsyncData('all-profiles', async () => {
@@ -248,54 +234,6 @@
     }
   }
 
-  const isReordering = ref(false)
-
-  const moveItemUp = async (index: number) => {
-    if (!items.value || index <= 0) return
-    const newItems = [...items.value]
-    const temp = newItems[index]
-    newItems[index] = newItems[index - 1]
-    newItems[index - 1] = temp
-    await saveNewOrder(newItems)
-  }
-
-  const moveItemDown = async (index: number) => {
-    if (!items.value || index >= items.value.length - 1) return
-    const newItems = [...items.value]
-    const temp = newItems[index]
-    newItems[index] = newItems[index + 1]
-    newItems[index + 1] = temp
-    await saveNewOrder(newItems)
-  }
-
-  const saveNewOrder = async (newItems: unknown[]) => {
-    isReordering.value = true
-    try {
-      const updates = newItems.map((item: Record<string, unknown>, idx) => ({
-        id: item.id,
-        sort_order: idx + 1,
-      }))
-      if (items.value) items.value = newItems as typeof items.value
-      await reorderDemandItems(updates)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : String(err))
-      await refreshItems()
-    } finally {
-      isReordering.value = false
-    }
-  }
-
-  const removeItem = async (itemId: string, productName: string) => {
-    if (!confirm(`Deseja realmente remover '${productName}' da demanda?`)) return
-    try {
-      await removeDemandProduct(itemId, demandId as string)
-      await refreshItems()
-    } catch (err: unknown) {
-      const e = err as Error
-      alert(`Erro ao remover item: ${e.message}`)
-    }
-  }
-
   const isEditItemModalOpen = ref(false)
   const editItemSaving = ref(false)
   const editItemError = ref('')
@@ -374,99 +312,6 @@
     openAdvanceModal,
     confirmAdvanceStatus,
   } = useDemandWorkflow(demandId, demand, items)
-
-  const addResponsible = async () => {
-    if (!responsibleUserId.value) {
-      alert('Selecione um usuário.')
-      return
-    }
-    isAddingResponsible.value = true
-    try {
-      await addResponsibleDb(demandId as string, responsibleUserId.value)
-      await refreshResponsibles()
-      isResponsibleModalOpen.value = false
-    } catch (err: unknown) {
-      const e = err as Error
-      alert(e.message)
-    } finally {
-      isAddingResponsible.value = false
-    }
-  }
-
-  const removeResponsible = async (userId: string) => {
-    if (!confirm('Deseja realmente remover este responsável?')) return
-    try {
-      await removeResponsibleDb(demandId as string, userId)
-      await refreshResponsibles()
-    } catch (err: unknown) {
-      const e = err as Error
-      alert(`Erro ao remover: ${e.message}`)
-    }
-  }
-  // --- Suppliers Summary Logic ---
-  const winningSuppliersSummary = computed(() => {
-    if (!items.value) return []
-
-    // Map: supplier_id -> { supplier, productsParticipated: Set, productsWon: Set }
-    const supplierStats = new Map<
-      string,
-      {
-        supplier: Record<string, unknown>
-        participated: Set<string>
-        won: Set<string>
-        totalAmountWon: number
-      }
-    >()
-
-    items.value.forEach((product) => {
-      const bids = product.demand_product_bids || []
-      if (bids.length === 0) return
-
-      let minAmount = Infinity
-      let winningBid: Record<string, unknown> | null = null
-
-      bids.forEach((bid) => {
-        if (bid.amount < minAmount) {
-          minAmount = bid.amount
-          winningBid = bid
-        }
-
-        // Register participation
-        if (bid.suppliers) {
-          const suppId = bid.supplier_id
-          if (!supplierStats.has(suppId)) {
-            supplierStats.set(suppId, {
-              supplier: bid.suppliers,
-              participated: new Set(),
-              won: new Set(),
-              totalAmountWon: 0,
-            })
-          }
-          supplierStats.get(suppId)!.participated.add(product.id)
-        }
-      })
-
-      // Register win
-      if (winningBid && winningBid.suppliers) {
-        const stats = supplierStats.get(winningBid.supplier_id)!
-        stats.won.add(product.id)
-        stats.totalAmountWon += minAmount * (product.quantity || 1)
-      }
-    })
-
-    // Filter to only those who won at least one product
-    const winners = Array.from(supplierStats.values())
-      .filter((s) => s.won.size > 0)
-      .map((s) => ({
-        ...s.supplier,
-        participatedCount: s.participated.size,
-        wonCount: s.won.size,
-        totalAmountWon: s.totalAmountWon,
-      }))
-
-    // Sort by most won products
-    return winners.sort((a, b) => b.wonCount - a.wonCount)
-  })
 </script>
 
 <template>
@@ -485,7 +330,7 @@
           }}</UiChip>
           <UiSpacer />
           <UiButton
-            v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
+            v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
             class="mr-2"
             color="orange-darken-3"
             prepend-icon="arrowLeftBold"
@@ -494,7 +339,7 @@
             Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
           </UiButton>
           <UiButton
-            v-if="profile?.role !== 'admin' && getPreviousStatus(demand.status)"
+            v-if="profile?.role !== ROLES.ADMIN && getPreviousStatus(demand.status)"
             class="mr-2"
             :color="demand.is_return_requested ? 'grey' : 'warning'"
             :disabled="demand.is_return_requested || isReturnRequesting"
@@ -689,7 +534,7 @@
               }}</UiListItemTitle>
               <template #append>
                 <UiButton
-                  v-if="profile?.role === 'admin'"
+                  v-if="profile?.role === ROLES.ADMIN"
                   color="error"
                   icon="close"
                   size="x-small"
@@ -748,9 +593,7 @@
         ]"
         :items="items || []"
       >
-        <template v-if="!items?.length && !itemsPending" #empty>
-          Nenhum produto adicionado a esta demanda ainda.
-        </template>
+        <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
         <template #item-order="{ index }">
           <div class="d-flex flex-column align-center justify-center">
             <UiButton
@@ -1129,7 +972,7 @@
           @click="isResponsibleModalOpen = false"
           >Cancelar</UiButton
         >
-        <UiButton color="primary" :loading="isAddingResponsible" @click="addResponsible"
+        <UiButton color="primary" :loading="isAddingResponsible" @click="handleAddResponsible"
           >Adicionar</UiButton
         >
       </template>

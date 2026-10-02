@@ -1,5 +1,7 @@
 <script setup lang="ts">
+  import { useToast } from '~/composables/useToast'
   import type { ProductClassRow } from '~/composables/useProductClasses'
+  const toast = useToast()
 
   definePageMeta({
     icon: 'categories',
@@ -161,7 +163,7 @@
   }
 
   const deleteClass = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta Classe de Produto?')) return
+    if (!(await toast.confirm('Tem certeza que deseja excluir esta Classe de Produto?'))) return
     try {
       await deleteProductClass(id)
       await refresh()

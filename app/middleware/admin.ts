@@ -1,3 +1,4 @@
+import { ROLES } from '~/constants/roles'
 export default defineNuxtRouteMiddleware(async () => {
   const user = useSupabaseUser()
 
@@ -14,7 +15,7 @@ export default defineNuxtRouteMiddleware(async () => {
   }
 
   // Regra 2: Verifica a regra de negócio (Apenas Admin)
-  if (profile.value?.role !== 'admin') {
+  if (profile.value?.role !== ROLES.ADMIN) {
     // Opcional: Aqui você poderia redirecionar para uma rota '/403' (Acesso Negado)
     return navigateTo('/')
   }

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+  import { useToast } from '~/composables/useToast'
   import type { SupplierRow } from '~/composables/useSuppliers'
+  const toast = useToast()
   definePageMeta({
     icon: 'delivery',
     middleware: ['uge'],
@@ -164,7 +166,7 @@
       await refresh()
     } catch (err: unknown) {
       const e = err as Error
-      alert(`Erro ao alterar status: ${e.message}`)
+      toast.error(`Erro ao alterar status: ${e.message}`)
     }
   }
 </script>

@@ -1,4 +1,5 @@
 import type { NavTarget, NavGroup, UserRole } from '~/types/route-meta'
+import { ROLES } from '~/constants/roles'
 
 export interface NavLinkMeta {
   path: string
@@ -30,7 +31,7 @@ export const useNavLinks = () => {
   const router = useRouter()
   const { profile } = useProfile()
 
-  const userRole = computed<UserRole>(() => (profile.value?.role as UserRole) || 'user')
+  const userRole = computed<UserRole>(() => (profile.value?.role as UserRole) || ROLES.USER)
 
   /** All routes that opted-in to the navigation system via showIn */
   const allNavLinks = computed<NavLinkMeta[]>(() =>

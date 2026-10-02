@@ -1,4 +1,5 @@
-export default defineNuxtRouteMiddleware(async (to) => {
+import { ROLES } from '~/constants/roles'
+export default defineNuxtRouteMiddleware(async () => {
   const user = useSupabaseUser()
 
   if (!user.value) {
@@ -12,7 +13,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
     await fetchProfile()
   }
 
-  if (profile.value?.role !== 'admin' && profile.value?.role !== 'iirgd') {
+  if (profile.value?.role !== ROLES.ADMIN && profile.value?.role !== ROLES.IIRGD) {
     return navigateTo('/')
   }
 })

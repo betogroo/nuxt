@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   defineProps<{
     headers: Array<{
       text: string
@@ -39,7 +39,7 @@
       </template>
 
       <template v-else>
-        <tr v-for="(item, index) in items" :key="item.id || Math.random()" class="ui-table__row">
+        <tr v-for="(item, index) in items" :key="item.id ?? index" class="ui-table__row">
           <td
             v-for="header in headers"
             :key="header.value"
