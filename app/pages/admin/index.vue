@@ -1,7 +1,7 @@
 <script setup lang="ts">
   definePageMeta({
     middleware: ['admin'],
-    icon: 'dashboard',
+    icon: 'mdi-view-dashboard-outline',
     navLabel: 'Painel Admin',
     navSubtitle: 'Métricas e atividade do sistema',
     navColor: 'success',
@@ -97,7 +97,7 @@
                 </div>
               </div>
               <v-avatar :color="card.color" rounded="lg" size="52" variant="tonal">
-                <UiIcon :name="card.icon" size="26" />
+                <v-icon :icon="card.icon" size="26" />
               </v-avatar>
             </v-card-text>
           </v-card>
@@ -111,7 +111,7 @@
             border="start"
             color="warning"
             density="compact"
-            icon="clipboardClock"
+            icon="mdi-clipboard-text-clock-outline"
             rounded="xl"
             title="Tarefas Pendentes de Revisão"
             variant="tonal"
@@ -120,12 +120,12 @@
               <!-- Unidades -->
               <div v-if="pendingUnitsCount > 0" class="d-flex align-center justify-space-between">
                 <div class="d-flex align-center gap-2">
-                  <UiIcon color="warning" name="balance" size="18" />
+                  <v-icon color="warning" icon="mdi-scale-balance" size="18" />
                   <span class="text-body-2">
                     Unidades de Medida Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <v-chip class="ml-1" color="warning" label size="x-small">
                       {{ pendingUnitsCount }}
-                    </UiChip>
+                    </v-chip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/units" variant="tonal">
@@ -148,12 +148,12 @@
                 class="d-flex align-center justify-space-between"
               >
                 <div class="d-flex align-center gap-2">
-                  <UiIcon color="warning" name="finances" size="18" />
+                  <v-icon color="warning" icon="mdi-cash-multiple" size="18" />
                   <span class="text-body-2">
                     Naturezas de Despesa Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <v-chip class="ml-1" color="warning" label size="x-small">
                       {{ pendingExpenseNaturesCount }}
-                    </UiChip>
+                    </v-chip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/expense-natures" variant="tonal">
@@ -174,12 +174,12 @@
                 class="d-flex align-center justify-space-between"
               >
                 <div class="d-flex align-center gap-2">
-                  <UiIcon color="warning" name="categories" size="18" />
+                  <v-icon color="warning" icon="mdi-tag-multiple-outline" size="18" />
                   <span class="text-body-2">
                     Classes de Produtos Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <v-chip class="ml-1" color="warning" label size="x-small">
                       {{ pendingProductClassesCount }}
-                    </UiChip>
+                    </v-chip>
                   </span>
                 </div>
                 <UiButton color="warning" size="small" to="/admin/product-classes" variant="tonal">
@@ -194,12 +194,12 @@
               <!-- Retornos de demandas -->
               <div v-if="metrics.pendingReturnDemands.length > 0">
                 <div class="d-flex align-center gap-2 mb-2">
-                  <UiIcon color="warning" name="back" size="18" />
+                  <v-icon color="warning" icon="mdi-keyboard-return" size="18" />
                   <span class="text-body-2 font-weight-medium">
                     Retornos de Status em Demandas
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <v-chip class="ml-1" color="warning" label size="x-small">
                       {{ metrics.pendingReturnDemands.length }}
-                    </UiChip>
+                    </v-chip>
                   </span>
                 </div>
                 <div class="d-flex flex-column gap-2">
@@ -235,12 +235,12 @@
         <v-col cols="12" md="8">
           <UiCard class="h-100">
             <template #header>
-              <UiIcon class="mr-2" color="primary" name="history" />
+              <v-icon class="mr-2" color="primary" icon="mdi-history" />
               Atividade Recente
               <v-spacer />
               <UiButton color="primary" size="small" to="/logs" variant="text">
                 Ver todos
-                <UiIcon end name="next" size="16" />
+                <v-icon end size="16">mdi-arrow-right</v-icon>
               </UiButton>
             </template>
 
@@ -257,9 +257,9 @@
                       <span class="text-body-2 font-weight-semibold">
                         {{ log.action.replace(/_/g, ' ') }}
                       </span>
-                      <UiChip color="default" label size="x-small" variant="tonal">
+                      <v-chip color="default" label size="x-small" variant="tonal">
                         {{ log.profiles?.name || 'Sistema' }}
-                      </UiChip>
+                      </v-chip>
                     </div>
                     <div class="text-body-2 text-medium-emphasis mb-1">{{ log.description }}</div>
                     <div class="text-caption text-medium-emphasis">
@@ -271,7 +271,7 @@
             </div>
 
             <div v-else class="d-flex flex-column align-center py-10 text-medium-emphasis">
-              <UiIcon class="mb-2" name="history" size="36" />
+              <v-icon class="mb-2" icon="mdi-history" size="36" />
               <span class="text-body-2">Nenhuma atividade registrada ainda.</span>
             </div>
           </UiCard>
@@ -281,7 +281,7 @@
         <v-col cols="12" md="4">
           <UiCard class="h-100">
             <template #header>
-              <UiIcon class="mr-2" color="primary" name="energy" />
+              <v-icon class="mr-2" color="primary" icon="mdi-lightning-bolt-outline" />
               Acesso Rápido
             </template>
 

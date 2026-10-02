@@ -4,7 +4,7 @@
   const { profile, fetchProfile } = useProfile()
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
 
-  // Sincroniza o perfil reativamente assim que o ID do usuÃ¡rio estiver pronto
+  // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
   watchEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = user.value?.id || (user.value as any)?.sub
@@ -17,7 +17,7 @@
 
   const { logAction } = useLogger()
 
-  // Central de PendÃªncias
+  // Central de Pendências
   const {
     pendingUnitsCount,
     pendingExpenseNaturesCount,
@@ -28,13 +28,13 @@
 
   const signOut = async () => {
     if (user.value) {
-      await logAction('LOGOUT', 'UsuÃ¡rio fez logoff do sistema.', user.value.id)
+      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
     navigateTo('/login')
   }
 
-  // Inicial do nome/email do usuÃ¡rio
+  // Inicial do nome/email do usuário
   const userInitial = computed(() => {
     const name = profile.value?.name || user.value?.email || 'U'
     return name.charAt(0).toUpperCase()
@@ -45,7 +45,7 @@
     admin: 'Administrador',
     uge: 'UGE',
     iirgd: 'IIRGD',
-    user: 'UsuÃ¡rio',
+    user: 'Usuário',
   }
 
   const { drawerByGroup } = useNavLinks()
@@ -71,48 +71,46 @@
         </v-avatar>
         <div>
           <div class="text-subtitle-2 font-weight-bold text-high-emphasis">SistemaGov</div>
-          <div class="text-caption text-medium-emphasis">GestÃ£o de Demandas</div>
+          <div class="text-caption text-medium-emphasis">Gestão de Demandas</div>
         </div>
       </div>
 
       <v-divider class="mb-2" />
 
-      <!-- NavegaÃ§Ã£o principal: gerada automaticamente por definePageMeta -->
+      <!-- Navegação principal: gerada automaticamente por definePageMeta -->
       <v-list class="px-3" density="compact" nav>
         <template v-for="section in drawerByGroup" :key="section.group">
-          <!-- CabeÃ§alho de seÃ§Ã£o (apenas para grupos com label) -->
+          <!-- Cabeçalho de seção (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
             <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
               {{ section.label }}
             </span>
           </div>
 
-          <v-list-item
+          <UiListItem
             v-for="link in section.links"
             :key="link.path"
+            :prepend-icon="link.icon"
             rounded="lg"
             :title="link.label"
             :to="link.path"
           >
-            <template #prepend>
-              <UiIcon class="mr-4" :name="link.icon" />
-            </template>
             <template v-if="pathBadge[link.path] > 0" #append>
               <v-badge color="error" :content="pathBadge[link.path]" inline />
             </template>
-          </v-list-item>
+          </UiListItem>
         </template>
       </v-list>
 
-      <!-- RodapÃ© do Drawer: perfil do usuÃ¡rio -->
+      <!-- Rodapé do Drawer: perfil do usuário -->
       <template #append>
         <v-divider />
         <div v-if="user" class="pa-3">
           <v-list density="compact" nav>
-            <v-list-item
+            <UiListItem
               rounded="lg"
               :subtitle="user.email"
-              :title="profile?.name || 'UsuÃ¡rio'"
+              :title="profile?.name || 'Usuário'"
               to="/profile"
             >
               <template #prepend>
@@ -134,13 +132,13 @@
                   </template>
                 </v-tooltip>
               </template>
-            </v-list-item>
+            </UiListItem>
           </v-list>
         </div>
       </template>
     </v-navigation-drawer>
 
-    <!-- CabeÃ§alho (App Bar) -->
+    <!-- Cabeçalho (App Bar) -->
     <v-app-bar :border="false" elevation="0" height="60">
       <template #prepend>
         <v-app-bar-nav-icon @click="drawer = !drawer" />
@@ -150,7 +148,7 @@
 
       <ThemeToggle />
 
-      <!-- NotificaÃ§Ãµes (apenas Admin) -->
+      <!-- Notificações (apenas Admin) -->
       <v-menu v-if="profile?.role === 'admin' && totalPending > 0" :close-on-content-click="false">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="mx-1" density="comfortable" icon rounded="lg" variant="text">
@@ -161,34 +159,34 @@
         </template>
         <v-card elevation="4" min-width="280" rounded="xl">
           <v-card-title class="text-subtitle-2 font-weight-bold pa-4 pb-2">
-            PendÃªncias
+            Pendências
           </v-card-title>
           <v-list density="compact" nav>
-            <v-list-item
+            <UiListItem
               v-if="pendingUnitsCount > 0"
               :prepend-icon="getIcon('/admin/units')"
               rounded="lg"
-              :subtitle="`${pendingUnitsCount} unidade(s) aguardando aprovaÃ§Ã£o`"
+              :subtitle="`${pendingUnitsCount} unidade(s) aguardando aprovação`"
               title="Unidades de Medida"
               to="/admin/units"
             />
-            <v-list-item
+            <UiListItem
               v-if="pendingExpenseNaturesCount > 0"
               :prepend-icon="getIcon('/admin/expense-natures')"
               rounded="lg"
-              :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovaÃ§Ã£o`"
+              :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovação`"
               title="Naturezas de Despesa"
               to="/admin/expense-natures"
             />
-            <v-list-item
+            <UiListItem
               v-if="pendingProductClassesCount > 0"
               :prepend-icon="getIcon('/admin/product-classes')"
               rounded="lg"
-              :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovaÃ§Ã£o`"
+              :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovação`"
               title="Classes de Produtos"
               to="/admin/product-classes"
             />
-            <v-list-item
+            <UiListItem
               v-if="pendingReturnsCount > 0"
               :prepend-icon="getIcon('/demands')"
               rounded="lg"
@@ -200,7 +198,7 @@
         </v-card>
       </v-menu>
 
-      <!-- Menu do usuÃ¡rio (mobile/alternativo) -->
+      <!-- Menu do usuário (mobile/alternativo) -->
       <v-menu v-if="user">
         <template #activator="{ props }">
           <v-btn
@@ -218,14 +216,14 @@
         </template>
         <v-card elevation="4" min-width="240" rounded="xl">
           <v-list>
-            <v-list-item>
+            <UiListItem>
               <template #prepend>
                 <v-avatar class="mr-1" color="primary" size="40">
                   <span class="text-subtitle-1 text-white font-weight-bold">{{ userInitial }}</span>
                 </v-avatar>
               </template>
               <v-list-item-title class="font-weight-semibold">
-                {{ profile?.name || 'UsuÃ¡rio' }}
+                {{ profile?.name || 'Usuário' }}
               </v-list-item-title>
               <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
               <v-list-item-subtitle v-if="profile?.role" class="mt-1">
@@ -233,18 +231,23 @@
                   {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
                 </UiChip>
               </v-list-item-subtitle>
-            </v-list-item>
+            </UiListItem>
           </v-list>
           <v-divider />
           <v-list density="compact" nav>
-            <v-list-item rounded="lg" title="Meu Perfil" to="/profile">
-              <template #prepend><UiIcon class="mr-4" :name="getIcon('/profile')" /></template>
-            </v-list-item>
-            <v-list-item color="error" rounded="lg" title="Sair" @click="signOut">
-              <template #prepend>
-                <UiIcon class="mr-4" name="logout" />
-              </template>
-            </v-list-item>
+            <UiListItem
+              :prepend-icon="getIcon('/profile')"
+              rounded="lg"
+              title="Meu Perfil"
+              to="/profile"
+            />
+            <UiListItem
+              color="error"
+              prepend-icon="logout"
+              rounded="lg"
+              title="Sair"
+              @click="signOut"
+            />
           </v-list>
         </v-card>
       </v-menu>
