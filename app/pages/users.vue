@@ -189,7 +189,7 @@
           density="compact"
           hide-details
           label="Buscar..."
-          prepend-inner-icon="mdi-magnify"
+          prepend-inner-icon="search"
           rounded="lg"
           style="max-width: 260px"
           variant="outlined"
@@ -197,13 +197,13 @@
         <UiButton
           class="ml-4 mr-2"
           color="secondary"
-          icon="mdi-refresh"
+          icon="refresh"
           :loading="pending"
           size="small"
           variant="tonal"
           @click="refresh"
         />
-        <UiButton color="primary" prepend-icon="mdi-account-plus" @click="openAddModal"
+        <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
           >Novo Usuário</UiButton
         >
       </template>
@@ -266,7 +266,7 @@
         <template #item-actions="{ item }">
           <UiButton
             color="primary"
-            icon="mdi-pencil-outline"
+            icon="editOutline"
             size="small"
             variant="text"
             @click="openEditModal(item)"
@@ -341,7 +341,7 @@
           <template #item-actions="{ item }">
             <UiButton
               color="primary"
-              icon="mdi-pencil-outline"
+              icon="editOutline"
               size="small"
               variant="text"
               @click="openEditModal(item)"
@@ -365,7 +365,7 @@
           </div>
         </div>
         <v-spacer />
-        <v-btn density="compact" icon="mdi-close" variant="text" @click="closeEditModal" />
+        <v-btn density="compact" icon="close" variant="text" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
@@ -428,7 +428,7 @@
         v-model="newUserForm.email"
         label="E-mail"
         placeholder="email@exemplo.com"
-        prepend-inner-icon="mdi-email-outline"
+        prepend-inner-icon="emailAlt"
         type="email"
       />
 
@@ -436,7 +436,7 @@
         v-model="newUserForm.password"
         label="Senha (Inicial)"
         placeholder="Pelo menos 6 caracteres"
-        prepend-inner-icon="mdi-lock-outline"
+        prepend-inner-icon="security"
         type="password"
       />
 

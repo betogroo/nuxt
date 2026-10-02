@@ -61,7 +61,7 @@
 <template>
   <v-container>
     <div class="mb-4 d-flex align-center">
-      <UiButton icon="mdi-arrow-left" variant="text" @click="goBack" />
+      <UiButton icon="arrowLeft" variant="text" @click="goBack" />
       <h2 class="text-h5 ml-2">Itens Vencidos pelo Fornecedor</h2>
     </div>
 

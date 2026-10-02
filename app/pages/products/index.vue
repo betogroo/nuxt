@@ -228,13 +228,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="pending"
             size="small"
             variant="tonal"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+          <UiButton color="primary" prepend-icon="add" @click="openAddModal">
             Novo Produto
           </UiButton>
         </div>
@@ -289,14 +289,14 @@
         <template #item-actions="{ item }">
           <UiButton
             color="primary"
-            icon="mdi-arrow-right"
+            icon="next"
             size="small"
             :to="`/products/${item.id}`"
             variant="text"
           />
           <UiButton
             color="default"
-            icon="mdi-pencil-outline"
+            icon="editOutline"
             size="small"
             variant="text"
             @click="openEditModal(item)"

@@ -116,15 +116,13 @@
         <UiButton
           class="mr-2"
           color="secondary"
-          icon="mdi-refresh"
+          icon="refresh"
           :loading="pending"
           size="small"
           variant="tonal"
           @click="refresh"
         />
-        <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
-          >Nova Demanda</UiButton
-        >
+        <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Demanda</UiButton>
       </template>
 
       <UiTable

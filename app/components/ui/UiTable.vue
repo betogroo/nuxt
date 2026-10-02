@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   defineProps<{
     headers: Array<{
       text: string
@@ -55,7 +55,7 @@
         <tr v-if="!items || items.length === 0">
           <td class="py-10" :colspan="headers.length">
             <div class="d-flex flex-column align-center text-medium-emphasis">
-              <v-icon class="mb-3" icon="mdi-database-search-outline" size="40" />
+              <UiIcon class="mb-3" name="databaseSearch" size="40" />
               <slot name="empty">Nenhum registro encontrado.</slot>
             </div>
           </td>

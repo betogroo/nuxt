@@ -91,7 +91,7 @@
 <template>
   <div>
     <div class="mb-6">
-      <UiButton color="default" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
+      <UiButton color="default" prepend-icon="arrowLeft" variant="text" @click="router.back()">
         Voltar para Produtos
       </UiButton>
     </div>
@@ -156,7 +156,7 @@
                   <UiButton
                     v-if="!isAddingUnit"
                     color="primary"
-                    prepend-icon="mdi-plus"
+                    prepend-icon="add"
                     size="small"
                     variant="tonal"
                     @click="isAddingUnit = true"

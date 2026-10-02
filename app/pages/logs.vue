@@ -48,7 +48,7 @@
       <template #actions>
         <UiButton
           color="secondary"
-          icon="mdi-refresh"
+          icon="refresh"
           :loading="pending"
           size="small"
           variant="tonal"

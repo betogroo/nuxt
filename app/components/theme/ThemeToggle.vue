@@ -8,7 +8,7 @@
 <template>
   <v-icon-btn
     :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
-    :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+    :icon="isDark ? 'sun' : 'moon'"
     variant="text"
     @click="toggle"
   />

@@ -258,7 +258,7 @@
             density="compact"
             hide-details
             label="Buscar..."
-            prepend-inner-icon="mdi-magnify"
+            prepend-inner-icon="search"
             rounded="lg"
             style="max-width: 260px"
             variant="outlined"
@@ -267,13 +267,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="pending"
             size="small"
             variant="tonal"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+          <UiButton color="primary" prepend-icon="add" @click="openAddModal">
             Nova Classe
           </UiButton>
         </template>
@@ -310,14 +310,14 @@
             <div class="d-flex justify-end gap-1">
               <UiButton
                 color="secondary"
-                icon="mdi-pencil-outline"
+                icon="editOutline"
                 size="x-small"
                 variant="text"
                 @click="openEditModal(item)"
               />
               <UiButton
                 color="error"
-                icon="mdi-delete-outline"
+                icon="deleteOutline"
                 size="x-small"
                 variant="text"
                 @click="deleteClass(item.id)"
@@ -346,7 +346,7 @@
           <v-spacer />
           <UiButton
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             size="small"
             variant="tonal"
             @click="refreshPending"
@@ -376,7 +376,7 @@
             <div class="d-flex justify-end gap-2">
               <UiButton
                 color="primary"
-                prepend-icon="mdi-check"
+                prepend-icon="check"
                 size="small"
                 variant="tonal"
                 @click="openResolveModal(item)"
@@ -385,7 +385,7 @@
               </UiButton>
               <UiButton
                 color="error"
-                icon="mdi-delete-outline"
+                icon="deleteOutline"
                 size="small"
                 variant="text"
                 @click="deleteClass(item.id)"

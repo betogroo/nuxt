@@ -182,13 +182,13 @@
             <UiButton
               class="mr-2"
               color="secondary"
-              icon="mdi-refresh"
+              icon="refresh"
               :loading="pending"
               size="small"
               variant="tonal"
               @click="refresh"
             />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
               Novo Fornecedor
             </UiButton>
           </template>
@@ -203,7 +203,7 @@
                   clearable
                   hide-details
                   label="Pesquisar por CNPJ, Nome ou E-mail"
-                  prepend-inner-icon="mdi-magnify"
+                  prepend-inner-icon="search"
                 />
               </v-col>
             </v-row>
@@ -254,7 +254,7 @@
             <template #item-actions="{ item }">
               <UiButton
                 color="primary"
-                icon="mdi-pencil"
+                icon="edit"
                 size="small"
                 variant="text"
                 @click="openEditModal(item)"
@@ -320,7 +320,7 @@
             <template #item-actions="{ item }">
               <UiButton
                 color="primary"
-                icon="mdi-pencil"
+                icon="edit"
                 size="small"
                 variant="text"
                 @click="openEditModal(item)"

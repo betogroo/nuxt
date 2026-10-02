@@ -41,7 +41,7 @@ export const useNavLinks = () => {
         path: r.path,
         label: (r.meta.navLabel as string) || r.path,
         subtitle: (r.meta.navSubtitle as string) || '',
-        icon: (r.meta.icon as string) || 'mdi-circle-outline',
+        icon: (r.meta.icon as string) || 'circle',
         color: (r.meta.navColor as string) || 'primary',
         roles: (r.meta.roles as UserRole[]) || [],
         showIn: (r.meta.showIn as NavTarget[]) || [],

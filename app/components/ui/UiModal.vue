@@ -29,7 +29,7 @@
           }}</span>
         </template>
         <v-spacer />
-        <v-btn density="compact" icon="mdi-close" variant="text" @click="modelValue = false" />
+        <v-btn density="compact" icon="close" variant="text" @click="modelValue = false" />
       </template>
 
       <slot />

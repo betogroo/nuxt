@@ -115,17 +115,12 @@
         {{ errorPassword }}
       </UiAlert>
 
-      <UiInput
-        v-model="emailPassword"
-        label="E-mail"
-        prepend-inner-icon="mdi-email-outline"
-        type="email"
-      />
+      <UiInput v-model="emailPassword" label="E-mail" prepend-inner-icon="emailAlt" type="email" />
 
       <UiInput
         v-model="password"
         label="Senha"
-        prepend-inner-icon="mdi-lock-outline"
+        prepend-inner-icon="security"
         type="password"
         @keyup.enter="signInWithPassword"
       />
@@ -157,7 +152,7 @@
         <UiInput
           v-model="emailOtp"
           label="E-mail"
-          prepend-inner-icon="mdi-email-outline"
+          prepend-inner-icon="emailAlt"
           type="email"
           @keyup.enter="handleSendOtp"
         />

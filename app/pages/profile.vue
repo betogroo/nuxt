@@ -118,7 +118,7 @@
             <UiInput
               v-model="formData.name"
               label="Nome Completo"
-              prepend-inner-icon="mdi-account-outline"
+              prepend-inner-icon="userOutline"
             />
 
             <UiInput
@@ -126,7 +126,7 @@
               hint="Cole um link direto para uma imagem (ex: URL do Gravatar)"
               label="URL da Foto (Avatar)"
               persistent-hint
-              prepend-inner-icon="mdi-link-variant"
+              prepend-inner-icon="link"
             />
 
             <!-- Campos Somente Leitura -->
@@ -139,7 +139,7 @@
               disabled
               label="E-mail"
               :model-value="user?.email"
-              prepend-inner-icon="mdi-email-outline"
+              prepend-inner-icon="emailAlt"
               readonly
             />
 
@@ -151,7 +151,7 @@
                   :model-value="
                     profile?.role ? roleLabel[profile.role] || profile.role.toUpperCase() : ''
                   "
-                  prepend-inner-icon="mdi-shield-account-outline"
+                  prepend-inner-icon="shieldUser"
                   readonly
                 />
               </v-col>
@@ -164,7 +164,7 @@
                       ? new Date(profile.created_at).toLocaleDateString('pt-BR')
                       : ''
                   "
-                  prepend-inner-icon="mdi-calendar-outline"
+                  prepend-inner-icon="calendarOutline"
                   readonly
                 />
               </v-col>
@@ -174,7 +174,7 @@
               <UiButton
                 color="primary"
                 :loading="isSaving"
-                prepend-icon="mdi-content-save-outline"
+                prepend-icon="save"
                 size="large"
                 type="submit"
                 variant="flat"

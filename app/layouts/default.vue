@@ -1,10 +1,10 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   const user = useSupabaseUser()
   const supabase = useSupabaseClient()
   const { profile, fetchProfile } = useProfile()
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
 
-  // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
+  // Sincroniza o perfil reativamente assim que o ID do usuÃ¡rio estiver pronto
   watchEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const userId = user.value?.id || (user.value as any)?.sub
@@ -17,7 +17,7 @@
 
   const { logAction } = useLogger()
 
-  // Central de Pendências
+  // Central de PendÃªncias
   const {
     pendingUnitsCount,
     pendingExpenseNaturesCount,
@@ -28,13 +28,13 @@
 
   const signOut = async () => {
     if (user.value) {
-      await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
+      await logAction('LOGOUT', 'UsuÃ¡rio fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
     navigateTo('/login')
   }
 
-  // Inicial do nome/email do usuário
+  // Inicial do nome/email do usuÃ¡rio
   const userInitial = computed(() => {
     const name = profile.value?.name || user.value?.email || 'U'
     return name.charAt(0).toUpperCase()
@@ -45,7 +45,7 @@
     admin: 'Administrador',
     uge: 'UGE',
     iirgd: 'IIRGD',
-    user: 'Usuário',
+    user: 'UsuÃ¡rio',
   }
 
   const { drawerByGroup } = useNavLinks()
@@ -67,20 +67,20 @@
       <!-- Marca do sistema -->
       <div class="px-4 pt-5 pb-3 d-flex align-center gap-3">
         <v-avatar color="primary" rounded="lg" size="36">
-          <v-icon color="white" icon="mdi-package-variant-closed" size="20" />
+          <UiIcon color="white" name="inventory" size="20" />
         </v-avatar>
         <div>
           <div class="text-subtitle-2 font-weight-bold text-high-emphasis">SistemaGov</div>
-          <div class="text-caption text-medium-emphasis">Gestão de Demandas</div>
+          <div class="text-caption text-medium-emphasis">GestÃ£o de Demandas</div>
         </div>
       </div>
 
       <v-divider class="mb-2" />
 
-      <!-- Navegação principal: gerada automaticamente por definePageMeta -->
+      <!-- NavegaÃ§Ã£o principal: gerada automaticamente por definePageMeta -->
       <v-list class="px-3" density="compact" nav>
         <template v-for="section in drawerByGroup" :key="section.group">
-          <!-- Cabeçalho de seção (apenas para grupos com label) -->
+          <!-- CabeÃ§alho de seÃ§Ã£o (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
             <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
               {{ section.label }}
@@ -104,7 +104,7 @@
         </template>
       </v-list>
 
-      <!-- Rodapé do Drawer: perfil do usuário -->
+      <!-- RodapÃ© do Drawer: perfil do usuÃ¡rio -->
       <template #append>
         <v-divider />
         <div v-if="user" class="pa-3">
@@ -112,7 +112,7 @@
             <v-list-item
               rounded="lg"
               :subtitle="user.email"
-              :title="profile?.name || 'Usuário'"
+              :title="profile?.name || 'UsuÃ¡rio'"
               to="/profile"
             >
               <template #prepend>
@@ -127,7 +127,7 @@
                       v-bind="props"
                       color="error"
                       density="compact"
-                      icon="mdi-logout"
+                      icon="logout"
                       variant="text"
                       @click.prevent="signOut"
                     />
@@ -140,7 +140,7 @@
       </template>
     </v-navigation-drawer>
 
-    <!-- Cabeçalho (App Bar) -->
+    <!-- CabeÃ§alho (App Bar) -->
     <v-app-bar :border="false" elevation="0" height="60">
       <template #prepend>
         <v-app-bar-nav-icon @click="drawer = !drawer" />
@@ -150,25 +150,25 @@
 
       <ThemeToggle />
 
-      <!-- Notificações (apenas Admin) -->
+      <!-- NotificaÃ§Ãµes (apenas Admin) -->
       <v-menu v-if="profile?.role === 'admin' && totalPending > 0" :close-on-content-click="false">
         <template #activator="{ props }">
           <v-btn v-bind="props" class="mx-1" density="comfortable" icon rounded="lg" variant="text">
             <v-badge color="error" :content="totalPending">
-              <v-icon>mdi-bell-outline</v-icon>
+              <UiIcon name="notifications" />
             </v-badge>
           </v-btn>
         </template>
         <v-card elevation="4" min-width="280" rounded="xl">
           <v-card-title class="text-subtitle-2 font-weight-bold pa-4 pb-2">
-            Pendências
+            PendÃªncias
           </v-card-title>
           <v-list density="compact" nav>
             <v-list-item
               v-if="pendingUnitsCount > 0"
               :prepend-icon="getIcon('/admin/units')"
               rounded="lg"
-              :subtitle="`${pendingUnitsCount} unidade(s) aguardando aprovação`"
+              :subtitle="`${pendingUnitsCount} unidade(s) aguardando aprovaÃ§Ã£o`"
               title="Unidades de Medida"
               to="/admin/units"
             />
@@ -176,7 +176,7 @@
               v-if="pendingExpenseNaturesCount > 0"
               :prepend-icon="getIcon('/admin/expense-natures')"
               rounded="lg"
-              :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovação`"
+              :subtitle="`${pendingExpenseNaturesCount} natureza(s) aguardando aprovaÃ§Ã£o`"
               title="Naturezas de Despesa"
               to="/admin/expense-natures"
             />
@@ -184,7 +184,7 @@
               v-if="pendingProductClassesCount > 0"
               :prepend-icon="getIcon('/admin/product-classes')"
               rounded="lg"
-              :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovação`"
+              :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovaÃ§Ã£o`"
               title="Classes de Produtos"
               to="/admin/product-classes"
             />
@@ -200,7 +200,7 @@
         </v-card>
       </v-menu>
 
-      <!-- Menu do usuário (mobile/alternativo) -->
+      <!-- Menu do usuÃ¡rio (mobile/alternativo) -->
       <v-menu v-if="user">
         <template #activator="{ props }">
           <v-btn
@@ -225,7 +225,7 @@
                 </v-avatar>
               </template>
               <v-list-item-title class="font-weight-semibold">
-                {{ profile?.name || 'Usuário' }}
+                {{ profile?.name || 'UsuÃ¡rio' }}
               </v-list-item-title>
               <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
               <v-list-item-subtitle v-if="profile?.role" class="mt-1">
@@ -242,7 +242,7 @@
             </v-list-item>
             <v-list-item
               color="error"
-              prepend-icon="mdi-logout"
+              prepend-icon="logout"
               rounded="lg"
               title="Sair"
               @click="signOut"

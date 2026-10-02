@@ -1,4 +1,8 @@
-export const iconMap = {
+import fs from 'fs';
+import path from 'path';
+
+// Import iconMap logic directly (since we can't easily import TS)
+const iconMap = {
   finances: 'mdi-cash-multiple',
   time: 'mdi-clock-outline',
   success: 'mdi-check-circle-outline',
@@ -62,6 +66,50 @@ export const iconMap = {
   arrowRightBold: 'mdi-arrow-right-bold',
   chevronDown: 'mdi-chevron-down',
   chevronUp: 'mdi-chevron-up',
-} as const satisfies Record<string, string>
+};
 
-export type IconName = keyof typeof iconMap
+const reverseIconMap = Object.fromEntries(
+  Object.entries(iconMap).map(([k, v]) => [v, k])
+);
+
+function processFile(filePath) {
+  let content = fs.readFileSync(filePath, 'utf-8');
+  let originalContent = content;
+
+  // Replace mdi-* string occurrences with their mapped keys
+  // This looks for "mdi-something" or 'mdi-something'
+  content = content.replace(/(['"])(mdi-[a-z0-9-]+)\1/g, (match, quote, mdiClass) => {
+    const name = reverseIconMap[mdiClass];
+    if (name) {
+      return `${quote}${name}${quote}`;
+    }
+    return match;
+  });
+
+  if (originalContent !== content) {
+    fs.writeFileSync(filePath, content, 'utf-8');
+    console.log(`Updated Data in: ${filePath}`);
+  }
+}
+
+function processDirectory(dir) {
+  if (!fs.existsSync(dir)) return;
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    if (fs.statSync(fullPath).isDirectory()) {
+      processDirectory(fullPath);
+    } else if (fullPath.endsWith('.ts') || fullPath.endsWith('.js') || fullPath.endsWith('.vue')) {
+      // Exclude the icons.ts file itself
+      if (!fullPath.replace(/\\/g, '/').endsWith('app/components/ui/icons.ts')) {
+        processFile(fullPath);
+      }
+    }
+  }
+}
+
+['pages', 'layouts', 'components', 'composables', 'utils', 'middleware'].forEach(subDir => {
+  processDirectory(path.join(process.cwd(), 'app', subDir));
+});
+
+console.log('Global replacement complete.');

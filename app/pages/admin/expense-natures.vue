@@ -259,7 +259,7 @@
             density="compact"
             hide-details
             label="Buscar..."
-            prepend-inner-icon="mdi-magnify"
+            prepend-inner-icon="search"
             rounded="lg"
             style="max-width: 260px"
             variant="outlined"
@@ -268,13 +268,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="pending"
             size="small"
             variant="tonal"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
+          <UiButton color="primary" prepend-icon="add" @click="openAddModal"
             >Nova Natureza</UiButton
           >
         </template>
@@ -308,14 +308,14 @@
             <UiButton
               class="mr-1"
               color="primary"
-              icon="mdi-pencil-outline"
+              icon="editOutline"
               size="small"
               variant="text"
               @click="openEditModal(item)"
             />
             <UiButton
               color="error"
-              icon="mdi-delete-outline"
+              icon="deleteOutline"
               size="small"
               variant="text"
               @click="deleteNature(item.id)"
@@ -343,7 +343,7 @@
             border="start"
             color="warning"
             density="compact"
-            icon="mdi-clock-alert-outline"
+            icon="clockAlert"
             rounded="xl"
             :title="`${pendingNatures.length} natureza(s) aguardando revisão`"
             variant="tonal"

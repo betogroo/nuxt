@@ -1,3 +1,5 @@
+﻿import { iconMap } from './app/components/ui/icons'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devServer: {
@@ -26,6 +28,11 @@ export default defineNuxtConfig({
   },
   vuetify: {
     vuetifyOptions: {
+      icons: {
+        defaultSet: 'mdi',
+        // @ts-expect-error - 'aliases' is valid in Vuetify 3 but missing in module types
+        aliases: iconMap,
+      },
       theme: {
         defaultTheme: 'light',
         themes: {

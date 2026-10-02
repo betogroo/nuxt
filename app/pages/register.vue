@@ -46,11 +46,11 @@
 
     <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
 
-    <UiInput v-model="email" label="E-mail" prepend-inner-icon="mdi-email-outline" type="email" />
+    <UiInput v-model="email" label="E-mail" prepend-inner-icon="emailAlt" type="email" />
     <UiInput
       v-model="password"
       label="Senha"
-      prepend-inner-icon="mdi-lock-outline"
+      prepend-inner-icon="security"
       type="password"
       @keyup.enter="signUp"
     />

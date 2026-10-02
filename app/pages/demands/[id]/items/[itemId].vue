@@ -223,7 +223,7 @@
 <template>
   <v-container>
     <div class="mb-4 d-flex align-center">
-      <UiButton icon="mdi-arrow-left" variant="text" @click="router.push(`/demands/${demandId}`)" />
+      <UiButton icon="arrowLeft" variant="text" @click="router.push(`/demands/${demandId}`)" />
       <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
     </div>
 
@@ -236,7 +236,7 @@
               <UiButton
                 class="ml-1"
                 color="primary"
-                icon="mdi-open-in-new"
+                icon="externalLink"
                 size="small"
                 title="Ver Cadastro Original do Produto"
                 :to="`/products/${item.product?.id}`"
@@ -252,7 +252,7 @@
               <UiButton
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
                 color="primary"
-                icon="mdi-pencil"
+                icon="edit"
                 size="small"
                 @click="openEditModal"
               />
@@ -272,7 +272,7 @@
                 <UiButton
                   v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
                   color="primary"
-                  prepend-icon="mdi-plus"
+                  prepend-icon="add"
                   size="small"
                   @click="openBidModal"
                 >
@@ -329,7 +329,7 @@
                 <UiButton
                   v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
                   color="error"
-                  icon="mdi-delete"
+                  icon="delete"
                   size="small"
                   title="Remover Lance"
                   variant="text"

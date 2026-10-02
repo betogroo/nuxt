@@ -271,7 +271,7 @@
             border="start"
             color="warning"
             density="compact"
-            icon="mdi-alert-circle-outline"
+            icon="alert"
             rounded="xl"
             :title="`${pendingUnits.length} unidade(s) pendente(s) de revisão`"
             variant="tonal"
@@ -312,15 +312,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="unitsPending"
             size="small"
             variant="tonal"
             @click="refreshUnits"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal"
-            >Nova Unidade</UiButton
-          >
+          <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Unidade</UiButton>
         </template>
 
         <UiTable
@@ -359,7 +357,7 @@
           <template #item-actions="{ item }">
             <UiButton
               color="primary"
-              icon="mdi-pencil-outline"
+              icon="editOutline"
               size="small"
               variant="text"
               @click="openEditModal(item)"
@@ -379,13 +377,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="aliasesPending"
             size="small"
             variant="tonal"
             @click="refreshAliases"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddAliasModal"
+          <UiButton color="primary" prepend-icon="add" @click="openAddAliasModal"
             >Novo Registro</UiButton
           >
         </template>
@@ -413,14 +411,14 @@
           <template #item-actions="{ item }">
             <UiButton
               color="primary"
-              icon="mdi-pencil-outline"
+              icon="editOutline"
               size="small"
               variant="text"
               @click="openEditAliasModal(item)"
             />
             <UiButton
               color="error"
-              icon="mdi-delete-outline"
+              icon="deleteOutline"
               size="small"
               variant="text"
               @click="removeAlias(item)"

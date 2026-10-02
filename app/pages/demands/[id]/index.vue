@@ -471,7 +471,7 @@
 
 <template>
   <v-container>
-    <UiButton class="mb-4" prepend-icon="mdi-arrow-left" variant="text" @click="router.back()">
+    <UiButton class="mb-4" prepend-icon="arrowLeft" variant="text" @click="router.back()">
       Voltar para Demandas
     </UiButton>
 
@@ -488,7 +488,7 @@
             v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
             class="mr-2"
             color="orange-darken-3"
-            prepend-icon="mdi-arrow-left-bold"
+            prepend-icon="arrowLeftBold"
             @click="openRevertModal"
           >
             Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
@@ -499,7 +499,7 @@
             :color="demand.is_return_requested ? 'grey' : 'warning'"
             :disabled="demand.is_return_requested || isReturnRequesting"
             :loading="isReturnRequesting"
-            prepend-icon="mdi-arrow-left-bold"
+            prepend-icon="arrowLeftBold"
             @click="requestReturn"
           >
             {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
@@ -514,7 +514,7 @@
                 <UiButton
                   color="success"
                   :disabled="isPlanningIncomplete"
-                  prepend-icon="mdi-arrow-right-bold"
+                  prepend-icon="arrowRightBold"
                   @click="openAdvanceModal"
                 >
                   Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
@@ -556,7 +556,7 @@
                 <UiButton
                   v-if="demand?.status === 'planning'"
                   color="primary"
-                  prepend-icon="mdi-pencil"
+                  prepend-icon="edit"
                   size="small"
                   variant="text"
                   @click="openEditPlanning"
@@ -667,7 +667,7 @@
             <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
             <v-spacer />
             <UiButton
-              icon="mdi-plus"
+              icon="add"
               size="x-small"
               variant="text"
               @click="isResponsibleModalOpen = true"
@@ -691,7 +691,7 @@
                 <UiButton
                   v-if="profile?.role === 'admin'"
                   color="error"
-                  icon="mdi-close"
+                  icon="close"
                   size="x-small"
                   variant="text"
                   @click="removeResponsible(resp?.user_id || '')"
@@ -716,7 +716,7 @@
         <UiButton
           v-if="demand?.status === 'quotation'"
           color="primary"
-          prepend-icon="mdi-plus"
+          prepend-icon="add"
           @click="openAddModal"
         >
           Adicionar Produto
@@ -756,7 +756,7 @@
             <v-btn
               density="compact"
               :disabled="index === 0 || isReordering"
-              icon="mdi-chevron-up"
+              icon="chevronUp"
               size="x-small"
               variant="text"
               @click.stop="moveItemUp(index)"
@@ -764,7 +764,7 @@
             <v-btn
               density="compact"
               :disabled="index === (items?.length || 0) - 1 || isReordering"
-              icon="mdi-chevron-down"
+              icon="chevronDown"
               size="x-small"
               variant="text"
               @click.stop="moveItemDown(index)"
@@ -790,7 +790,7 @@
           <UiButton
             class="ml-1"
             color="grey"
-            icon="mdi-open-in-new"
+            icon="externalLink"
             size="x-small"
             title="Cadastro do Produto"
             :to="`/products/${item.product_id}`"
@@ -874,7 +874,7 @@
           <UiButton
             v-if="demand?.status === 'quotation'"
             color="error"
-            icon="mdi-delete"
+            icon="delete"
             size="small"
             title="Remover"
             variant="text"
@@ -1015,7 +1015,7 @@
         <div class="d-flex justify-end mt-1 mb-2">
           <UiButton
             color="primary"
-            prepend-icon="mdi-plus"
+            prepend-icon="add"
             size="small"
             variant="text"
             @click="activateNewProductMode"

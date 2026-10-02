@@ -111,7 +111,7 @@
             border="start"
             color="warning"
             density="compact"
-            icon="mdi-clipboard-text-clock-outline"
+            icon="clipboardClock"
             rounded="xl"
             title="Tarefas Pendentes de Revisão"
             variant="tonal"

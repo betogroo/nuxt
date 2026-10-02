@@ -135,7 +135,7 @@
             density="compact"
             hide-details
             label="Buscar..."
-            prepend-inner-icon="mdi-magnify"
+            prepend-inner-icon="search"
             rounded="lg"
             style="min-width: 200px; max-width: 260px"
             variant="outlined"
@@ -157,13 +157,13 @@
           <UiButton
             class="mr-2"
             color="secondary"
-            icon="mdi-refresh"
+            icon="refresh"
             :loading="pending"
             size="small"
             variant="tonal"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="mdi-plus" @click="modal.open()">
+          <UiButton color="primary" prepend-icon="add" @click="modal.open()">
             Nova Demanda
           </UiButton>
         </div>
@@ -236,7 +236,7 @@
         <template #item-actions="{ item }">
           <UiButton
             color="primary"
-            icon="mdi-arrow-right"
+            icon="next"
             size="small"
             :to="`/demands/${item.id}`"
             variant="text"
@@ -244,7 +244,7 @@
           <UiButton
             v-if="canEdit(item)"
             color="default"
-            icon="mdi-pencil-outline"
+            icon="editOutline"
             size="small"
             variant="text"
             @click="modal.open(item)"
