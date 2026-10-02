@@ -483,7 +483,7 @@
           <UiChip color="primary" size="small" variant="flat">{{
             formatDemandStatus(demand.status)
           }}</UiChip>
-          <v-spacer />
+          <UiSpacer />
           <UiButton
             v-if="profile?.role === 'admin' && getPreviousStatus(demand.status)"
             class="mr-2"
@@ -552,7 +552,7 @@
               <div class="d-flex align-center w-100">
                 <UiIcon class="mr-2 text-primary" left name="document" />
                 <span class="text-subtitle-1 font-weight-bold">Dados do Planejamento</span>
-                <v-spacer />
+                <UiSpacer />
                 <UiButton
                   v-if="demand?.status === 'planning'"
                   color="primary"
@@ -665,7 +665,7 @@
         <v-col class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
             <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
-            <v-spacer />
+            <UiSpacer />
             <UiButton
               icon="add"
               size="x-small"
@@ -712,7 +712,7 @@
     <UiCard transparent-header>
       <template #header>
         Produtos na Demanda
-        <v-spacer />
+        <UiSpacer />
         <UiButton
           v-if="demand?.status === 'quotation'"
           color="primary"

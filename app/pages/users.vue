@@ -180,7 +180,7 @@
         <UiChip class="ml-2" color="primary" label size="x-small" variant="tonal">
           {{ filteredActiveUsers.length }}
         </UiChip>
-        <v-spacer />
+        <UiSpacer />
         <!-- Busca inline -->
         <v-text-field
           v-model="searchQuery"
@@ -364,7 +364,7 @@
             <div class="text-subtitle-2 font-weight-bold">{{ editingUser.name || 'Usuário' }}</div>
           </div>
         </div>
-        <v-spacer />
+        <UiSpacer />
         <v-btn density="compact" icon="close" variant="text" @click="closeEditModal" />
       </template>
 

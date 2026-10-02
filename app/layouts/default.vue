@@ -144,7 +144,7 @@
         <v-app-bar-nav-icon @click="drawer = !drawer" />
       </template>
 
-      <v-spacer />
+      <UiSpacer />
 
       <ThemeToggle />
 

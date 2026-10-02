@@ -237,7 +237,7 @@
             <template #header>
               <UiIcon class="mr-2" color="primary" name="history" />
               Atividade Recente
-              <v-spacer />
+              <UiSpacer />
               <UiButton color="primary" size="small" to="/logs" variant="text">
                 Ver todos
                 <UiIcon end name="next" size="16" />

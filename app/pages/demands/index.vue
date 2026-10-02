@@ -126,7 +126,7 @@
         <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
           {{ totalItems }}
         </UiChip>
-        <v-spacer />
+        <UiSpacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
           <v-text-field

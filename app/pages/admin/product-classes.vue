@@ -251,7 +251,7 @@
           <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
             {{ totalItems }}
           </UiChip>
-          <v-spacer />
+          <UiSpacer />
           <v-text-field
             v-model="searchQuery"
             clearable
@@ -343,7 +343,7 @@
         <template #header>
           <UiIcon class="mr-2" color="warning" name="time" />
           Classes Sugeridas por Usuários
-          <v-spacer />
+          <UiSpacer />
           <UiButton
             color="secondary"
             icon="refresh"

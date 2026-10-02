@@ -308,7 +308,7 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="balance" />
           Unidades de Medida Oficiais
-          <v-spacer />
+          <UiSpacer />
           <UiButton
             class="mr-2"
             color="secondary"
@@ -373,7 +373,7 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="categories" />
           Todos os Registros Alternativos
-          <v-spacer />
+          <UiSpacer />
           <UiButton
             class="mr-2"
             color="secondary"

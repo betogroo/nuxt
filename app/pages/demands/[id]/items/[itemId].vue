@@ -246,7 +246,7 @@
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
               </UiChip>
             </div>
-            <v-spacer />
+            <UiSpacer />
             <div class="d-flex align-center">
               <UiChip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</UiChip>
               <UiButton

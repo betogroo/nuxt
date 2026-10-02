@@ -112,7 +112,7 @@
         <UiChip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
           {{ demands.length }}
         </UiChip>
-        <v-spacer />
+        <UiSpacer />
         <UiButton
           class="mr-2"
           color="secondary"

@@ -178,7 +178,7 @@
         <UiCard>
           <template #header>
             <span class="text-subtitle-1 font-weight-bold">Lista de Fornecedores</span>
-            <v-spacer />
+            <UiSpacer />
             <UiButton
               class="mr-2"
               color="secondary"

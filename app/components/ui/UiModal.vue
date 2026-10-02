@@ -28,7 +28,7 @@
             title
           }}</span>
         </template>
-        <v-spacer />
+        <UiSpacer />
         <v-btn density="compact" icon="close" variant="text" @click="modelValue = false" />
       </template>
 

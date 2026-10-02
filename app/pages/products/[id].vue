@@ -108,7 +108,7 @@
             <template #header>
               <UiIcon class="mr-2" color="primary" name="product" />
               <span class="text-subtitle-1 font-weight-bold">{{ product.name }}</span>
-              <v-spacer />
+              <UiSpacer />
               <UiChip
                 :color="product.is_active ? 'success' : 'error'"
                 label
