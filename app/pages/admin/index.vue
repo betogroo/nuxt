@@ -133,7 +133,7 @@
                 </UiButton>
               </div>
 
-              <v-divider
+              <UiDivider
                 v-if="
                   pendingUnitsCount > 0 &&
                   (pendingExpenseNaturesCount > 0 ||
@@ -161,7 +161,7 @@
                 </UiButton>
               </div>
 
-              <v-divider
+              <UiDivider
                 v-if="
                   pendingExpenseNaturesCount > 0 &&
                   (pendingProductClassesCount > 0 || metrics.pendingReturnDemands.length > 0)
@@ -187,7 +187,7 @@
                 </UiButton>
               </div>
 
-              <v-divider
+              <UiDivider
                 v-if="pendingProductClassesCount > 0 && metrics.pendingReturnDemands.length > 0"
               />
 

@@ -153,7 +153,7 @@
             style="min-width: 180px; max-width: 220px"
             variant="outlined"
           />
-          <v-divider class="mx-2" vertical />
+          <UiDivider class="mx-2" vertical />
           <UiButton
             class="mr-2"
             color="secondary"

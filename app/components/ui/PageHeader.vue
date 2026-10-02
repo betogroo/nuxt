@@ -17,6 +17,6 @@
         <slot name="actions" />
       </div>
     </div>
-    <v-divider class="mt-4" />
+    <UiDivider class="mt-4" />
   </div>
 </template>

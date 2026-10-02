@@ -75,7 +75,7 @@
         </div>
       </div>
 
-      <v-divider class="mb-2" />
+      <UiDivider class="mb-2" />
 
       <!-- Navegação principal: gerada automaticamente por definePageMeta -->
       <v-list class="px-3" density="compact" nav>
@@ -104,7 +104,7 @@
 
       <!-- Rodapé do Drawer: perfil do usuário -->
       <template #append>
-        <v-divider />
+        <UiDivider />
         <div v-if="user" class="pa-3">
           <v-list density="compact" nav>
             <UiListItem
@@ -233,7 +233,7 @@
               </v-list-item-subtitle>
             </UiListItem>
           </v-list>
-          <v-divider />
+          <UiDivider />
           <v-list density="compact" nav>
             <UiListItem
               :prepend-icon="getIcon('/profile')"

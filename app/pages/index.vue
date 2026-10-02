@@ -35,7 +35,7 @@
         {{ greeting }}, {{ firstName }}! 👋
       </h1>
       <p class="text-body-2 text-medium-emphasis mt-1">Selecione um módulo abaixo para começar.</p>
-      <v-divider class="mt-4" />
+      <UiDivider class="mt-4" />
     </div>
 
     <v-row>

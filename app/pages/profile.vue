@@ -130,7 +130,7 @@
             />
 
             <!-- Campos Somente Leitura -->
-            <v-divider class="my-5" />
+            <UiDivider class="my-5" />
             <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase mb-3">
               Informações da Conta (somente leitura)
             </div>

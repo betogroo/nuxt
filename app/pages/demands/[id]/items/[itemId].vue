@@ -384,7 +384,7 @@
                 }}
               </v-list-item-subtitle>
             </v-list-item>
-            <v-divider class="my-2" />
+            <UiDivider class="my-2" />
             <v-list-item>
               <template #prepend>
                 <UiIcon color="grey" name="identifier" />

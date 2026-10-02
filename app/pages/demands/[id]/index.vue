@@ -539,7 +539,7 @@
             >
               {{ formatDemandStatus(step) }}
             </v-stepper-item>
-            <v-divider v-if="i < statusList.length - 1" />
+            <UiDivider v-if="i < statusList.length - 1" />
           </template>
         </v-stepper-header>
       </v-stepper>

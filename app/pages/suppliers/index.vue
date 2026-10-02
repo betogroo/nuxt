@@ -209,7 +209,7 @@
             </v-row>
           </div>
 
-          <v-divider />
+          <UiDivider />
 
           <UiTable
             :headers="[
@@ -403,7 +403,7 @@
         </div>
       </v-card-text>
 
-      <v-divider />
+      <UiDivider />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>

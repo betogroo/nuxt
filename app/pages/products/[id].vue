@@ -145,7 +145,7 @@
                 </v-row>
               </div>
 
-              <v-divider />
+              <UiDivider />
 
               <!-- Apresentações (Unidades) -->
               <div>
@@ -215,7 +215,7 @@
                 </div>
               </div>
 
-              <v-divider />
+              <UiDivider />
 
               <!-- Metadados -->
               <div>

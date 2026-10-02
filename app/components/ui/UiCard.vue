@@ -22,7 +22,7 @@
       </slot>
     </v-card-title>
 
-    <v-divider v-if="(title || $slots.header) && !transparentHeader" />
+    <UiDivider v-if="(title || $slots.header) && !transparentHeader" />
 
     <!-- Body -->
     <v-card-text class="pa-5">
@@ -31,7 +31,7 @@
 
     <!-- Footer/Actions -->
     <template v-if="$slots.actions">
-      <v-divider />
+      <UiDivider />
       <v-card-actions class="px-5 py-3 justify-end">
         <slot name="actions" />
       </v-card-actions>
