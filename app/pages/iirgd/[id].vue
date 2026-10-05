@@ -160,9 +160,12 @@
                     <UiRow dense>
                       <UiCol cols="12" sm="6">
                         <div class="text-caption text-medium-emphasis">Nome Completo</div>
-                        <div class="text-body-1 font-weight-medium">
+                        <NuxtLink
+                          class="text-body-1 font-weight-medium text-decoration-none text-primary"
+                          :to="`/iirgd/citizens/${demand.citizen_id}`"
+                        >
                           {{ demand.iirgd_citizens?.name }}
-                        </div>
+                        </NuxtLink>
                       </UiCol>
                     </UiRow>
 

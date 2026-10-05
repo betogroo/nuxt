@@ -1,0 +1,55 @@
+import type { IirgdDemand } from './useIirgdDemands'
+
+export interface IirgdCitizenWithDemands {
+  id: string
+  name: string
+  rg: string | null
+  cpf: string | null
+  created_at: string
+  updated_at: string
+  iirgd_demands: IirgdDemand[]
+}
+
+export const useIirgdCitizens = () => {
+  const supabase = useSupabaseClient()
+
+  const fetchCitizens = async () => {
+    const { data, error } = await supabase
+      .from('iirgd_citizens')
+      .select('*')
+      .order('name', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar lista de cidadãos do IIRGD')
+    }
+    return data
+  }
+
+  const fetchCitizenById = async (id: string): Promise<IirgdCitizenWithDemands> => {
+    const { data, error } = await supabase
+      .from('iirgd_citizens')
+      .select('*, iirgd_demands(*)')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar os detalhes do cidadão do IIRGD')
+    }
+
+    // Sort demands from newest to oldest
+    if (data && Array.isArray(data.iirgd_demands)) {
+      data.iirgd_demands.sort((a: IirgdDemand, b: IirgdDemand) => {
+        return new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime()
+      })
+    }
+
+    return data as IirgdCitizenWithDemands
+  }
+
+  return {
+    fetchCitizens,
+    fetchCitizenById,
+  }
+}
