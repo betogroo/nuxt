@@ -1,4 +1,3 @@
-import { ROLES } from '~/constants/roles'
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
   import type { ProfileRow } from '~/composables/useUsers'

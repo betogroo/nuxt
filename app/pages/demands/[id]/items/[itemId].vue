@@ -35,8 +35,9 @@
     bid_interval: 3 as number,
     bid_interval_type: 'percentage' as 'percentage' | 'monetary',
   })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const availableUnits = ref<any[]>([])
+  const availableUnits = ref<
+    Array<{ id: string; name: string; displayName?: string; legacy_alias?: string | null }>
+  >([])
 
   const openEditModal = async () => {
     if (!item.value) return
@@ -439,7 +440,7 @@
         />
       </div>
 
-      <MeasurementUnitSelect v-model="editForm.unitSearch" class="mb-4" />
+      <MeasurementUnitSelect v-model="editForm.unitSearch" class="mb-4" :items="availableUnits" />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>

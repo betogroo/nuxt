@@ -74,7 +74,8 @@ export const useAuth = () => {
       await logAction('LOGOUT', 'Usuário fez logoff do sistema.', user.value.id)
     }
     await supabase.auth.signOut()
-    await navigateTo(redirectTo)
+    const target = typeof redirectTo === 'string' && redirectTo ? redirectTo : '/login'
+    await navigateTo(target)
   }
 
   return {

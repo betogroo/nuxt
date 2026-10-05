@@ -6,6 +6,10 @@
   const { profile, fetchProfile } = useProfile()
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
 
+  const handleSignOut = async () => {
+    await signOut('/login')
+  }
+
   // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
   watchEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +120,7 @@
                       density="compact"
                       icon="logout"
                       variant="text"
-                      @click.prevent="signOut"
+                      @click.prevent="handleSignOut"
                     />
                   </template>
                 </UiTooltip>
@@ -245,7 +249,7 @@
               prepend-icon="logout"
               rounded="lg"
               title="Sair"
-              @click="signOut"
+              @click="handleSignOut"
             />
           </UiList>
         </UiCard>

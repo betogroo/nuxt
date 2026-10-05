@@ -3,9 +3,16 @@ import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemsPage from '~/pages/demands/[id]/index.vue'
 
-mockNuxtImport('useAsyncData', () =>
-  vi.fn().mockReturnValue({ data: { value: [] }, pending: { value: false }, refresh: vi.fn() }),
-)
+const { mockProductsList } = vi.hoisted(() => ({
+  mockProductsList: { value: [] as unknown[] },
+}))
+
+mockNuxtImport('useAsyncData', () => (key: string) => {
+  if (key === 'all-active-products') {
+    return { data: mockProductsList, pending: { value: false }, refresh: vi.fn() }
+  }
+  return { data: { value: [] }, pending: { value: false }, refresh: vi.fn() }
+})
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAliases: vi.fn().mockResolvedValue([]),
@@ -87,6 +94,40 @@ describe('Demand Items Page', () => {
     expect(vm.selectedUnitSearch).toBe('')
     expect(vm.selectedProductId).toBe(null)
   })
+  it('should extract available product units and pre-select first unit when product is selected', async () => {
+    mockProductsList.value = [
+      {
+        id: 'prod-abc',
+        name: 'Caneta Esferográfica',
+        product_units: [
+          {
+            unit_id: 'unit-cx',
+            measurement_units: { id: 'unit-cx', name: 'Caixa com 50', legacy_alias: 'CX' },
+          },
+          {
+            unit_id: 'unit-un',
+            measurement_units: { id: 'unit-un', name: 'Unidade', legacy_alias: null },
+          },
+        ],
+      },
+    ]
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // Select the product
+    vm.selectedProductId = 'prod-abc'
+    await wrapper.vm.$nextTick()
+
+    // Verify units belonging to the product are correctly extracted
+    expect(vm.availableUnitsForSelectedProduct).toHaveLength(2)
+    expect(vm.availableUnitsForSelectedProduct[0].name).toBe('Caixa com 50')
+
+    // Verify first unit was auto pre-selected
+    expect(vm.selectedUnitSearch).toBe('Caixa com 50')
+  })
+
   it('should render successfully with shallowMount', () => {
     const wrapper = shallowMount(DemandItemsPage)
     expect(wrapper.exists()).toBe(true)

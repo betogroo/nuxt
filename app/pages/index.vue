@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   definePageMeta({
     icon: 'home',
     navLabel: 'Início',
@@ -32,7 +32,7 @@
   <div>
     <div class="mb-8">
       <h1 class="text-h5 font-weight-bold text-high-emphasis">
-        {{ greeting }}, {{ firstName }}! 👋
+        {{ greeting }}{{ firstName ? `, ${firstName}` : '' }}! 👋
       </h1>
       <p class="text-body-2 text-medium-emphasis mt-1">Selecione um módulo abaixo para começar.</p>
       <UiDivider class="mt-4" />

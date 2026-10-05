@@ -112,7 +112,6 @@
   // Form states
   const selectedProductId = ref<string | null>(null)
   const selectedUnitSearch = ref('')
-  const selectedAliasId = ref<string | null>(null)
   const itemQuantity = ref<number>(1)
   const itemReferencePrice = ref<number | null>(null)
   const searchProductText = ref('')
@@ -137,20 +136,23 @@
   })
 
   const availableUnitsForSelectedProduct = computed(() => {
-    //
-    return selectedProductObj.value?.product_units?.map((pu) => pu.measurement_units) || []
+    return (
+      selectedProductObj.value?.product_units
+        ?.map((pu) => pu.measurement_units)
+        .filter((u): u is NonNullable<typeof u> => Boolean(u)) || []
+    )
   })
 
   // Whenever a product is selected, auto-select the first unit if available
   watch(selectedProductId, (newVal) => {
     if (newVal) {
       if (availableUnitsForSelectedProduct.value.length > 0) {
-        selectedAliasId.value = null // Reset on product change
+        selectedUnitSearch.value = availableUnitsForSelectedProduct.value[0]?.name || ''
       } else {
-        selectedAliasId.value = null
+        selectedUnitSearch.value = ''
       }
     } else {
-      selectedAliasId.value = null
+      selectedUnitSearch.value = ''
     }
   })
 
@@ -243,9 +245,17 @@
     productName: '',
     quantity: 1,
     reference_price: null as number | null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    unit_id: null as any,
+    unit_id: null as string | null,
     searchUnitText: '',
+  })
+
+  const editItemAvailableUnits = computed(() => {
+    const prod = allProducts.value?.find((p) => p.id === editItemForm.value.productId)
+    return (
+      prod?.product_units
+        ?.map((pu) => pu.measurement_units)
+        .filter((u): u is NonNullable<typeof u> => Boolean(u)) || []
+    )
   })
 
   const openEditItemModal = (item: {
@@ -785,7 +795,11 @@
 
       <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
 
-      <MeasurementUnitSelect v-model="editItemForm.searchUnitText" class="mt-3" />
+      <MeasurementUnitSelect
+        v-model="editItemForm.searchUnitText"
+        class="mt-3"
+        :items="editItemAvailableUnits"
+      />
 
       <UiInput
         v-model.number="editItemForm.reference_price"
@@ -855,7 +869,12 @@
           </UiButton>
         </div>
 
-        <MeasurementUnitSelect v-if="selectedProductId" v-model="selectedUnitSearch" class="mt-3" />
+        <MeasurementUnitSelect
+          v-if="selectedProductId"
+          v-model="selectedUnitSearch"
+          class="mt-3"
+          :items="availableUnitsForSelectedProduct"
+        />
 
         <UiInput
           v-if="selectedProductId"

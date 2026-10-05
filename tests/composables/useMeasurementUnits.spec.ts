@@ -92,4 +92,61 @@ describe('useMeasurementUnits', () => {
       'user-123',
     )
   })
+
+  it('resolveOrCreateUnit should return existing unit id if found', async () => {
+    const { resolveOrCreateUnit } = useMeasurementUnits()
+    const mockMaybeSingle = vi.fn().mockResolvedValue({ data: { id: 'existing-unit-id' } })
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        ilike: vi.fn().mockReturnValue({
+          maybeSingle: mockMaybeSingle,
+        }),
+      }),
+    })
+
+    const unitId = await resolveOrCreateUnit('Caixa')
+    expect(unitId).toBe('existing-unit-id')
+  })
+
+  it('resolveOrCreateUnit should insert a new pending unit with is_pending: true and is_active: false if not found', async () => {
+    const { resolveOrCreateUnit } = useMeasurementUnits()
+    const mockMaybeSingle = vi.fn().mockResolvedValue({ data: null })
+    const mockInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: { id: 'brand-new-unit-id' }, error: null }),
+      }),
+    })
+
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        ilike: vi.fn().mockReturnValue({
+          maybeSingle: mockMaybeSingle,
+        }),
+      }),
+      insert: mockInsert,
+    })
+
+    const unitId = await resolveOrCreateUnit('Nova Caixa Especial')
+    expect(mockInsert).toHaveBeenCalledWith({
+      name: 'Nova Caixa Especial',
+      is_pending: true,
+      is_active: false,
+    })
+    expect(unitId).toBe('brand-new-unit-id')
+  })
+
+  it('resolveOrCreateUnit should fallback to Unidade when search string is empty', async () => {
+    const { resolveOrCreateUnit } = useMeasurementUnits()
+    const mockMaybeSingle = vi.fn().mockResolvedValue({ data: { id: 'default-unidade-id' } })
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          maybeSingle: mockMaybeSingle,
+        }),
+      }),
+    })
+
+    const unitId = await resolveOrCreateUnit('')
+    expect(unitId).toBe('default-unidade-id')
+  })
 })
