@@ -288,7 +288,7 @@ export type Database = {
           id: string
           observation: string | null
           station_code: string
-          status: string
+          status: Database['public']['Enums']['iirgd_demand_status']
           updated_at: string | null
         }
         Insert: {
@@ -298,7 +298,7 @@ export type Database = {
           id?: string
           observation?: string | null
           station_code: string
-          status?: string
+          status?: Database['public']['Enums']['iirgd_demand_status']
           updated_at?: string | null
         }
         Update: {
@@ -308,7 +308,7 @@ export type Database = {
           id?: string
           observation?: string | null
           station_code?: string
-          status?: string
+          status?: Database['public']['Enums']['iirgd_demand_status']
           updated_at?: string | null
         }
         Relationships: [
@@ -643,6 +643,18 @@ export type Database = {
         | 'cancelled'
       demand_type: 'consumption' | 'permanent'
       user_role: 'user' | 'admin' | 'iirgd' | 'uge'
+      iirgd_demand_status:
+        | 'new'
+        | 'confronted'
+        | 'released'
+        | 'issued'
+        | 'mailbag'
+        | 'cegaf'
+        | 'no_data'
+        | 'other_pending'
+        | 'protocol_cancelled'
+        | 'awaiting_collection'
+        | 'confrontation_failed'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -775,6 +787,19 @@ export const Constants = {
       ],
       demand_type: ['consumption', 'permanent'],
       user_role: ['user', 'admin', 'iirgd', 'uge'],
+      iirgd_demand_status: [
+        'new',
+        'confronted',
+        'released',
+        'issued',
+        'mailbag',
+        'cegaf',
+        'no_data',
+        'other_pending',
+        'protocol_cancelled',
+        'awaiting_collection',
+        'confrontation_failed',
+      ],
     },
   },
 } as const

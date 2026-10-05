@@ -1,5 +1,11 @@
 <script setup lang="ts">
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import {
+    IIRGD_STATUS_LABELS,
+    IIRGD_STATUS_COLORS,
+    IIRGD_STATUS_GROUPS,
+    type IirgdDemandStatus,
+  } from '~/constants/iirgd-status'
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
@@ -39,16 +45,24 @@
   const editError = ref('')
 
   const editPayload = ref({
-    status: '',
+    status: 'new' as IirgdDemandStatus,
     observation: '',
   })
 
-  const statusOptions = ['Novo', 'Em Andamento', 'Pendente', 'Concluído', 'Cancelado']
+  // Achatar os grupos para o UiSelect formatando com o nome do grupo
+  const statusOptions = computed(() => {
+    return IIRGD_STATUS_GROUPS.flatMap((group) =>
+      group.options.map((opt) => ({
+        title: `${IIRGD_STATUS_LABELS[opt]} (${group.label})`,
+        value: opt,
+      })),
+    )
+  })
 
   const openEditModal = () => {
     if (demand.value) {
       editPayload.value = {
-        status: demand.value.status || 'Novo',
+        status: (demand.value.status as IirgdDemandStatus) || 'new',
         observation: demand.value.observation || '',
       }
       editError.value = ''
@@ -64,6 +78,10 @@
     try {
       isSaving.value = true
       editError.value = ''
+
+      if (editPayload.value.status === 'other_pending' && !editPayload.value.observation.trim()) {
+        throw new Error('A observação é obrigatória para o status "Outra Pendência".')
+      }
 
       await updateDemand(demandId, {
         status: editPayload.value.status,
@@ -116,20 +134,16 @@
             </div>
             <UiSpacer />
             <UiChip
-              :color="
-                demand.status === 'Novo'
-                  ? 'info'
-                  : demand.status === 'Concluído'
-                    ? 'success'
-                    : demand.status === 'Cancelado'
-                      ? 'error'
-                      : 'warning'
-              "
+              :color="IIRGD_STATUS_COLORS[demand.status as IirgdDemandStatus] || 'default'"
               label
               size="default"
               variant="tonal"
             >
-              {{ demand.status || 'Não informado' }}
+              {{
+                IIRGD_STATUS_LABELS[demand.status as IirgdDemandStatus] ||
+                demand.status ||
+                'Não informado'
+              }}
             </UiChip>
           </div>
 
@@ -242,7 +256,13 @@
 
                   <div class="bg-surface-variant rounded-lg pa-4 mb-4">
                     <div class="text-caption text-medium-emphasis mb-1">Status Atual</div>
-                    <div class="text-body-1 font-weight-bold">{{ demand.status || 'Novo' }}</div>
+                    <div class="text-body-1 font-weight-bold">
+                      {{
+                        IIRGD_STATUS_LABELS[demand.status as IirgdDemandStatus] ||
+                        demand.status ||
+                        'Novo'
+                      }}
+                    </div>
                   </div>
 
                   <div class="bg-surface-variant rounded-lg pa-4">
@@ -288,20 +308,16 @@
               </template>
               <template #item-status="{ item }">
                 <UiChip
-                  :color="
-                    item.status === 'Novo'
-                      ? 'info'
-                      : item.status === 'Concluído'
-                        ? 'success'
-                        : item.status === 'Cancelado'
-                          ? 'error'
-                          : 'warning'
-                  "
+                  :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
                   label
                   size="small"
                   variant="tonal"
                 >
-                  {{ item.status || 'Não informado' }}
+                  {{
+                    IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] ||
+                    item.status ||
+                    'Não informado'
+                  }}
                 </UiChip>
               </template>
               <template #item-observation="{ item }">
@@ -355,6 +371,8 @@
         <UiCol cols="12">
           <UiSelect
             v-model="editPayload.status"
+            item-title="title"
+            item-value="value"
             :items="statusOptions"
             label="Status do Atendimento"
           />

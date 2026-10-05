@@ -42,10 +42,10 @@ describe('IIRGD Page', () => {
     const wrapper = shallowMount(IirgdPage)
     const vm = wrapper.vm as unknown as IirgdPageVm
 
-    expect(vm.modal.payload.status).toBe('Novo')
+    expect(vm.modal.payload.status).toBe('new')
 
     vm.openAddModal()
-    expect(vm.modal.payload.status).toBe('Novo')
+    expect(vm.modal.payload.status).toBe('new')
     expect(vm.modal.isOpen).toBe(true)
   })
 

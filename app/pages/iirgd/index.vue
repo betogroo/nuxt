@@ -1,5 +1,10 @@
 <script setup lang="ts">
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import {
+    IIRGD_STATUS_LABELS,
+    IIRGD_STATUS_COLORS,
+    type IirgdDemandStatus,
+  } from '~/constants/iirgd-status'
 
   definePageMeta({
     icon: 'userBadge',
@@ -34,7 +39,7 @@
       cpf: '',
       name: '',
       observation: '',
-      status: 'Novo',
+      status: 'new' as IirgdDemandStatus,
     },
   })
 
@@ -45,7 +50,7 @@
       cpf: '',
       name: '',
       observation: '',
-      status: 'Novo',
+      status: 'new' as IirgdDemandStatus,
     }
     modal.value.error = ''
     modal.value.isOpen = true
@@ -159,12 +164,12 @@
         </template>
         <template #item-status="{ item }">
           <UiChip
-            :color="item.status === 'Novo' ? 'info' : 'default'"
+            :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
             label
             size="small"
             variant="tonal"
           >
-            {{ item.status }}
+            {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
           </UiChip>
         </template>
         <template #item-created_at="{ item }">
