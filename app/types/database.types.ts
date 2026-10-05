@@ -1,31 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       demand_product_bids: {
@@ -57,18 +32,21 @@ export type Database = {
           {
             foreignKeyName: 'demand_product_bids_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_demand_product_id_fkey'
             columns: ['demand_product_id']
+            isOneToOne: false
             referencedRelation: 'demand_products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_supplier_id_fkey'
             columns: ['supplier_id']
+            isOneToOne: false
             referencedRelation: 'suppliers'
             referencedColumns: ['id']
           },
@@ -130,18 +108,21 @@ export type Database = {
           {
             foreignKeyName: 'demand_products_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_product_id_fkey'
             columns: ['product_id']
+            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -167,12 +148,14 @@ export type Database = {
           {
             foreignKeyName: 'demand_responsibles_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_responsibles_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -237,6 +220,7 @@ export type Database = {
           {
             foreignKeyName: 'demands_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -269,47 +253,76 @@ export type Database = {
         }
         Relationships: []
       }
+      iirgd_citizens: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          id: string
+          name: string
+          rg: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       iirgd_demands: {
         Row: {
-          cpf: string
+          citizen_id: string
           created_at: string | null
           created_by: string | null
           id: string
-          name: string
           observation: string | null
-          rg: string
           station_code: string
           status: string
           updated_at: string | null
         }
         Insert: {
-          cpf: string
+          citizen_id: string
           created_at?: string | null
           created_by?: string | null
           id?: string
-          name: string
           observation?: string | null
-          rg: string
           station_code: string
           status?: string
           updated_at?: string | null
         }
         Update: {
-          cpf?: string
+          citizen_id?: string
           created_at?: string | null
           created_by?: string | null
           id?: string
-          name?: string
           observation?: string | null
-          rg?: string
           station_code?: string
           status?: string
           updated_at?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: 'iirgd_demands_citizen_id_fkey'
+            columns: ['citizen_id']
+            isOneToOne: false
+            referencedRelation: 'iirgd_citizens'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'iirgd_demands_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -341,6 +354,7 @@ export type Database = {
           {
             foreignKeyName: 'logs_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -375,6 +389,7 @@ export type Database = {
           {
             foreignKeyName: 'measurement_unit_aliases_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -457,12 +472,14 @@ export type Database = {
           {
             foreignKeyName: 'product_units_product_id_fkey'
             columns: ['product_id']
+            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'product_units_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -503,12 +520,14 @@ export type Database = {
           {
             foreignKeyName: 'products_expense_nature_id_fkey'
             columns: ['expense_nature_id']
+            isOneToOne: false
             referencedRelation: 'expense_natures'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'products_product_class_id_fkey'
             columns: ['product_class_id']
+            isOneToOne: false
             referencedRelation: 'product_classes'
             referencedColumns: ['id']
           },
@@ -743,9 +762,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       demand_status: [

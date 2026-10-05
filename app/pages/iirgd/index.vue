@@ -77,12 +77,13 @@
       const p = modal.value.payload
 
       if (!p.station_code) throw new Error('O Código do Posto é obrigatório.')
-      if (!p.rg) throw new Error('O RG é obrigatório.')
-      if (!p.cpf) throw new Error('O CPF é obrigatório.')
       if (!p.name) throw new Error('O Nome é obrigatório.')
+      if (!p.rg && !p.cpf) throw new Error('É necessário informar pelo menos o RG ou o CPF.')
 
       // Ensure RG is padded one last time before saving
-      p.rg = padAndFormatRg(p.rg, true)
+      if (p.rg) {
+        p.rg = padAndFormatRg(p.rg, true)
+      }
 
       modal.value.isSaving = true
       await createDemand(p)
@@ -143,7 +144,18 @@
           </UiChip>
         </template>
         <template #item-name="{ item }">
-          <span class="font-weight-medium">{{ item.name }}</span>
+          <NuxtLink
+            class="text-decoration-none text-primary font-weight-bold"
+            :to="`/iirgd/${item.id}`"
+          >
+            {{ item.iirgd_citizens?.name || 'Desconhecido' }}
+          </NuxtLink>
+        </template>
+        <template #item-rg="{ item }">
+          {{ item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-' }}
+        </template>
+        <template #item-cpf="{ item }">
+          {{ item.iirgd_citizens?.cpf ? formatCpf(item.iirgd_citizens.cpf) : '-' }}
         </template>
         <template #item-status="{ item }">
           <UiChip
@@ -180,7 +192,7 @@
         </UiCol>
         <UiCol cols="12" sm="4">
           <UiInput
-            label="Número do RG *"
+            label="Número do RG"
             :model-value="modal.payload.rg"
             placeholder="00000000-0"
             @blur="onRgBlur"
@@ -189,7 +201,7 @@
         </UiCol>
         <UiCol cols="12" sm="4">
           <UiInput
-            label="CPF *"
+            label="CPF"
             :model-value="modal.payload.cpf"
             placeholder="000.000.000-00"
             @update:model-value="onCpfInput"
