@@ -19,6 +19,7 @@ const supabaseMock = {
 }
 
 mockNuxtImport('useSupabaseClient', () => () => supabaseMock)
+mockNuxtImport('useSupabaseUser', () => () => ({ value: { id: 'test-user-id' } }))
 
 const logActionMock = vi.fn()
 mockNuxtImport('useLogger', () => () => ({
@@ -73,7 +74,7 @@ describe('useIirgdDemands', () => {
         citizen_id: 'cit-123',
         station_code: '1342-5',
         observation: 'Obs',
-        status: 'Novo',
+        status: 'new',
       },
     ])
 

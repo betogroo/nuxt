@@ -1,3 +1,5 @@
+import type { IirgdDemandStatus } from '~/constants/iirgd-status'
+
 export interface IirgdCitizen {
   id?: string
   name: string
@@ -23,6 +25,7 @@ export const useIirgdDemands = () => {
   // Use 'any' temporarily or omit Database type if it gets complex, but we try to stick to strict typing.
   // We'll use useSupabaseClient without strict generics if the types aren't regenerated yet.
   const supabase = useSupabaseClient()
+  const user = useSupabaseUser()
   const { logAction } = useLogger()
 
   const fetchDemands = async () => {
@@ -69,7 +72,7 @@ export const useIirgdDemands = () => {
         .from('iirgd_demands')
         .select('id, status')
         .eq('citizen_id', citizenId)
-        .not('status', 'in', '("Concluído", "Cancelado")')
+        .not('status', 'in', '("issued", "protocol_cancelled", "confrontation_failed")')
 
       if (activeDemands && activeDemands.length > 0) {
         throw new Error('Este cidadão já possui uma solicitação em andamento.')
@@ -106,7 +109,7 @@ export const useIirgdDemands = () => {
           citizen_id: citizenId,
           station_code: payload.station_code,
           observation: payload.observation,
-          status: 'Novo',
+          status: 'new',
         },
       ])
       .select('*, iirgd_citizens(*)')
@@ -118,6 +121,16 @@ export const useIirgdDemands = () => {
     }
 
     if (data) {
+      // Registrar no histórico
+      await supabase.from('iirgd_demand_status_history').insert([
+        {
+          demand_id: data.id,
+          status: 'new',
+          observation: payload.observation,
+          created_by: user.value?.id || null,
+        },
+      ])
+
       await logAction(
         'CREATE_IIRGD_DEMAND',
         `Nova demanda IIRGD criada para ${payload.name} (Posto: ${payload.station_code})`,
@@ -155,6 +168,20 @@ export const useIirgdDemands = () => {
     return data
   }
 
+  const fetchDemandStatusHistory = async (demandId: string) => {
+    const { data, error } = await supabase
+      .from('iirgd_demand_status_history')
+      .select('*, profiles(name)')
+      .eq('demand_id', demandId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar histórico de status do IIRGD')
+    }
+    return data
+  }
+
   const updateDemand = async (id: string, updates: Partial<IirgdDemand>) => {
     const { data, error } = await supabase
       .from('iirgd_demands')
@@ -169,6 +196,17 @@ export const useIirgdDemands = () => {
     }
 
     if (data) {
+      if (updates.status) {
+        await supabase.from('iirgd_demand_status_history').insert([
+          {
+            demand_id: data.id,
+            status: updates.status as IirgdDemandStatus,
+            observation: updates.observation || null,
+            created_by: user.value?.id || null,
+          },
+        ])
+      }
+
       await logAction('UPDATE_IIRGD_DEMAND', `Demanda IIRGD atualizada: ID ${data.id}`)
     }
 
@@ -179,6 +217,7 @@ export const useIirgdDemands = () => {
     fetchDemands,
     fetchDemandById,
     fetchCitizenHistory,
+    fetchDemandStatusHistory,
     createDemand,
     updateDemand,
   }

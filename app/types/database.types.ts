@@ -328,6 +328,48 @@ export type Database = {
           },
         ]
       }
+      iirgd_demand_status_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          demand_id: string
+          id: string
+          observation: string | null
+          status: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          demand_id: string
+          id?: string
+          observation?: string | null
+          status: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          demand_id?: string
+          id?: string
+          observation?: string | null
+          status?: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'iirgd_demand_status_history_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'iirgd_demand_status_history_demand_id_fkey'
+            columns: ['demand_id']
+            isOneToOne: false
+            referencedRelation: 'iirgd_demands'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       logs: {
         Row: {
           action: string

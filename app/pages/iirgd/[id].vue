@@ -11,14 +11,15 @@
   const route = useRoute()
   const router = useRouter()
 
-  const { fetchDemandById, updateDemand } = useIirgdDemands()
+  const { fetchDemandById, updateDemand, fetchCitizenHistory, fetchDemandStatusHistory } =
+    useIirgdDemands()
 
   const demandId = route.params.id as string
 
   const {
     data: demand,
     pending,
-    refresh,
+    refresh: refreshDemand,
   } = useAsyncData(`iirgd-demand-${demandId}`, async () => {
     try {
       return await fetchDemandById(demandId)
@@ -38,6 +39,17 @@
     },
     { watch: [demand] },
   )
+
+  const { data: statusHistory, refresh: refreshStatusHistory } = useAsyncData(
+    `iirgd-status-history-${demandId}`,
+    async () => {
+      return await fetchDemandStatusHistory(demandId)
+    },
+  )
+
+  const refresh = async () => {
+    await Promise.all([refreshDemand(), refreshStatusHistory()])
+  }
 
   // Modal State para Editar Observação/Status
   const isEditing = ref(false)
@@ -254,31 +266,45 @@
                     Acompanhe a situação do atendimento e registre observações relevantes.
                   </div>
 
-                  <div class="bg-surface-variant rounded-lg pa-4 mb-4">
-                    <div class="text-caption text-medium-emphasis mb-1">Status Atual</div>
-                    <div class="text-body-1 font-weight-bold">
-                      {{
-                        IIRGD_STATUS_LABELS[demand.status as IirgdDemandStatus] ||
-                        demand.status ||
-                        'Novo'
-                      }}
-                    </div>
-                  </div>
-
-                  <div class="bg-surface-variant rounded-lg pa-4">
-                    <div class="text-caption text-medium-emphasis mb-1">
-                      Observações do Atendimento
-                    </div>
-                    <div
-                      v-if="demand.observation"
-                      class="text-body-2"
-                      style="white-space: pre-wrap"
+                  <UiTimeline
+                    v-if="statusHistory && statusHistory.length"
+                    align="start"
+                    density="compact"
+                    side="end"
+                  >
+                    <UiTimelineItem
+                      v-for="item in statusHistory"
+                      :key="item.id"
+                      :dot-color="
+                        IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'
+                      "
+                      size="small"
                     >
-                      {{ demand.observation }}
-                    </div>
-                    <div v-else class="text-caption text-grey font-italic">
-                      Nenhuma observação registrada.
-                    </div>
+                      <div class="d-flex flex-column mb-3">
+                        <div class="d-flex align-center justify-space-between mb-1">
+                          <strong>{{
+                            IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status
+                          }}</strong>
+                          <span class="text-caption text-medium-emphasis">
+                            {{ new Date(item.created_at).toLocaleString('pt-BR') }}
+                          </span>
+                        </div>
+                        <div class="text-body-2 text-medium-emphasis">
+                          por {{ item.profiles?.name || 'Sistema' }}
+                        </div>
+                        <div
+                          v-if="item.observation"
+                          class="bg-surface-variant rounded pa-2 mt-2 text-body-2"
+                          style="white-space: pre-wrap"
+                        >
+                          {{ item.observation }}
+                        </div>
+                      </div>
+                    </UiTimelineItem>
+                  </UiTimeline>
+
+                  <div v-else class="text-center pa-4 text-medium-emphasis">
+                    Nenhum histórico registrado.
                   </div>
                 </div>
               </UiCard>
