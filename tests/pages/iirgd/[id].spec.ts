@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import IirgdDetailPage from '~/pages/iirgd/[id].vue'
@@ -36,10 +37,8 @@ mockNuxtImport('useAsyncData', () => {
 
 interface IirgdDetailPageVm {
   isEditing: boolean
-  editPayload: {
-    status: string
-    observation: string
-  }
+  status: string
+  observation: string
   openEditModal: () => void
 }
 
@@ -56,8 +55,9 @@ describe('IIRGD Detail Page', () => {
     expect(vm.isEditing).toBe(false)
 
     vm.openEditModal()
+    await nextTick()
 
     expect(vm.isEditing).toBe(true)
-    expect(vm.editPayload.status).toBe('Novo')
+    expect(vm.status).toBe('Novo')
   })
 })

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount, shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import IirgdPage from '~/pages/iirgd/index.vue'
@@ -28,15 +29,12 @@ mockNuxtImport('useAsyncData', () => {
 interface IirgdPageVm {
   modal: {
     isOpen: boolean
-    payload: {
-      station_code: string
-      rg: string
-      cpf: string
-      name: string
-      observation: string
-      status: string
-    }
+    error: string
   }
+  rg: string
+  cpf: string
+  name: string
+  observation: string
   openAddModal: () => void
 }
 
@@ -46,15 +44,18 @@ describe('IIRGD Page', () => {
     expect(wrapper.exists()).toBe(true)
   })
 
-  it('should initialize and reset modal with status "Novo"', () => {
+  it('should open the modal with an empty form', async () => {
     const wrapper = shallowMount(IirgdPage)
     const vm = wrapper.vm as unknown as IirgdPageVm
 
-    expect(vm.modal.payload.status).toBe('new')
-
     vm.openAddModal()
-    expect(vm.modal.payload.status).toBe('new')
+    await nextTick()
+
     expect(vm.modal.isOpen).toBe(true)
+    expect(vm.rg).toBe('')
+    expect(vm.cpf).toBe('')
+    expect(vm.name).toBe('')
+    expect(vm.observation).toBe('')
   })
 
   it('should not contain a status selector in the modal form', () => {

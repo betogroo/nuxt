@@ -1,9 +1,9 @@
-// @ts-check
+﻿// @ts-check
 import withNuxt from './.nuxt/eslint.config.mjs'
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 
 export default withNuxt([
-  { ignores: ['node_modules_old'] },
+  { ignores: ['app/schemas/generated/**', 'node_modules_old'] },
   eslintPluginPrettierRecommended,
   {
     rules: {
@@ -36,7 +36,7 @@ export default withNuxt([
   },
 
   {
-    ignores: [
+    ignores: ['app/schemas/generated/**', 
       'app/components/**/*.vue',
       'app/components/**/*.ts',
       'app/components/**/*.js',

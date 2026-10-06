@@ -5,6 +5,8 @@
     IIRGD_STATUS_COLORS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
+  import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
+  import { iirgdDemandFormSchema, type IirgdDemandFormInput } from '~/schemas/forms/iirgd-demand'
 
   definePageMeta({
     icon: 'userBadge',
@@ -59,25 +61,27 @@
     isOpen: false,
     isSaving: false,
     error: '',
-    payload: {
-      station_code: '',
-      rg: '',
-      cpf: '',
-      name: '',
-      observation: '',
-      status: 'new' as IirgdDemandStatus,
-    },
   })
 
+  const emptyDemandForm = (): Partial<IirgdDemandFormInput> => ({
+    rg: '',
+    cpf: '',
+    name: '',
+    observation: '',
+  })
+
+  const { errors, values, defineField, setFieldValue, validateField, handleSubmit, resetForm } =
+    useZodForm(iirgdDemandFormSchema, emptyDemandForm())
+
+  const [stationCode] = defineField('station_code')
+  // RG e CPF são validados no blur (e no submit), não a cada tecla digitada
+  const [rg] = defineField('rg', { validateOnModelUpdate: false })
+  const [cpf] = defineField('cpf', { validateOnModelUpdate: false })
+  const [name] = defineField('name')
+  const [observation] = defineField('observation')
+
   const openAddModal = () => {
-    modal.value.payload = {
-      station_code: '',
-      rg: '',
-      cpf: '',
-      name: '',
-      observation: '',
-      status: 'new' as IirgdDemandStatus,
-    }
+    resetForm({ values: emptyDemandForm() })
     modal.value.error = ''
     existingCitizen.value = null
     modal.value.isOpen = true
@@ -89,90 +93,78 @@
 
   const onRgInput = (val: string | null) => {
     if (val !== null) {
-      modal.value.payload.rg = padAndFormatRg(val, false) // Format while typing without padding
+      setFieldValue('rg', padAndFormatRg(val, false), false) // Format while typing without padding
     }
   }
 
   const onRgBlur = async () => {
-    let rg = modal.value.payload.rg || ''
-    rg = padAndFormatRg(rg, true)
-    modal.value.payload.rg = rg
+    const formattedRg = padAndFormatRg(values.rg || '', true)
+    setFieldValue('rg', formattedRg, false)
 
-    if (!rg && !modal.value.payload.cpf) {
+    if (!formattedRg && !values.cpf) {
       existingCitizen.value = null
       return
     }
 
-    if (rg && isValidRgSP(rg)) {
-      try {
-        const citizen = await fetchCitizenByDocument('rg', rg)
-        if (citizen) {
-          existingCitizen.value = citizen
-          modal.value.payload.name = citizen.name
-          if (citizen.cpf) modal.value.payload.cpf = formatCpf(citizen.cpf)
-        }
-      } catch (e) {
-        console.error(e)
+    if (!formattedRg) return
+
+    const { valid } = await validateField('rg')
+    if (!valid || !isValidRgSP(formattedRg)) return
+
+    try {
+      const citizen = await fetchCitizenByDocument('rg', formattedRg)
+      if (citizen) {
+        existingCitizen.value = citizen
+        setFieldValue('name', citizen.name)
+        if (citizen.cpf) setFieldValue('cpf', formatCpf(citizen.cpf))
       }
+    } catch (e) {
+      console.error(e)
     }
   }
 
   const onCpfInput = (val: string | null) => {
     if (val !== null) {
-      modal.value.payload.cpf = formatCpf(val)
+      setFieldValue('cpf', formatCpf(val), false)
     }
   }
 
   const onCpfBlur = async () => {
-    let cpf = modal.value.payload.cpf || ''
-    cpf = formatCpf(cpf)
-    modal.value.payload.cpf = cpf
+    const formattedCpf = formatCpf(values.cpf || '')
+    setFieldValue('cpf', formattedCpf, false)
 
-    if (!cpf && !modal.value.payload.rg) {
+    if (!formattedCpf && !values.rg) {
       existingCitizen.value = null
       return
     }
 
-    if (cpf && isValidCpf(cpf)) {
-      try {
-        const citizen = await fetchCitizenByDocument('cpf', cpf)
-        if (citizen) {
-          existingCitizen.value = citizen
-          modal.value.payload.name = citizen.name
-          if (citizen.rg) modal.value.payload.rg = padAndFormatRg(citizen.rg, true)
-        }
-      } catch (e) {
-        console.error(e)
+    if (!formattedCpf) return
+
+    const { valid } = await validateField('cpf')
+    if (!valid || !isValidCpf(formattedCpf)) return
+
+    try {
+      const citizen = await fetchCitizenByDocument('cpf', formattedCpf)
+      if (citizen) {
+        existingCitizen.value = citizen
+        setFieldValue('name', citizen.name)
+        if (citizen.rg) setFieldValue('rg', padAndFormatRg(citizen.rg, true))
       }
+    } catch (e) {
+      console.error(e)
     }
   }
 
-  const saveDemand = async () => {
+  const saveDemand = handleSubmit(async (formValues) => {
     try {
       modal.value.error = ''
-      const p = modal.value.payload
-
-      if (!p.station_code) throw new Error('O Código do Posto é obrigatório.')
-      if (!p.name) throw new Error('O Nome é obrigatório.')
-      if (!p.rg && !p.cpf) throw new Error('É necessário informar pelo menos o RG ou o CPF.')
-
-      // Ensure RG is padded one last time before saving and check validation
-      if (p.rg) {
-        p.rg = padAndFormatRg(p.rg, true)
-        if (!isValidRgSP(p.rg)) {
-          throw new Error('O RG informado é inválido ou seu dígito verificador não confere.')
-        }
-      }
-
-      if (p.cpf) {
-        p.cpf = formatCpf(p.cpf)
-        if (!isValidCpf(p.cpf)) {
-          throw new Error('O CPF informado é inválido.')
-        }
-      }
-
       modal.value.isSaving = true
-      await createDemand(p)
+
+      await createDemand({
+        ...formValues,
+        rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : formValues.rg,
+        cpf: formValues.cpf ? formatCpf(formValues.cpf) : formValues.cpf,
+      })
 
       await refresh()
       closeAddModal()
@@ -181,7 +173,7 @@
     } finally {
       modal.value.isSaving = false
     }
-  }
+  })
 </script>
 
 <template>
@@ -285,8 +277,9 @@
       <UiRow dense>
         <UiCol cols="12" sm="4">
           <UiSelect
-            v-model="modal.payload.station_code"
-            :items="['1342-5', '1062-9']"
+            v-model="stationCode"
+            :error-messages="errors.station_code"
+            :items="[...IIRGD_STATION_CODES]"
             label="Código do Posto *"
             placeholder="Selecione"
           />
@@ -294,8 +287,9 @@
         <UiCol cols="12" sm="4">
           <UiInput
             :disabled="!!existingCitizen?.rg"
+            :error-messages="errors.rg"
             label="Número do RG"
-            :model-value="modal.payload.rg"
+            :model-value="rg"
             placeholder="00000000-0"
             @blur="onRgBlur"
             @update:model-value="onRgInput"
@@ -304,8 +298,9 @@
         <UiCol cols="12" sm="4">
           <UiInput
             :disabled="!!existingCitizen?.cpf"
+            :error-messages="errors.cpf"
             label="CPF"
-            :model-value="modal.payload.cpf"
+            :model-value="cpf"
             placeholder="000.000.000-00"
             @blur="onCpfBlur"
             @update:model-value="onCpfInput"
@@ -313,15 +308,17 @@
         </UiCol>
         <UiCol cols="12">
           <UiInput
-            v-model="modal.payload.name"
+            v-model="name"
             :disabled="!!existingCitizen"
+            :error-messages="errors.name"
             label="Nome do Cidadão *"
           />
         </UiCol>
         <UiCol cols="12">
           <UiTextarea
-            v-model="modal.payload.observation"
+            v-model="observation"
             density="comfortable"
+            :error-messages="errors.observation"
             label="Observação"
             rounded="lg"
             rows="3"

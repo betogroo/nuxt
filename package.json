@@ -16,16 +16,19 @@
     "format:fix": "prettier --write .",
     "prepare": "husky",
     "typecheck": "nuxt typecheck",
-    "gen-types": "supabase gen types typescript --local --schema public > app/types/database.types.ts",
-    "gen-types-remote": "supabase gen types typescript --linked --schema public > app/types/database.types.ts",
+    "gen-types": "supabase gen types typescript --local --schema public > app/types/database.types.ts && npm run gen-schemas",
+    "gen-types-remote": "supabase gen types typescript --linked --schema public > app/types/database.types.ts && npm run gen-schemas",
+    "gen-schemas": "supazod -i app/types/database.types.ts -o app/schemas/generated/database.schemas.ts -t app/schemas/generated/database.schemas.types.ts -s public && prettier --write app/schemas/generated",
     "db-reset": "supabase db reset & npm run gen-types"
   },
   "dependencies": {
     "@nuxtjs/supabase": "^2.0.10",
     "nuxt": "^4.5.2",
+    "vee-validate": "^4.15.1",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1",
-    "vuetify-nuxt-module": "^1.0.0-rc.6"
+    "vuetify-nuxt-module": "^1.0.0-rc.6",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
@@ -39,6 +42,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "prettier": "^3.9.6",
+    "supazod": "^4.5.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1",
     "vue-tsc": "^3.3.11",

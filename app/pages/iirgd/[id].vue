@@ -6,6 +6,7 @@
     IIRGD_STATUS_GROUPS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
+  import { iirgdStatusChangeFormSchema } from '~/schemas/forms/iirgd-status-change'
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
@@ -56,10 +57,12 @@
   const isSaving = ref(false)
   const editError = ref('')
 
-  const editPayload = ref({
-    status: 'new' as IirgdDemandStatus,
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdStatusChangeFormSchema, {
+    status: 'new',
     observation: '',
   })
+  const [status] = defineField('status')
+  const [observation] = defineField('observation')
 
   // Achatar os grupos para o UiSelect formatando com o nome do grupo
   const statusOptions = computed(() => {
@@ -73,10 +76,12 @@
 
   const openEditModal = () => {
     if (demand.value) {
-      editPayload.value = {
-        status: (demand.value.status as IirgdDemandStatus) || 'new',
-        observation: demand.value.observation || '',
-      }
+      resetForm({
+        values: {
+          status: (demand.value.status as IirgdDemandStatus) || 'new',
+          observation: demand.value.observation || '',
+        },
+      })
       editError.value = ''
       isEditing.value = true
     }
@@ -86,18 +91,14 @@
     isEditing.value = false
   }
 
-  const saveEdit = async () => {
+  const saveEdit = handleSubmit(async (formValues) => {
     try {
       isSaving.value = true
       editError.value = ''
 
-      if (editPayload.value.status === 'other_pending' && !editPayload.value.observation.trim()) {
-        throw new Error('A observação é obrigatória para o status "Outra Pendência".')
-      }
-
       await updateDemand(demandId, {
-        status: editPayload.value.status,
-        observation: editPayload.value.observation,
+        status: formValues.status,
+        observation: formValues.observation,
       })
 
       await refresh()
@@ -107,7 +108,7 @@
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   useHead({
     title: computed(() =>
@@ -396,7 +397,8 @@
       <UiRow dense>
         <UiCol cols="12">
           <UiSelect
-            v-model="editPayload.status"
+            v-model="status"
+            :error-messages="errors.status"
             item-title="title"
             item-value="value"
             :items="statusOptions"
@@ -405,8 +407,9 @@
         </UiCol>
         <UiCol cols="12">
           <UiTextarea
-            v-model="editPayload.observation"
+            v-model="observation"
             density="comfortable"
+            :error-messages="errors.observation"
             label="Observações Gerais"
             rounded="lg"
             rows="4"
