@@ -118,3 +118,31 @@ export function padAndFormatRg(value: string, pad: boolean = false): string {
 
   return v
 }
+
+export function isValidRgSP(value: string | null | undefined): boolean {
+  if (!value) return false
+  const v = value.replace(/[^0-9xX]/g, '').toUpperCase()
+
+  if (v.length !== 9) return false
+
+  const base = v.slice(0, 8)
+  const checkDigit = v.charAt(8)
+
+  const weights = [2, 3, 4, 5, 6, 7, 8, 9]
+  let sum = 0
+
+  for (let i = 0; i < 8; i++) {
+    sum += parseInt(base.charAt(i), 10) * weights[i]
+  }
+
+  const mod = sum % 11
+  let expectedDigit = (11 - mod).toString()
+
+  if (expectedDigit === '10') {
+    expectedDigit = 'X'
+  } else if (expectedDigit === '11') {
+    expectedDigit = '0'
+  }
+
+  return checkDigit === expectedDigit
+}

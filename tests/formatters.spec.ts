@@ -8,6 +8,7 @@ import {
   slugify,
   formatCpf,
   padAndFormatRg,
+  isValidRgSP,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
@@ -100,6 +101,32 @@ describe('Formatadores (utils/formatters.ts)', () => {
     it('deve formatar e preencher RG', () => {
       expect(padAndFormatRg('12345X', true)).toBe('00012345-X')
       expect(padAndFormatRg('123456789', false)).toBe('12345678-9')
+    })
+  })
+
+  describe('isValidRgSP', () => {
+    it('deve retornar true para um RG de SP válido com dígito numérico', () => {
+      expect(isValidRgSP('72894286-0')).toBe(true)
+      expect(isValidRgSP('32919523-2')).toBe(true)
+      expect(isValidRgSP('73016721-5')).toBe(true)
+    })
+
+    it('deve retornar true para um RG de SP válido com dígito X', () => {
+      expect(isValidRgSP('08678853-X')).toBe(true)
+      expect(isValidRgSP('08678853x')).toBe(true)
+    })
+
+    it('deve retornar false para RGs de SP inválidos matematicamente', () => {
+      expect(isValidRgSP('72894286-1')).toBe(false)
+      expect(isValidRgSP('32919523-9')).toBe(false)
+      expect(isValidRgSP('08678853-0')).toBe(false)
+    })
+
+    it('deve retornar false para RGs com formato errado', () => {
+      expect(isValidRgSP('123')).toBe(false)
+      expect(isValidRgSP('')).toBe(false)
+      expect(isValidRgSP('00000000')).toBe(false) // length < 9
+      expect(isValidRgSP('A2345678-X')).toBe(false) // letter in base
     })
   })
 })

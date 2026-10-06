@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, isValidRgSP } from '~/utils/formatters'
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
@@ -109,9 +109,12 @@
       if (!p.name) throw new Error('O Nome é obrigatório.')
       if (!p.rg && !p.cpf) throw new Error('É necessário informar pelo menos o RG ou o CPF.')
 
-      // Ensure RG is padded one last time before saving
+      // Ensure RG is padded one last time before saving and check validation
       if (p.rg) {
         p.rg = padAndFormatRg(p.rg, true)
+        if (!isValidRgSP(p.rg)) {
+          throw new Error('O RG informado é inválido ou seu dígito verificador não confere.')
+        }
       }
 
       modal.value.isSaving = true
