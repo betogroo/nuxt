@@ -1,5 +1,14 @@
 <script setup lang="ts">
   import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
+  import { useZodForm } from '~/composables/useZodForm'
+  import {
+    adminUnitFormSchema,
+    adminUnitAliasFormSchema,
+    adminUnitResolveSchema,
+    type AdminUnitFormInput,
+    type AdminUnitAliasFormInput,
+    type AdminUnitResolveInput,
+  } from '~/schemas/forms/admin-unit'
 
   definePageMeta({
     icon: 'balance',
@@ -54,27 +63,31 @@
   const isEditing = ref(false)
   const isSaving = ref(false)
   const saveError = ref('')
-  const form = ref({
-    id: '',
-    name: '',
-    aliasIds: [] as string[],
-    is_active: true,
-  })
+  const {
+    errors: saveErrors,
+    defineField: defineSaveField,
+    handleSubmit: handleSaveSubmit,
+    setValues: setSaveValues,
+  } = useZodForm(adminUnitFormSchema, { id: '', name: '', aliasIds: [], is_active: true })
+
+  const [name, nameProps] = defineSaveField('name')
+  const [aliasIds, aliasIdsProps] = defineSaveField('aliasIds')
+  const [isActive, isActiveProps] = defineSaveField('is_active')
 
   const openAddModal = () => {
-    form.value = { id: '', name: '', aliasIds: [], is_active: true }
+    setSaveValues({ id: '', name: '', aliasIds: [], is_active: true })
     isEditing.value = false
     saveError.value = ''
     isModalOpen.value = true
   }
 
   const openEditModal = (unit: UnitRow) => {
-    form.value = {
+    setSaveValues({
       id: unit.id,
       name: unit.name,
       aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
       is_active: unit.is_active,
-    }
+    })
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -84,23 +97,22 @@
     isModalOpen.value = false
   }
 
-  const saveUnit = async () => {
+  const saveUnit = handleSaveSubmit(async (values: AdminUnitFormInput) => {
     try {
       isSaving.value = true
       saveError.value = ''
-      if (!form.value.name) throw new Error('Nome é obrigatório')
 
-      if (isEditing.value) {
-        await updateUnit(form.value.id, {
-          name: form.value.name,
-          aliasIds: form.value.aliasIds,
-          is_active: form.value.is_active,
+      if (isEditing.value && values.id) {
+        await updateUnit(values.id, {
+          name: values.name,
+          aliasIds: values.aliasIds,
+          is_active: values.is_active,
         })
       } else {
         await createUnit({
-          name: form.value.name,
-          aliasIds: form.value.aliasIds,
-          is_active: form.value.is_active,
+          name: values.name,
+          aliasIds: values.aliasIds,
+          is_active: values.is_active,
         })
       }
 
@@ -112,7 +124,7 @@
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const toggleStatus = async (unit: UnitRow) => {
     try {
@@ -126,17 +138,25 @@
   // --- Alias Modal ---
   const isAliasModalOpen = ref(false)
   const isAliasEditing = ref(false)
-  const aliasForm = ref({ id: '', code: null as number | null, name: '' })
+  const {
+    errors: aliasErrors,
+    defineField: defineAliasField,
+    handleSubmit: handleAliasSubmit,
+    setValues: setAliasValues,
+  } = useZodForm(adminUnitAliasFormSchema, { id: '', name: '', code: undefined })
+
+  const [aliasCode, aliasCodeProps] = defineAliasField('code')
+  const [aliasName, aliasNameProps] = defineAliasField('name')
 
   const openAddAliasModal = () => {
-    aliasForm.value = { id: '', code: null, name: '' }
+    setAliasValues({ id: '', name: '', code: undefined })
     isAliasEditing.value = false
     saveError.value = ''
     isAliasModalOpen.value = true
   }
 
   const openEditAliasModal = (alias: UnitAliasRow) => {
-    aliasForm.value = { id: alias.id, code: alias.code, name: alias.name }
+    setAliasValues({ id: alias.id, code: alias.code, name: alias.name })
     isAliasEditing.value = true
     saveError.value = ''
     isAliasModalOpen.value = true
@@ -146,22 +166,20 @@
     isAliasModalOpen.value = false
   }
 
-  const saveAlias = async () => {
+  const saveAlias = handleAliasSubmit(async (values: AdminUnitAliasFormInput) => {
     try {
       isSaving.value = true
       saveError.value = ''
-      if (!aliasForm.value.name || aliasForm.value.code === null)
-        throw new Error('Código e Nome são obrigatórios')
 
-      if (isAliasEditing.value) {
-        await updateAliasAsAdmin(aliasForm.value.id, {
-          code: aliasForm.value.code,
-          name: aliasForm.value.name,
+      if (isAliasEditing.value && values.id) {
+        await updateAliasAsAdmin(values.id, {
+          code: values.code,
+          name: values.name,
         })
       } else {
         await createAliasAsAdmin({
-          code: aliasForm.value.code,
-          name: aliasForm.value.name,
+          code: values.code,
+          name: values.name,
         })
       }
 
@@ -172,7 +190,7 @@
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const removeAlias = async (alias: UnitAliasRow) => {
     if (confirm(`Deseja excluir o registro alternativo "${alias.name}"?`)) {
@@ -189,16 +207,25 @@
   const isResolveModalOpen = ref(false)
   const isResolving = ref(false)
   const resolveTarget = ref<UnitRow | null>(null)
-  const resolveMode = ref<'new' | 'link'>('new')
-  const resolveNewName = ref('')
-  const resolveLinkUnitId = ref<string | null>(null)
+  const {
+    errors: resolveErrors,
+    defineField: defineResolveField,
+    handleSubmit: handleResolveSubmit,
+    setValues: setResolveValues,
+  } = useZodForm(adminUnitResolveSchema, {
+    resolveMode: 'new',
+    resolveNewName: '',
+    resolveLinkUnitId: '',
+  })
+
+  const [resolveMode, resolveModeProps] = defineResolveField('resolveMode')
+  const [resolveNewName, resolveNewNameProps] = defineResolveField('resolveNewName')
+  const [resolveLinkUnitId, resolveLinkUnitIdProps] = defineResolveField('resolveLinkUnitId')
   const resolveError = ref('')
 
   const openResolveModal = (unit: UnitRow) => {
     resolveTarget.value = unit
-    resolveMode.value = 'new'
-    resolveNewName.value = unit.name
-    resolveLinkUnitId.value = null
+    setResolveValues({ resolveMode: 'new', resolveNewName: unit.name, resolveLinkUnitId: '' })
     resolveError.value = ''
     isResolveModalOpen.value = true
   }
@@ -208,29 +235,27 @@
     resolveTarget.value = null
   }
 
-  const submitResolve = async () => {
+  const submitResolve = handleResolveSubmit(async (values: AdminUnitResolveInput) => {
+    if (!resolveTarget.value) return
+
     try {
       isResolving.value = true
       resolveError.value = ''
 
-      if (!resolveTarget.value) return
-
-      if (resolveMode.value === 'new') {
-        await approvePendingUnit(resolveTarget.value, resolveNewName.value)
-      } else {
-        if (!resolveLinkUnitId.value) throw new Error('Selecione uma unidade para vincular')
-        await mergePendingUnit(resolveTarget.value, resolveLinkUnitId.value)
+      if (values.resolveMode === 'new' && values.resolveNewName) {
+        await approvePendingUnit(resolveTarget.value, values.resolveNewName)
+      } else if (values.resolveMode === 'link' && values.resolveLinkUnitId) {
+        await mergePendingUnit(resolveTarget.value, values.resolveLinkUnitId)
       }
 
       await refreshUnits()
-      await refreshAliases()
       closeResolveModal()
     } catch (e: unknown) {
       resolveError.value = e instanceof Error ? e.message : String(e)
     } finally {
       isResolving.value = false
     }
-  }
+  })
 </script>
 
 <template>
@@ -446,10 +471,12 @@
       />
 
       <UiAutocomplete
-        v-model="form.aliasIds"
+        v-model="aliasIds"
+        v-bind="aliasIdsProps"
         chips
         closable-chips
         density="comfortable"
+        :error-messages="saveErrors.aliasIds"
         :item-title="
           (item: Record<string, unknown>) => (item.code ? `${item.code} - ${item.name}` : item.name)
         "
@@ -489,8 +516,19 @@
         {{ saveError }}
       </UiAlert>
 
-      <UiInput v-model.number="aliasForm.code" label="Código (Numeral único)" type="number" />
-      <UiInput v-model="aliasForm.name" label="Nome / Descrição (ex: Pacote 500g)" />
+      <UiInput
+        v-model.number="aliasCode"
+        v-bind="aliasCodeProps"
+        :error-messages="aliasErrors.code"
+        label="Código (Numeral único)"
+        type="number"
+      />
+      <UiInput
+        v-model="aliasName"
+        v-bind="aliasNameProps"
+        :error-messages="aliasErrors.name"
+        label="Nome / Descrição (ex: Pacote 500g)"
+      />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeAliasModal">Cancelar</UiButton>
@@ -528,6 +566,8 @@
         <div v-if="resolveMode === 'new'" class="mt-2">
           <UiInput
             v-model="resolveNewName"
+            v-bind="resolveNewNameProps"
+            :error-messages="resolveErrors.resolveNewName"
             hint="Ajuste o nome oficial se necessário."
             label="Nome da Nova Unidade"
             persistent-hint
@@ -536,6 +576,8 @@
         <div v-else class="mt-2">
           <UiSelect
             v-model="resolveLinkUnitId"
+            v-bind="resolveLinkUnitIdProps"
+            :error-messages="resolveErrors.resolveLinkUnitId"
             item-title="name"
             item-value="id"
             :items="activeUnits"
