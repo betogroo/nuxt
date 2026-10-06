@@ -159,9 +159,18 @@
       </template>
 
       <UiTabs v-model="activeTab" class="mb-4 px-4 pt-2">
-        <UiTab value="em_andamento">Em Andamento</UiTab>
-        <UiTab value="emitidos">Emitidos</UiTab>
-        <UiTab value="erros">Finalizados com Erro</UiTab>
+        <UiTab color="primary" value="em_andamento">
+          <UiIcon class="mr-2" name="time" />
+          Em Andamento
+        </UiTab>
+        <UiTab color="success" value="emitidos">
+          <UiIcon class="mr-2" name="success" />
+          Emitidos
+        </UiTab>
+        <UiTab color="error" value="erros">
+          <UiIcon class="mr-2" name="alert" />
+          Finalizados com Erro
+        </UiTab>
       </UiTabs>
 
       <UiTable
