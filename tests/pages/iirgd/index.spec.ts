@@ -13,6 +13,14 @@ mockNuxtImport('useIirgdDemands', () => {
   })
 })
 
+mockNuxtImport('useIirgdCitizens', () => {
+  return () => ({
+    fetchCitizens: vi.fn(),
+    fetchCitizenById: vi.fn(),
+    fetchCitizenByDocument: vi.fn(),
+  })
+})
+
 mockNuxtImport('useAsyncData', () => {
   return () => ({ data: { value: [] }, pending: { value: false }, refresh: vi.fn() })
 })

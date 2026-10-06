@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { padAndFormatRg, formatCpf, isValidRgSP } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, isValidRgSP, isValidCpf } from '~/utils/formatters'
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
@@ -24,10 +24,12 @@
   })
 
   const { fetchDemands, createDemand } = useIirgdDemands()
+  const { fetchCitizenByDocument } = useIirgdCitizens()
 
   // Data fetching
   const { data: demands, pending, refresh } = useAsyncData('iirgd-demands', fetchDemands)
 
+  const existingCitizen = ref<Record<string, unknown> | null>(null)
   const activeTab = ref('em_andamento') // em_andamento | emitidos | erros
 
   const filteredDemands = computed(() => {
@@ -77,6 +79,7 @@
       status: 'new' as IirgdDemandStatus,
     }
     modal.value.error = ''
+    existingCitizen.value = null
     modal.value.isOpen = true
   }
 
@@ -90,13 +93,57 @@
     }
   }
 
-  const onRgBlur = () => {
-    modal.value.payload.rg = padAndFormatRg(modal.value.payload.rg, true) // Pad on blur
+  const onRgBlur = async () => {
+    let rg = modal.value.payload.rg || ''
+    rg = padAndFormatRg(rg, true)
+    modal.value.payload.rg = rg
+
+    if (!rg && !modal.value.payload.cpf) {
+      existingCitizen.value = null
+      return
+    }
+
+    if (rg && isValidRgSP(rg)) {
+      try {
+        const citizen = await fetchCitizenByDocument('rg', rg)
+        if (citizen) {
+          existingCitizen.value = citizen
+          modal.value.payload.name = citizen.name
+          if (citizen.cpf) modal.value.payload.cpf = formatCpf(citizen.cpf)
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
   }
 
   const onCpfInput = (val: string | null) => {
     if (val !== null) {
       modal.value.payload.cpf = formatCpf(val)
+    }
+  }
+
+  const onCpfBlur = async () => {
+    let cpf = modal.value.payload.cpf || ''
+    cpf = formatCpf(cpf)
+    modal.value.payload.cpf = cpf
+
+    if (!cpf && !modal.value.payload.rg) {
+      existingCitizen.value = null
+      return
+    }
+
+    if (cpf && isValidCpf(cpf)) {
+      try {
+        const citizen = await fetchCitizenByDocument('cpf', cpf)
+        if (citizen) {
+          existingCitizen.value = citizen
+          modal.value.payload.name = citizen.name
+          if (citizen.rg) modal.value.payload.rg = padAndFormatRg(citizen.rg, true)
+        }
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 
@@ -114,6 +161,13 @@
         p.rg = padAndFormatRg(p.rg, true)
         if (!isValidRgSP(p.rg)) {
           throw new Error('O RG informado é inválido ou seu dígito verificador não confere.')
+        }
+      }
+
+      if (p.cpf) {
+        p.cpf = formatCpf(p.cpf)
+        if (!isValidCpf(p.cpf)) {
+          throw new Error('O CPF informado é inválido.')
         }
       }
 
@@ -239,6 +293,7 @@
         </UiCol>
         <UiCol cols="12" sm="4">
           <UiInput
+            :disabled="!!existingCitizen?.rg"
             label="Número do RG"
             :model-value="modal.payload.rg"
             placeholder="00000000-0"
@@ -248,14 +303,20 @@
         </UiCol>
         <UiCol cols="12" sm="4">
           <UiInput
+            :disabled="!!existingCitizen?.cpf"
             label="CPF"
             :model-value="modal.payload.cpf"
             placeholder="000.000.000-00"
+            @blur="onCpfBlur"
             @update:model-value="onCpfInput"
           />
         </UiCol>
         <UiCol cols="12">
-          <UiInput v-model="modal.payload.name" label="Nome do Cidadão *" />
+          <UiInput
+            v-model="modal.payload.name"
+            :disabled="!!existingCitizen"
+            label="Nome do Cidadão *"
+          />
         </UiCol>
         <UiCol cols="12">
           <UiTextarea

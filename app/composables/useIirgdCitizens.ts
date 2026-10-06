@@ -48,8 +48,24 @@ export const useIirgdCitizens = () => {
     return data as IirgdCitizenWithDemands
   }
 
+  const fetchCitizenByDocument = async (type: 'rg' | 'cpf', value: string) => {
+    const { data, error } = await supabase
+      .from('iirgd_citizens')
+      .select('*')
+      .eq(type, value)
+      .maybeSingle()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error(error)
+      throw new Error(`Erro ao buscar cidadão pelo ${type.toUpperCase()}`)
+    }
+
+    return data
+  }
+
   return {
     fetchCitizens,
     fetchCitizenById,
+    fetchCitizenByDocument,
   }
 }

@@ -7,11 +7,25 @@ import {
   formatCnpj,
   slugify,
   formatCpf,
+  isValidCpf,
   padAndFormatRg,
   isValidRgSP,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
+  describe('isValidCpf', () => {
+    it('returns true for valid CPF', () => {
+      expect(isValidCpf('12345678909')).toBe(true)
+    })
+
+    it('returns false for invalid CPF', () => {
+      expect(isValidCpf('11111111111')).toBe(false)
+      expect(isValidCpf('12345678900')).toBe(false)
+      expect(isValidCpf('123')).toBe(false)
+      expect(isValidCpf('')).toBe(false)
+    })
+  })
+
   describe('formatCurrency', () => {
     it('deve formatar o número corretamente para Real Brasileiro (BRL)', () => {
       const valorBase = 1500.5
