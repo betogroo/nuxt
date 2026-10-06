@@ -28,6 +28,30 @@
   // Data fetching
   const { data: demands, pending, refresh } = useAsyncData('iirgd-demands', fetchDemands)
 
+  const activeTab = ref('em_andamento') // em_andamento | emitidos | erros
+
+  const filteredDemands = computed(() => {
+    if (!demands.value) return []
+
+    if (activeTab.value === 'emitidos') {
+      return demands.value.filter((d) => d.status === 'issued')
+    }
+    if (activeTab.value === 'erros') {
+      return demands.value.filter((d) =>
+        ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
+          d.status as string,
+        ),
+      )
+    }
+    // Default (Em andamento)
+    return demands.value.filter(
+      (d) =>
+        !['issued', 'protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
+          d.status as string,
+        ),
+    )
+  })
+
   // Add Modal State
   const modal = ref({
     isOpen: false,
@@ -115,8 +139,8 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="userBadge" />
         Lista de Demandas
-        <UiChip v-if="demands?.length" class="ml-2" label size="x-small" variant="tonal">
-          {{ demands.length }}
+        <UiChip v-if="filteredDemands?.length" class="ml-2" label size="x-small" variant="tonal">
+          {{ filteredDemands.length }}
         </UiChip>
         <UiSpacer />
         <UiButton
@@ -131,6 +155,12 @@
         <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Demanda</UiButton>
       </template>
 
+      <UiTabs v-model="activeTab" class="mb-4 px-4 pt-2">
+        <UiTab value="em_andamento">Em Andamento</UiTab>
+        <UiTab value="emitidos">Emitidos</UiTab>
+        <UiTab value="erros">Finalizados com Erro</UiTab>
+      </UiTabs>
+
       <UiTable
         :headers="[
           { text: 'Código Posto', value: 'station_code' },
@@ -140,7 +170,7 @@
           { text: 'Status', value: 'status', align: 'center' },
           { text: 'Data', value: 'created_at', align: 'right' },
         ]"
-        :items="demands || []"
+        :items="filteredDemands"
         :loading="pending"
       >
         <template #item-station_code="{ item }">
