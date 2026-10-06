@@ -1,0 +1,1 @@
+select * from public.iirgd_demands where citizen_id = '8d9091d0-190c-4cd8-8d87-35ead311da1e'

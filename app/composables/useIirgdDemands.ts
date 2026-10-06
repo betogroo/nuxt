@@ -72,7 +72,15 @@ export const useIirgdDemands = () => {
         .from('iirgd_demands')
         .select('id, status')
         .eq('citizen_id', citizenId)
-        .not('status', 'in', '("issued", "protocol_cancelled", "confrontation_failed")')
+        .in('status', [
+          'new',
+          'confronted',
+          'released',
+          'mailbag',
+          'cegaf',
+          'no_data',
+          'other_pending',
+        ])
 
       if (activeDemands && activeDemands.length > 0) {
         throw new Error('Este cidadão já possui uma solicitação em andamento.')
