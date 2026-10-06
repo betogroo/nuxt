@@ -43,11 +43,12 @@
     isEditing,
     isSaving,
     saveError,
-    form,
+    saveErrors,
+    defineSaveField,
     openAddModal,
     openEditModal,
     closeModal,
-    saveItem: saveExpenseNature,
+    submitSaveForm: saveExpenseNature,
 
     // Actions
     handleToggleStatus: toggleStatus,
@@ -57,12 +58,12 @@
     isResolveModalOpen,
     isResolving,
     resolveError,
-    resolveMode,
+    resolveErrors,
+    defineResolveField,
     targetPendingItem: targetPendingNature,
-    resolveForm,
     openResolveModal,
     closeResolveModal,
-    executeResolve: submitResolve,
+    submitResolveForm: submitResolve,
   } = useAdminCrud<ExpenseNatureRow>({
     entityName: 'esta natureza de despesa',
     asyncDataKey: 'expense-natures-admin',
@@ -76,6 +77,13 @@
     approvePending: approvePendingExpenseNature,
     mergePending: mergePendingExpenseNature,
   })
+  const [id, idProps] = defineSaveField('id')
+  const [name, nameProps] = defineSaveField('name')
+  const [isActive, isActiveProps] = defineSaveField('is_active')
+
+  const [resolveMode, resolveModeProps] = defineResolveField('resolveMode')
+  const [newName, newNameProps] = defineResolveField('newName')
+  const [finalNatureId, finalNatureIdProps] = defineResolveField('finalNatureId')
 
   const { currentPage, totalPages } = pagination
 </script>
@@ -252,14 +260,27 @@
       </UiAlert>
 
       <UiInput
-        v-model="form.id"
+        v-model="id"
+        v-bind="idProps"
         :disabled="isEditing"
+        :error-messages="saveErrors.id"
         label="Código (ID) *"
         placeholder="Ex: 33903000"
       />
-      <UiInput v-model="form.name" label="Nome da Natureza *" />
+      <UiInput
+        v-model="name"
+        v-bind="nameProps"
+        :error-messages="saveErrors.name"
+        label="Nome da Natureza *"
+      />
 
-      <UiSwitch v-model="form.is_active" color="success" label="Ativo no sistema" />
+      <UiSwitch
+        v-model="isActive"
+        v-bind="isActiveProps"
+        color="success"
+        :error-messages="saveErrors.is_active"
+        label="Ativo no sistema"
+      />
 
       <template #actions>
         <UiButton variant="text" @click="closeModal">Cancelar</UiButton>
@@ -286,14 +307,21 @@
         </div>
       </div>
 
-      <UiRadioGroup v-model="resolveMode" class="mb-4">
+      <UiRadioGroup
+        v-model="resolveMode"
+        v-bind="resolveModeProps"
+        class="mb-4"
+        :error-messages="resolveErrors.resolveMode"
+      >
         <UiRadio label="Aprovar como Nova Natureza Oficial" value="approve" />
         <UiRadio label="Rejeitar e Mesclar para Natureza Existente" value="merge" />
       </UiRadioGroup>
 
       <div v-if="resolveMode === 'approve'">
         <UiInput
-          v-model="resolveForm.newName"
+          v-model="newName"
+          v-bind="newNameProps"
+          :error-messages="resolveErrors.newName"
           hint="Você pode ajustar o nome antes de aprovar."
           label="Nome Oficial"
           persistent-hint
@@ -306,8 +334,10 @@
           natureza selecionada e a sugerida será excluída.
         </p>
         <UiAutocomplete
-          v-model="resolveForm.finalNatureId"
+          v-model="finalNatureId"
+          v-bind="finalNatureIdProps"
           density="comfortable"
+          :error-messages="resolveErrors.finalTargetId"
           :item-title="(item: Record<string, unknown>) => `${item.id} - ${item.name}`"
           item-value="id"
           :items="allActiveNatures || []"

@@ -438,7 +438,12 @@
         {{ saveError }}
       </UiAlert>
 
-      <UiInput v-model="form.name" label="Nome da Unidade (ex: Pacote)" />
+      <UiInput
+        v-model="name"
+        v-bind="nameProps"
+        :error-messages="saveErrors.name"
+        label="Nome da Unidade (ex: Pacote)"
+      />
 
       <UiAutocomplete
         v-model="form.aliasIds"
@@ -457,8 +462,10 @@
       />
 
       <UiSwitch
-        v-model="form.is_active"
+        v-model="isActive"
+        v-bind="isActiveProps"
         color="success"
+        :error-messages="saveErrors.is_active"
         hint="Indica se a unidade está disponível para uso"
         label="Unidade Ativa"
         persistent-hint
@@ -507,7 +514,12 @@
         </div>
       </div>
 
-      <UiRadioGroup v-model="resolveMode" class="mb-2">
+      <UiRadioGroup
+        v-model="resolveMode"
+        v-bind="resolveModeProps"
+        class="mb-2"
+        :error-messages="resolveErrors.resolveMode"
+      >
         <UiRadio label="Aprovar como Nova Unidade Oficial" value="new" />
         <UiRadio label="Fundir (Merge) com Unidade Oficial Existente" value="link" />
       </UiRadioGroup>

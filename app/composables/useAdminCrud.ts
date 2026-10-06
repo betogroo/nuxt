@@ -2,6 +2,13 @@ import { ref } from 'vue'
 import { usePagination } from '~/composables/usePagination'
 import { useToast } from '~/composables/useToast'
 import { getErrorMessage } from '~/utils/errorHandler'
+import { useZodForm } from '~/composables/useZodForm'
+import {
+  adminCatalogFormSchema,
+  adminCatalogResolveSchema,
+  type AdminCatalogFormInput,
+  type AdminCatalogResolveInput,
+} from '~/schemas/forms/admin-catalog'
 
 export interface AdminCrudItem {
   id: string
@@ -78,39 +85,36 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     }, 500)
   }
 
-  // Add / Edit Modal State
+  // --- Add / Edit Modal State (with Zod) ---
   const isModalOpen = ref(false)
   const isEditing = ref(false)
   const isSaving = ref(false)
   const saveError = ref('')
 
-  const form = ref<{
-    id: string
-    name: string
-    is_active: boolean
-  }>({
+  const {
+    errors: saveErrors,
+    defineField: defineSaveField,
+    handleSubmit: handleSaveSubmit,
+    setValues: setSaveValues,
+  } = useZodForm(adminCatalogFormSchema, {
     id: '',
     name: '',
     is_active: true,
   })
 
   const openAddModal = () => {
-    form.value = {
-      id: '',
-      name: '',
-      is_active: true,
-    }
+    setSaveValues({ id: '', name: '', is_active: true })
     isEditing.value = false
     saveError.value = ''
     isModalOpen.value = true
   }
 
   const openEditModal = (item: T) => {
-    form.value = {
+    setSaveValues({
       id: item.id,
       name: item.name,
       is_active: item.is_active ?? true,
-    }
+    })
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -120,31 +124,22 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     isModalOpen.value = false
   }
 
-  const saveItem = async () => {
-    if (!form.value.name) {
-      saveError.value = `O Nome de ${config.entityName} é obrigatório.`
-      return
-    }
-    if (!form.value.id && !isEditing.value) {
-      saveError.value = 'O Código (ID) é obrigatório.'
-      return
-    }
-
+  const submitSaveForm = handleSaveSubmit(async (values: AdminCatalogFormInput) => {
     isSaving.value = true
     saveError.value = ''
 
     try {
       const payload = {
-        name: form.value.name,
-        id: form.value.id,
-        is_active: form.value.is_active,
+        name: values.name,
+        id: values.id,
+        is_active: values.is_active,
         is_pending: false,
       }
 
       if (isEditing.value) {
-        await config.updateItem(form.value.id, {
-          name: form.value.name,
-          is_active: form.value.is_active,
+        await config.updateItem(values.id, {
+          name: values.name,
+          is_active: values.is_active,
         })
       } else {
         await config.createItem(payload)
@@ -158,7 +153,7 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const handleToggleStatus = async (item: T) => {
     try {
@@ -181,14 +176,20 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     }
   }
 
-  // Resolve Pending Modal
+  // --- Resolve Pending Modal (with Zod) ---
   const isResolveModalOpen = ref(false)
   const isResolving = ref(false)
   const resolveError = ref('')
-  const resolveMode = ref<'approve' | 'merge'>('approve')
   const targetPendingItem = ref<T | null>(null)
 
-  const resolveForm = ref({
+  const {
+    errors: resolveErrors,
+    defineField: defineResolveField,
+    handleSubmit: handleResolveSubmit,
+    setValues: setResolveValues,
+    values: rawResolveValues,
+  } = useZodForm(adminCatalogResolveSchema, {
+    resolveMode: 'approve',
     newName: '',
     finalTargetId: '',
     finalNatureId: '',
@@ -197,13 +198,13 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
 
   const openResolveModal = (item: T) => {
     targetPendingItem.value = item
-    resolveForm.value = {
+    setResolveValues({
+      resolveMode: 'approve',
       newName: item.name,
       finalTargetId: '',
       finalNatureId: '',
       finalClassId: '',
-    }
-    resolveMode.value = 'approve'
+    })
     resolveError.value = ''
     isResolveModalOpen.value = true
   }
@@ -213,19 +214,18 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     targetPendingItem.value = null
   }
 
-  const executeResolve = async () => {
+  const submitResolveForm = handleResolveSubmit(async (values: AdminCatalogResolveInput) => {
     if (!targetPendingItem.value) return
     isResolving.value = true
     resolveError.value = ''
 
     try {
-      if (resolveMode.value === 'approve') {
-        await config.approvePending(targetPendingItem.value, resolveForm.value.newName)
+      if (values.resolveMode === 'approve' && values.newName) {
+        await config.approvePending(targetPendingItem.value, values.newName)
       } else {
-        const targetId =
-          resolveForm.value.finalTargetId ||
-          resolveForm.value.finalNatureId ||
-          resolveForm.value.finalClassId
+        const targetId = values.finalTargetId || values.finalNatureId || values.finalClassId
+
+        if (!targetId) throw new Error('Selecione a Entidade Oficial de Destino.')
         await config.mergePending(targetPendingItem.value, targetId)
       }
       await refreshPending()
@@ -237,7 +237,7 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     } finally {
       isResolving.value = false
     }
-  }
+  })
 
   return {
     activeTab,
@@ -252,16 +252,17 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     refreshActive,
     refreshPending,
 
-    // Modal
+    // Modal (Save)
     isModalOpen,
     isEditing,
     isSaving,
     saveError,
-    form,
+    saveErrors,
+    defineSaveField,
     openAddModal,
     openEditModal,
     closeModal,
-    saveItem,
+    submitSaveForm,
 
     // Actions
     handleToggleStatus,
@@ -271,11 +272,12 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     isResolveModalOpen,
     isResolving,
     resolveError,
-    resolveMode,
+    resolveErrors,
+    defineResolveField,
+    rawResolveValues,
     targetPendingItem,
-    resolveForm,
     openResolveModal,
     closeResolveModal,
-    executeResolve,
+    submitResolveForm,
   }
 }

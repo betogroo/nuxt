@@ -44,11 +44,12 @@
     isEditing,
     isSaving,
     saveError,
-    form,
+    saveErrors,
+    defineSaveField,
     openAddModal,
     openEditModal,
     closeModal,
-    saveItem: saveProductClass,
+    submitSaveForm: saveProductClass,
 
     // Actions
     handleToggleStatus: toggleStatus,
@@ -58,12 +59,12 @@
     isResolveModalOpen,
     isResolving,
     resolveError,
-    resolveMode,
+    resolveErrors,
+    defineResolveField,
     targetPendingItem: targetPendingClass,
-    resolveForm,
     openResolveModal,
     closeResolveModal,
-    executeResolve: submitResolve,
+    submitResolveForm: submitResolve,
   } = useAdminCrud<ProductClassRow>({
     entityName: 'esta classe de produto',
     asyncDataKey: 'product-classes-admin',
@@ -77,6 +78,13 @@
     approvePending: approvePendingProductClass,
     mergePending: mergePendingProductClass,
   })
+  const [id, idProps] = defineSaveField('id')
+  const [name, nameProps] = defineSaveField('name')
+  const [isActive, isActiveProps] = defineSaveField('is_active')
+
+  const [resolveMode, resolveModeProps] = defineResolveField('resolveMode')
+  const [newName, newNameProps] = defineResolveField('newName')
+  const [finalClassId, finalClassIdProps] = defineResolveField('finalClassId')
 
   const { currentPage, totalPages } = pagination
 </script>
@@ -275,9 +283,11 @@
 
       <UiForm @submit.prevent="saveProductClass">
         <UiInput
-          v-model="form.id"
+          v-model="id"
+          v-bind="idProps"
           class="mb-3"
           :disabled="isEditing"
+          :error-messages="saveErrors.id"
           hint="Ex: 5915"
           label="Código da Classe"
           persistent-hint
@@ -286,8 +296,10 @@
         />
 
         <UiInput
-          v-model="form.name"
+          v-model="name"
+          v-bind="nameProps"
           class="mb-3"
+          :error-messages="saveErrors.name"
           label="Nome da Classe"
           placeholder="Ex: Filtros e redes"
           required
@@ -295,9 +307,11 @@
         />
 
         <UiSwitch
-          v-model="form.is_active"
+          v-model="isActive"
+          v-bind="isActiveProps"
           color="primary"
           density="compact"
+          :error-messages="saveErrors.is_active"
           hide-details
           label="Classe Ativa"
         />
@@ -325,15 +339,23 @@
         >.
       </div>
 
-      <UiRadioGroup v-model="resolveMode" class="mb-4" color="primary">
+      <UiRadioGroup
+        v-model="resolveMode"
+        v-bind="resolveModeProps"
+        class="mb-4"
+        color="primary"
+        :error-messages="resolveErrors.resolveMode"
+      >
         <UiRadio label="Aprovar e Ativar (tornar classe oficial no sistema)" value="approve" />
         <UiRadio label="Mesclar em uma Classe Oficial já existente" value="merge" />
       </UiRadioGroup>
 
       <div v-if="resolveMode === 'approve'">
         <UiInput
-          v-model="resolveForm.newName"
+          v-model="newName"
+          v-bind="newNameProps"
           class="mb-2"
+          :error-messages="resolveErrors.newName"
           label="Nome Oficial da Classe"
           variant="outlined"
         />
@@ -341,8 +363,10 @@
 
       <div v-if="resolveMode === 'merge'">
         <UiAutocomplete
-          v-model="resolveForm.finalClassId"
+          v-model="finalClassId"
+          v-bind="finalClassIdProps"
           class="mb-2"
+          :error-messages="resolveErrors.finalTargetId"
           item-title="name"
           item-value="id"
           :items="allActiveClasses || []"

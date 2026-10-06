@@ -36,7 +36,8 @@ export default withNuxt([
   },
 
   {
-    ignores: ['app/schemas/generated/**', 
+    ignores: [
+      'app/schemas/generated/**',
       'app/components/**/*.vue',
       'app/components/**/*.ts',
       'app/components/**/*.js',
