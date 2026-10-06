@@ -1,6 +1,8 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
   import type { SupplierRow } from '~/composables/useSuppliers'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { supplierFormSchema, type SupplierFormInput } from '~/schemas/forms/supplier'
   const toast = useToast()
   definePageMeta({
     icon: 'delivery',
@@ -72,7 +74,22 @@
     simples_optant_verified_at: null as string | null,
     is_active: true,
   }
-  const form = ref({ ...defaultForm })
+
+  const { errors, defineField, handleSubmit, resetForm } = useZodForm(
+    supplierFormSchema,
+    defaultForm,
+  )
+
+  const [cnpj, cnpjProps] = defineField('cnpj')
+  const [companyName, companyNameProps] = defineField('company_name')
+  const [responsibleName, responsibleNameProps] = defineField('responsible_name')
+  const [email, emailProps] = defineField('email')
+  const [cellPhone, cellPhoneProps] = defineField('cell_phone')
+  const [landline, landlineProps] = defineField('landline')
+  const [address, addressProps] = defineField('address')
+  const [hasBbAccount, hasBbAccountProps] = defineField('has_bb_account')
+  const [isSimplesOptant, isSimplesOptantProps] = defineField('is_simples_optant')
+  const [isActive, isActiveProps] = defineField('is_active')
 
   // Formatar data local
   const formatDate = (dateString: string | null) => {
@@ -81,21 +98,23 @@
   }
 
   const openAddModal = () => {
-    form.value = { ...defaultForm }
+    resetForm({ values: defaultForm })
     isEditing.value = false
     saveError.value = ''
     isModalOpen.value = true
   }
 
   const openEditModal = (supplier: SupplierRow) => {
-    form.value = {
-      ...supplier,
-      responsible_name: supplier.responsible_name || '',
-      cell_phone: supplier.cell_phone || '',
-      landline: supplier.landline || '',
-      address: supplier.address || '',
-      has_bb_account: supplier.has_bb_account || '',
-    }
+    resetForm({
+      values: {
+        ...supplier,
+        responsible_name: supplier.responsible_name || '',
+        cell_phone: supplier.cell_phone || '',
+        landline: supplier.landline || '',
+        address: supplier.address || '',
+        has_bb_account: supplier.has_bb_account || '',
+      },
+    })
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -105,43 +124,37 @@
     isModalOpen.value = false
   }
 
-  const saveSupplier = async () => {
-    if (!form.value.cnpj || !form.value.company_name || !form.value.email) {
-      saveError.value = 'CNPJ, Nome da Empresa e E-mail são obrigatórios.'
-      return
-    }
-
+  const saveSupplier = handleSubmit(async (values: SupplierFormInput) => {
     isSaving.value = true
     saveError.value = ''
 
     try {
-      // Se a opção do simples mudar, atualiza a data de verificação.
-      let verifiedAt = form.value.simples_optant_verified_at
+      let verifiedAt = values.simples_optant_verified_at
       if (isEditing.value) {
-        const original = suppliers.value?.find((s) => s.id === form.value.id)
-        if (original && original.is_simples_optant !== form.value.is_simples_optant) {
+        const original = suppliers.value?.find((s) => s.id === values.id)
+        if (original && original.is_simples_optant !== values.is_simples_optant) {
           verifiedAt = new Date().toISOString()
         }
-      } else if (form.value.is_simples_optant) {
+      } else if (values.is_simples_optant) {
         verifiedAt = new Date().toISOString()
       }
 
       const payload = {
-        cnpj: form.value.cnpj,
-        company_name: form.value.company_name,
-        responsible_name: form.value.responsible_name || null,
-        email: form.value.email,
-        cell_phone: form.value.cell_phone || null,
-        landline: form.value.landline || null,
-        address: form.value.address || null,
-        has_bb_account: form.value.has_bb_account || null,
-        is_simples_optant: form.value.is_simples_optant,
+        cnpj: values.cnpj,
+        company_name: values.company_name,
+        responsible_name: values.responsible_name || null,
+        email: values.email,
+        cell_phone: values.cell_phone || null,
+        landline: values.landline || null,
+        address: values.address || null,
+        has_bb_account: values.has_bb_account || null,
+        is_simples_optant: values.is_simples_optant,
         simples_optant_verified_at: verifiedAt,
-        is_active: form.value.is_active,
+        is_active: values.is_active,
       }
 
-      if (isEditing.value) {
-        await updateSupplier(form.value.id, payload)
+      if (isEditing.value && values.id) {
+        await updateSupplier(values.id, payload)
       } else {
         await createSupplier(payload)
       }
@@ -154,7 +167,7 @@
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const toggleStatus = async (supplier: SupplierRow) => {
     try {
@@ -345,33 +358,74 @@
 
           <UiRow>
             <UiCol cols="12" md="4">
-              <UiInput v-model="form.cnpj" label="CNPJ *" required />
+              <UiInput
+                v-model="cnpj"
+                v-bind="cnpjProps"
+                :error-messages="errors.cnpj"
+                label="CNPJ *"
+                required
+              />
             </UiCol>
             <UiCol cols="12" md="8">
-              <UiInput v-model="form.company_name" label="Nome da Empresa *" required />
+              <UiInput
+                v-model="companyName"
+                v-bind="companyNameProps"
+                :error-messages="errors.company_name"
+                label="Nome da Empresa *"
+                required
+              />
             </UiCol>
 
             <UiCol cols="12" md="6">
-              <UiInput v-model="form.responsible_name" label="Nome do Responsável" />
+              <UiInput
+                v-model="responsibleName"
+                v-bind="responsibleNameProps"
+                :error-messages="errors.responsible_name"
+                label="Nome do Responsável"
+              />
             </UiCol>
             <UiCol cols="12" md="6">
-              <UiInput v-model="form.email" label="E-mail *" required type="email" />
+              <UiInput
+                v-model="email"
+                v-bind="emailProps"
+                :error-messages="errors.email"
+                label="E-mail *"
+                required
+                type="email"
+              />
             </UiCol>
 
             <UiCol cols="12" md="6">
-              <UiInput v-model="form.cell_phone" label="Telefone Celular" />
+              <UiInput
+                v-model="cellPhone"
+                v-bind="cellPhoneProps"
+                :error-messages="errors.cell_phone"
+                label="Telefone Celular"
+              />
             </UiCol>
             <UiCol cols="12" md="6">
-              <UiInput v-model="form.landline" label="Telefone Fixo" />
-            </UiCol>
-
-            <UiCol cols="12">
-              <UiInput v-model="form.address" label="Endereço" />
+              <UiInput
+                v-model="landline"
+                v-bind="landlineProps"
+                :error-messages="errors.landline"
+                label="Telefone Fixo"
+              />
             </UiCol>
 
             <UiCol cols="12">
               <UiInput
-                v-model="form.has_bb_account"
+                v-model="address"
+                v-bind="addressProps"
+                :error-messages="errors.address"
+                label="Endereço"
+              />
+            </UiCol>
+
+            <UiCol cols="12">
+              <UiInput
+                v-model="hasBbAccount"
+                v-bind="hasBbAccountProps"
+                :error-messages="errors.has_bb_account"
                 hint="Ex: Ag: 1234-5, CC: 12345-6"
                 label="Conta no Banco do Brasil"
                 persistent-hint
@@ -380,8 +434,10 @@
 
             <UiCol cols="12">
               <UiSwitch
-                v-model="form.is_simples_optant"
+                v-model="isSimplesOptant"
+                v-bind="isSimplesOptantProps"
                 color="primary"
+                :error-messages="errors.is_simples_optant"
                 hint="A data e hora da verificação serão salvas automaticamente."
                 label="Optante pelo Simples Nacional"
                 persistent-hint
@@ -390,8 +446,10 @@
 
             <UiCol cols="12">
               <UiSwitch
-                v-model="form.is_active"
+                v-model="isActive"
+                v-bind="isActiveProps"
                 color="success"
+                :error-messages="errors.is_active"
                 hint="Indica se o fornecedor está ativo no sistema"
                 label="Fornecedor Ativo"
                 persistent-hint

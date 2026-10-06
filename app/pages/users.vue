@@ -1,6 +1,13 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
   import type { ProfileRow } from '~/composables/useUsers'
+  import { useZodForm } from '~/composables/useZodForm'
+  import {
+    adminUserEditSchema,
+    adminUserCreateSchema,
+    type AdminUserEditInput,
+    type AdminUserCreateInput,
+  } from '~/schemas/forms/user'
   const toast = useToast()
 
   // 1. Aplica a Regra (Middleware) criada
@@ -42,6 +49,16 @@
   // 3. Lógica de Edição de Usuário
   const isEditModalOpen = ref(false)
   const editingUser = ref<ProfileRow | null>(null)
+  const {
+    errors: editErrors,
+    defineField: defineEditField,
+    handleSubmit: handleEditSubmit,
+    resetForm: resetEditForm,
+  } = useZodForm(adminUserEditSchema, { id: '', name: '', role: 'user', is_active: true })
+
+  const [editName, editNameProps] = defineEditField('name')
+  const [editRole, editRoleProps] = defineEditField('role')
+  const [editIsActive, editIsActiveProps] = defineEditField('is_active')
   const isSaving = ref(false)
   const saveError = ref('')
 
@@ -50,6 +67,9 @@
   const openEditModal = (user: ProfileRow) => {
     // Clonamos o objeto para não alterar a tabela antes de salvar
     editingUser.value = { ...user }
+    resetEditForm({
+      values: { id: user.id, name: user.name, role: user.role as never, is_active: user.is_active },
+    })
     saveError.value = ''
     isEditModalOpen.value = true
   }
@@ -59,31 +79,31 @@
     editingUser.value = null
   }
 
-  const saveUser = async () => {
+  const saveUser = handleEditSubmit(async (values: AdminUserEditInput) => {
     if (!editingUser.value) return
     isSaving.value = true
     saveError.value = ''
 
     try {
-      await updateUser(editingUser.value.id, {
-        name: editingUser.value.name,
-        role: editingUser.value.role,
-        is_active: editingUser.value.is_active,
+      await updateUser(values.id, {
+        name: values.name,
+        role: values.role,
+        is_active: values.is_active,
       })
 
       await logAction(
         'ADMIN_UPDATE_USER',
-        `Administrador atualizou o usuário: ${editingUser.value.id}`,
+        `Administrador atualizou o usuário: ${values.id}`,
         loggedProfile.value?.id,
       )
-      await refresh() // Recarrega a tabela para mostrar os novos dados
+      await refresh()
       closeEditModal()
     } catch (e: unknown) {
       saveError.value = e instanceof Error ? e.message : String(e)
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const toggleUserStatus = async (user: ProfileRow) => {
     if (user.id === loggedProfile.value?.id) {
@@ -112,16 +132,20 @@
   const isCreating = ref(false)
   const createError = ref('')
 
-  const defaultNewUserForm = {
-    name: '',
-    email: '',
-    password: '',
-    role: 'user',
-  }
-  const newUserForm = ref({ ...defaultNewUserForm })
+  const {
+    errors: createErrors,
+    defineField: defineCreateField,
+    handleSubmit: handleCreateSubmit,
+    resetForm: resetCreateForm,
+  } = useZodForm(adminUserCreateSchema, { name: '', email: '', password: '', role: 'user' })
+
+  const [createName, createNameProps] = defineCreateField('name')
+  const [createEmail, createEmailProps] = defineCreateField('email')
+  const [createPassword, createPasswordProps] = defineCreateField('password')
+  const [createRole, createRoleProps] = defineCreateField('role')
 
   const openAddModal = () => {
-    newUserForm.value = { ...defaultNewUserForm }
+    resetCreateForm({ values: { name: '', email: '', password: '', role: 'user' } })
     createError.value = ''
     isAddModalOpen.value = true
   }
@@ -130,24 +154,23 @@
     isAddModalOpen.value = false
   }
 
-  const createUser = async () => {
+  const createUser = handleCreateSubmit(async (values: AdminUserCreateInput) => {
     isCreating.value = true
     createError.value = ''
 
     try {
-      // Faz o POST para a nossa rota segura backend
       await $fetch('/api/admin/users', {
         method: 'POST',
-        body: newUserForm.value,
+        body: values,
       })
 
       await logAction(
         'ADMIN_CREATE_USER',
-        `Administrador criou novo usuário: ${newUserForm.value.email}`,
+        `Administrador criou novo usuário: ${values.email}`,
         loggedProfile.value?.id,
       )
 
-      await refresh() // Atualiza a tabela
+      await refresh()
       closeAddModal()
     } catch (err: unknown) {
       const fetchErr = err as { data?: { statusMessage?: string }; message?: string }
@@ -156,7 +179,7 @@
     } finally {
       isCreating.value = false
     }
-  }
+  })
 
   const roleConfig: Record<
     string,
@@ -374,13 +397,21 @@
         {{ saveError }}
       </UiAlert>
 
-      <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
+      <UiInput
+        v-model="editName"
+        v-bind="editNameProps"
+        :error-messages="editErrors.name"
+        label="Nome"
+        placeholder="Nome do usuário"
+      />
 
       <UiSelect
-        v-model="editingUser.role"
+        v-model="editRole"
+        v-bind="editRoleProps"
         class="mb-3"
         density="comfortable"
         :disabled="isSelf"
+        :error-messages="editErrors.role"
         :hint="
           isSelf
             ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
@@ -401,10 +432,12 @@
       />
 
       <UiSwitch
-        v-model="editingUser.is_active"
+        v-model="editIsActive"
+        v-bind="editIsActiveProps"
         class="mt-3"
         color="success"
         :disabled="isSelf"
+        :error-messages="editErrors.is_active"
         hint="Se desmarcado, o usuário não poderá acessar o sistema"
         label="Usuário Ativo"
         persistent-hint
@@ -424,10 +457,18 @@
         {{ createError }}
       </UiAlert>
 
-      <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
+      <UiInput
+        v-model="createName"
+        v-bind="createNameProps"
+        :error-messages="createErrors.name"
+        label="Nome Completo"
+        placeholder="Nome do usuário"
+      />
 
       <UiInput
-        v-model="newUserForm.email"
+        v-model="createEmail"
+        v-bind="createEmailProps"
+        :error-messages="createErrors.email"
         label="E-mail"
         placeholder="email@exemplo.com"
         prepend-inner-icon="emailAlt"
@@ -435,7 +476,9 @@
       />
 
       <UiInput
-        v-model="newUserForm.password"
+        v-model="createPassword"
+        v-bind="createPasswordProps"
+        :error-messages="createErrors.password"
         label="Senha (Inicial)"
         placeholder="Pelo menos 6 caracteres"
         prepend-inner-icon="security"
@@ -443,9 +486,11 @@
       />
 
       <UiSelect
-        v-model="newUserForm.role"
+        v-model="createRole"
+        v-bind="createRoleProps"
         class="mb-3"
         density="comfortable"
+        :error-messages="createErrors.role"
         item-title="title"
         item-value="value"
         :items="[

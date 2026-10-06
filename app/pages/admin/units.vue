@@ -67,7 +67,6 @@
     errors: saveErrors,
     defineField: defineSaveField,
     handleSubmit: handleSaveSubmit,
-    setValues: setSaveValues,
   } = useZodForm(adminUnitFormSchema, { id: '', name: '', aliasIds: [], is_active: true })
 
   const [name, nameProps] = defineSaveField('name')
@@ -75,18 +74,20 @@
   const [isActive, isActiveProps] = defineSaveField('is_active')
 
   const openAddModal = () => {
-    setSaveValues({ id: '', name: '', aliasIds: [], is_active: true })
+    resetSaveForm({ values: { id: '', name: '', aliasIds: [], is_active: true } })
     isEditing.value = false
     saveError.value = ''
     isModalOpen.value = true
   }
 
   const openEditModal = (unit: UnitRow) => {
-    setSaveValues({
-      id: unit.id,
-      name: unit.name,
-      aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
-      is_active: unit.is_active,
+    resetSaveForm({
+      values: {
+        id: unit.id,
+        name: unit.name,
+        aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
+        is_active: unit.is_active,
+      },
     })
     isEditing.value = true
     saveError.value = ''
@@ -142,21 +143,20 @@
     errors: aliasErrors,
     defineField: defineAliasField,
     handleSubmit: handleAliasSubmit,
-    setValues: setAliasValues,
   } = useZodForm(adminUnitAliasFormSchema, { id: '', name: '', code: undefined })
 
   const [aliasCode, aliasCodeProps] = defineAliasField('code')
   const [aliasName, aliasNameProps] = defineAliasField('name')
 
   const openAddAliasModal = () => {
-    setAliasValues({ id: '', name: '', code: undefined })
+    resetAliasForm({ values: { id: '', name: '', code: undefined } })
     isAliasEditing.value = false
     saveError.value = ''
     isAliasModalOpen.value = true
   }
 
   const openEditAliasModal = (alias: UnitAliasRow) => {
-    setAliasValues({ id: alias.id, code: alias.code, name: alias.name })
+    resetAliasForm({ values: { id: alias.id, code: alias.code, name: alias.name } })
     isAliasEditing.value = true
     saveError.value = ''
     isAliasModalOpen.value = true
@@ -211,7 +211,6 @@
     errors: resolveErrors,
     defineField: defineResolveField,
     handleSubmit: handleResolveSubmit,
-    setValues: setResolveValues,
   } = useZodForm(adminUnitResolveSchema, {
     resolveMode: 'new',
     resolveNewName: '',
@@ -225,7 +224,9 @@
 
   const openResolveModal = (unit: UnitRow) => {
     resolveTarget.value = unit
-    setResolveValues({ resolveMode: 'new', resolveNewName: unit.name, resolveLinkUnitId: '' })
+    resetResolveForm({
+      values: { resolveMode: 'new', resolveNewName: unit.name, resolveLinkUnitId: '' },
+    })
     resolveError.value = ''
     isResolveModalOpen.value = true
   }

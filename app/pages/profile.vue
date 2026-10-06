@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { profileFormSchema, type ProfileFormInput } from '~/schemas/forms/profile'
   useHead({ title: 'Meu Perfil' })
 
   // Proteção básica: apenas usuários logados
@@ -20,22 +22,25 @@
   const saveError = ref('')
 
   // Campos do formulário clonados do perfil
-  const formData = ref({
+  const { errors, defineField, handleSubmit, resetForm } = useZodForm(profileFormSchema, {
     name: '',
     avatar_url: '',
   })
+  const [name, nameProps] = defineField('name')
+  const [avatarUrl, avatarUrlProps] = defineField('avatar_url')
 
   // Quando a página carrega, preenchemos o formulário com os dados atuais
   watchEffect(() => {
     if (profile.value) {
-      formData.value.name = profile.value.name || ''
-      formData.value.avatar_url = profile.value.avatar_url || ''
+      resetForm({
+        values: { name: profile.value.name || '', avatar_url: profile.value.avatar_url || '' },
+      })
     }
   })
 
   const { logAction } = useLogger()
 
-  const saveProfile = async () => {
+  const saveProfile = handleSubmit(async (values: ProfileFormInput) => {
     if (!profile.value) return
     isSaving.value = true
     saveMessage.value = ''
@@ -43,8 +48,8 @@
 
     try {
       await updateProfile({
-        name: formData.value.name,
-        avatar_url: formData.value.avatar_url,
+        name: values.name,
+        avatar_url: values.avatar_url,
       })
       saveMessage.value = 'Perfil atualizado com sucesso!'
       await logAction('UPDATE_PROFILE', 'O usuário atualizou seus dados de perfil.', user.value?.id)
@@ -54,7 +59,7 @@
     } finally {
       isSaving.value = false
     }
-  }
+  })
 
   const roleLabel: Record<string, string> = {
     admin: 'Administrador',
@@ -92,7 +97,7 @@
           <!-- Avatar + Info do usuário -->
           <div class="d-flex align-center gap-5 mb-6 pa-4 rounded-xl bg-surface-variant">
             <UiAvatar color="primary" size="80" variant="tonal">
-              <UiImg v-if="formData.avatar_url" :src="formData.avatar_url" />
+              <UiImg v-if="avatarUrl" :src="avatarUrl" />
               <span v-else class="text-h5 font-weight-bold">{{ userInitial }}</span>
             </UiAvatar>
             <div>
@@ -116,13 +121,17 @@
           <UiForm @submit.prevent="saveProfile">
             <!-- Campos Editáveis -->
             <UiInput
-              v-model="formData.name"
+              v-model="name"
+              v-bind="nameProps"
+              :error-messages="errors.name"
               label="Nome Completo"
               prepend-inner-icon="userOutline"
             />
 
             <UiInput
-              v-model="formData.avatar_url"
+              v-model="avatarUrl"
+              v-bind="avatarUrlProps"
+              :error-messages="errors.avatar_url"
               hint="Cole um link direto para uma imagem (ex: URL do Gravatar)"
               label="URL da Foto (Avatar)"
               persistent-hint

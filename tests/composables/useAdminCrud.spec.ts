@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref, defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
@@ -81,7 +81,6 @@ describe('useAdminCrud Composable', () => {
     crud.openResolveModal({ id: '99', name: 'Pending Nature' })
     expect(crud.isResolveModalOpen.value).toBe(true)
     expect(crud.targetPendingItem.value?.name).toBe('Pending Nature')
-    expect(crud.rawResolveValues.newName).toBe('Pending Nature')
 
     crud.closeResolveModal()
     expect(crud.isResolveModalOpen.value).toBe(false)

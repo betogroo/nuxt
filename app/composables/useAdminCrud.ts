@@ -95,7 +95,7 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     errors: saveErrors,
     defineField: defineSaveField,
     handleSubmit: handleSaveSubmit,
-    setValues: setSaveValues,
+    resetForm: resetSaveForm,
   } = useZodForm(adminCatalogFormSchema, {
     id: '',
     name: '',
@@ -103,18 +103,14 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
   })
 
   const openAddModal = () => {
-    setSaveValues({ id: '', name: '', is_active: true })
+    resetSaveForm({ values: { id: '', name: '', is_active: true } })
     isEditing.value = false
     saveError.value = ''
     isModalOpen.value = true
   }
 
   const openEditModal = (item: T) => {
-    setSaveValues({
-      id: item.id,
-      name: item.name,
-      is_active: item.is_active ?? true,
-    })
+    resetSaveForm({ values: { id: item.id, name: item.name, is_active: item.is_active ?? true } })
     isEditing.value = true
     saveError.value = ''
     isModalOpen.value = true
@@ -186,7 +182,7 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
     errors: resolveErrors,
     defineField: defineResolveField,
     handleSubmit: handleResolveSubmit,
-    setValues: setResolveValues,
+    resetForm: resetResolveForm,
     values: rawResolveValues,
   } = useZodForm(adminCatalogResolveSchema, {
     resolveMode: 'approve',
@@ -198,12 +194,14 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
 
   const openResolveModal = (item: T) => {
     targetPendingItem.value = item
-    setResolveValues({
-      resolveMode: 'approve',
-      newName: item.name,
-      finalTargetId: '',
-      finalNatureId: '',
-      finalClassId: '',
+    resetResolveForm({
+      values: {
+        resolveMode: 'approve',
+        newName: item.name,
+        finalTargetId: '',
+        finalNatureId: '',
+        finalClassId: '',
+      },
     })
     resolveError.value = ''
     isResolveModalOpen.value = true
