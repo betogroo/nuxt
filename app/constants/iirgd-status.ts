@@ -13,7 +13,7 @@ export type IirgdDemandStatus =
 
 export const IIRGD_STATUS_LABELS: Record<IirgdDemandStatus, string> = {
   new: 'Novo',
-  confronted: 'Confrontado',
+  confronted: 'Consultado',
   released: 'Liberado',
   issued: 'Emitido',
   mailbag: 'Malote',

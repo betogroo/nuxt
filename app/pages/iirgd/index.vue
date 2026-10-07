@@ -36,12 +36,19 @@
 
   const inProgressCount = computed(() => {
     if (!demands.value) return 0
-    return demands.value.filter(
-      (d) =>
-        !['issued', 'protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
-          d.status as string,
-        ),
+    return demands.value.filter((d) =>
+      ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status as string),
     ).length
+  })
+
+  const confrontedCount = computed(() => {
+    if (!demands.value) return 0
+    return demands.value.filter((d) => d.status === 'confronted').length
+  })
+
+  const releasedCount = computed(() => {
+    if (!demands.value) return 0
+    return demands.value.filter((d) => d.status === 'released').length
   })
 
   const issuedCount = computed(() => {
@@ -61,6 +68,12 @@
   const filteredDemands = computed(() => {
     if (!demands.value) return []
 
+    if (activeTab.value === 'consultado') {
+      return demands.value.filter((d) => d.status === 'confronted')
+    }
+    if (activeTab.value === 'liberado') {
+      return demands.value.filter((d) => d.status === 'released')
+    }
     if (activeTab.value === 'emitidos') {
       return demands.value.filter((d) => d.status === 'issued')
     }
@@ -72,11 +85,8 @@
       )
     }
     // Default (Em andamento)
-    return demands.value.filter(
-      (d) =>
-        !['issued', 'protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
-          d.status as string,
-        ),
+    return demands.value.filter((d) =>
+      ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status as string),
     )
   })
 
@@ -237,6 +247,28 @@
             class="ml-2"
             color="primary"
             :content="inProgressCount"
+            inline
+          />
+        </UiTab>
+        <UiTab color="info" value="consultado">
+          <UiIcon class="mr-2" name="search" />
+          Consultado
+          <UiBadge
+            v-if="confrontedCount > 0"
+            class="ml-2"
+            color="info"
+            :content="confrontedCount"
+            inline
+          />
+        </UiTab>
+        <UiTab color="teal" value="liberado">
+          <UiIcon class="mr-2" name="checkCircle" />
+          Liberado
+          <UiBadge
+            v-if="releasedCount > 0"
+            class="ml-2"
+            color="teal"
+            :content="releasedCount"
             inline
           />
         </UiTab>
