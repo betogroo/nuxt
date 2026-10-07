@@ -56,7 +56,7 @@
   })
 
   const modal = useModal()
-  const { errors, defineField, resetForm } = useZodForm(productFormSchema, {
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(productFormSchema, {
     id: '',
     name: '',
     expense_nature_id: null,
@@ -71,6 +71,8 @@
   })
 
   const [name, nameProps] = defineField('name')
+  const [expenseNatureId, expenseNatureIdProps] = defineField('expense_nature_id')
+  const [productClassId, productClassIdProps] = defineField('product_class_id')
   const [isSuggestingNature, isSuggestingNatureProps] = defineField('is_suggesting_nature')
   const [suggestedNatureId, suggestedNatureIdProps] = defineField('suggested_nature_id')
   const [suggestedNatureName, suggestedNatureNameProps] = defineField('suggested_nature_name')
@@ -121,70 +123,54 @@
     modal.open()
   }
 
-  const saveProduct = async () => {
-    if (modal.payload.value.is_suggesting_nature) {
-      if (
-        !modal.payload.value.name ||
-        !modal.payload.value.suggested_nature_id ||
-        !modal.payload.value.suggested_nature_name
-      ) {
-        modal.error.value = 'Nome do Produto e Código/Nome da Natureza são obrigatórios.'
-        return
-      }
-    } else {
-      if (!modal.payload.value.name || !modal.payload.value.expense_nature_id) {
-        modal.error.value = 'Nome e Natureza de Despesa são obrigatórios.'
-        return
-      }
-    }
-
-    if (modal.payload.value.is_suggesting_class) {
-      if (!modal.payload.value.suggested_class_id || !modal.payload.value.suggested_class_name) {
-        modal.error.value = 'Código e Nome da nova Classe são obrigatórios quando sugerida.'
-        return
-      }
-    }
-
+  const saveProduct = handleSubmit(async (values) => {
     modal.startSaving()
+    modal.error.value = ''
     try {
-      let finalExpenseNatureId = modal.payload.value.expense_nature_id
-      let finalProductClassId = modal.payload.value.product_class_id
+      let finalExpenseNatureId = values.expense_nature_id
+      let finalProductClassId = values.product_class_id
 
-      if (modal.payload.value.is_suggesting_nature) {
+      if (
+        values.is_suggesting_nature &&
+        values.suggested_nature_id &&
+        values.suggested_nature_name
+      ) {
         const expenseNature = await registerPendingExpenseNature({
-          id: modal.payload.value.suggested_nature_id,
-          name: modal.payload.value.suggested_nature_name,
+          id: values.suggested_nature_id,
+          name: values.suggested_nature_name,
         })
         finalExpenseNatureId = expenseNature.id
       }
 
-      if (modal.payload.value.is_suggesting_class) {
+      if (values.is_suggesting_class && values.suggested_class_id && values.suggested_class_name) {
         const pClass = await registerPendingProductClass({
-          id: modal.payload.value.suggested_class_id,
-          name: modal.payload.value.suggested_class_name,
+          id: values.suggested_class_id,
+          name: values.suggested_class_name,
         })
         finalProductClassId = pClass.id
       }
 
       const payload = {
-        name: modal.payload.value.name,
-        expense_nature_id: finalExpenseNatureId as string,
+        name: values.name,
+        expense_nature_id: finalExpenseNatureId,
         product_class_id: finalProductClassId,
-        is_active: modal.payload.value.is_active,
+        is_active: values.is_active,
       }
 
-      if (isEditing.value) {
-        await updateProduct(modal.payload.value.id as string, payload)
+      if (isEditing.value && editingId.value) {
+        await updateProduct(editingId.value, payload)
       } else {
         await createProduct(payload)
       }
+
       await refresh()
       modal.close()
+    } catch (err) {
+      modal.error.value = err instanceof Error ? err.message : String(err)
+    } finally {
       modal.stopSaving()
-    } catch (e: unknown) {
-      modal.stopSaving(e instanceof Error ? e.message : String(e))
     }
-  }
+  })
 
   const toggleStatus = async (item: ProductRow) => {
     try {
@@ -361,9 +347,11 @@
 
       <UiAutocomplete
         v-if="!isSuggestingNature"
-        v-model="modal.payload.value.expense_nature_id"
+        v-model="expenseNatureId"
+        v-bind="expenseNatureIdProps"
         class="mb-3"
         density="comfortable"
+        :error-messages="errors.expense_nature_id"
         :item-title="
           (item: Record<string, unknown>) =>
             typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
@@ -401,10 +389,12 @@
 
       <UiAutocomplete
         v-if="!isSuggestingClass"
-        v-model="modal.payload.value.product_class_id"
+        v-model="productClassId"
+        v-bind="productClassIdProps"
         class="mb-3"
         clearable
         density="comfortable"
+        :error-messages="errors.product_class_id"
         :item-title="
           (item: Record<string, unknown>) =>
             typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
