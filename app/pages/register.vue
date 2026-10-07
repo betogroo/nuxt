@@ -1,10 +1,15 @@
 <script setup lang="ts">
   definePageMeta({ layout: 'auth' })
   const { user, signUp: register, getRedirectUrl } = useAuth()
-  const email = ref('')
-  const password = ref('')
   const loading = ref(false)
   const message = ref('')
+
+  const { errors, defineField, handleSubmit } = useZodForm(registerSchema, {
+    email: '',
+    password: '',
+  })
+  const [email, emailProps] = defineField('email')
+  const [password, passwordProps] = defineField('password')
   useHead({ title: 'Registrar' })
 
   // Redireciona se já estiver logado
@@ -14,27 +19,25 @@
     }
   })
 
-  const signUp = async () => {
+  const signUp = handleSubmit(async (values) => {
     loading.value = true
     message.value = ''
 
     const { data, error } = await register(
-      email.value,
-      password.value,
+      values.email,
+      values.password,
       `${window.location.origin}/confirm`,
     )
 
     if (error) {
       message.value = error.message
     } else if (data.session) {
-      // Ambiente local: confirmação de e-mail desligada, session existe → login automático
       return navigateTo(getRedirectUrl(), { replace: true })
     } else {
-      // Produção: confirmação de e-mail ligada, usuário precisa clicar no link
       message.value = 'Cadastro bem-sucedido! Verifique seu e-mail para confirmar.'
     }
     loading.value = false
-  }
+  })
 </script>
 
 <template>
@@ -46,11 +49,22 @@
 
     <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
 
-    <UiInput v-model="email" label="E-mail" prepend-inner-icon="emailAlt" type="email" />
+    <UiInput
+      v-model="email"
+      v-bind="emailProps"
+      :error-messages="errors.email"
+      label="E-mail"
+      prepend-inner-icon="emailAlt"
+      required
+      type="email"
+    />
     <UiInput
       v-model="password"
+      v-bind="passwordProps"
+      :error-messages="errors.password"
       label="Senha"
-      prepend-inner-icon="security"
+      prepend-inner-icon="lock"
+      required
       type="password"
       @keyup.enter="signUp"
     />

@@ -22,59 +22,83 @@
   const inactiveError = computed(() => route.query.error === 'inactive')
 
   // Login com senha
-  const emailPassword = ref('')
-  const password = ref('')
   const loadingPassword = ref(false)
   const errorPassword = ref('')
 
-  const signInWithPassword = async () => {
+  const {
+    errors: passErrors,
+    defineField: passDefine,
+    handleSubmit: passSubmit,
+  } = useZodForm(loginPasswordSchema, {
+    email: '',
+    password: '',
+  })
+  const [emailPassword, emailPasswordProps] = passDefine('email')
+  const [password, passwordProps] = passDefine('password')
+
+  const signInWithPassword = passSubmit(async (values) => {
     loadingPassword.value = true
     errorPassword.value = ''
-
-    const { error } = await loginWithPassword(emailPassword.value, password.value)
-
+    const { error } = await loginWithPassword(values.email, values.password)
     if (error) {
       errorPassword.value = error.message
     }
     loadingPassword.value = false
-  }
+  })
 
   // Login com link mágico
-  const emailOtp = ref('')
   const loadingOtp = ref(false)
   const messageOtp = ref('')
   const errorOtp = ref('')
-  const otpCode = ref('')
   const isOtpSent = ref(false)
 
-  const handleSendOtp = async () => {
+  const {
+    errors: magicErrors,
+    defineField: magicDefine,
+    handleSubmit: magicSubmit,
+  } = useZodForm(loginMagicLinkSchema, { email: '' })
+  const [emailMagic, emailMagicProps] = magicDefine('email')
+
+  const {
+    errors: otpErrors,
+    defineField: otpDefine,
+    handleSubmit: otpSubmit,
+  } = useZodForm(loginOtpSchema, { email: '', otpCode: '' })
+  const [emailOtp] = otpDefine('email')
+  const [otpCode, otpCodeProps] = otpDefine('otpCode')
+
+  watchEffect(() => {
+    // Keep emails in sync for UX
+    if (!isOtpSent.value) {
+      emailOtp.value = emailMagic.value
+    }
+  })
+
+  const handleSendOtp = magicSubmit(async (values) => {
     loadingOtp.value = true
     errorOtp.value = ''
     messageOtp.value = ''
-
-    const { error } = await sendOtp(emailOtp.value, `${window.location.origin}/confirm`)
-
+    const { error } = await sendOtp(values.email, `${window.location.origin}/confirm`)
     if (error) {
       errorOtp.value = error.message
     } else {
       messageOtp.value =
         'Código enviado para o e-mail (você também pode clicar no link que enviamos).'
       isOtpSent.value = true
+      emailOtp.value = values.email
     }
     loadingOtp.value = false
-  }
+  })
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = otpSubmit(async (values) => {
     loadingOtp.value = true
     errorOtp.value = ''
-
-    const { error } = await verifyOtpCode(emailOtp.value, otpCode.value)
-
+    const { error } = await verifyOtpCode(values.email, values.otpCode)
     if (error) {
       errorOtp.value = error.message
     }
     loadingOtp.value = false
-  }
+  })
 </script>
 
 <template>
@@ -115,12 +139,21 @@
         {{ errorPassword }}
       </UiAlert>
 
-      <UiInput v-model="emailPassword" label="E-mail" prepend-inner-icon="emailAlt" type="email" />
+      <UiInput
+        v-model="emailPassword"
+        v-bind="emailPasswordProps"
+        :error-messages="passErrors.email"
+        label="E-mail"
+        prepend-inner-icon="emailAlt"
+        type="email"
+      />
 
       <UiInput
         v-model="password"
+        v-bind="passwordProps"
+        :error-messages="passErrors.password"
         label="Senha"
-        prepend-inner-icon="security"
+        prepend-inner-icon="lock"
         type="password"
         @keyup.enter="signInWithPassword"
       />
@@ -150,7 +183,9 @@
 
       <template v-if="!isOtpSent">
         <UiInput
-          v-model="emailOtp"
+          v-model="emailMagic"
+          v-bind="emailMagicProps"
+          :error-messages="magicErrors.email"
           label="E-mail"
           prepend-inner-icon="emailAlt"
           type="email"
@@ -174,7 +209,10 @@
         <p class="text-body-2 text-medium-emphasis text-center mb-4">
           Digite o código de 6 dígitos enviado para <strong>{{ emailOtp }}</strong>
         </p>
-        <UiOtpInput v-model="otpCode" @finish="handleVerifyOtp" />
+        <UiOtpInput v-model="otpCode" v-bind="otpCodeProps" @finish="handleVerifyOtp" />
+        <div v-if="otpErrors.otpCode" class="text-error text-caption text-center mt-2">
+          {{ otpErrors.otpCode }}
+        </div>
 
         <UiButton
           block
