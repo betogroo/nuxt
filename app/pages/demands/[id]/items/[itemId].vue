@@ -1,4 +1,7 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { demandItemFormSchema } from '~/schemas/forms/demand-item'
+  import { demandBidFormSchema } from '~/schemas/forms/demand-bid'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -28,26 +31,39 @@
   const isEditing = ref(false)
   const isSaving = ref(false)
   const editError = ref('')
-  const editForm = ref({
+  const {
+    errors: eiErrors,
+    defineField: eiDefine,
+    resetForm: eiReset,
+    handleSubmit: eiSubmit,
+  } = useZodForm(demandItemFormSchema, {
     quantity: 1,
-    unitSearch: '',
-    reference_price: 0 as number | null,
-    bid_interval: 3 as number,
-    bid_interval_type: 'percentage' as 'percentage' | 'monetary',
+    searchUnitText: '',
+    reference_price: null,
+    bid_interval: 3,
+    bid_interval_type: 'percentage',
   })
+
+  const [eiQuantity, eiQuantityProps] = eiDefine('quantity')
+  const [eiSearchUnit, eiSearchUnitProps] = eiDefine('searchUnitText')
+  const [eiReferencePrice, eiReferencePriceProps] = eiDefine('reference_price')
+  const [eiBidInterval, eiBidIntervalProps] = eiDefine('bid_interval')
+  const [eiBidIntervalType, eiBidIntervalTypeProps] = eiDefine('bid_interval_type')
   const availableUnits = ref<
     Array<{ id: string; name: string; displayName?: string; legacy_alias?: string | null }>
   >([])
 
   const openEditModal = async () => {
     if (!item.value) return
-    editForm.value = {
-      quantity: Number(item.value.quantity),
-      unitSearch: item.value.measurement_units?.name || '',
-      reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
-      bid_interval: item.value.bid_interval ? Number(item.value.bid_interval) : 3,
-      bid_interval_type: item.value.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
-    }
+    eiReset({
+      values: {
+        quantity: Number(item.value.quantity),
+        searchUnitText: item.value.measurement_units?.name || '',
+        reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
+        bid_interval: item.value.bid_interval ? Number(item.value.bid_interval) : 3,
+        bid_interval_type: item.value.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
+      },
+    })
 
     // Fetch all units so user can search or suggest new ones
     const unitsData = await fetchUnits()
@@ -67,37 +83,29 @@
     isEditing.value = false
   }
 
-  const saveItem = async () => {
+  const saveItem = eiSubmit(async (values) => {
     isSaving.value = true
     editError.value = ''
     try {
-      if (editForm.value.quantity <= 0) throw new Error('A quantidade deve ser maior que 0.')
-
       await updateDemandItemWithDependencies({
         itemId,
         demandId,
         productId: item.value?.product_id || undefined,
-        quantity: editForm.value.quantity,
-        referencePrice: editForm.value.reference_price,
-        bidInterval: editForm.value.bid_interval,
-        bidIntervalType: editForm.value.bid_interval_type,
-        finalUnitId: await resolveOrCreateUnit(editForm.value.unitSearch || ''),
+        quantity: values.quantity,
+        referencePrice: values.reference_price,
+        bidInterval: values.bid_interval,
+        bidIntervalType: values.bid_interval_type,
+        finalUnitId: await resolveOrCreateUnit(values.searchUnitText || ''),
       })
 
       await refresh()
       closeEditModal()
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        editError.value = err.message
-      } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        editError.value = String((err as Record<string, unknown>).message)
-      } else {
-        editError.value = 'Ocorreu um erro ao salvar.'
-      }
+      editError.value = err instanceof Error ? err.message : String(err)
     } finally {
       isSaving.value = false
     }
-  }
+  })
   // --- Bids Logic ---
   const { fetchBidsByProduct, addBid, removeBid } = useProductBids()
   const { fetchAllActiveSuppliers, createSupplierFast } = useSuppliers()
@@ -126,24 +134,38 @@
   const bidError = ref('')
 
   // Bid form state
-  const bidForm = ref({
+  const {
+    errors: bidErrors,
+    defineField: bidDefine,
+    resetForm: bidReset,
+    handleSubmit: bidSubmit,
+  } = useZodForm(demandBidFormSchema, {
     isNewSupplier: false,
-    supplierId: null as string | null,
+    supplierId: null,
     newSupplierCnpj: '',
     newSupplierName: '',
     newSupplierEmail: '',
-    amount: null as number | null,
+    amount: undefined as unknown as number,
   })
 
+  const [bidIsNew, bidIsNewProps] = bidDefine('isNewSupplier')
+  const [bidSupplierId, bidSupplierIdProps] = bidDefine('supplierId')
+  const [bidCnpj, bidCnpjProps] = bidDefine('newSupplierCnpj')
+  const [bidName, bidNameProps] = bidDefine('newSupplierName')
+  const [bidEmail, bidEmailProps] = bidDefine('newSupplierEmail')
+  const [bidAmount, bidAmountProps] = bidDefine('amount')
+
   const openBidModal = () => {
-    bidForm.value = {
-      isNewSupplier: false,
-      supplierId: null,
-      newSupplierCnpj: '',
-      newSupplierName: '',
-      newSupplierEmail: '',
-      amount: null,
-    }
+    bidReset({
+      values: {
+        isNewSupplier: false,
+        supplierId: null,
+        newSupplierCnpj: '',
+        newSupplierName: '',
+        newSupplierEmail: '',
+        amount: undefined as unknown as number,
+      },
+    })
     bidError.value = ''
     isBidModalOpen.value = true
   }
@@ -152,62 +174,34 @@
     isBidModalOpen.value = false
   }
 
-  const saveBid = async () => {
+  const saveBid = bidSubmit(async (values) => {
     isBidSaving.value = true
     bidError.value = ''
     try {
-      if (!bidForm.value.amount || bidForm.value.amount <= 0) {
-        throw new Error('O valor do lance deve ser maior que zero.')
+      let finalSupplierId = values.supplierId
+      if (values.isNewSupplier) {
+        const sup = await createSupplierFast({
+          cnpj: values.newSupplierCnpj!,
+          name: values.newSupplierName!,
+          email: values.newSupplierEmail || undefined,
+        })
+        finalSupplierId = sup.id
       }
 
-      let selectedSupplierId = bidForm.value.supplierId
-
-      if (bidForm.value.isNewSupplier) {
-        if (
-          !bidForm.value.newSupplierCnpj ||
-          !bidForm.value.newSupplierName ||
-          !bidForm.value.newSupplierEmail
-        ) {
-          throw new Error('Preencha os dados do fornecedor: CNPJ, Razão Social e E-mail.')
-        }
-
-        // Remove non-numeric chars from CNPJ
-        const cleanCnpj = bidForm.value.newSupplierCnpj.replace(/\D/g, '')
-
-        const newSupp = await createSupplierFast(
-          cleanCnpj,
-          bidForm.value.newSupplierName,
-          bidForm.value.newSupplierEmail,
-        )
-        selectedSupplierId = newSupp.id
-        await fetchSuppliersList() // refresh the list just in case
-      }
-
-      if (!selectedSupplierId) {
-        throw new Error('Selecione um fornecedor ou cadastre um novo.')
-      }
-
-      // Check if this supplier already has a bid for this product
-      if (bids.value?.find((b) => b.supplier_id === selectedSupplierId)) {
-        throw new Error('Este fornecedor já possui um lance para este produto.')
-      }
-
-      await addBid(itemId, selectedSupplierId, bidForm.value.amount)
-
+      await addBid(itemId, {
+        supplier_id: finalSupplierId!,
+        amount: values.amount!,
+        is_winner: false,
+        delivery_time_days: null,
+      })
       await refreshBids()
       closeBidModal()
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        bidError.value = err.message
-      } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        bidError.value = String((err as Record<string, unknown>).message)
-      } else {
-        bidError.value = 'Ocorreu um erro ao salvar o lance.'
-      }
+      bidError.value = err instanceof Error ? err.message : String(err)
     } finally {
       isBidSaving.value = false
     }
-  }
+  })
 
   const confirmRemoveBid = async (bidId: string) => {
     if (!confirm('Deseja realmente remover este lance?')) return
@@ -408,10 +402,18 @@
         {{ editError }}
       </UiAlert>
 
-      <UiInput v-model="editForm.quantity" label="Quantidade" type="number" />
+      <UiInput
+        v-model.number="eiQuantity"
+        v-bind="eiQuantityProps"
+        :error-messages="eiErrors.quantity"
+        label="Quantidade"
+        type="number"
+      />
 
       <UiInput
-        v-model.number="editForm.reference_price"
+        v-model.number="eiReferencePrice"
+        v-bind="eiReferencePriceProps"
+        :error-messages="eiErrors.reference_price"
         label="Valor Referencial (R$)"
         step="0.0001"
         type="number"
@@ -419,9 +421,11 @@
 
       <div class="d-flex align-center mt-2 mb-4">
         <UiSelect
-          v-model="editForm.bid_interval_type"
+          v-model="eiBidIntervalType"
+          v-bind="eiBidIntervalTypeProps"
           class="mr-2 flex-grow-1"
           density="comfortable"
+          :error-messages="eiErrors.bid_interval_type"
           hide-details
           :items="[
             { title: 'Percentual (%)', value: 'percentage' },
@@ -431,8 +435,10 @@
           variant="outlined"
         />
         <UiInput
-          v-model.number="editForm.bid_interval"
+          v-model.number="eiBidInterval"
+          v-bind="eiBidIntervalProps"
           class="flex-grow-1"
+          :error-messages="eiErrors.bid_interval"
           hide-details
           label="Valor do Intervalo"
           step="0.01"
@@ -440,7 +446,13 @@
         />
       </div>
 
-      <MeasurementUnitSelect v-model="editForm.unitSearch" class="mb-4" :items="availableUnits" />
+      <MeasurementUnitSelect
+        v-model="eiSearchUnit"
+        v-bind="eiSearchUnitProps"
+        class="mb-4"
+        :error-messages="eiErrors.searchUnitText"
+        :items="availableUnits"
+      />
 
       <template #actions>
         <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
@@ -459,21 +471,25 @@
       </UiAlert>
 
       <UiSwitch
-        v-model="bidForm.isNewSupplier"
+        v-model="bidIsNew"
+        v-bind="bidIsNewProps"
         class="mb-4"
         color="primary"
         density="compact"
+        :error-messages="bidErrors.isNewSupplier"
         hide-details
         label="Fornecedor não está na lista? Cadastrar Novo."
       ></UiSwitch>
 
       <!-- Fornecedor Existente -->
       <UiAutocomplete
-        v-if="!bidForm.isNewSupplier"
-        v-model="bidForm.supplierId"
+        v-if="!bidIsNew"
+        v-model="bidSupplierId"
+        v-bind="bidSupplierIdProps"
         class="mb-3"
         color="primary"
         density="comfortable"
+        :error-messages="bidErrors.supplierId"
         item-title="company_name"
         item-value="id"
         :items="suppliers"
@@ -485,18 +501,24 @@
       <!-- Novo Fornecedor -->
       <template v-else>
         <UiInput
-          v-model="bidForm.newSupplierCnpj"
+          v-model="bidCnpj"
+          v-bind="bidCnpjProps"
           v-maska="'##.###.###/####-##'"
+          :error-messages="bidErrors.newSupplierCnpj"
           label="CNPJ do Fornecedor*"
           placeholder="Apenas números"
         />
         <UiInput
-          v-model="bidForm.newSupplierName"
+          v-model="bidName"
+          v-bind="bidNameProps"
+          :error-messages="bidErrors.newSupplierName"
           label="Razão Social*"
           placeholder="Nome da empresa"
         />
         <UiInput
-          v-model="bidForm.newSupplierEmail"
+          v-model="bidEmail"
+          v-bind="bidEmailProps"
+          :error-messages="bidErrors.newSupplierEmail"
           label="E-mail de Contato*"
           placeholder="email@empresa.com"
           type="email"
@@ -504,8 +526,10 @@
       </template>
 
       <UiInput
-        v-model.number="bidForm.amount"
+        v-model.number="bidAmount"
+        v-bind="bidAmountProps"
         class="mt-4"
+        :error-messages="bidErrors.amount"
         label="Valor do Lance (R$)*"
         placeholder="0,00"
         step="0.01"

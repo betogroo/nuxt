@@ -1,6 +1,8 @@
 <script setup lang="ts">
   import { ROLES } from '~/constants/roles'
-
+  import { useZodForm } from '~/composables/useZodForm'
+  import { demandFormSchema, demandResponsibleSchema } from '~/schemas/forms/demand'
+  import { demandItemFormSchema } from '~/schemas/forms/demand-item'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -33,16 +35,6 @@
     removeItem,
     winningSuppliersSummary,
   } = useDemandDetail(demandId)
-
-  const handleAddResponsible = respSubmit(async (values) => {
-    responsibleError.value = ''
-    const success = await addResponsible(values.user_id)
-    if (success) {
-      isResponsibleModalOpen.value = false
-    } else {
-      responsibleError.value = 'Falha ao adicionar responsável.'
-    }
-  })
 
   // Modal de Edição Rápida de Planejamento
   const {
@@ -145,6 +137,16 @@
     user_id: '',
   })
   const [responsibleUserId, respUserIdProps] = respDefine('user_id')
+
+  const handleAddResponsible = respSubmit(async (values) => {
+    responsibleError.value = ''
+    const success = await addResponsible(values.user_id)
+    if (success) {
+      isResponsibleModalOpen.value = false
+    } else {
+      responsibleError.value = 'Falha ao adicionar responsável.'
+    }
+  })
 
   const openResponsibleModal = () => {
     respReset()
