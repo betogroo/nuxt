@@ -67,6 +67,7 @@
     errors: saveErrors,
     defineField: defineSaveField,
     handleSubmit: handleSaveSubmit,
+    resetForm: resetSaveForm,
   } = useZodForm(adminUnitFormSchema, { id: '', name: '', aliasIds: [], is_active: true })
 
   const [name, nameProps] = defineSaveField('name')
@@ -143,6 +144,7 @@
     errors: aliasErrors,
     defineField: defineAliasField,
     handleSubmit: handleAliasSubmit,
+    resetForm: resetAliasForm,
   } = useZodForm(adminUnitAliasFormSchema, { id: '', name: '', code: undefined })
 
   const [aliasCode, aliasCodeProps] = defineAliasField('code')
@@ -211,6 +213,7 @@
     errors: resolveErrors,
     defineField: defineResolveField,
     handleSubmit: handleResolveSubmit,
+    resetForm: resetResolveForm,
   } = useZodForm(adminUnitResolveSchema, {
     resolveMode: 'new',
     resolveNewName: '',
