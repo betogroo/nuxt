@@ -34,6 +34,30 @@
   const existingCitizen = ref<Record<string, unknown> | null>(null)
   const activeTab = ref('em_andamento') // em_andamento | emitidos | erros
 
+  const inProgressCount = computed(() => {
+    if (!demands.value) return 0
+    return demands.value.filter(
+      (d) =>
+        !['issued', 'protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
+          d.status as string,
+        ),
+    ).length
+  })
+
+  const issuedCount = computed(() => {
+    if (!demands.value) return 0
+    return demands.value.filter((d) => d.status === 'issued').length
+  })
+
+  const errorCount = computed(() => {
+    if (!demands.value) return 0
+    return demands.value.filter((d) =>
+      ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(
+        d.status as string,
+      ),
+    ).length
+  })
+
   const filteredDemands = computed(() => {
     if (!demands.value) return []
 
@@ -208,14 +232,29 @@
         <UiTab color="primary" value="em_andamento">
           <UiIcon class="mr-2" name="time" />
           Em Andamento
+          <UiBadge
+            v-if="inProgressCount > 0"
+            class="ml-2"
+            color="primary"
+            :content="inProgressCount"
+            inline
+          />
         </UiTab>
         <UiTab color="success" value="emitidos">
           <UiIcon class="mr-2" name="success" />
           Emitidos
+          <UiBadge
+            v-if="issuedCount > 0"
+            class="ml-2"
+            color="success"
+            :content="issuedCount"
+            inline
+          />
         </UiTab>
         <UiTab color="error" value="erros">
           <UiIcon class="mr-2" name="alert" />
           Finalizados com Erro
+          <UiBadge v-if="errorCount > 0" class="ml-2" color="error" :content="errorCount" inline />
         </UiTab>
       </UiTabs>
 
