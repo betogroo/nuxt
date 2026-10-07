@@ -50,3 +50,7 @@ O projeto está passando por uma fase pesada de **Desacoplamento e Clean Archite
 ---
 
 _Nota para a IA: Após ler este arquivo, confirme que o contexto foi recuperado com sucesso e pergunte ao usuário qual é a prioridade atual para dar prosseguimento._
+
+## Refatoração de Formulários (Zod + VeeValidate)
+
+As fases de 1 a 6 de refatoração para Zod e VeeValidate foram totalmente concluídas. Modais de Demandas (Planejamento, Itens, Responsáveis, Retornos e Avanços de Status), Modais de Produtos, Unidades de Medida e Fluxo de Autenticação operam agora sob validação e tipagem estrita de Schemas.
