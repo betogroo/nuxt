@@ -19,37 +19,57 @@ export const productFormSchema = z
 
     is_active: z.boolean().default(true),
   })
-  .refine(
-    (data) => {
-      if (data.is_suggesting_nature) {
-        return (
-          !!data.suggested_nature_id &&
-          data.suggested_nature_id.length > 0 &&
-          !!data.suggested_nature_name &&
-          data.suggested_nature_name.length > 0
-        )
-      } else {
-        return !!data.expense_nature_id && data.expense_nature_id.length > 0
+  .superRefine((data, ctx) => {
+    if (data.is_suggesting_nature) {
+      if (!data.suggested_nature_id || data.suggested_nature_id.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'O Código da Natureza é obrigatório.',
+          path: ['suggested_nature_id'],
+        })
       }
-    },
-    { message: 'A Natureza de Despesa é obrigatória.', path: ['expense_nature_id'] },
-  )
-  .refine(
-    (data) => {
-      if (data.is_suggesting_class) {
-        return (
-          !!data.suggested_class_id &&
-          data.suggested_class_id.length > 0 &&
-          !!data.suggested_class_name &&
-          data.suggested_class_name.length > 0
-        )
+      if (!data.suggested_nature_name || data.suggested_nature_name.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'O Nome da Natureza é obrigatório.',
+          path: ['suggested_nature_name'],
+        })
       }
-      return true
-    },
-    {
-      message: 'Código e Nome da Classe são obrigatórios se sugerida.',
-      path: ['suggested_class_name'],
-    },
-  )
+    } else {
+      if (!data.expense_nature_id || data.expense_nature_id.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'A Natureza de Despesa é obrigatória.',
+          path: ['expense_nature_id'],
+        })
+      }
+    }
+  })
+  .superRefine((data, ctx) => {
+    if (data.is_suggesting_class) {
+      if (!data.suggested_class_id || data.suggested_class_id.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'O Código da Classe é obrigatório.',
+          path: ['suggested_class_id'],
+        })
+      }
+      if (!data.suggested_class_name || data.suggested_class_name.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'O Nome da Classe é obrigatório.',
+          path: ['suggested_class_name'],
+        })
+      }
+    } else {
+      if (!data.product_class_id || data.product_class_id.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'A Classe do Produto é obrigatória.',
+          path: ['product_class_id'],
+        })
+      }
+    }
+  })
 
 export type ProductFormInput = z.infer<typeof productFormSchema>
