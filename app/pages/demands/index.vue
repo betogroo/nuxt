@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import type { DemandRow } from '~/composables/useDemands'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { demandFormSchema } from '~/schemas/forms/demand'
 
   definePageMeta({
     icon: 'recordsList',
