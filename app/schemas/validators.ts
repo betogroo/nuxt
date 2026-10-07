@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { isValidCpf, isValidRgSP } from '~/utils/formatters'
+import { isValidCpf, isValidRgSP, isValidCnpj } from '~/utils/formatters'
 
 /** RG opcional no formato SP (00000000-X) com dígito verificador válido. */
 export const optionalRgSp = z
@@ -16,3 +16,7 @@ export const optionalCpf = z
   .refine((value) => !value || isValidCpf(value), {
     error: 'O CPF informado é inválido.',
   })
+
+export const cnpjValidator = z.string().refine((value) => !value || isValidCnpj(value), {
+  message: 'O CNPJ informado é inválido.',
+})

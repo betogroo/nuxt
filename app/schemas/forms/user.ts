@@ -3,9 +3,7 @@ import { z } from 'zod'
 export const adminUserEditSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1, 'O nome é obrigatório.'),
-  role: z.enum(['admin', 'uge', 'iirgd', 'user'], {
-    required_error: 'Selecione um nível de acesso.',
-  }),
+  role: z.enum(['admin', 'uge', 'iirgd', 'user'], { message: 'Selecione um nível de acesso.' }),
   is_active: z.boolean().default(true),
 })
 

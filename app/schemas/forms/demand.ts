@@ -4,8 +4,7 @@ export const demandFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, 'O Nome da Demanda é obrigatório.'),
   type: z.enum(['consumption', 'permanent'], {
-    required_error: 'O Tipo de Demanda é obrigatório.',
-    invalid_type_error: 'Tipo de Demanda inválido.',
+    message: 'O Tipo de Demanda é obrigatório.',
   }),
   process_number: z.string().trim().nullable().optional(),
   id_pca: z.string().trim().nullable().optional(),

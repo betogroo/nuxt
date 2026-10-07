@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { loginPasswordSchema, loginMagicLinkSchema, loginOtpSchema } from '~/schemas/forms/auth'
   definePageMeta({ layout: 'auth' })
   const {
     user,

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { registerSchema } from '~/schemas/forms/auth'
   definePageMeta({ layout: 'auth' })
   const { user, signUp: register, getRedirectUrl } = useAuth()
   const loading = ref(false)

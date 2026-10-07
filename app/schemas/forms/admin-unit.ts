@@ -11,10 +11,7 @@ export type AdminUnitFormInput = z.infer<typeof adminUnitFormSchema>
 
 export const adminUnitAliasFormSchema = z.object({
   id: z.string().optional(),
-  code: z.number({
-    required_error: 'O Código é obrigatório.',
-    invalid_type_error: 'Deve ser um número.',
-  }),
+  code: z.number({ message: 'Deve ser um número.' }),
   name: z.string().trim().min(1, 'O Nome/Descrição é obrigatório.'),
 })
 
