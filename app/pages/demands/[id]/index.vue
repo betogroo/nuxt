@@ -34,16 +34,23 @@
     winningSuppliersSummary,
   } = useDemandDetail(demandId)
 
-  const handleAddResponsible = async () => {
-    const success = await addResponsible(responsibleUserId.value || '')
+  const handleAddResponsible = respSubmit(async (values) => {
+    responsibleError.value = ''
+    const success = await addResponsible(values.user_id)
     if (success) {
       isResponsibleModalOpen.value = false
-      responsibleUserId.value = null
+    } else {
+      responsibleError.value = 'Falha ao adicionar responsável.'
     }
-  }
+  })
 
   // Modal de Edição Rápida de Planejamento
-  const editPlanningModal = useModal<Partial<DemandRow>>({
+  const {
+    errors: epErrors,
+    defineField: epDefine,
+    resetForm: epReset,
+    handleSubmit: epSubmit,
+  } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
     process_number: '',
@@ -51,32 +58,41 @@
     contract_number: '',
   })
 
+  const [epName, epNameProps] = epDefine('name')
+  const [epType, epTypeProps] = epDefine('type')
+  const [epProcess, epProcessProps] = epDefine('process_number')
+  const [epIdPca, epIdPcaProps] = epDefine('id_pca')
+  const [epContract, epContractProps] = epDefine('contract_number')
+
+  const editPlanningModal = useModal({})
+
   const openEditPlanning = () => {
     if (demand.value) {
-      editPlanningModal.open({
-        name: demand.value.name,
-        type: demand.value.type,
-        process_number: demand.value.process_number || '',
-        id_pca: demand.value.id_pca || '',
-        contract_number: demand.value.contract_number || '',
+      epReset({
+        values: {
+          id: demand.value.id,
+          name: demand.value.name,
+          type: demand.value.type as 'consumption' | 'permanent',
+          process_number: demand.value.process_number || '',
+          id_pca: demand.value.id_pca || '',
+          contract_number: demand.value.contract_number ? String(demand.value.contract_number) : '',
+        },
       })
+      editPlanningModal.open()
     }
   }
 
-  const savePlanning = async () => {
+  const savePlanning = epSubmit(async (values) => {
     editPlanningModal.startSaving()
     try {
       const payload = {
-        name: editPlanningModal.payload.value.name,
-        type: editPlanningModal.payload.value.type,
-        process_number: editPlanningModal.payload.value.process_number || null,
-        id_pca: editPlanningModal.payload.value.id_pca || null,
-        contract_number: editPlanningModal.payload.value.contract_number
-          ? String(editPlanningModal.payload.value.contract_number)
-          : null,
+        name: values.name,
+        type: values.type,
+        process_number: values.process_number || null,
+        id_pca: values.id_pca || null,
+        contract_number: values.contract_number || null,
       }
-      //
-      await updateDemand(payload)
+      await updateDemand(demandId, payload)
       await refreshDemand()
       editPlanningModal.close()
     } catch (err: unknown) {
@@ -84,7 +100,7 @@
     } finally {
       editPlanningModal.stopSaving()
     }
-  }
+  })
 
   useHead({
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
@@ -118,8 +134,23 @@
 
   // Add Responsible Modal State
   const isResponsibleModalOpen = ref(false)
-  const responsibleUserId = ref<string | null>(null)
   const responsibleError = ref('')
+
+  const {
+    errors: respErrors,
+    defineField: respDefine,
+    resetForm: respReset,
+    handleSubmit: respSubmit,
+  } = useZodForm(demandResponsibleSchema, {
+    user_id: '',
+  })
+  const [responsibleUserId, respUserIdProps] = respDefine('user_id')
+
+  const openResponsibleModal = () => {
+    respReset()
+    responsibleError.value = ''
+    isResponsibleModalOpen.value = true
+  }
 
   const { data: allProfiles } = useAsyncData('all-profiles', async () => {
     return await fetchAllProfiles()
@@ -239,18 +270,31 @@
   const isEditItemModalOpen = ref(false)
   const editItemSaving = ref(false)
   const editItemError = ref('')
-  const editItemForm = ref({
-    id: '',
+
+  const {
+    errors: eiErrors,
+    defineField: eiDefine,
+    resetForm: eiReset,
+    handleSubmit: eiSubmit,
+  } = useZodForm(demandItemFormSchema, {
     productId: '',
-    productName: '',
     quantity: 1,
-    reference_price: null as number | null,
-    unit_id: null as string | null,
+    reference_price: null,
     searchUnitText: '',
   })
 
+  const [eiProductId] = eiDefine('productId')
+  const [eiQuantity, eiQuantityProps] = eiDefine('quantity')
+  const [eiReferencePrice, eiReferencePriceProps] = eiDefine('reference_price')
+  const [eiSearchUnitText, eiSearchUnitTextProps] = eiDefine('searchUnitText')
+
+  const editItemFormMeta = ref({
+    id: '',
+    productName: '',
+  })
+
   const editItemAvailableUnits = computed(() => {
-    const prod = allProducts.value?.find((p) => p.id === editItemForm.value.productId)
+    const prod = allProducts.value?.find((p) => p.id === eiProductId.value)
     return (
       prod?.product_units
         ?.map((pu) => pu.measurement_units)
@@ -266,37 +310,35 @@
     product?: { id?: string; name: string }
     unit_id?: string | null
   }) => {
-    editItemForm.value = {
+    eiReset({
+      values: {
+        productId: item.product_id || item.product?.id || '',
+        quantity: Number(item.quantity),
+        reference_price: item.reference_price != null ? Number(item.reference_price) : null,
+        searchUnitText: item.unit_id
+          ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
+          : '',
+      },
+    })
+    editItemFormMeta.value = {
       id: item.id,
-      productId: item.product_id || item.product?.id || '',
       productName: item.product?.name || 'Produto',
-      quantity: Number(item.quantity),
-      reference_price: item.reference_price != null ? Number(item.reference_price) : null,
-      searchUnitText: item.unit_id
-        ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
-        : '',
     }
     editItemError.value = ''
     isEditItemModalOpen.value = true
   }
 
-  const saveEditItem = async () => {
+  const saveEditItem = eiSubmit(async (values) => {
     editItemSaving.value = true
     editItemError.value = ''
     try {
-      if (editItemForm.value.quantity <= 0) {
-        throw new Error('A quantidade deve ser maior que zero.')
-      }
-
       await updateDemandItemWithDependencies({
-        itemId: editItemForm.value.id,
+        itemId: editItemFormMeta.value.id,
         demandId: demandId,
-        productId: editItemForm.value.productId,
-        quantity: editItemForm.value.quantity,
-        referencePrice: editItemForm.value.reference_price,
-        finalUnitId: await resolveOrCreateUnit(
-          editItemForm.value.searchUnitText?.trim() || editItemForm.value.unit_id || '',
-        ),
+        productId: values.productId,
+        quantity: values.quantity,
+        referencePrice: values.reference_price,
+        finalUnitId: await resolveOrCreateUnit(values.searchUnitText),
       })
 
       await refreshAllMeasurementUnits()
@@ -307,7 +349,7 @@
     } finally {
       editItemSaving.value = false
     }
-  }
+  })
   const {
     statusList,
     getNextStatus,
@@ -521,12 +563,7 @@
           <div class="d-flex align-center mb-2">
             <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
             <UiSpacer />
-            <UiButton
-              icon="add"
-              size="x-small"
-              variant="text"
-              @click="isResponsibleModalOpen = true"
-            />
+            <UiButton icon="add" size="x-small" variant="text" @click="openResponsibleModal" />
           </div>
           <UiList class="bg-transparent pa-0" density="compact">
             <UiListItem
@@ -791,19 +828,30 @@
         {{ editItemError }}
       </UiAlert>
 
-      <p class="text-body-1 font-weight-bold mb-4">{{ editItemForm.productName }}</p>
+      <p class="text-body-1 font-weight-bold mb-4">{{ editItemFormMeta.productName }}</p>
 
-      <UiInput v-model.number="editItemForm.quantity" label="Quantidade" min="1" type="number" />
+      <UiInput
+        v-model.number="eiQuantity"
+        v-bind="eiQuantityProps"
+        :error-messages="eiErrors.quantity"
+        label="Quantidade"
+        min="1"
+        type="number"
+      />
 
       <MeasurementUnitSelect
-        v-model="editItemForm.searchUnitText"
+        v-model="eiSearchUnitText"
+        v-bind="eiSearchUnitTextProps"
         class="mt-3"
+        :error-messages="eiErrors.searchUnitText"
         :items="editItemAvailableUnits"
       />
 
       <UiInput
-        v-model.number="editItemForm.reference_price"
+        v-model.number="eiReferencePrice"
+        v-bind="eiReferencePriceProps"
         class="mt-3"
+        :error-messages="eiErrors.reference_price"
         label="Valor Referencial (R$)"
         step="0.0001"
         type="number"
@@ -967,6 +1015,8 @@
       </UiAlert>
       <UiSelect
         v-model="responsibleUserId"
+        v-bind="respUserIdProps"
+        :error-messages="respErrors.user_id"
         item-title="name"
         item-value="id"
         :items="availableProfiles"
@@ -1017,7 +1067,9 @@
           required
         />
         <UiInput
-          v-model="advanceModal.payload.value.dispute_date"
+          v-model="advDisputeDate"
+          v-bind="advDisputeDateProps"
+          :error-messages="advErrors.dispute_date"
           label="Data da Disputa"
           required
           type="date"
@@ -1025,14 +1077,18 @@
         <UiRow class="mt-2">
           <UiCol class="py-0" cols="12" sm="6">
             <UiInput
-              v-model="advanceModal.payload.value.offer_opening_date"
+              v-model="advOfferOpeningDate"
+              v-bind="advOfferOpeningDateProps"
+              :error-messages="advErrors.offer_opening_date"
               label="Data de Abertura"
               type="date"
             />
           </UiCol>
           <UiCol class="py-0" cols="12" sm="6">
             <UiInput
-              v-model="advanceModal.payload.value.offer_opening_time"
+              v-model="advOfferOpeningTime"
+              v-bind="advOfferOpeningTimeProps"
+              :error-messages="advErrors.offer_opening_time"
               label="Hora de Abertura"
               type="time"
             />
@@ -1125,10 +1181,18 @@
         {{ editPlanningModal.error.value }}
       </UiAlert>
 
-      <UiInput v-model="editPlanningModal.payload.value.name" label="Nome da Demanda*" required />
+      <UiInput
+        v-model="epName"
+        v-bind="epNameProps"
+        :error-messages="epErrors.name"
+        label="Nome da Demanda*"
+        required
+      />
 
       <UiSelect
-        v-model="editPlanningModal.payload.value.type"
+        v-model="epType"
+        v-bind="epTypeProps"
+        :error-messages="epErrors.type"
         item-title="title"
         item-value="value"
         :items="[
@@ -1140,21 +1204,27 @@
       />
 
       <UiInput
-        v-model="editPlanningModal.payload.value.process_number"
+        v-model="epProcess"
+        v-bind="epProcessProps"
+        :error-messages="epErrors.process_number"
         hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
         label="Nº do Processo (Oficial)"
         placeholder="Ex: 058.00100793/2026-21"
       />
 
       <UiInput
-        v-model="editPlanningModal.payload.value.id_pca"
+        v-model="epIdPca"
+        v-bind="epIdPcaProps"
+        :error-messages="epErrors.id_pca"
         hint="Opcional."
         label="ID PCA"
         placeholder="Ex: 46377800000127-0-000132/2026"
       />
 
       <UiInput
-        v-model="editPlanningModal.payload.value.contract_number"
+        v-model="epContract"
+        v-bind="epContractProps"
+        :error-messages="epErrors.contract_number"
         hint="Opcional."
         label="Nº da Contratação"
         placeholder="Apenas números"
