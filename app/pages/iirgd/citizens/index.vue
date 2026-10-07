@@ -8,6 +8,7 @@
     navGroup: 'iirgd',
     showIn: ['drawer'],
     navOrder: 2,
+    roles: ['admin', 'iirgd'],
   })
 
   const { fetchCitizens } = useIirgdCitizens()

@@ -30,13 +30,17 @@
   const [avatarUrl, avatarUrlProps] = defineField('avatar_url')
 
   // Quando a página carrega, preenchemos o formulário com os dados atuais
-  watchEffect(() => {
-    if (profile.value) {
-      resetForm({
-        values: { name: profile.value.name || '', avatar_url: profile.value.avatar_url || '' },
-      })
-    }
-  })
+  watch(
+    () => profile.value,
+    (newProfile) => {
+      if (newProfile) {
+        resetForm({
+          values: { name: newProfile.name || '', avatar_url: newProfile.avatar_url || '' },
+        })
+      }
+    },
+    { immediate: true },
+  )
 
   const { logAction } = useLogger()
 
