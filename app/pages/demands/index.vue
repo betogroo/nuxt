@@ -48,8 +48,7 @@
     resetPage()
   })
 
-  const modal = useModal<Partial<DemandRow>>({
-    id: '',
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
     process_number: '',
@@ -57,29 +56,53 @@
     contract_number: '',
   })
 
+  const [name, nameProps] = defineField('name')
+  const [type, typeProps] = defineField('type')
+  const [processNumber, processNumberProps] = defineField('process_number')
+  const [idPca, idPcaProps] = defineField('id_pca')
+  const [contractNumber, contractNumberProps] = defineField('contract_number')
+
+  const modal = useModal<{ id?: string }>({})
+
+  const originalOpen = modal.open.bind(modal)
+  modal.open = (item?: Partial<DemandRow>) => {
+    if (item) {
+      resetForm({
+        values: {
+          id: item.id,
+          name: item.name || '',
+          type: item.type || 'consumption',
+          process_number: item.process_number || '',
+          id_pca: item.id_pca || '',
+          contract_number: item.contract_number ? String(item.contract_number) : '',
+        },
+      })
+      originalOpen({ id: item.id })
+    } else {
+      resetForm()
+      originalOpen({})
+    }
+  }
+
   const canEdit = (demand: DemandRow) => {
     const currentUserId = profile.value?.id
     return profile.value?.role === 'admin' || demand.user_id === currentUserId
   }
 
-  const saveDemand = async () => {
+  const saveDemand = handleSubmit(async (values) => {
     modal.startSaving()
-
+    modal.error.value = ''
     try {
-      const isEditing = !!modal.payload.value.id
-
       const payload = {
-        name: modal.payload.value.name!,
-        type: modal.payload.value.type!,
-        process_number: modal.payload.value.process_number || null,
-        id_pca: modal.payload.value.id_pca || null,
-        contract_number: modal.payload.value.contract_number
-          ? String(modal.payload.value.contract_number)
-          : null,
+        name: values.name,
+        type: values.type,
+        process_number: values.process_number || null,
+        id_pca: values.id_pca || null,
+        contract_number: values.contract_number ? String(values.contract_number) : null,
       }
 
-      if (isEditing) {
-        await updateDemand(modal.payload.value.id!, payload)
+      if (values.id) {
+        await updateDemand(values.id, payload)
       } else {
         await createDemand({ ...payload, user_id: profile.value!.id })
       }
@@ -97,7 +120,7 @@
     } finally {
       modal.stopSaving()
     }
-  }
+  })
 
   const statusOptions = [
     { title: 'Planejamento', value: 'planning', color: 'blue-grey' },
@@ -264,16 +287,24 @@
     <UiModal
       v-model="modal.isOpen.value"
       max-width="520px"
-      :title="modal.payload.value.id ? 'Editar Demanda' : 'Nova Demanda'"
+      :title="modal.payload.value?.id ? 'Editar Demanda' : 'Nova Demanda'"
     >
       <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
         {{ modal.error.value }}
       </UiAlert>
 
-      <UiInput v-model="modal.payload.value.name" label="Nome da Demanda *" required />
+      <UiInput
+        v-model="name"
+        v-bind="nameProps"
+        :error-messages="errors.name"
+        label="Nome da Demanda *"
+        required
+      />
 
       <UiSelect
-        v-model="modal.payload.value.type"
+        v-model="type"
+        v-bind="typeProps"
+        :error-messages="errors.type"
         item-title="title"
         item-value="value"
         :items="[
@@ -285,21 +316,27 @@
       />
 
       <UiInput
-        v-model="modal.payload.value.process_number"
+        v-model="processNumber"
+        v-bind="processNumberProps"
+        :error-messages="errors.process_number"
         hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
         label="Nº do Processo (Oficial)"
         placeholder="Ex: 058.00100793/2026-21"
       />
 
       <UiInput
-        v-model="modal.payload.value.id_pca"
+        v-model="idPca"
+        v-bind="idPcaProps"
+        :error-messages="errors.id_pca"
         hint="Opcional. ID do Plano de Contratações Anual"
         label="ID PCA"
         placeholder="Ex: 46377800000127-0-000132/2026"
       />
 
       <UiInput
-        v-model="modal.payload.value.contract_number"
+        v-model="contractNumber"
+        v-bind="contractNumberProps"
+        :error-messages="errors.contract_number"
         hint="Opcional. Número da contratação."
         label="Nº da Contratação"
         placeholder="Apenas números"
