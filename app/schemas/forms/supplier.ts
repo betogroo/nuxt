@@ -5,7 +5,7 @@ export const supplierFormSchema = z.object({
   cnpj: z.string().trim().min(14, 'O CNPJ deve ter no mínimo 14 caracteres.'),
   company_name: z.string().trim().min(1, 'O Nome da Empresa é obrigatório.'),
   responsible_name: z.string().trim().nullable().default(null),
-  email: z.string().trim().email('Formato de e-mail inválido.').min(1, 'O E-mail é obrigatório.'),
+  email: z.email('Formato de e-mail inválido.').trim().min(1, 'O e-mail é obrigatório.'),
   cell_phone: z.string().trim().nullable().default(null),
   landline: z.string().trim().nullable().default(null),
   address: z.string().trim().nullable().default(null),

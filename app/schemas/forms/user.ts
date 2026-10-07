@@ -11,7 +11,7 @@ export type AdminUserEditInput = z.infer<typeof adminUserEditSchema>
 
 export const adminUserCreateSchema = z.object({
   name: z.string().trim().min(1, 'O nome é obrigatório.'),
-  email: z.string().trim().email('E-mail inválido.').min(1, 'O e-mail é obrigatório.'),
+  email: z.email('E-mail inválido.').trim().min(1, 'O e-mail é obrigatório.'),
   password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
   role: z.enum(['admin', 'uge', 'iirgd', 'user']).default('user'),
 })

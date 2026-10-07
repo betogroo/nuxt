@@ -8,7 +8,7 @@ export const demandBidFormSchema = z
     supplierId: z.string().nullable().optional(),
     newSupplierCnpj: z.string().trim().optional(),
     newSupplierName: z.string().trim().optional(),
-    newSupplierEmail: z.string().trim().email('E-mail inválido.').or(z.literal('')).optional(),
+    newSupplierEmail: z.email('E-mail inválido.').trim().or(z.literal('')).optional(),
     amount: z
       .number({
         required_error: 'O valor do lance é obrigatório.',
