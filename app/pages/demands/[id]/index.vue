@@ -370,7 +370,7 @@
 
 <template>
   <UiContainer>
-    <UiButton class="mb-4" prepend-icon="arrowLeft" variant="text" @click="router.back()">
+    <UiButton class="mb-4" prepend-icon="arrowLeft" variant="ghost" @click="router.back()">
       Voltar para Demandas
     </UiButton>
 
@@ -456,8 +456,8 @@
                   v-if="demand?.status === 'planning'"
                   color="primary"
                   prepend-icon="edit"
-                  size="small"
-                  variant="text"
+                  size="sm"
+                  variant="ghost"
                   @click="openEditPlanning"
                 >
                   Editar
@@ -565,7 +565,7 @@
           <div class="d-flex align-center mb-2">
             <span class="text-primary font-weight-semibold">Responsáveis</span>
             <UiSpacer />
-            <UiButton icon="add" size="x-small" variant="text" @click="openResponsibleModal" />
+            <UiButton icon="add" size="xs" variant="ghost" @click="openResponsibleModal" />
           </div>
           <UiList class="bg-transparent pa-0" density="compact">
             <UiListItem
@@ -586,8 +586,8 @@
                   v-if="profile?.role === ROLES.ADMIN"
                   color="error"
                   icon="close"
-                  size="x-small"
-                  variant="text"
+                  size="xs"
+                  variant="ghost"
                   @click="removeResponsible(resp?.user_id || '')"
                 />
               </template>
@@ -653,16 +653,16 @@
                 density="compact"
                 :disabled="index === 0 || isReordering"
                 icon="chevronUp"
-                size="x-small"
-                variant="text"
+                size="xs"
+                variant="ghost"
                 @click.stop="moveItemUp(index)"
               />
               <UiButton
                 density="compact"
                 :disabled="index === (items?.length || 0) - 1 || isReordering"
                 icon="chevronDown"
-                size="x-small"
-                variant="text"
+                size="xs"
+                variant="ghost"
                 @click.stop="moveItemDown(index)"
               />
             </div>
@@ -687,10 +687,10 @@
               <UiButton
                 color="grey"
                 icon="externalLink"
-                size="x-small"
+                size="xs"
                 title="Cadastro do Produto"
                 :to="`/products/${item.product_id}`"
-                variant="text"
+                variant="ghost"
               />
             </div>
           </template>
@@ -764,18 +764,18 @@
                 v-if="demand?.status === 'quotation'"
                 color="primary"
                 icon="edit"
-                size="small"
+                size="sm"
                 title="Editar Item"
-                variant="text"
+                variant="ghost"
                 @click="openEditItemModal(item)"
               />
               <UiButton
                 v-if="demand?.status === 'quotation'"
                 color="error"
                 icon="delete"
-                size="small"
+                size="sm"
                 title="Remover"
-                variant="text"
+                variant="ghost"
                 @click="removeItem(item.id, item.product?.name || '')"
               />
             </div>
@@ -876,7 +876,7 @@
       />
 
       <template #actions>
-        <UiButton :disabled="editItemSaving" variant="text" @click="isEditItemModalOpen = false"
+        <UiButton :disabled="editItemSaving" variant="ghost" @click="isEditItemModalOpen = false"
           >Cancelar</UiButton
         >
         <UiButton color="primary" :loading="editItemSaving" @click="saveEditItem">Salvar</UiButton>
@@ -914,8 +914,8 @@
               <span class="text-grey mr-2">Produto não encontrado.</span>
               <UiButton
                 color="primary"
-                size="small"
-                variant="tonal"
+                size="sm"
+                variant="soft"
                 @click="activateNewProductMode"
               >
                 Cadastrar novo
@@ -927,8 +927,8 @@
           <UiButton
             color="primary"
             prepend-icon="add"
-            size="small"
-            variant="text"
+            size="sm"
+            variant="ghost"
             @click="activateNewProductMode"
           >
             Não encontrou? Cadastrar novo produto
@@ -1007,14 +1007,14 @@
         />
 
         <div class="text-right">
-          <UiButton size="small" variant="text" @click="isNewProductMode = false">
+          <UiButton size="sm" variant="ghost" @click="isNewProductMode = false">
             Voltar à Busca
           </UiButton>
         </div>
       </template>
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveToDemand">
           Adicionar à Demanda
         </UiButton>
@@ -1043,7 +1043,7 @@
       <template #actions>
         <UiButton
           :disabled="isAddingResponsible"
-          variant="text"
+          variant="ghost"
           @click="isResponsibleModalOpen = false"
           >Cancelar</UiButton
         >
@@ -1129,7 +1129,7 @@
       <template #actions>
         <UiButton
           :disabled="advanceModal.isSaving.value"
-          variant="text"
+          variant="ghost"
           @click="advanceModal.close()"
           >Cancelar</UiButton
         >
@@ -1170,7 +1170,7 @@
       </p>
 
       <template #actions>
-        <UiButton :disabled="revertModal.isSaving.value" variant="text" @click="revertModal.close()"
+        <UiButton :disabled="revertModal.isSaving.value" variant="ghost" @click="revertModal.close()"
           >Cancelar</UiButton
         >
         <UiButton
@@ -1252,7 +1252,7 @@
       <template #actions>
         <UiButton
           :disabled="editPlanningModal.isSaving.value"
-          variant="text"
+          variant="ghost"
           @click="editPlanningModal.close()"
           >Cancelar</UiButton
         >

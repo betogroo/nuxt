@@ -234,8 +234,8 @@
             color="secondary"
             icon="refresh"
             :loading="pending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refresh"
           />
           <UiButton color="primary" prepend-icon="add" @click="openAddModal">
@@ -294,15 +294,15 @@
           <UiButton
             color="primary"
             icon="next"
-            size="small"
+            size="sm"
             :to="`/products/${item.id}`"
-            variant="text"
+            variant="ghost"
           />
           <UiButton
             color="default"
             icon="editOutline"
-            size="small"
-            variant="text"
+            size="sm"
+            variant="ghost"
             @click="openEditModal(item)"
           />
         </template>
@@ -430,11 +430,11 @@
       />
 
       <template #actions>
-        <UiButton variant="text" @click="modal.close()">Cancelar</UiButton>
+        <UiButton variant="ghost" @click="modal.close()">Cancelar</UiButton>
         <UiButton
           color="primary"
           :loading="modal.isSaving.value"
-          variant="flat"
+          variant="solid"
           @click="saveProduct"
         >
           Salvar

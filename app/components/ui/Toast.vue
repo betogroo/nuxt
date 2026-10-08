@@ -65,7 +65,7 @@
             <UiCard elevation="8" :title="'Confirmação'">
               <p class="text-body-1 mb-4">{{ confirmState.message }}</p>
               <template #actions>
-                <UiButton variant="text" @click="_resolveConfirm(false)">Cancelar</UiButton>
+                <UiButton variant="ghost" @click="_resolveConfirm(false)">Cancelar</UiButton>
                 <UiButton color="error" @click="_resolveConfirm(true)">Confirmar</UiButton>
               </template>
             </UiCard>

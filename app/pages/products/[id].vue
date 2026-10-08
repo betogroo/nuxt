@@ -91,7 +91,7 @@
 <template>
   <div>
     <div class="mb-6">
-      <UiButton color="default" prepend-icon="arrowLeft" variant="text" @click="router.back()">
+      <UiButton color="default" prepend-icon="arrowLeft" variant="ghost" @click="router.back()">
         Voltar para Produtos
       </UiButton>
     </div>
@@ -201,8 +201,8 @@
                       v-if="!isAddingUnit"
                       color="primary"
                       prepend-icon="add"
-                      size="small"
-                      variant="tonal"
+                      size="sm"
+                      variant="soft"
                       @click="isAddingUnit = true"
                     >
                       Vincular Nova
@@ -241,8 +241,8 @@
                         {{ addUnitError }}
                       </UiAlert>
                       <div class="d-flex justify-end mt-4 gap-2">
-                        <UiButton variant="text" @click="cancelAddUnit">Cancelar</UiButton>
-                        <UiButton color="primary" :loading="adding" variant="flat" @click="addUnit">
+                        <UiButton variant="ghost" @click="cancelAddUnit">Cancelar</UiButton>
+                        <UiButton color="primary" :loading="adding" variant="solid" @click="addUnit">
                           Adicionar Unidade
                         </UiButton>
                       </div>

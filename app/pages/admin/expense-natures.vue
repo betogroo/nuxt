@@ -138,8 +138,8 @@
             color="secondary"
             icon="refresh"
             :loading="pending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refresh"
           />
           <UiButton color="primary" prepend-icon="add" @click="openAddModal"
@@ -177,15 +177,15 @@
               class="mr-1"
               color="primary"
               icon="editOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="openEditModal(item)"
             />
             <UiButton
               color="error"
               icon="deleteOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="deleteNature(item.id)"
             />
           </template>
@@ -228,8 +228,8 @@
                 </div>
                 <UiButton
                   color="warning"
-                  size="small"
-                  variant="tonal"
+                  size="sm"
+                  variant="soft"
                   @click="openResolveModal(nature)"
                 >
                   Resolver
@@ -283,8 +283,8 @@
       />
 
       <template #actions>
-        <UiButton variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveExpenseNature">
+        <UiButton variant="ghost" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveExpenseNature">
           Salvar
         </UiButton>
       </template>
@@ -348,10 +348,10 @@
       </div>
 
       <template #actions>
-        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+        <UiButton :disabled="isResolving" variant="ghost" @click="closeResolveModal"
           >Cancelar</UiButton
         >
-        <UiButton color="primary" :loading="isResolving" variant="flat" @click="submitResolve">
+        <UiButton color="primary" :loading="isResolving" variant="solid" @click="submitResolve">
           Confirmar
         </UiButton>
       </template>

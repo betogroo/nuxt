@@ -9,7 +9,7 @@
   <UiButton
     :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
     :icon="isDark ? 'sun' : 'moon'"
-    variant="text"
+    variant="ghost"
     @click="toggle"
   />
 </template>

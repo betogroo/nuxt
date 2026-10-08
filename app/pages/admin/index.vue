@@ -128,7 +128,7 @@
                     </UiChip>
                   </span>
                 </div>
-                <UiButton color="warning" size="small" to="/admin/units" variant="tonal">
+                <UiButton color="warning" size="sm" to="/admin/units" variant="soft">
                   Revisar
                 </UiButton>
               </div>
@@ -156,7 +156,7 @@
                     </UiChip>
                   </span>
                 </div>
-                <UiButton color="warning" size="small" to="/admin/expense-natures" variant="tonal">
+                <UiButton color="warning" size="sm" to="/admin/expense-natures" variant="soft">
                   Revisar
                 </UiButton>
               </div>
@@ -182,7 +182,7 @@
                     </UiChip>
                   </span>
                 </div>
-                <UiButton color="warning" size="small" to="/admin/product-classes" variant="tonal">
+                <UiButton color="warning" size="sm" to="/admin/product-classes" variant="soft">
                   Revisar
                 </UiButton>
               </div>
@@ -216,9 +216,9 @@
                     </div>
                     <UiButton
                       color="primary"
-                      size="small"
+                      size="sm"
                       :to="`/demands/${demand.id}`"
-                      variant="tonal"
+                      variant="soft"
                     >
                       Acessar
                     </UiButton>
@@ -238,7 +238,7 @@
               <UiIcon class="mr-2" color="primary" name="history" />
               Atividade Recente
               <UiSpacer />
-              <UiButton color="primary" size="small" to="/logs" variant="text">
+              <UiButton color="primary" size="sm" to="/logs" variant="ghost">
                 Ver todos
                 <UiIcon end name="next" size="16" />
               </UiButton>
@@ -294,9 +294,9 @@
                 :color="shortcut.color"
                 :prepend-icon="shortcut.icon"
                 rounded="lg"
-                size="large"
+                size="lg"
                 :to="shortcut.path"
-                variant="tonal"
+                variant="soft"
               >
                 {{ shortcut.label }}
               </UiButton>

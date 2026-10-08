@@ -320,8 +320,8 @@
                 </div>
                 <UiButton
                   color="warning"
-                  size="small"
-                  variant="tonal"
+                  size="sm"
+                  variant="soft"
                   @click="openResolveModal(unit)"
                 >
                   Resolver
@@ -343,8 +343,8 @@
             color="secondary"
             icon="refresh"
             :loading="unitsPending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refreshUnits"
           />
           <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Unidade</UiButton>
@@ -387,8 +387,8 @@
             <UiButton
               color="primary"
               icon="editOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="openEditModal(item)"
             />
           </template>
@@ -408,8 +408,8 @@
             color="secondary"
             icon="refresh"
             :loading="aliasesPending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refreshAliases"
           />
           <UiButton color="primary" prepend-icon="add" @click="openAddAliasModal"
@@ -441,15 +441,15 @@
             <UiButton
               color="primary"
               icon="editOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="openEditAliasModal(item)"
             />
             <UiButton
               color="error"
               icon="deleteOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="removeAlias(item)"
             />
           </template>
@@ -503,8 +503,8 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveUnit"
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveUnit"
           >Salvar</UiButton
         >
       </template>
@@ -535,8 +535,8 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeAliasModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveAlias"
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeAliasModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveAlias"
           >Salvar</UiButton
         >
       </template>
@@ -591,10 +591,10 @@
       </UiSlideYTransition>
 
       <template #actions>
-        <UiButton :disabled="isResolving" variant="text" @click="closeResolveModal"
+        <UiButton :disabled="isResolving" variant="ghost" @click="closeResolveModal"
           >Cancelar</UiButton
         >
-        <UiButton color="primary" :loading="isResolving" variant="flat" @click="submitResolve">
+        <UiButton color="primary" :loading="isResolving" variant="solid" @click="submitResolve">
           Confirmar
         </UiButton>
       </template>

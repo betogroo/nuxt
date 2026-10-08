@@ -218,7 +218,7 @@
 <template>
   <UiContainer>
     <div class="mb-4 d-flex align-center">
-      <UiButton icon="arrowLeft" variant="text" @click="router.push(`/demands/${demandId}`)" />
+      <UiButton icon="arrowLeft" variant="ghost" @click="router.push(`/demands/${demandId}`)" />
       <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
     </div>
 
@@ -232,10 +232,10 @@
                 class="ml-1"
                 color="primary"
                 icon="externalLink"
-                size="small"
+                size="sm"
                 title="Ver Cadastro Original do Produto"
                 :to="`/products/${item.product?.id}`"
-                variant="text"
+                variant="ghost"
               />
               <UiChip class="ml-2" color="secondary" size="sm" variant="solid">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
@@ -248,7 +248,7 @@
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
                 color="primary"
                 icon="edit"
-                size="small"
+                size="sm"
                 @click="openEditModal"
               />
             </div>
@@ -268,7 +268,7 @@
                   v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
                   color="primary"
                   prepend-icon="add"
-                  size="small"
+                  size="sm"
                   @click="openBidModal"
                 >
                   Registrar Lance
@@ -321,9 +321,9 @@
                   v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
                   color="error"
                   icon="delete"
-                  size="small"
+                  size="sm"
                   title="Remover Lance"
-                  variant="text"
+                  variant="ghost"
                   @click="confirmRemoveBid(bid.id)"
                 />
               </template>
@@ -455,7 +455,7 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeEditModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveItem"> Salvar </UiButton>
       </template>
     </UiModal>
@@ -537,7 +537,7 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isBidSaving" variant="text" @click="closeBidModal">Cancelar</UiButton>
+        <UiButton :disabled="isBidSaving" variant="ghost" @click="closeBidModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isBidSaving" @click="saveBid"> Salvar Lance </UiButton>
       </template>
     </UiModal>

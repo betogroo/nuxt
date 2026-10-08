@@ -224,8 +224,8 @@
           color="secondary"
           icon="refresh"
           :loading="pending"
-          size="small"
-          variant="tonal"
+          size="sm"
+          variant="soft"
           @click="refresh"
         />
         <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
@@ -292,8 +292,8 @@
           <UiButton
             color="primary"
             icon="editOutline"
-            size="small"
-            variant="text"
+            size="sm"
+            variant="ghost"
             @click="openEditModal(item)"
           />
         </template>
@@ -367,8 +367,8 @@
             <UiButton
               color="primary"
               icon="editOutline"
-              size="small"
-              variant="text"
+              size="sm"
+              variant="ghost"
               @click="openEditModal(item)"
             />
           </template>
@@ -390,7 +390,7 @@
           </div>
         </div>
         <UiSpacer />
-        <UiButton density="compact" icon="close" variant="text" @click="closeEditModal" />
+        <UiButton density="compact" icon="close" variant="ghost" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
@@ -444,8 +444,8 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveUser">
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveUser">
           Salvar Alterações
         </UiButton>
       </template>
@@ -505,8 +505,8 @@
       />
 
       <template #actions>
-        <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isCreating" variant="flat" @click="createUser">
+        <UiButton :disabled="isCreating" variant="ghost" @click="closeAddModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isCreating" variant="solid" @click="createUser">
           Criar Usuário
         </UiButton>
       </template>

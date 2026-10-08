@@ -243,8 +243,8 @@
           color="secondary"
           icon="refresh"
           :loading="pending"
-          size="small"
-          variant="tonal"
+          size="sm"
+          variant="soft"
           @click="refresh"
         />
         <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Demanda</UiButton>
@@ -363,8 +363,8 @@
               <UiButton
                 color="primary"
                 icon="copy"
-                size="small"
-                variant="text"
+                size="sm"
+                variant="ghost"
                 @click="copyChunk(chunk)"
               />
             </template>
@@ -429,8 +429,8 @@
       </UiRow>
 
       <template #actions>
-        <UiButton variant="text" @click="closeAddModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="modal.isSaving" variant="flat" @click="saveDemand">
+        <UiButton variant="ghost" @click="closeAddModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="modal.isSaving" variant="solid" @click="saveDemand">
           Salvar
         </UiButton>
       </template>

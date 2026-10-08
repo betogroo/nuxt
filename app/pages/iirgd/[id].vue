@@ -123,7 +123,7 @@
       <UiButton
         color="default"
         prepend-icon="arrowLeft"
-        variant="text"
+        variant="ghost"
         @click="router.push('/iirgd')"
       >
         Voltar para Demandas IIRGD
@@ -255,8 +255,8 @@
                     <UiButton
                       color="primary"
                       prepend-icon="edit"
-                      size="small"
-                      variant="tonal"
+                      size="sm"
+                      variant="soft"
                       @click="openEditModal"
                     >
                       Atualizar
@@ -371,10 +371,10 @@
                   v-if="item.id !== demandId"
                   color="primary"
                   icon="externalLink"
-                  size="small"
+                  size="sm"
                   title="Acessar"
                   :to="`/iirgd/${item.id}`"
-                  variant="text"
+                  variant="ghost"
                 />
                 <UiChip v-else color="primary" size="sm" variant="solid">Atual</UiChip>
               </template>
@@ -419,8 +419,8 @@
       </UiRow>
 
       <template #actions>
-        <UiButton variant="text" @click="closeEditModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isSaving" variant="flat" @click="saveEdit">
+        <UiButton variant="ghost" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveEdit">
           Salvar
         </UiButton>
       </template>

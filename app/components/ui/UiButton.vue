@@ -1,14 +1,16 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import { computed, useAttrs } from 'vue'
   import { iconMap, type IconName } from './icons'
+  import type { UiVariant, UiColor, UiSize, UiRounded } from '~/types/ui'
 
   defineOptions({ inheritAttrs: false })
 
   const props = defineProps<{
-    color?: string
-    variant?: 'elevated' | 'flat' | 'text' | 'outlined' | 'tonal' | 'plain'
+    color?: UiColor
+    variant?: UiVariant
+    size?: UiSize
     icon?: IconName | string | boolean
-    rounded?: string
+    rounded?: UiRounded
   }>()
 
   const attrs = useAttrs()
@@ -18,6 +20,33 @@
       return iconMap[props.icon as IconName]
     }
     return props.icon
+  })
+
+  const vuetifySize = computed(() => {
+    const map: Record<UiSize, string> = {
+      xs: 'x-small',
+      sm: 'small',
+      md: 'default',
+      lg: 'large',
+      xl: 'x-large'
+    }
+    return props.size ? map[props.size] : undefined
+  })
+
+  const vuetifyVariant = computed(() => {
+    const map: Record<UiVariant, string> = {
+      solid: 'flat',
+      outline: 'outlined',
+      ghost: 'text',
+      soft: 'tonal'
+    }
+    const defaultVariant = props.icon ? 'ghost' : 'soft'
+    return props.variant ? map[props.variant] : map[defaultVariant]
+  })
+
+  const vuetifyRounded = computed(() => {
+    const r = props.rounded || 'lg'
+    return r === 'none' ? '0' : r
   })
 
   const mappedAttrs = computed(() => {
@@ -37,8 +66,9 @@
   <v-btn
     :color="color || 'primary'"
     :icon="mappedIcon"
-    :rounded="rounded ?? (icon ? 'lg' : 'lg')"
-    :variant="variant || (icon ? 'text' : 'tonal')"
+    :rounded="vuetifyRounded"
+    :size="vuetifySize"
+    :variant="vuetifyVariant"
     v-bind="mappedAttrs"
   >
     <template v-for="(_, name) in $slots" #[name]="slotData">

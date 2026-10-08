@@ -119,7 +119,7 @@
                       color="error"
                       density="compact"
                       icon="logout"
-                      variant="text"
+                      variant="ghost"
                       @click.prevent="handleSignOut"
                     />
                   </template>
@@ -153,7 +153,7 @@
             density="comfortable"
             icon
             rounded="lg"
-            variant="text"
+            variant="ghost"
           >
             <UiBadge color="error" :content="totalPending">
               <UiIcon name="notifications" />
@@ -210,7 +210,7 @@
             density="comfortable"
             icon
             rounded="lg"
-            variant="text"
+            variant="ghost"
           >
             <UiAvatar color="primary" size="32">
               <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
@@ -255,7 +255,7 @@
         </UiCard>
       </UiMenu>
 
-      <UiButton v-if="!user" class="mr-3" color="primary" rounded="lg" to="/login" variant="tonal">
+      <UiButton v-if="!user" class="mr-3" color="primary" rounded="lg" to="/login" variant="soft">
         Entrar
       </UiButton>
     </UiAppBar>

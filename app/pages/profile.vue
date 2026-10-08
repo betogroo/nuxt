@@ -188,9 +188,9 @@
                 color="primary"
                 :loading="isSaving"
                 prepend-icon="save"
-                size="large"
+                size="lg"
                 type="submit"
-                variant="flat"
+                variant="solid"
               >
                 Salvar Alterações
               </UiButton>

@@ -88,7 +88,7 @@
       <UiButton
         color="default"
         prepend-icon="arrowLeft"
-        variant="text"
+        variant="ghost"
         @click="router.push('/iirgd/citizens')"
       >
         Voltar para Cidadãos
@@ -110,7 +110,7 @@
               <div class="text-h5 font-weight-bold">{{ citizen.name }}</div>
               <div class="text-subtitle-2 text-medium-emphasis">Ficha do Cidadão e Histórico</div>
             </div>
-            <UiButton color="primary" prepend-icon="edit" variant="tonal" @click="openEditModal">
+            <UiButton color="primary" prepend-icon="edit" variant="soft" @click="openEditModal">
               Editar
             </UiButton>
           </div>
@@ -209,10 +209,10 @@
                 <UiButton
                   color="primary"
                   icon="externalLink"
-                  size="small"
+                  size="sm"
                   title="Acessar Demanda"
                   :to="`/iirgd/${item.id}`"
-                  variant="text"
+                  variant="ghost"
                 />
               </template>
             </UiTable>
@@ -259,7 +259,7 @@
         />
 
         <div class="d-flex justify-end ga-2 mt-4">
-          <UiButton color="grey" variant="text" @click="isEditModalOpen = false">Cancelar</UiButton>
+          <UiButton color="grey" variant="ghost" @click="isEditModalOpen = false">Cancelar</UiButton>
           <UiButton color="primary" :loading="isSaving" type="submit">Salvar Alterações</UiButton>
         </div>
       </form>

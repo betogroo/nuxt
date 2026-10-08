@@ -195,8 +195,8 @@
               color="secondary"
               icon="refresh"
               :loading="pending"
-              size="small"
-              variant="tonal"
+              size="sm"
+              variant="soft"
               @click="refresh"
             />
             <UiButton color="primary" prepend-icon="add" @click="openAddModal">
@@ -266,8 +266,8 @@
               <UiButton
                 color="primary"
                 icon="edit"
-                size="small"
-                variant="text"
+                size="sm"
+                variant="ghost"
                 @click="openEditModal(item)"
               />
             </template>
@@ -332,8 +332,8 @@
               <UiButton
                 color="primary"
                 icon="edit"
-                size="small"
-                variant="text"
+                size="sm"
+                variant="ghost"
                 @click="openEditModal(item)"
               />
             </template>
@@ -462,7 +462,7 @@
       <UiDivider />
 
       <template #actions>
-        <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveSupplier"> Salvar </UiButton>
       </template>
     </UiModal>

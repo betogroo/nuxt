@@ -180,8 +180,8 @@
             color="secondary"
             icon="refresh"
             :loading="pending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refresh"
           />
           <UiButton color="primary" prepend-icon="add" @click="modal.open()">
@@ -258,16 +258,16 @@
           <UiButton
             color="primary"
             icon="next"
-            size="small"
+            size="sm"
             :to="`/demands/${item.id}`"
-            variant="text"
+            variant="ghost"
           />
           <UiButton
             v-if="canEdit(item)"
             color="default"
             icon="editOutline"
-            size="small"
-            variant="text"
+            size="sm"
+            variant="ghost"
             @click="modal.open(item)"
           />
         </template>
@@ -346,13 +346,13 @@
       />
 
       <template #actions>
-        <UiButton :disabled="modal.isSaving.value" variant="text" @click="modal.close">
+        <UiButton :disabled="modal.isSaving.value" variant="ghost" @click="modal.close">
           Cancelar
         </UiButton>
         <UiButton
           color="primary"
           :loading="modal.isSaving.value"
-          variant="flat"
+          variant="solid"
           @click="saveDemand"
         >
           Salvar

@@ -125,11 +125,11 @@
       rounded="lg"
       variant="outlined"
     >
-      <UiButton class="flex-1-1" size="small" value="password">
+      <UiButton class="flex-1-1" size="sm" value="password">
         <UiIcon class="mr-2" name="security" size="16" />
         Senha
       </UiButton>
-      <UiButton class="flex-1-1" size="small" value="magic">
+      <UiButton class="flex-1-1" size="sm" value="magic">
         <UiIcon class="mr-2" name="emailAlt" size="16" />
         Código por E-mail
       </UiButton>
@@ -165,8 +165,8 @@
         color="primary"
         :loading="loadingPassword"
         rounded="lg"
-        size="large"
-        variant="flat"
+        size="lg"
+        variant="solid"
         @click="signInWithPassword"
       >
         Entrar
@@ -199,8 +199,8 @@
           color="primary"
           :loading="loadingOtp"
           rounded="lg"
-          size="large"
-          variant="flat"
+          size="lg"
+          variant="solid"
           @click="handleSendOtp"
         >
           Enviar Código
@@ -222,14 +222,14 @@
           color="primary"
           :loading="loadingOtp"
           rounded="lg"
-          size="large"
-          variant="flat"
+          size="lg"
+          variant="solid"
           @click="handleVerifyOtp"
         >
           Verificar e Acessar
         </UiButton>
 
-        <UiButton block class="mt-2" size="small" variant="text" @click="isOtpSent = false">
+        <UiButton block class="mt-2" size="sm" variant="ghost" @click="isOtpSent = false">
           Usar outro e-mail
         </UiButton>
       </template>

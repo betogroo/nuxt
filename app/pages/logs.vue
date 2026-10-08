@@ -48,8 +48,8 @@
           color="secondary"
           icon="refresh"
           :loading="pending"
-          size="small"
-          variant="tonal"
+          size="sm"
+          variant="soft"
           @click="refresh"
         />
       </template>

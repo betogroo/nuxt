@@ -138,8 +138,8 @@
             color="secondary"
             icon="refresh"
             :loading="pending"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refresh"
           />
           <UiButton color="primary" prepend-icon="add" @click="openAddModal">
@@ -180,15 +180,15 @@
               <UiButton
                 color="secondary"
                 icon="editOutline"
-                size="x-small"
-                variant="text"
+                size="xs"
+                variant="ghost"
                 @click="openEditModal(item)"
               />
               <UiButton
                 color="error"
                 icon="deleteOutline"
-                size="x-small"
-                variant="text"
+                size="xs"
+                variant="ghost"
                 @click="deleteClass(item.id)"
               />
             </div>
@@ -216,8 +216,8 @@
           <UiButton
             color="secondary"
             icon="refresh"
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
             @click="refreshPending"
           />
         </template>
@@ -246,8 +246,8 @@
               <UiButton
                 color="primary"
                 prepend-icon="check"
-                size="small"
-                variant="tonal"
+                size="sm"
+                variant="soft"
                 @click="openResolveModal(item)"
               >
                 Revisar
@@ -255,8 +255,8 @@
               <UiButton
                 color="error"
                 icon="deleteOutline"
-                size="small"
-                variant="text"
+                size="sm"
+                variant="ghost"
                 @click="deleteClass(item.id)"
               />
             </div>
@@ -318,7 +318,7 @@
       </UiForm>
 
       <template #actions>
-        <UiButton color="grey" variant="text" @click="closeModal"> Cancelar </UiButton>
+        <UiButton color="grey" variant="ghost" @click="closeModal"> Cancelar </UiButton>
         <UiButton color="primary" :loading="isSaving" @click="saveProductClass"> Salvar </UiButton>
       </template>
     </UiModal>
@@ -381,7 +381,7 @@
       </div>
 
       <template #actions>
-        <UiButton color="grey" variant="text" @click="closeResolveModal"> Cancelar </UiButton>
+        <UiButton color="grey" variant="ghost" @click="closeResolveModal"> Cancelar </UiButton>
         <UiButton color="primary" :loading="isResolving" @click="submitResolve">
           {{ resolveMode === 'approve' ? 'Aprovar Classe' : 'Confirmar Mesclagem' }}
         </UiButton>

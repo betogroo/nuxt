@@ -76,8 +76,8 @@
       color="primary"
       :loading="loading"
       rounded="lg"
-      size="large"
-      variant="flat"
+      size="lg"
+      variant="solid"
       @click="signUp"
     >
       Criar Conta
