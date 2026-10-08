@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, useAttrs } from 'vue'
+  import { computed } from 'vue'
 
   defineOptions({ inheritAttrs: false })
 
@@ -9,14 +9,13 @@
     persistentHint?: boolean
     color?: string
     hideDetails?: boolean
+    size?: string
   }>()
 
   const modelValue = defineModel<boolean | null>()
-  
-  const attrs = useAttrs()
-  
+
   const vuetifyDensity = computed(() => {
-    const size = attrs.size as string | undefined
+    const size = props.size
     if (size === 'sm' || size === 'xs') return 'compact'
     if (size === 'lg' || size === 'xl') return 'default'
     return 'comfortable'
@@ -27,11 +26,11 @@
   <v-switch
     v-model="modelValue"
     :color="color || 'success'"
+    :density="vuetifyDensity"
     :hide-details="hideDetails"
     :hint="hint"
     :label="label"
     :persistent-hint="persistentHint"
-    :density="vuetifyDensity"
     v-bind="$attrs"
   >
     <template v-for="(_, slot) in $slots" #[slot]="scope">

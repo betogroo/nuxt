@@ -1,13 +1,11 @@
 <script setup lang="ts">
-  import { computed, useAttrs } from 'vue'
-  import type { UiVariant } from '~/types/ui'
+  import { computed } from 'vue'
 
   defineOptions({ inheritAttrs: false })
-  
-  const attrs = useAttrs()
-  
+  const props = defineProps<{ variant?: string; size?: string }>()
+
   const vuetifyVariant = computed(() => {
-    const variant = attrs.variant as string | undefined
+    const variant = props.variant
     if (variant === 'soft') return 'tonal'
     if (variant === 'solid') return 'flat'
     if (variant === 'outline') return 'outlined'

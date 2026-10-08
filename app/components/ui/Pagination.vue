@@ -1,11 +1,10 @@
 <script setup lang="ts">
-  import { computed, useAttrs } from 'vue'
+  import { computed } from 'vue'
   defineOptions({ inheritAttrs: false })
-  
-  const attrs = useAttrs()
-  
+  const props = defineProps<{ size?: string }>()
+
   const vuetifyDensity = computed(() => {
-    const size = attrs.size as string | undefined
+    const size = props.size
     if (size === 'sm' || size === 'xs') return 'compact'
     if (size === 'lg' || size === 'xl') return 'default'
     return 'comfortable'
