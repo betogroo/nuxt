@@ -65,6 +65,32 @@
     ).length
   })
 
+  const toast = useToast()
+
+  const consultadosRgsChunks = computed(() => {
+    if (activeTab.value !== 'consultado') return []
+    const rgs = filteredDemands.value
+      .map((d: any) => d.iirgd_citizens?.rg)
+      .filter(Boolean)
+      .map((rg: string) => rg.replace(/[^a-zA-Z0-9]/g, ''))
+
+    const chunks: string[] = []
+    for (let i = 0; i < rgs.length; i += 8) {
+      chunks.push(rgs.slice(i, i + 8).join(''))
+    }
+    return chunks
+  })
+
+  const copyRgs = async () => {
+    try {
+      await navigator.clipboard.writeText(consultadosRgsChunks.value.join('\n'))
+      toast.success('RGs agrupados copiados para a área de transferência!')
+    } catch (e) {
+      toast.error('Falha ao copiar RGs.')
+      console.error(e)
+    }
+  }
+
   const filteredDemands = computed(() => {
     if (!demands.value) return []
 
@@ -324,6 +350,19 @@
         </template>
       </UiTable>
     </UiCard>
+
+    <div v-if="activeTab === 'consultado' && consultadosRgsChunks.length" class="mt-6">
+      <div class="d-flex align-center mb-2">
+        <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
+        <UiSpacer />
+        <UiButton size="small" variant="tonal" prepend-icon="copy" @click="copyRgs">Copiar Texto</UiButton>
+      </div>
+      <UiCard variant="outlined" class="bg-grey-lighten-4">
+        <UiList bg-color="transparent" density="compact">
+          <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk" />
+        </UiList>
+      </UiCard>
+    </div>
 
     <!-- Create Modal -->
     <UiModal v-model="modal.isOpen" max-width="600px" title="Nova Demanda IIRGD">

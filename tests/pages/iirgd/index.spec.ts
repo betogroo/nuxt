@@ -64,6 +64,8 @@ describe('IIRGD Page', () => {
         stubs: {
           PageHeader: true,
           UiCard: true,
+          UiList: true,
+          UiListItem: true,
           UiTable: true,
           UiButton: true,
           UiInput: true,
