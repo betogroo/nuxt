@@ -276,8 +276,8 @@
           class="ml-2"
           color="primary"
           label
-          size="x-small"
-          variant="tonal"
+          size="xs"
+          variant="soft"
         >
           {{ activeUnits.length }}
         </UiChip>
@@ -285,7 +285,7 @@
       <UiTab value="aliases">
         <UiIcon class="mr-2" name="categories" size="18" />
         Registros Alternativos
-        <UiChip v-if="allAliases?.length" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="allAliases?.length" class="ml-2" label size="xs" variant="soft">
           {{ allAliases.length }}
         </UiChip>
       </UiTab>
@@ -366,8 +366,8 @@
                 v-for="alias in item.measurement_unit_aliases"
                 :key="alias.id"
                 color="info"
-                size="small"
-                variant="tonal"
+                size="sm"
+                variant="soft"
               >
                 {{ alias.name }} (Cód: {{ alias.code }})
               </UiChip>
@@ -431,8 +431,8 @@
             <UiChip
               :color="item.is_pending ? 'warning' : 'success'"
               label
-              size="small"
-              variant="tonal"
+              size="sm"
+              variant="soft"
             >
               {{ item.is_pending ? 'Pendente' : 'Ativo' }}
             </UiChip>

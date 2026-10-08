@@ -230,7 +230,7 @@
               </UiListItemTitle>
               <UiListItemSubtitle>{{ user.email }}</UiListItemSubtitle>
               <UiListItemSubtitle v-if="profile?.role" class="mt-1">
-                <UiChip color="primary" label size="x-small" variant="tonal">
+                <UiChip color="primary" label size="xs" variant="soft">
                   {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
                 </UiChip>
               </UiListItemSubtitle>

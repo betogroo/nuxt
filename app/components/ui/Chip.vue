@@ -1,20 +1,43 @@
 <script setup lang="ts">
   import { computed, useAttrs } from 'vue'
   import { iconMap, type IconName } from './icons'
+  import type { UiVariant, UiSize, UiColor } from '~/types/ui'
 
   defineOptions({ inheritAttrs: false })
 
-  defineProps<{
-    color?: string
-    size?: 'x-small' | 'small' | 'default' | 'large' | 'x-large'
-    variant?: 'flat' | 'elevated' | 'tonal' | 'outlined' | 'text' | 'plain'
+  const props = defineProps<{
+    color?: UiColor
+    size?: UiSize
+    variant?: UiVariant
     closable?: boolean
     disabled?: boolean
+    label?: boolean
   }>()
 
   defineEmits<{ (e: 'click:close' | 'click'): void }>()
 
   const attrs = useAttrs()
+
+  const vuetifyVariant = computed(() => {
+    const map: Record<UiVariant, string> = {
+      solid: 'flat',
+      outline: 'outlined',
+      ghost: 'text',
+      soft: 'tonal'
+    }
+    return props.variant ? map[props.variant] : undefined
+  })
+
+  const vuetifySize = computed(() => {
+    const map: Record<UiSize, string> = {
+      xs: 'x-small',
+      sm: 'small',
+      md: 'default',
+      lg: 'large',
+      xl: 'x-large'
+    }
+    return props.size ? map[props.size] : undefined
+  })
 
   const mappedAttrs = computed(() => {
     const newAttrs: Record<string, unknown> = { ...attrs }
@@ -34,8 +57,9 @@
     :closable="closable"
     :color="color"
     :disabled="disabled"
-    :size="size"
-    :variant="variant"
+    :label="label"
+    :size="vuetifySize"
+    :variant="vuetifyVariant"
     v-bind="mappedAttrs"
     @click="$emit('click')"
     @click:close="$emit('click:close')"

@@ -254,8 +254,8 @@
               <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
-                size="small"
-                variant="flat"
+                size="sm"
+                variant="solid"
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
@@ -320,8 +320,8 @@
               <UiChip
                 class="cursor-pointer"
                 :color="item.is_active ? 'success' : 'error'"
-                size="small"
-                variant="flat"
+                size="sm"
+                variant="solid"
                 @click="toggleStatus(item)"
               >
                 {{ item.is_active ? 'ATIVO' : 'INATIVO' }}

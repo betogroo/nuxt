@@ -226,23 +226,23 @@
           <UiChip
             :color="item.type === 'consumption' ? 'info' : 'warning'"
             label
-            size="small"
-            variant="tonal"
+            size="sm"
+            variant="soft"
           >
             {{ formatDemandType(item.type) }}
           </UiChip>
         </template>
         <template #item-status="{ item }">
           <div class="d-flex align-center gap-1 flex-wrap">
-            <UiChip :color="getDemandStatusColor(item.status)" label size="small" variant="tonal">
+            <UiChip :color="getDemandStatusColor(item.status)" label size="sm" variant="soft">
               {{ formatDemandStatus(item.status) }}
             </UiChip>
             <UiChip
               v-if="item.is_return_requested"
               color="warning"
               label
-              size="small"
-              variant="outlined"
+              size="sm"
+              variant="outline"
             >
               <UiIcon name="back" size="12" start />
               Retorno

@@ -170,7 +170,7 @@
                 </div>
               </template>
               <template #item-station_code="{ item }">
-                <UiChip color="blue-grey" label size="small" variant="tonal">
+                <UiChip color="blue-grey" label size="sm" variant="soft">
                   {{ item.station_code }}
                 </UiChip>
               </template>
@@ -178,8 +178,8 @@
                 <UiChip
                   :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
                   label
-                  size="small"
-                  variant="tonal"
+                  size="sm"
+                  variant="soft"
                 >
                   {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
                 </UiChip>

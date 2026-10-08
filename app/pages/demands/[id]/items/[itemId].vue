@@ -237,13 +237,13 @@
                 :to="`/products/${item.product?.id}`"
                 variant="text"
               />
-              <UiChip class="ml-2" color="secondary" size="small" variant="flat">
+              <UiChip class="ml-2" color="secondary" size="sm" variant="solid">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
               </UiChip>
             </div>
             <UiSpacer />
             <div class="d-flex align-center">
-              <UiChip class="mr-2" color="info" variant="outlined">Qtd: {{ item.quantity }}</UiChip>
+              <UiChip class="mr-2" color="info" variant="outline">Qtd: {{ item.quantity }}</UiChip>
               <UiButton
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
                 color="primary"
@@ -297,7 +297,7 @@
               </template>
 
               <template #item-pos="{ index }">
-                <UiChip :color="index === 0 ? 'success' : 'default'" size="small">
+                <UiChip :color="index === 0 ? 'success' : 'default'" size="sm">
                   {{ index + 1 }}º
                 </UiChip>
               </template>

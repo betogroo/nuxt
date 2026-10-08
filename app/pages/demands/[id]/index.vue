@@ -379,7 +379,7 @@
       <template #header>
         <div class="d-flex flex-wrap align-center ga-2 w-100">
           <span class="text-wrap">{{ demand.name }}</span>
-          <UiChip class="flex-shrink-0" color="primary" size="small" variant="flat">{{
+          <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">{{
             formatDemandStatus(demand.status)
           }}</UiChip>
 
@@ -679,8 +679,8 @@
                 v-if="item.measurement_units"
                 class="flex-shrink-0"
                 color="secondary"
-                size="x-small"
-                variant="flat"
+                size="xs"
+                variant="solid"
               >
                 {{ item.unit_name_snapshot || item.measurement_units.name }}
               </UiChip>
@@ -819,11 +819,11 @@
         </template>
 
         <template #item-participated="{ item: supplier }">
-          <UiChip color="default" size="small">{{ supplier.participatedCount }}</UiChip>
+          <UiChip color="default" size="sm">{{ supplier.participatedCount }}</UiChip>
         </template>
 
         <template #item-won="{ item: supplier }">
-          <UiChip color="success" size="small">{{ supplier.wonCount }}</UiChip>
+          <UiChip color="success" size="sm">{{ supplier.wonCount }}</UiChip>
         </template>
 
         <template #item-total_amount="{ item: supplier }">

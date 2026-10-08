@@ -158,7 +158,7 @@
           :loading="pending"
         >
           <template #item-id="{ item }">
-            <UiChip v-if="item.id" color="info" label size="small" variant="tonal">
+            <UiChip v-if="item.id" color="info" label size="sm" variant="soft">
               {{ item.id }}
             </UiChip>
             <span v-else class="text-medium-emphasis">—</span>

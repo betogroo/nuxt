@@ -83,7 +83,7 @@
         <div class="d-flex flex-wrap align-center w-100 ga-2">
           <UiIcon class="mr-2 text-primary" left name="usersGroup" />
           <span>Cidadãos Cadastrados</span>
-          <UiChip class="flex-shrink-0" color="primary" size="small" variant="flat">
+          <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">
             {{ citizens?.length || 0 }}
           </UiChip>
           <div class="ml-auto">

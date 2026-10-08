@@ -119,7 +119,7 @@
               :color="product.is_active ? 'success' : 'error'"
               label
               size="default"
-              variant="tonal"
+              variant="soft"
             >
               {{ product.is_active ? 'Ativo' : 'Inativo' }}
             </UiChip>
@@ -147,7 +147,7 @@
                       <div class="text-caption text-medium-emphasis">Natureza de Despesa</div>
                       <div class="mt-1">
                         <div v-if="product.expense_natures" class="d-flex align-center">
-                          <UiChip class="mr-2" color="blue-grey" label size="small" variant="tonal">
+                          <UiChip class="mr-2" color="blue-grey" label size="sm" variant="soft">
                             {{ product.expense_natures.id }}
                           </UiChip>
                           <span class="text-body-1">{{ product.expense_natures.name }}</span>
@@ -261,7 +261,7 @@
                       :key="unit.id"
                       closable
                       :color="unit.is_pending ? 'warning' : 'primary'"
-                      size="large"
+                      size="lg"
                       :variant="unit.is_pending ? 'tonal' : 'tonal'"
                       @click:close="removeUnit(unit.id)"
                     >

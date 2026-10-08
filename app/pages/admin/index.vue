@@ -123,7 +123,7 @@
                   <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2">
                     Unidades de Medida Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="xs">
                       {{ pendingUnitsCount }}
                     </UiChip>
                   </span>
@@ -151,7 +151,7 @@
                   <UiIcon color="warning" name="finances" size="18" />
                   <span class="text-body-2">
                     Naturezas de Despesa Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="xs">
                       {{ pendingExpenseNaturesCount }}
                     </UiChip>
                   </span>
@@ -177,7 +177,7 @@
                   <UiIcon color="warning" name="products" size="18" />
                   <span class="text-body-2">
                     Classes de Produtos Pendentes
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="xs">
                       {{ pendingProductClassesCount }}
                     </UiChip>
                   </span>
@@ -197,7 +197,7 @@
                   <UiIcon color="warning" name="returns" size="18" />
                   <span class="text-body-2 font-weight-medium">
                     Retornos de Status em Demandas
-                    <UiChip class="ml-1" color="warning" label size="x-small">
+                    <UiChip class="ml-1" color="warning" label size="xs">
                       {{ metrics.pendingReturnDemands.length }}
                     </UiChip>
                   </span>
@@ -257,7 +257,7 @@
                       <span class="text-body-2 font-weight-semibold">
                         {{ log.action.replace(/_/g, ' ') }}
                       </span>
-                      <UiChip color="default" label size="x-small" variant="tonal">
+                      <UiChip color="default" label size="xs" variant="soft">
                         {{ log.profiles?.name || 'Sistema' }}
                       </UiChip>
                     </div>

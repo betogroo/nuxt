@@ -202,7 +202,7 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="usersGroup" />
         Usuários Ativos
-        <UiChip class="ml-2" color="primary" label size="x-small" variant="tonal">
+        <UiChip class="ml-2" color="primary" label size="xs" variant="soft">
           {{ filteredActiveUsers.length }}
         </UiChip>
         <UiSpacer />
@@ -267,7 +267,7 @@
           <UiChip
             :color="roleConfig[item.role]?.color || 'default'"
             label
-            size="small"
+            size="sm"
             :variant="roleConfig[item.role]?.variant || 'outlined'"
           >
             {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
@@ -306,7 +306,7 @@
         <template #header>
           <UiIcon class="mr-2" color="error" name="disableUser" />
           <span class="text-medium-emphasis">Usuários Desativados</span>
-          <UiChip class="ml-2" color="error" label size="x-small" variant="tonal">
+          <UiChip class="ml-2" color="error" label size="xs" variant="soft">
             {{ inactiveUsers.length }}
           </UiChip>
         </template>
@@ -343,8 +343,8 @@
               :color="roleConfig[item.role]?.color || 'default'"
               disabled
               label
-              size="small"
-              variant="outlined"
+              size="sm"
+              variant="outline"
             >
               {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
             </UiChip>

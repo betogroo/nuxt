@@ -150,7 +150,7 @@
               :color="IIRGD_STATUS_COLORS[demand.status as IirgdDemandStatus] || 'default'"
               label
               size="default"
-              variant="tonal"
+              variant="soft"
             >
               {{
                 IIRGD_STATUS_LABELS[demand.status as IirgdDemandStatus] ||
@@ -175,7 +175,7 @@
                       <UiCol cols="12" sm="6">
                         <div class="text-caption text-medium-emphasis">Código do Posto</div>
                         <div class="mt-1">
-                          <UiChip color="blue-grey" label size="small" variant="tonal">
+                          <UiChip color="blue-grey" label size="sm" variant="soft">
                             {{ demand.station_code }}
                           </UiChip>
                         </div>
@@ -329,7 +329,7 @@
                 </div>
               </template>
               <template #item-station_code="{ item }">
-                <UiChip color="blue-grey" label size="small" variant="tonal">
+                <UiChip color="blue-grey" label size="sm" variant="soft">
                   {{ item.station_code }}
                 </UiChip>
               </template>
@@ -337,8 +337,8 @@
                 <UiChip
                   :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
                   label
-                  size="small"
-                  variant="tonal"
+                  size="sm"
+                  variant="soft"
                 >
                   {{
                     IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] ||
@@ -376,7 +376,7 @@
                   :to="`/iirgd/${item.id}`"
                   variant="text"
                 />
-                <UiChip v-else color="primary" size="small" variant="flat">Atual</UiChip>
+                <UiChip v-else color="primary" size="sm" variant="solid">Atual</UiChip>
               </template>
             </UiTable>
           </UiCard>

@@ -265,7 +265,7 @@
         </template>
         <template #item-expense_nature="{ item }">
           <div v-if="item.expense_natures" class="d-flex align-center gap-2">
-            <UiChip color="blue-grey" label size="small" variant="tonal">
+            <UiChip color="blue-grey" label size="sm" variant="soft">
               {{ item.expense_natures.id }}
             </UiChip>
             <span class="text-body-2">{{ item.expense_natures.name }}</span>
@@ -274,7 +274,7 @@
         </template>
         <template #item-product_class="{ item }">
           <div v-if="item.product_classes" class="d-flex align-center gap-2">
-            <UiChip color="teal" label size="small" variant="tonal">
+            <UiChip color="teal" label size="sm" variant="soft">
               {{ item.product_classes.id }}
             </UiChip>
             <span class="text-body-2">{{ item.product_classes.name }}</span>

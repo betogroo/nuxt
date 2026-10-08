@@ -114,8 +114,8 @@
                 class="mt-2"
                 color="primary"
                 label
-                size="x-small"
-                variant="tonal"
+                size="xs"
+                variant="soft"
               >
                 {{ roleLabel[profile.role] || profile.role.toUpperCase() }}
               </UiChip>

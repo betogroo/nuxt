@@ -93,7 +93,7 @@
           <span v-else class="text-medium-emphasis text-caption">Sistema</span>
         </template>
         <template #item-action="{ item }">
-          <UiChip color="primary" label size="small" variant="tonal">
+          <UiChip color="primary" label size="sm" variant="soft">
             {{ item.action.replace(/_/g, ' ') }}
           </UiChip>
         </template>
