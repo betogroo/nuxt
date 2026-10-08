@@ -1,4 +1,5 @@
 ﻿<script setup lang="ts">
+  import type { IirgdDemand } from '~/composables/useIirgdDemands'
   import { padAndFormatRg, formatCpf, isValidRgSP, isValidCpf } from '~/utils/formatters'
   import {
     IIRGD_STATUS_LABELS,
@@ -25,7 +26,7 @@
     title: 'Gerenciar Demandas - IIRGD',
   })
 
-  const { fetchDemands, createDemand } = useIirgdDemands()
+  const { fetchDemands, createDemand, updateDemand } = useIirgdDemands()
   const { fetchCitizenByDocument } = useIirgdCitizens()
 
   // Data fetching
@@ -69,17 +70,51 @@
 
   const consultadosRgsChunks = computed(() => {
     if (activeTab.value !== 'consultado') return []
-    const rgs = filteredDemands.value
-      .map((d: any) => d.iirgd_citizens?.rg)
-      .filter(Boolean)
-      .map((rg: string) => rg.replace(/[^a-zA-Z0-9]/g, ''))
+    const validDemands = filteredDemands.value.filter((d: IirgdDemand) => d.iirgd_citizens?.rg)
 
-    const chunks: string[] = []
-    for (let i = 0; i < rgs.length; i += 8) {
-      chunks.push(rgs.slice(i, i + 8).join(''))
+    const chunks: Array<{ text: string; demands: IirgdDemand[] }> = []
+    for (let i = 0; i < validDemands.length; i += 8) {
+      const chunkDemands = validDemands.slice(i, i + 8)
+      const chunkString = chunkDemands
+        .map((d: IirgdDemand) => d.iirgd_citizens.rg.replace(/[^a-zA-Z0-9]/g, ''))
+        .join('')
+      chunks.push({
+        text: chunkString,
+        demands: chunkDemands,
+      })
     }
     return chunks
   })
+
+  const releaseModal = ref({
+    isOpen: false,
+    demands: [] as IirgdDemand[],
+    isSaving: false,
+    error: '',
+  })
+
+  const openReleaseModal = (demands: IirgdDemand[]) => {
+    releaseModal.value.demands = demands
+    releaseModal.value.isOpen = true
+    releaseModal.value.error = ''
+  }
+
+  const confirmRelease = async () => {
+    releaseModal.value.isSaving = true
+    releaseModal.value.error = ''
+    try {
+      for (const demand of releaseModal.value.demands) {
+        await updateDemand(demand.id, { status: 'released' })
+      }
+      await refresh()
+      releaseModal.value.isOpen = false
+      toast.success('Demandas liberadas com sucesso!')
+    } catch (e: unknown) {
+      releaseModal.value.error = e.message || 'Erro ao liberar demandas'
+    } finally {
+      releaseModal.value.isSaving = false
+    }
+  }
 
   const copyChunk = async (chunk: string) => {
     try {
@@ -365,13 +400,61 @@
                 icon="copy"
                 size="sm"
                 variant="ghost"
-                @click="copyChunk(chunk)"
+                @click="copyChunk(chunk.text)"
+              />
+              <UiButton
+                class="ml-2"
+                color="success"
+                icon="check"
+                size="sm"
+                variant="ghost"
+                @click="openReleaseModal(chunk.demands)"
               />
             </template>
           </UiListItem>
         </UiList>
       </UiCard>
     </div>
+
+    <!-- Release Modal -->
+    <UiModal v-model="releaseModal.isOpen" max-width="600px" title="Liberar Demandas">
+      <UiAlert v-if="releaseModal.error" class="mb-4" size="sm" type="error" variant="soft">
+        {{ releaseModal.error }}
+      </UiAlert>
+      <p class="mb-4 text-body-2 text-medium-emphasis">
+        As seguintes demandas serão atualizadas para <strong>Liberado</strong>:
+      </p>
+      <UiTable
+        :headers="[
+          { text: 'RG', value: 'rg' },
+          { text: 'CPF', value: 'cpf' },
+          { text: 'Nome', value: 'name' },
+        ]"
+        :items="releaseModal.demands"
+      >
+        <template #item-rg="{ item }">
+          {{ item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-' }}
+        </template>
+        <template #item-cpf="{ item }">
+          {{ item.iirgd_citizens?.cpf ? formatCpf(item.iirgd_citizens.cpf) : '-' }}
+        </template>
+        <template #item-name="{ item }">
+          {{ item.iirgd_citizens?.name || '-' }}
+        </template>
+      </UiTable>
+
+      <template #actions>
+        <UiButton variant="ghost" @click="releaseModal.isOpen = false">Cancelar</UiButton>
+        <UiButton
+          color="success"
+          :loading="releaseModal.isSaving"
+          variant="solid"
+          @click="confirmRelease"
+        >
+          Confirmar Liberação
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Create Modal -->
     <UiModal v-model="modal.isOpen" max-width="600px" title="Nova Demanda IIRGD">
@@ -418,11 +501,11 @@
         <UiCol cols="12">
           <UiTextarea
             v-model="observation"
-            size="md"
             :error-messages="errors.observation"
             label="Observação"
             rounded="lg"
             rows="3"
+            size="md"
             variant="outline"
           />
         </UiCol>
