@@ -650,7 +650,7 @@
           <template #item-order="{ index }">
             <div class="d-flex flex-column align-center justify-center">
               <UiButton
-                size="sm"
+               
                 :disabled="index === 0 || isReordering"
                 icon="chevronUp"
                 size="xs"
@@ -658,7 +658,7 @@
                 @click.stop="moveItemUp(index)"
               />
               <UiButton
-                size="sm"
+               
                 :disabled="index === (items?.length || 0) - 1 || isReordering"
                 icon="chevronDown"
                 size="xs"
