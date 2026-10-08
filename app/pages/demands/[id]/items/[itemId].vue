@@ -260,7 +260,7 @@
           </UiAlert>
 
           <!-- Card de Lances -->
-          <UiCard class="mb-4" variant="outlined">
+          <UiCard class="mb-4" variant="outline">
             <template #header>
               <div class="d-flex justify-space-between align-center w-100">
                 <span>Lances Recebidos</span>
@@ -331,7 +331,7 @@
           </UiCard>
 
           <!-- Futuro Card de Documentos -->
-          <UiCard title="Documentos e Anexos" variant="outlined">
+          <UiCard title="Documentos e Anexos" variant="outline">
             <div class="text-body-2 text-grey pa-4 text-center">
               Nenhum documento anexado. (Em desenvolvimento)
             </div>
@@ -345,7 +345,7 @@
 
       <UiCol cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
-        <UiCard title="Informações" variant="outlined">
+        <UiCard title="Informações" variant="outline">
           <UiList class="bg-transparent" density="compact">
             <UiListItem v-if="item?.reference_price">
               <template #prepend>

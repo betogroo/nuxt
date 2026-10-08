@@ -153,7 +153,7 @@
           </UiCard>
 
           <!-- Bloco Inferior: Histórico de Demandas Ocupando 100% da Largura -->
-          <UiCard title="Histórico de Solicitações (Demandas)" variant="outlined">
+          <UiCard title="Histórico de Solicitações (Demandas)" variant="outline">
             <UiTable
               :headers="[
                 { text: 'Posto', value: 'station_code' },

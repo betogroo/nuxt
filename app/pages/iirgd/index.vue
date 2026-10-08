@@ -356,7 +356,7 @@
         <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
         <UiSpacer />
       </div>
-      <UiCard class="bg-grey-lighten-4" variant="outlined">
+      <UiCard class="bg-grey-lighten-4" variant="outline">
         <UiList bg-color="transparent" density="compact">
           <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk">
             <template #append>

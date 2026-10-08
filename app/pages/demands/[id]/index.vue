@@ -446,7 +446,7 @@
       <UiRow>
         <UiCol cols="12" md="8">
           <!-- Dados do Planejamento -->
-          <UiCard class="mb-4" variant="outlined">
+          <UiCard class="mb-4" variant="outline">
             <template #header>
               <div class="d-flex align-center w-100">
                 <UiIcon class="mr-2 text-primary" left name="document" />
@@ -516,7 +516,7 @@
           <UiCard
             v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
             title="Dados da Disputa e Contratação"
-            variant="outlined"
+            variant="outline"
           >
             <UiRow class="px-2 pb-2 mt-2">
               <UiCol cols="12" md="4" sm="6">
@@ -603,7 +603,7 @@
     </UiCard>
 
     <!-- Lista de Produtos da Demanda -->
-    <UiCard class="mb-4" variant="outlined">
+    <UiCard class="mb-4" variant="outline">
       <template #header>
         <div class="d-flex flex-wrap align-center w-100 ga-2">
           <span>Produtos na Demanda</span>
@@ -788,7 +788,7 @@
     </UiCard>
 
     <!-- Resumo de Fornecedores da Demanda -->
-    <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outlined">
+    <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outline">
       <div v-if="itemsPending" class="text-center py-4">
         <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
       </div>

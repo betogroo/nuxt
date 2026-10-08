@@ -67,7 +67,7 @@
 
     <UiRow>
       <UiCol cols="12" md="4">
-        <UiCard class="mb-4" title="Dados do Fornecedor" variant="outlined">
+        <UiCard class="mb-4" title="Dados do Fornecedor" variant="outline">
           <UiList v-if="supplier" class="bg-transparent" density="compact">
             <UiListItem>
               <template #prepend>
@@ -93,7 +93,7 @@
           </UiList>
         </UiCard>
 
-        <UiCard title="Resumo" variant="outlined">
+        <UiCard title="Resumo" variant="outline">
           <div class="text-center pa-4">
             <div class="text-caption text-grey text-uppercase font-weight-bold mb-1">
               Total Arrematado
@@ -107,7 +107,7 @@
       </UiCol>
 
       <UiCol cols="12" md="8">
-        <UiCard title="Itens Arrematados" variant="outlined">
+        <UiCard title="Itens Arrematados" variant="outline">
           <div v-if="pending" class="text-center py-4">
             <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
           </div>

@@ -1,14 +1,47 @@
 <script setup lang="ts">
-  defineProps<{
+  import { computed, useAttrs } from 'vue'
+  import type { UiVariant, UiColor, UiRounded } from '~/types/ui'
+
+  defineOptions({ inheritAttrs: false })
+
+  const props = defineProps<{
     title?: string
     elevation?: number | string
     loading?: boolean
     transparentHeader?: boolean
+    variant?: UiVariant
+    color?: UiColor
+    rounded?: UiRounded
   }>()
+
+  const attrs = useAttrs()
+
+  const vuetifyVariant = computed(() => {
+    const map: Record<UiVariant, string> = {
+      solid: 'elevated',
+      outline: 'outlined',
+      ghost: 'text',
+      soft: 'tonal'
+    }
+    return props.variant ? map[props.variant] : undefined
+  })
+
+  const vuetifyRounded = computed(() => {
+    const r = props.rounded || 'xl'
+    return r === 'none' ? '0' : r
+  })
 </script>
 
 <template>
-  <v-card class="ui-card" :elevation="elevation ?? 1" :loading="loading" rounded="xl">
+  <v-card
+    class="ui-card"
+    :elevation="vuetifyVariant === 'outlined' ? 0 : (elevation ?? 1)"
+    :loading="loading"
+    :rounded="vuetifyRounded"
+    :variant="vuetifyVariant"
+    :color="color"
+    v-bind="attrs"
+  >
     <!-- Header -->
     <v-card-title
       v-if="title || $slots.header"

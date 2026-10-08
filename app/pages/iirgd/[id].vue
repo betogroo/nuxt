@@ -312,7 +312,7 @@
             </UiCol>
           </UiRow>
 
-          <UiCard class="mt-6" title="Histórico de Solicitações do Cidadão" variant="outlined">
+          <UiCard class="mt-6" title="Histórico de Solicitações do Cidadão" variant="outline">
             <UiTable
               :headers="[
                 { text: 'Posto', value: 'station_code' },

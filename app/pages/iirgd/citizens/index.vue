@@ -78,7 +78,7 @@
       title="Cidadãos"
     />
 
-    <UiCard class="mt-6" variant="outlined">
+    <UiCard class="mt-6" variant="outline">
       <template #header>
         <div class="d-flex flex-wrap align-center w-100 ga-2">
           <UiIcon class="mr-2 text-primary" left name="usersGroup" />
