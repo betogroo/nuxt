@@ -393,7 +393,11 @@
       </div>
       <UiCard class="bg-grey-lighten-4" variant="outline">
         <UiList bg-color="transparent" size="sm">
-          <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk">
+          <UiListItem
+            v-for="(chunk, index) in consultadosRgsChunks"
+            :key="index"
+            :title="chunk.text"
+          >
             <template #append>
               <UiButton
                 color="primary"
