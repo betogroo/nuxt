@@ -8,49 +8,27 @@ O projeto está passando por uma fase pesada de **Desacoplamento e Clean Archite
 
 ### O que acabou de ser concluído:
 
-1. **Gestão de Papéis e Dashboards Isolados (Auth & Middlewares)**:
-   - Foram adicionadas novas roles/perfis: `iirgd` e `uge`.
-   - Criação de Middlewares dedicados (`iirgd.ts` e `uge.ts`) para proteger e isolar as rotas correspondentes.
-   - Criação do dashboard independente para IIRGD (`app/pages/iirgd/index.vue`) e isolamento das páginas de disputa (bidding) em relação ao IIRGD.
+1. **Strict UI Decoupling (Vuetify Props)**:
+   - Uma grande varredura foi feita por todo o projeto utilizando scripts regex via Node. As props nativas do Vuetify (`density="compact"`, `variant="outlined"`, etc.) foram substituídas pelas props semânticas do nosso Design System (`size="sm"`, `variant="outline"`, `variant="soft"`, etc.) nos componentes nas pastas de páginas e layouts.
+   - Wrappers como `UiSwitch`, `Avatar` e `Pagination` que injetavam `$attrs` de forma perigosa diretamente nas tags HTML nativas do Vuetify, foram consertados. Agora eles definem explicitamente as props do DS e mapeiam com sucesso para o padrão do framework, evitando bugs de renderização invisíveis.
 
-2. **Novos Módulos e Tabelas (CRUD)**:
-   - **Naturezas de Despesa (Expense Natures)**: Adicionado o composable `useExpenseNatures.ts` e a respectiva tela de administração `app/pages/admin/expense-natures.vue`.
-   - **Lances/Ofertas de Produtos (Product Bids)**: Adicionado o composable `useProductBids.ts` e scripts de migração no banco (`demand_product_bids`).
+2. **IIRGD: Liberação de Lote de RGs (Bulk Release)**:
+   - Na tela de demandas do IIRGD, a aba 'Consultado' agora possui um gerador inteligente de blocos de 8 RGs (limite legado de emuladores Mainframe) em formato de lista contínua de 72 dígitos (para preenchimento em lote no sistema externo via auto-tab cascade).
+   - Implementada a funcionalidade visual que, junto do botão de copiar, oferece um botão 'Check' que abre um modal de confirmação (exibindo RG, CPF e Nome). Após o aceite, todas as 8 demandas daquele grupo recebem status `released` em cascata com um refresh silencioso da UI.
+   - Solucionado um bug antigo no `UiModal` de nova demanda que mantinha o form congelado por não esperar a chamada correta do `refresh()` assíncrono do Nuxt.
 
-3. **Sub-telas de Demanda**:
-   - Interfaces quebradas e modais centralizados usando UiModal.
-
-4. **Módulo IIRGD (Demandas e Status Histórico)**:
-   - Adicionado rastreio de histórico (`iirgd_demand_status_history`) com exibição via `<UiTimeline>`.
-   - Transição do status para ENUM em inglês (`new`, `issued`, etc.) com labels em português no Frontend.
-   - Refatorada a página de listagem (`/iirgd`) para usar `<UiTabs>` (Em Andamento, Emitidos, Erros) com cores e ícones semânticos (`time`, `success`, `alert`).
-   - Implementada validação matemática estrita para o Dígito Verificador de RG de SP (`isValidRgSP`) bloqueando cadastros incorretos.
-
-5. **Testes Massivos (Vitest)**:
-   - O projeto ganhou uma suíte de testes muito mais robusta, incluindo um arquivo centralizado de mocks: `tests/mocks/supabaseMock.ts`.
-   - Cobertura de testes adicionada para: `useAuth`, `useDemandProducts`, `useDemandWorkflow`, `useExpenseNatures`, `useProductBids`, `useSuppliers`, `useThemeManager`, além dos novos middlewares e páginas administrativas.
-
-6. **Limpeza Contínua**:
-   - Foram apagados os restos de arquivos temporários (`temp_detail.txt`, `temp_full.txt`).
-   - Todos os testes recém adicionados foram validados.
+3. **Validação de Formulários Zod + VeeValidate (Concluído Totalmente)**:
+   - Todos os modais de operações CRUD (Produtos, Usuários, Demandas e Itens) rodam com inferência estrita de Schema.
 
 ### Próximos Passos Imediatos:
 
-1. **Garantir a Estabilidade do Novo Fluxo**:
-   - Validar se o dashboard IIRGD recém-criado possui todas as métricas ou botões de ação que o perfil necessita.
-   - Analisar o fluxo de lances (`product_bids`) dentro da etapa de disputa da demanda.
+1. **Refinar a Usabilidade das Sub-Telas**:
+   - Garantir que todos os campos residuais do Vuetify no ecossistema (se houver algum esquecido) sejam encapsulados.
+   - Prestar atenção especial à injeção de fallthrough attributes em componentes `Ui*`.
 
-2. **Refatorar Sub-telas e Funcionalidades**:
-   - O fluxo de Disputa/Cotação precisará receber a "edição inline" conforme a demanda avança nas etapas, similar ao que foi feito no Planejamento.
-   - Utilizar sempre os componentes desacoplados (`UiModal`, `UiChip`, etc.) em vez das tags cruas do Vuetify.
-
-3. **Novas Funcionalidades**:
-   - Seguir com as pendências de negócio listadas pelo usuário ou aprimoramentos no fluxo de orçamentos, sempre respeitando as regras estritas descritas no arquivo `GEMINI.md`.
+2. **Testes Unitários**:
+   - O projeto atingiu a marca de 145 testes vitest automatizados. Todo novo pull-request ou inserção deve estar devidamente coberto e os mocks no `supabaseMock.ts` atualizados.
 
 ---
 
 _Nota para a IA: Após ler este arquivo, confirme que o contexto foi recuperado com sucesso e pergunte ao usuário qual é a prioridade atual para dar prosseguimento._
-
-## Refatoração de Formulários (Zod + VeeValidate)
-
-As fases de 1 a 6 de refatoração para Zod e VeeValidate foram totalmente concluídas. Modais de Demandas (Planejamento, Itens, Responsáveis, Retornos e Avanços de Status), Modais de Produtos, Unidades de Medida e Fluxo de Autenticação operam agora sob validação e tipagem estrita de Schemas.
