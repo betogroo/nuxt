@@ -247,8 +247,9 @@
         cpf: formValues.cpf ? formatCpf(formValues.cpf) : formValues.cpf,
       })
 
-      await refresh()
       closeAddModal()
+      toast.success('Demanda criada com sucesso!')
+      refresh()
     } catch (e: unknown) {
       modal.value.error = e instanceof Error ? e.message : 'Ocorreu um erro ao salvar.'
     } finally {
