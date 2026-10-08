@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import type { IirgdDemand } from '~/composables/useIirgdDemands'
   import { padAndFormatRg, formatCpf, isValidRgSP, isValidCpf } from '~/utils/formatters'
   import {
@@ -152,6 +152,42 @@
   })
 
   // Add Modal State
+  const statusOptions = Object.entries(IIRGD_STATUS_LABELS).map(([value, title]) => ({
+    title,
+    value,
+  }))
+
+  const statusModal = ref({
+    isOpen: false,
+    demand: null as IirgdDemand | null,
+    newStatus: '' as IirgdDemandStatus,
+    isSaving: false,
+    error: '',
+  })
+
+  const openStatusModal = (demand: IirgdDemand) => {
+    statusModal.value.demand = demand
+    statusModal.value.newStatus = demand.status as IirgdDemandStatus
+    statusModal.value.isOpen = true
+    statusModal.value.error = ''
+  }
+
+  const confirmStatusChange = async () => {
+    if (!statusModal.value.demand) return
+    statusModal.value.isSaving = true
+    statusModal.value.error = ''
+    try {
+      await updateDemand(statusModal.value.demand.id, { status: statusModal.value.newStatus })
+      await refresh()
+      statusModal.value.isOpen = false
+      toast.success('Status atualizado com sucesso!')
+    } catch (e: unknown) {
+      statusModal.value.error = e instanceof Error ? e.message : 'Erro ao atualizar status'
+    } finally {
+      statusModal.value.isSaving = false
+    }
+  }
+
   const modal = ref({
     isOpen: false,
     isSaving: false,
@@ -374,9 +410,12 @@
             :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
             label
             size="sm"
+            style="cursor: pointer"
             variant="soft"
+            @click="openStatusModal(item)"
           >
             {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
+            <UiIcon class="ml-1" name="edit" size="xs" />
           </UiChip>
         </template>
         <template #item-created_at="{ item }">
@@ -457,6 +496,38 @@
           @click="confirmRelease"
         >
           Confirmar Liberação
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Status Modal -->
+    <UiModal v-model="statusModal.isOpen" max-width="400px" title="Alterar Status">
+      <UiAlert v-if="statusModal.error" class="mb-4" size="sm" type="error" variant="soft">
+        {{ statusModal.error }}
+      </UiAlert>
+
+      <p class="mb-4 text-body-2 text-medium-emphasis">
+        Selecione o novo status para a demanda de
+        <strong>{{ statusModal.demand?.iirgd_citizens?.name || 'Desconhecido' }}</strong>:
+      </p>
+
+      <UiSelect
+        v-model="statusModal.newStatus"
+        :items="statusOptions"
+        item-title="title"
+        item-value="value"
+        label="Novo Status"
+      />
+
+      <template #actions>
+        <UiButton variant="ghost" @click="statusModal.isOpen = false">Cancelar</UiButton>
+        <UiButton
+          color="primary"
+          :loading="statusModal.isSaving"
+          variant="solid"
+          @click="confirmStatusChange"
+        >
+          Salvar
         </UiButton>
       </template>
     </UiModal>
