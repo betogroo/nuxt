@@ -29,7 +29,7 @@
           }}</span>
         </template>
         <UiSpacer />
-        <v-btn density="compact" icon="close" variant="text" @click="modelValue = false" />
+        <UiButton size="sm" icon="close" variant="ghost" @click="modelValue = false" />
       </template>
 
       <slot />

@@ -1,4 +1,7 @@
 <script setup lang="ts" generic="T">
+  import { computed } from 'vue'
+  import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
+
   const props = defineProps<{
     variant?: UiVariant
     size?: UiSize
@@ -16,9 +19,6 @@
     errorMessages?: string | string[]
     hideDetails?: boolean
     loading?: boolean
-    density?: 'comfortable' | 'compact' | 'default' | null
-    variant?:
-      'outlined' | 'filled' | 'plain' | 'underlined' | 'solo' | 'solo-inverted' | 'solo-filled'
   }>()
 
   const modelValue = defineModel<unknown>({ default: undefined })
@@ -47,7 +47,7 @@
     v-model:search="search"
     :clearable="clearable"
     color="primary"
-    :density="density || 'comfortable'"
+    :density="vuetifyDensity"
     :error-messages="errorMessages"
     :hide-details="hideDetails"
     :hint="hint"
@@ -59,7 +59,8 @@
     :multiple="multiple"
     :persistent-hint="persistentHint"
     :return-object="returnObject"
-    :variant="variant || 'outlined'"
+    :rounded="vuetifyRounded"
+    :variant="vuetifyVariant"
     v-bind="$attrs"
   >
     <template v-for="(_, slot) in $slots" #[slot]="scope">
