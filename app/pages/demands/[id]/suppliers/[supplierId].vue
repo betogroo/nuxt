@@ -68,7 +68,7 @@
     <UiRow>
       <UiCol cols="12" md="4">
         <UiCard class="mb-4" title="Dados do Fornecedor" variant="outline">
-          <UiList v-if="supplier" class="bg-transparent" density="compact">
+          <UiList v-if="supplier" class="bg-transparent" size="sm">
             <UiListItem>
               <template #prepend>
                 <UiIcon color="grey" name="company" />

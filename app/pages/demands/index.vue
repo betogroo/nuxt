@@ -144,7 +144,7 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="recordsList" />
         Lista de Demandas
-        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
           {{ totalItems }}
         </UiChip>
         <UiSpacer />
@@ -153,18 +153,18 @@
           <UiInput
             v-model="searchQuery"
             clearable
-            density="compact"
+            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
             style="min-width: 200px; max-width: 260px"
-            variant="outlined"
+            variant="outline"
           />
           <UiSelect
             v-model="statusFilter"
             clearable
-            density="compact"
+            size="sm"
             hide-details
             item-title="title"
             item-value="value"
@@ -172,7 +172,7 @@
             label="Status"
             rounded="lg"
             style="min-width: 180px; max-width: 220px"
-            variant="outlined"
+            variant="outline"
           />
           <UiDivider class="mx-2" vertical />
           <UiButton
@@ -277,7 +277,7 @@
       <div v-if="totalPages > 1" class="d-flex justify-center py-4">
         <UiPagination
           v-model="currentPage"
-          density="comfortable"
+          size="md"
           :length="totalPages"
           rounded="lg"
           :total-visible="7"

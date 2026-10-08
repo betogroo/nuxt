@@ -267,7 +267,7 @@
     <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
     </PageHeader>
 
-    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="units">
         <UiIcon class="mr-2" name="balance" size="18" />
         Unidades Oficiais
@@ -377,7 +377,7 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              density="compact"
+              size="sm"
               hide-details
               :model-value="item.is_active"
               @update:model-value="toggleStatus(item)"
@@ -479,7 +479,7 @@
         v-bind="aliasIdsProps"
         chips
         closable-chips
-        density="comfortable"
+        size="md"
         :error-messages="saveErrors.aliasIds"
         :item-title="
           (item: Record<string, unknown>) => (item.code ? `${item.code} - ${item.name}` : item.name)
@@ -489,7 +489,7 @@
         label="Vincular Registros Alternativos"
         multiple
         rounded="lg"
-        variant="outlined"
+        variant="outline"
       />
 
       <UiSwitch

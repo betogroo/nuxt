@@ -346,7 +346,7 @@
       <UiCol cols="12" md="4">
         <!-- Resumo da Demanda / Status -->
         <UiCard title="Informações" variant="outline">
-          <UiList class="bg-transparent" density="compact">
+          <UiList class="bg-transparent" size="sm">
             <UiListItem v-if="item?.reference_price">
               <template #prepend>
                 <UiIcon color="grey" name="currency" />
@@ -424,7 +424,7 @@
           v-model="eiBidIntervalType"
           v-bind="eiBidIntervalTypeProps"
           class="mr-2 flex-grow-1"
-          density="comfortable"
+          size="md"
           :error-messages="eiErrors.bid_interval_type"
           hide-details
           :items="[
@@ -432,7 +432,7 @@
             { title: 'Monetário (R$)', value: 'monetary' },
           ]"
           label="Tipo de Intervalo"
-          variant="outlined"
+          variant="outline"
         />
         <UiInput
           v-model.number="eiBidInterval"
@@ -475,7 +475,7 @@
         v-bind="bidIsNewProps"
         class="mb-4"
         color="primary"
-        density="compact"
+        size="sm"
         :error-messages="bidErrors.isNewSupplier"
         hide-details
         label="Fornecedor não está na lista? Cadastrar Novo."
@@ -488,14 +488,14 @@
         v-bind="bidSupplierIdProps"
         class="mb-3"
         color="primary"
-        density="comfortable"
+        size="md"
         :error-messages="bidErrors.supplierId"
         item-title="company_name"
         item-value="id"
         :items="suppliers"
         label="Selecionar Fornecedor*"
         placeholder="Busque pela razão social..."
-        variant="outlined"
+        variant="outline"
       ></UiAutocomplete>
 
       <!-- Novo Fornecedor -->

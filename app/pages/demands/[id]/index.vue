@@ -567,7 +567,7 @@
             <UiSpacer />
             <UiButton icon="add" size="xs" variant="ghost" @click="openResponsibleModal" />
           </div>
-          <UiList class="bg-transparent pa-0" density="compact">
+          <UiList class="bg-transparent pa-0" size="sm">
             <UiListItem
               v-for="resp in responsibles"
               :key="resp?.user_id || Math.random()"
@@ -650,7 +650,7 @@
           <template #item-order="{ index }">
             <div class="d-flex flex-column align-center justify-center">
               <UiButton
-                density="compact"
+                size="sm"
                 :disabled="index === 0 || isReordering"
                 icon="chevronUp"
                 size="xs"
@@ -658,7 +658,7 @@
                 @click.stop="moveItemUp(index)"
               />
               <UiButton
-                density="compact"
+                size="sm"
                 :disabled="index === (items?.length || 0) - 1 || isReordering"
                 icon="chevronDown"
                 size="xs"
@@ -900,13 +900,13 @@
           v-model="selectedProductId"
           v-model:search="searchProductText"
           clearable
-          density="comfortable"
+          size="md"
           item-title="name"
           item-value="id"
           :items="allProducts || []"
           label="Buscar Produto"
           placeholder="Digite o nome do produto..."
-          variant="outlined"
+          variant="outline"
         >
           <!-- Personalizando a pesquisa no front-end para simplificar -->
           <template #no-data>
@@ -980,7 +980,7 @@
           v-if="!isSuggestingNature"
           v-model="newProductExpenseNatureId"
           class="mb-4"
-          density="comfortable"
+          size="md"
           :item-title="
             (item: Record<string, unknown>) =>
               typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
@@ -988,7 +988,7 @@
           item-value="id"
           :items="expenseNatures || []"
           label="Natureza de Despesa"
-          variant="outlined"
+          variant="outline"
         />
 
         <div v-else class="d-flex gap-4 mb-4">

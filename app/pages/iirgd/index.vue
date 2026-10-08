@@ -357,7 +357,7 @@
         <UiSpacer />
       </div>
       <UiCard class="bg-grey-lighten-4" variant="outline">
-        <UiList bg-color="transparent" density="compact">
+        <UiList bg-color="transparent" size="sm">
           <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk">
             <template #append>
               <UiButton
@@ -418,12 +418,12 @@
         <UiCol cols="12">
           <UiTextarea
             v-model="observation"
-            density="comfortable"
+            size="md"
             :error-messages="errors.observation"
             label="Observação"
             rounded="lg"
             rows="3"
-            variant="outlined"
+            variant="outline"
           />
         </UiCol>
       </UiRow>

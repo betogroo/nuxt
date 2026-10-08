@@ -71,7 +71,7 @@
       <UiDivider class="mb-2" />
 
       <!-- Navegação principal: gerada automaticamente por definePageMeta -->
-      <UiList class="px-3" density="compact" nav>
+      <UiList class="px-3" size="sm" nav>
         <template v-for="section in drawerByGroup" :key="section.group">
           <!-- Cabeçalho de seção (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
@@ -99,7 +99,7 @@
       <template #append>
         <UiDivider />
         <div v-if="user" class="pa-3">
-          <UiList density="compact" nav>
+          <UiList size="sm" nav>
             <UiListItem
               rounded="lg"
               :subtitle="user.email"
@@ -117,7 +117,7 @@
                     <UiButton
                       v-bind="props"
                       color="error"
-                      density="compact"
+                      size="sm"
                       icon="logout"
                       variant="ghost"
                       @click.prevent="handleSignOut"
@@ -150,7 +150,7 @@
           <UiButton
             v-bind="props"
             class="mx-1"
-            density="comfortable"
+            size="md"
             icon
             rounded="lg"
             variant="ghost"
@@ -164,7 +164,7 @@
           <template #header
             ><div class="text-subtitle-2 font-weight-bold">Pendências</div></template
           >
-          <UiList density="compact" nav>
+          <UiList size="sm" nav>
             <UiListItem
               v-if="pendingUnitsCount > 0"
               :prepend-icon="getIcon('/admin/units')"
@@ -207,7 +207,7 @@
           <UiButton
             v-bind="props"
             class="ml-1 mr-2"
-            density="comfortable"
+            size="md"
             icon
             rounded="lg"
             variant="ghost"
@@ -237,7 +237,7 @@
             </UiListItem>
           </UiList>
           <UiDivider />
-          <UiList density="compact" nav>
+          <UiList size="sm" nav>
             <UiListItem
               :prepend-icon="getIcon('/profile')"
               rounded="lg"

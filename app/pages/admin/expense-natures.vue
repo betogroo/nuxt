@@ -93,7 +93,7 @@
     <PageHeader subtitle="Gerencie as Naturezas de Despesa do sistema" title="Naturezas de Despesa">
     </PageHeader>
 
-    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="active">
         <UiIcon class="mr-2" name="finances" size="18" />
         Naturezas Oficiais
@@ -117,20 +117,20 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="finances" />
           Lista de Naturezas de Despesa
-          <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+          <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
             {{ totalItems }}
           </UiChip>
           <UiSpacer />
           <UiInput
             v-model="searchQuery"
             clearable
-            density="compact"
+            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
             style="max-width: 260px"
-            variant="outlined"
+            variant="outline"
             @update:model-value="handleSearch"
           />
           <UiButton
@@ -166,7 +166,7 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              density="compact"
+              size="sm"
               hide-details
               :model-value="item.is_active"
               @update:model-value="toggleStatus(item)"
@@ -336,14 +336,14 @@
         <UiAutocomplete
           v-model="finalNatureId"
           v-bind="finalNatureIdProps"
-          density="comfortable"
+          size="md"
           :error-messages="resolveErrors.finalTargetId"
           :item-title="(item: Record<string, unknown>) => `${item.id} - ${item.name}`"
           item-value="id"
           :items="allActiveNatures || []"
           label="Natureza Oficial de Destino"
           rounded="lg"
-          variant="outlined"
+          variant="outline"
         />
       </div>
 

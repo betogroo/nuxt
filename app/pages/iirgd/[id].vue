@@ -270,7 +270,7 @@
                   <UiTimeline
                     v-if="statusHistory && statusHistory.length"
                     align="start"
-                    density="compact"
+                    size="sm"
                     side="end"
                   >
                     <UiTimelineItem
@@ -279,7 +279,7 @@
                       :dot-color="
                         IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'
                       "
-                      size="small"
+                      size="sm"
                     >
                       <div class="d-flex flex-column mb-3">
                         <div class="d-flex align-center justify-space-between mb-1">
@@ -408,12 +408,12 @@
         <UiCol cols="12">
           <UiTextarea
             v-model="observation"
-            density="comfortable"
+            size="md"
             :error-messages="errors.observation"
             label="Observações Gerais"
             rounded="lg"
             rows="4"
-            variant="outlined"
+            variant="outline"
           />
         </UiCol>
       </UiRow>

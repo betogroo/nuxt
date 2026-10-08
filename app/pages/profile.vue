@@ -100,7 +100,7 @@
 
           <!-- Avatar + Info do usuário -->
           <div class="d-flex align-center gap-5 mb-6 pa-4 rounded-xl bg-surface-variant">
-            <UiAvatar color="primary" size="80" variant="tonal">
+            <UiAvatar color="primary" size="80" variant="soft">
               <UiImg v-if="avatarUrl" :src="avatarUrl" />
               <span v-else class="text-h5 font-weight-bold">{{ userInitial }}</span>
             </UiAvatar>

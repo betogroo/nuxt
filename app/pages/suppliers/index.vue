@@ -277,7 +277,7 @@
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
             <UiPagination
               v-model="currentPage"
-              density="comfortable"
+              size="md"
               :length="totalPages"
               :total-visible="7"
             />

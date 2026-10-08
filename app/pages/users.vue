@@ -211,13 +211,13 @@
           v-model="searchQuery"
           class="mt-0 mb-0"
           clearable
-          density="compact"
+          size="sm"
           hide-details
           label="Buscar..."
           prepend-inner-icon="search"
           rounded="lg"
           style="max-width: 260px"
-          variant="outlined"
+          variant="outline"
         />
         <UiButton
           class="ml-4 mr-2"
@@ -249,7 +249,7 @@
         </template>
         <template #item-name="{ item }">
           <div class="d-flex align-center py-2 gap-3">
-            <UiAvatar color="primary" size="34" variant="tonal">
+            <UiAvatar color="primary" size="34" variant="soft">
               <UiImg v-if="item.avatar_url" :src="item.avatar_url" />
               <span v-else class="text-caption font-weight-bold">
                 {{ (item.name || 'U').charAt(0).toUpperCase() }}
@@ -281,7 +281,7 @@
         <template #item-is_active="{ item }">
           <UiSwitch
             color="success"
-            density="compact"
+            size="sm"
             :disabled="item.id === loggedProfile?.id"
             hide-details
             :model-value="item.is_active"
@@ -323,7 +323,7 @@
         >
           <template #item-name="{ item }">
             <div class="d-flex align-center py-2 gap-3">
-              <UiAvatar color="default" size="34" variant="tonal">
+              <UiAvatar color="default" size="34" variant="soft">
                 <span class="text-caption font-weight-bold text-medium-emphasis">
                   {{ (item.name || 'U').charAt(0).toUpperCase() }}
                 </span>
@@ -357,7 +357,7 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              density="compact"
+              size="sm"
               hide-details
               :model-value="item.is_active"
               @update:model-value="toggleUserStatus(item)"
@@ -380,7 +380,7 @@
     <UiModal v-if="editingUser" v-model="isEditModalOpen" max-width="500px" title="Editar Usuário">
       <template #header>
         <div class="d-flex align-center gap-3">
-          <UiAvatar color="primary" size="36" variant="tonal">
+          <UiAvatar color="primary" size="36" variant="soft">
             <span class="text-caption font-weight-bold">
               {{ (editingUser.name || 'U').charAt(0).toUpperCase() }}
             </span>
@@ -390,7 +390,7 @@
           </div>
         </div>
         <UiSpacer />
-        <UiButton density="compact" icon="close" variant="ghost" @click="closeEditModal" />
+        <UiButton size="sm" icon="close" variant="ghost" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
@@ -409,7 +409,7 @@
         v-model="editRole"
         v-bind="editRoleProps"
         class="mb-3"
-        density="comfortable"
+        size="md"
         :disabled="isSelf"
         :error-messages="editErrors.role"
         :hint="
@@ -428,7 +428,7 @@
         label="Cargo (Role)"
         persistent-hint
         rounded="lg"
-        variant="outlined"
+        variant="outline"
       />
 
       <UiSwitch
@@ -489,7 +489,7 @@
         v-model="createRole"
         v-bind="createRoleProps"
         class="mb-3"
-        density="comfortable"
+        size="md"
         :error-messages="createErrors.role"
         item-title="title"
         item-value="value"
@@ -501,7 +501,7 @@
         ]"
         label="Cargo (Role)"
         rounded="lg"
-        variant="outlined"
+        variant="outline"
       />
 
       <template #actions>

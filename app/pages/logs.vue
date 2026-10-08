@@ -59,7 +59,7 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="searchDocument" />
         Auditoria de Logs
-        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
           {{ totalItems }}
         </UiChip>
       </template>
@@ -82,7 +82,7 @@
         </template>
         <template #item-user="{ item }">
           <div v-if="item.profiles" class="d-flex align-center py-2 gap-3">
-            <UiAvatar color="primary" size="30" variant="tonal">
+            <UiAvatar color="primary" size="30" variant="soft">
               <UiImg v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
               <span v-else class="text-caption font-weight-bold">
                 {{ (item.profiles.name || 'U').charAt(0).toUpperCase() }}
@@ -106,7 +106,7 @@
       <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
         <UiPagination
           v-model="currentPage"
-          density="comfortable"
+          size="md"
           :length="totalPages"
           rounded="lg"
           :total-visible="7"

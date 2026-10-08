@@ -119,11 +119,11 @@
     <UiBtnToggle
       v-model="tab"
       class="mb-5 w-100"
-      density="compact"
+      size="sm"
       divided
       mandatory
       rounded="lg"
-      variant="outlined"
+      variant="outline"
     >
       <UiButton class="flex-1-1" size="sm" value="password">
         <UiIcon class="mr-2" name="security" size="16" />

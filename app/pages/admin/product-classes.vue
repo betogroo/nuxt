@@ -93,7 +93,7 @@
   <div>
     <PageHeader subtitle="Gerencie as Classes de Produtos do sistema" title="Classes de Produtos" />
 
-    <UiTabs v-model="activeTab" class="mb-5" color="primary" density="compact">
+    <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="active">
         <UiIcon class="mr-2" name="categories" size="18" />
         Classes Oficiais
@@ -117,20 +117,20 @@
         <template #header>
           <UiIcon class="mr-2" color="primary" name="categories" />
           Lista de Classes de Produtos
-          <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+          <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
             {{ totalItems }}
           </UiChip>
           <UiSpacer />
           <UiInput
             v-model="searchQuery"
             clearable
-            density="compact"
+            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
             style="max-width: 260px"
-            variant="outlined"
+            variant="outline"
             @update:model-value="handleSearch"
           />
           <UiButton
@@ -168,7 +168,7 @@
             <UiSwitch
               class="d-inline-flex"
               color="primary"
-              density="compact"
+              size="sm"
               hide-details
               :model-value="item.is_active"
               @update:model-value="toggleStatus(item)"
@@ -198,7 +198,7 @@
         <div v-if="totalPages > 1" class="d-flex justify-center pa-4 border-t">
           <UiPagination
             v-model="currentPage"
-            density="comfortable"
+            size="md"
             :length="totalPages"
             :total-visible="7"
           />
@@ -292,7 +292,7 @@
           label="Código da Classe"
           persistent-hint
           required
-          variant="outlined"
+          variant="outline"
         />
 
         <UiInput
@@ -303,14 +303,14 @@
           label="Nome da Classe"
           placeholder="Ex: Filtros e redes"
           required
-          variant="outlined"
+          variant="outline"
         />
 
         <UiSwitch
           v-model="isActive"
           v-bind="isActiveProps"
           color="primary"
-          density="compact"
+          size="sm"
           :error-messages="saveErrors.is_active"
           hide-details
           label="Classe Ativa"
@@ -357,7 +357,7 @@
           class="mb-2"
           :error-messages="resolveErrors.newName"
           label="Nome Oficial da Classe"
-          variant="outlined"
+          variant="outline"
         />
       </div>
 
@@ -372,7 +372,7 @@
           :items="allActiveClasses || []"
           label="Selecione a Classe Oficial de Destino"
           placeholder="Busque pelo nome da classe..."
-          variant="outlined"
+          variant="outline"
         />
         <div class="text-caption text-medium-emphasis">
           Todos os produtos vinculados a esta sugestão serão apontados para a classe oficial

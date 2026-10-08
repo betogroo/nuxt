@@ -227,7 +227,7 @@
                       <UiCombobox
                         v-model="addUnitSearch"
                         bg-color="surface"
-                        density="comfortable"
+                        size="md"
                         hide-details
                         item-title="displayName"
                         item-value="name"
@@ -235,7 +235,7 @@
                         label="Buscar ou criar unidade (ex: Bisnaga 90g)"
                         :return-object="false"
                         rounded="lg"
-                        variant="outlined"
+                        variant="outline"
                       />
                       <UiAlert v-if="addUnitError" class="mt-3" size="sm" type="error">
                         {{ addUnitError }}

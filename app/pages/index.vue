@@ -49,7 +49,7 @@
           :to="link.path"
         >
           <div class="d-flex align-center gap-4 w-100">
-            <UiAvatar :color="link.color" rounded="lg" size="52" variant="text">
+            <UiAvatar :color="link.color" rounded="lg" size="52" variant="ghost">
               <UiIcon :name="link.icon" size="26" />
             </UiAvatar>
             <div>

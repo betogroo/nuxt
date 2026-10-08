@@ -96,7 +96,7 @@
                   <span v-else>{{ card.value }}</span>
                 </div>
               </div>
-              <UiAvatar :color="card.color" rounded="lg" size="52" variant="tonal">
+              <UiAvatar :color="card.color" rounded="lg" size="52" variant="soft">
                 <UiIcon :name="card.icon" size="26" />
               </UiAvatar>
             </div>
@@ -245,12 +245,12 @@
             </template>
 
             <div v-if="metrics.recentLogs.length">
-              <UiTimeline align="start" density="compact" truncate-line="both">
+              <UiTimeline align="start" size="sm" truncate-line="both">
                 <UiTimelineItem
                   v-for="log in metrics.recentLogs"
                   :key="log.id"
                   :dot-color="getLogColor(log.action)"
-                  size="x-small"
+                  size="xs"
                 >
                   <div class="pb-3">
                     <div class="d-flex align-center gap-2 mb-1">

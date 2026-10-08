@@ -191,7 +191,7 @@
       <template #header>
         <UiIcon class="mr-2" color="primary" name="product" />
         Lista de Produtos
-        <UiChip v-if="totalItems > 0" class="ml-2" label size="x-small" variant="tonal">
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
           {{ totalItems }}
         </UiChip>
         <UiSpacer />
@@ -201,7 +201,7 @@
             <UiSelect
               v-model="selectedExpenseNature"
               clearable
-              density="compact"
+              size="sm"
               hide-details
               item-title="name"
               item-value="id"
@@ -209,11 +209,11 @@
               label="Natureza de Despesa"
               rounded="lg"
               style="min-width: 200px; max-width: 260px"
-              variant="outlined"
+              variant="outline"
             />
             <UiSelect
               v-model="statusFilter"
-              density="compact"
+              size="sm"
               hide-details
               item-title="title"
               item-value="value"
@@ -225,7 +225,7 @@
               label="Status"
               rounded="lg"
               style="min-width: 130px; max-width: 160px"
-              variant="outlined"
+              variant="outline"
             />
           </div>
           <UiDivider class="mx-2" vertical />
@@ -284,7 +284,7 @@
         <template #item-is_active="{ item }">
           <UiSwitch
             color="success"
-            density="compact"
+            size="sm"
             hide-details
             :model-value="item.is_active"
             @update:model-value="toggleStatus(item)"
@@ -350,7 +350,7 @@
         v-model="expenseNatureId"
         v-bind="expenseNatureIdProps"
         class="mb-3"
-        density="comfortable"
+        size="md"
         :error-messages="errors.expense_nature_id"
         :item-title="
           (item: Record<string, unknown>) =>
@@ -360,7 +360,7 @@
         :items="expenseNatures || []"
         label="Natureza de Despesa *"
         rounded="lg"
-        variant="outlined"
+        variant="outline"
       />
 
       <div v-else class="d-flex gap-3 mb-3">
@@ -393,7 +393,7 @@
         v-bind="productClassIdProps"
         class="mb-3"
         clearable
-        density="comfortable"
+        size="md"
         :error-messages="errors.product_class_id"
         :item-title="
           (item: Record<string, unknown>) =>
@@ -403,7 +403,7 @@
         :items="productClasses || []"
         label="Classe de Produto"
         rounded="lg"
-        variant="outlined"
+        variant="outline"
       />
 
       <div v-else class="d-flex gap-3 mb-3">
