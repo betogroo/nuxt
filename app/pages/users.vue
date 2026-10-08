@@ -393,7 +393,7 @@
         <UiButton density="compact" icon="close" variant="text" @click="closeEditModal" />
       </template>
 
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
@@ -453,7 +453,7 @@
 
     <!-- Modal de Adição (Novo Usuário) -->
     <UiModal v-model="isAddModalOpen" max-width="500px" title="Criar Novo Usuário">
-      <UiAlert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="createError" class="mb-4" size="sm" type="error" variant="soft">
         {{ createError }}
       </UiAlert>
 

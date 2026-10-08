@@ -325,7 +325,7 @@
       max-width="500px"
       :title="isEditing ? 'Editar Produto' : 'Novo Produto'"
     >
-      <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="modal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ modal.error.value }}
       </UiAlert>
 

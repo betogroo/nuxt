@@ -90,11 +90,11 @@
             Informações Pessoais
           </template>
 
-          <UiAlert v-if="saveMessage" class="mb-5" closable type="success" variant="tonal">
+          <UiAlert v-if="saveMessage" class="mb-5" closable type="success" variant="soft">
             {{ saveMessage }}
           </UiAlert>
 
-          <UiAlert v-if="saveError" class="mb-5" closable type="error" variant="tonal">
+          <UiAlert v-if="saveError" class="mb-5" closable type="error" variant="soft">
             {{ saveError }}
           </UiAlert>
 

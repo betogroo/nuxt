@@ -125,7 +125,7 @@
     </UiCard>
 
     <UiModal v-model="isAddModalOpen" max-width="500px" persistent title="Adicionar Cidadão">
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 

@@ -499,9 +499,9 @@
                 <UiAlert
                   v-if="isPlanningIncomplete"
                   class="mt-2 text-caption"
-                  density="compact"
+                  size="sm"
                   type="warning"
-                  variant="tonal"
+                  variant="soft"
                 >
                   Para avançar para a Cotação, preencha os dados do planejamento (Processo Oficial,
                   ID PCA e Nº Contratação).
@@ -624,9 +624,9 @@
       <UiAlert
         v-if="demand?.status !== 'quotation'"
         class="mb-4"
-        density="compact"
+        size="sm"
         type="info"
-        variant="tonal"
+        variant="soft"
       >
         A inserção ou alteração de itens só é permitida na fase de Cotação.
       </UiAlert>
@@ -842,7 +842,7 @@
       title="Editar Item da Demanda"
       transparent-header
     >
-      <UiAlert v-if="editItemError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="editItemError" class="mb-4" size="sm" type="error" variant="soft">
         {{ editItemError }}
       </UiAlert>
 
@@ -890,7 +890,7 @@
       title="Inserir Produto na Demanda"
       transparent-header
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
@@ -962,7 +962,7 @@
 
       <!-- Seção de Cadastro Rápido de Novo Produto -->
       <template v-else>
-        <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
+        <UiAlert class="mb-4" size="sm" type="info" variant="soft">
           Você está cadastrando um novo produto. Ele será salvo no sistema e automaticamente
           adicionado à demanda.
         </UiAlert>
@@ -1028,7 +1028,7 @@
       title="Adicionar Responsável"
       transparent-header
     >
-      <UiAlert v-if="responsibleError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="responsibleError" class="mb-4" size="sm" type="error" variant="soft">
         {{ responsibleError }}
       </UiAlert>
       <UiSelect
@@ -1063,9 +1063,9 @@
       <UiAlert
         v-if="advanceModal.error.value"
         class="mb-4"
-        density="compact"
+        size="sm"
         type="error"
-        variant="tonal"
+        variant="soft"
       >
         {{ advanceModal.error.value }}
       </UiAlert>
@@ -1152,9 +1152,9 @@
       <UiAlert
         v-if="revertModal.error.value"
         class="mb-4"
-        density="compact"
+        size="sm"
         type="error"
-        variant="tonal"
+        variant="soft"
       >
         {{ revertModal.error.value }}
       </UiAlert>
@@ -1192,9 +1192,9 @@
       <UiAlert
         v-if="editPlanningModal.error.value"
         class="mb-4"
-        density="compact"
+        size="sm"
         type="error"
-        variant="tonal"
+        variant="soft"
       >
         {{ editPlanningModal.error.value }}
       </UiAlert>

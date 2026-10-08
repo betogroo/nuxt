@@ -291,7 +291,7 @@
       max-width="520px"
       :title="modal.payload.value?.id ? 'Editar Demanda' : 'Nova Demanda'"
     >
-      <UiAlert v-if="modal.error.value" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="modal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ modal.error.value }}
       </UiAlert>
 

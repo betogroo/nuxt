@@ -210,11 +210,11 @@
           <UiAlert
             border="start"
             color="warning"
-            density="compact"
+            size="sm"
             icon="clockAlert"
             rounded="xl"
             :title="`${pendingNatures.length} natureza(s) aguardando revisão`"
-            variant="tonal"
+            variant="soft"
           >
             <div class="d-flex flex-column gap-2 mt-3">
               <div
@@ -255,7 +255,7 @@
       max-width="500px"
       :title="isEditing ? 'Editar Natureza de Despesa' : 'Nova Natureza de Despesa'"
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
@@ -292,7 +292,7 @@
 
     <!-- Modal Resolver Pendência -->
     <UiModal v-model="isResolveModalOpen" max-width="600px" title="Resolver Natureza Pendente">
-      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="resolveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ resolveError }}
       </UiAlert>
 

@@ -110,11 +110,11 @@
           <UiAlert
             border="start"
             color="warning"
-            density="compact"
+            size="sm"
             icon="clipboardClock"
             rounded="xl"
             title="Tarefas Pendentes de Revisão"
-            variant="tonal"
+            variant="soft"
           >
             <div class="d-flex flex-column gap-3 mt-3">
               <!-- Unidades -->

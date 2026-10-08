@@ -33,7 +33,7 @@
         :key="toast.id"
         class="ui-toast-item"
         closable
-        density="compact"
+        size="sm"
         style="min-width: 280px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); pointer-events: auto"
         :type="typeMap[toast.type]"
         variant="elevated"

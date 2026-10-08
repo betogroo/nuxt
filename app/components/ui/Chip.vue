@@ -23,7 +23,7 @@
       solid: 'flat',
       outline: 'outlined',
       ghost: 'text',
-      soft: 'tonal'
+      soft: 'tonal',
     }
     return props.variant ? map[props.variant] : undefined
   })
@@ -34,7 +34,7 @@
       sm: 'small',
       md: 'default',
       lg: 'large',
-      xl: 'x-large'
+      xl: 'x-large',
     }
     return props.size ? map[props.size] : undefined
   })

@@ -352,7 +352,7 @@
     >
       <div class="pa-0" style="max-height: 60vh; overflow-y: auto">
         <div class="pa-4">
-          <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+          <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
             {{ saveError }}
           </UiAlert>
 

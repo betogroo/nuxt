@@ -254,7 +254,7 @@
             </div>
           </template>
 
-          <UiAlert class="mb-4" density="compact" type="info" variant="tonal">
+          <UiAlert class="mb-4" size="sm" type="info" variant="soft">
             Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
             documentos enviados pelos fornecedores aparecerão aqui.
           </UiAlert>
@@ -398,7 +398,7 @@
       title="Editar Item da Demanda"
       transparent-header
     >
-      <UiAlert v-if="editError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="editError" class="mb-4" size="sm" type="error" variant="soft">
         {{ editError }}
       </UiAlert>
 
@@ -466,7 +466,7 @@
       title="Registrar Lance do Fornecedor"
       transparent-header
     >
-      <UiAlert v-if="bidError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="bidError" class="mb-4" size="sm" type="error" variant="soft">
         {{ bidError }}
       </UiAlert>
 

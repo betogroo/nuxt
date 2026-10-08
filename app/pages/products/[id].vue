@@ -237,7 +237,7 @@
                         rounded="lg"
                         variant="outlined"
                       />
-                      <UiAlert v-if="addUnitError" class="mt-3" density="compact" type="error">
+                      <UiAlert v-if="addUnitError" class="mt-3" size="sm" type="error">
                         {{ addUnitError }}
                       </UiAlert>
                       <div class="d-flex justify-end mt-4 gap-2">
@@ -288,7 +288,7 @@
     </div>
 
     <div v-else>
-      <UiAlert type="error" variant="tonal">Produto não encontrado.</UiAlert>
+      <UiAlert type="error" variant="soft">Produto não encontrado.</UiAlert>
     </div>
   </div>
 </template>

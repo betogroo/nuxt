@@ -385,12 +385,12 @@
     </div>
 
     <div v-else>
-      <UiAlert type="error" variant="tonal">Demanda IIRGD não encontrada.</UiAlert>
+      <UiAlert type="error" variant="soft">Demanda IIRGD não encontrada.</UiAlert>
     </div>
 
     <!-- Modal de Edição -->
     <UiModal v-model="isEditing" max-width="500px" title="Atualizar Demanda IIRGD">
-      <UiAlert v-if="editError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="editError" class="mb-4" size="sm" type="error" variant="soft">
         {{ editError }}
       </UiAlert>
 

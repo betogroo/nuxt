@@ -111,7 +111,7 @@
       </span>
     </template>
 
-    <UiAlert v-if="inactiveError" class="mb-4" type="error" variant="tonal">
+    <UiAlert v-if="inactiveError" class="mb-4" type="error" variant="soft">
       Sua conta foi desativada por um administrador.
     </UiAlert>
 

@@ -355,13 +355,18 @@
       <div class="d-flex align-center mb-2">
         <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
         <UiSpacer />
-        
       </div>
-      <UiCard variant="outlined" class="bg-grey-lighten-4">
+      <UiCard class="bg-grey-lighten-4" variant="outlined">
         <UiList bg-color="transparent" density="compact">
           <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk">
             <template #append>
-              <UiButton size="small" variant="text" icon="copy" color="primary" @click="copyChunk(chunk)" />
+              <UiButton
+                color="primary"
+                icon="copy"
+                size="small"
+                variant="text"
+                @click="copyChunk(chunk)"
+              />
             </template>
           </UiListItem>
         </UiList>
@@ -370,7 +375,7 @@
 
     <!-- Create Modal -->
     <UiModal v-model="modal.isOpen" max-width="600px" title="Nova Demanda IIRGD">
-      <UiAlert v-if="modal.error" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="modal.error" class="mb-4" size="sm" type="error" variant="soft">
         {{ modal.error }}
       </UiAlert>
 

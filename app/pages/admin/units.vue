@@ -299,11 +299,11 @@
           <UiAlert
             border="start"
             color="warning"
-            density="compact"
+            size="sm"
             icon="alert"
             rounded="xl"
             :title="`${pendingUnits.length} unidade(s) pendente(s) de revisão`"
-            variant="tonal"
+            variant="soft"
           >
             <div class="mt-3 text-body-2 text-medium-emphasis mb-2">
               Usuários sugeriram as unidades abaixo ao não encontrarem um registro alternativo.
@@ -463,7 +463,7 @@
       max-width="500px"
       :title="isEditing ? 'Editar Unidade' : 'Nova Unidade'"
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
@@ -516,7 +516,7 @@
       max-width="500px"
       :title="isAliasEditing ? 'Editar Registro Alternativo' : 'Novo Registro Alternativo'"
     >
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
@@ -544,7 +544,7 @@
 
     <!-- Modal Resolver Pendência -->
     <UiModal v-model="isResolveModalOpen" max-width="600px" title="Resolver Unidade Pendente">
-      <UiAlert v-if="resolveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="resolveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ resolveError }}
       </UiAlert>
 

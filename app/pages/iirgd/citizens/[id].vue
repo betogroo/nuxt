@@ -222,12 +222,12 @@
     </div>
 
     <div v-else>
-      <UiAlert type="error" variant="tonal">Cidadão não encontrado.</UiAlert>
+      <UiAlert type="error" variant="soft">Cidadão não encontrado.</UiAlert>
     </div>
 
     <!-- Edit Modal -->
     <UiModal v-model="isEditModalOpen" max-width="500px" title="Editar Cidadão">
-      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
