@@ -6,8 +6,8 @@ const VALID_CPF = '123.456.789-09'
 
 const base = {
   station_code: '1342-5',
-  rg: VALID_RG,
-  cpf: '',
+  rg: '',
+  cpf: VALID_CPF,
   name: 'Maria da Silva',
   observation: '',
 }
@@ -19,12 +19,12 @@ const messagesFor = (input: unknown, path: string): string[] => {
 }
 
 describe('iirgdDemandFormSchema', () => {
-  it('aceita um formulário válido apenas com RG', () => {
+  it('aceita um formulário válido com CPF e RG vazio', () => {
     expect(iirgdDemandFormSchema.safeParse(base).success).toBe(true)
   })
 
-  it('aceita um formulário válido apenas com CPF', () => {
-    const result = iirgdDemandFormSchema.safeParse({ ...base, rg: '', cpf: VALID_CPF })
+  it('aceita um formulário válido com CPF e RG preenchidos', () => {
+    const result = iirgdDemandFormSchema.safeParse({ ...base, rg: VALID_RG })
     expect(result.success).toBe(true)
   })
 
@@ -45,9 +45,10 @@ describe('iirgdDemandFormSchema', () => {
     expect(result.success && result.data.name).toBe('Maria')
   })
 
-  it('exige RG ou CPF', () => {
-    expect(messagesFor({ ...base, rg: '', cpf: '' }, 'rg')).toEqual([
-      'É necessário informar pelo menos o RG ou o CPF.',
+  it('exige CPF', () => {
+    expect(messagesFor({ ...base, cpf: '' }, 'cpf')).toEqual([
+      'O CPF é obrigatório.',
+      'O CPF informado é inválido.',
     ])
   })
 

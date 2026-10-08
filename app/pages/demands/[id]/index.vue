@@ -377,50 +377,50 @@
     <!-- Cabeçalho da Demanda -->
     <UiCard v-if="demand" class="mb-6" transparent-header>
       <template #header>
-        <div class="d-flex align-center w-100">
-          <span class="mr-4">{{ demand.name }}</span>
-          <UiChip color="primary" size="small" variant="flat">{{
+        <div class="d-flex flex-wrap align-center ga-2 w-100">
+          <span class="text-wrap">{{ demand.name }}</span>
+          <UiChip class="flex-shrink-0" color="primary" size="small" variant="flat">{{
             formatDemandStatus(demand.status)
           }}</UiChip>
-          <UiSpacer />
-          <UiButton
-            v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
-            class="mr-2"
-            color="orange-darken-3"
-            prepend-icon="arrowLeftBold"
-            @click="openRevertModal"
-          >
-            Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
-          </UiButton>
-          <UiButton
-            v-if="profile?.role !== ROLES.ADMIN && getPreviousStatus(demand.status)"
-            class="mr-2"
-            :color="demand.is_return_requested ? 'grey' : 'warning'"
-            :disabled="demand.is_return_requested || isReturnRequesting"
-            :loading="isReturnRequesting"
-            prepend-icon="arrowLeftBold"
-            @click="requestReturn"
-          >
-            {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
-          </UiButton>
-          <UiTooltip
-            v-if="getNextStatus(demand.status)"
-            :disabled="!isPlanningIncomplete"
-            text="Preencha todos os Dados do Planejamento para avançar"
-          >
-            <template #activator="{ props }">
-              <span v-bind="props" class="d-inline-block">
-                <UiButton
-                  color="success"
-                  :disabled="isPlanningIncomplete"
-                  prepend-icon="arrowRightBold"
-                  @click="openAdvanceModal"
-                >
-                  Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
-                </UiButton>
-              </span>
-            </template>
-          </UiTooltip>
+
+          <div class="d-flex flex-wrap ga-2 ml-auto">
+            <UiButton
+              v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
+              color="orange-darken-3"
+              prepend-icon="arrowLeftBold"
+              @click="openRevertModal"
+            >
+              Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
+            </UiButton>
+            <UiButton
+              v-if="profile?.role !== ROLES.ADMIN && getPreviousStatus(demand.status)"
+              :color="demand.is_return_requested ? 'grey' : 'warning'"
+              :disabled="demand.is_return_requested || isReturnRequesting"
+              :loading="isReturnRequesting"
+              prepend-icon="arrowLeftBold"
+              @click="requestReturn"
+            >
+              {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
+            </UiButton>
+            <UiTooltip
+              v-if="getNextStatus(demand.status)"
+              :disabled="!isPlanningIncomplete"
+              text="Preencha todos os Dados do Planejamento para avançar"
+            >
+              <template #activator="{ props }">
+                <span v-bind="props" class="d-inline-block">
+                  <UiButton
+                    color="success"
+                    :disabled="isPlanningIncomplete"
+                    prepend-icon="arrowRightBold"
+                    @click="openAdvanceModal"
+                  >
+                    Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}
+                  </UiButton>
+                </span>
+              </template>
+            </UiTooltip>
+          </div>
         </div>
       </template>
 
@@ -450,7 +450,7 @@
             <template #header>
               <div class="d-flex align-center w-100">
                 <UiIcon class="mr-2 text-primary" left name="document" />
-                <span class="text-subtitle-1 font-weight-bold">Dados do Planejamento</span>
+                <span>Dados do Planejamento</span>
                 <UiSpacer />
                 <UiButton
                   v-if="demand?.status === 'planning'"
@@ -563,7 +563,7 @@
         <!-- Responsáveis -->
         <UiCol class="border-s pl-md-4 mt-4 mt-md-0" cols="12" md="4">
           <div class="d-flex align-center mb-2">
-            <span class="text-subtitle-2 font-weight-bold">Responsáveis</span>
+            <span class="text-primary font-weight-semibold">Responsáveis</span>
             <UiSpacer />
             <UiButton icon="add" size="x-small" variant="text" @click="openResponsibleModal" />
           </div>
@@ -603,18 +603,21 @@
     </UiCard>
 
     <!-- Lista de Produtos da Demanda -->
-    <UiCard transparent-header>
+    <UiCard class="mb-4" variant="outlined">
       <template #header>
-        Produtos na Demanda
-        <UiSpacer />
-        <UiButton
-          v-if="demand?.status === 'quotation'"
-          color="primary"
-          prepend-icon="add"
-          @click="openAddModal"
-        >
-          Adicionar Produto
-        </UiButton>
+        <div class="d-flex flex-wrap align-center w-100 ga-2">
+          <span>Produtos na Demanda</span>
+          <div class="ml-auto">
+            <UiButton
+              v-if="demand?.status === 'quotation'"
+              color="primary"
+              prepend-icon="add"
+              @click="openAddModal"
+            >
+              Adicionar Produto
+            </UiButton>
+          </div>
+        </div>
       </template>
 
       <!-- Alerta de bloqueio -->
@@ -628,144 +631,157 @@
         A inserção ou alteração de itens só é permitida na fase de Cotação.
       </UiAlert>
 
-      <UiTable
-        :headers="[
-          { text: 'Ordem', value: 'order', align: 'center', sortable: false },
-          { text: 'Produto', value: 'product' },
-          { text: 'Natureza', value: 'expense_nature' },
-          { text: 'Qtd.', value: 'quantity', align: 'center' },
-          { text: 'Valor Ref.', value: 'reference_price', align: 'right' },
-          { text: 'Total Ref.', value: 'total_reference', align: 'right' },
-          { text: 'Melhor Lance', value: 'best_bid', align: 'right' },
-          { text: 'Total Final', value: 'total_final', align: 'right' },
-          { text: 'Ações', value: 'actions', align: 'right' },
-        ]"
-        :items="items || []"
-      >
-        <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
-        <template #item-order="{ index }">
-          <div class="d-flex flex-column align-center justify-center">
-            <UiButton
-              density="compact"
-              :disabled="index === 0 || isReordering"
-              icon="chevronUp"
-              size="x-small"
-              variant="text"
-              @click.stop="moveItemUp(index)"
-            />
-            <UiButton
-              density="compact"
-              :disabled="index === (items?.length || 0) - 1 || isReordering"
-              icon="chevronDown"
-              size="x-small"
-              variant="text"
-              @click.stop="moveItemDown(index)"
-            />
-          </div>
-        </template>
-        <template #item-product="{ item }">
-          <NuxtLink
-            class="text-decoration-none text-primary font-weight-bold"
-            :to="`/demands/${demandId}/items/${item.id}`"
-          >
-            {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
-            <UiChip
-              v-if="item.measurement_units"
-              class="ml-2"
-              color="secondary"
-              size="x-small"
-              variant="flat"
+      <div class="overflow-x-auto">
+        <UiTable
+          :headers="[
+            { text: 'Ordem', value: 'order', align: 'center', sortable: false, nowrap: true },
+            { text: 'Produto', value: 'product' },
+            { text: 'Natureza', value: 'expense_nature', nowrap: true },
+            { text: 'Qtd.', value: 'quantity', align: 'center' },
+            { text: 'Valor Ref.', value: 'reference_price', align: 'right', nowrap: true },
+            { text: 'Total Ref.', value: 'total_reference', align: 'right', nowrap: true },
+            { text: 'Melhor Lance', value: 'best_bid', align: 'right', nowrap: true },
+            { text: 'Total Final', value: 'total_final', align: 'right', nowrap: true },
+            { text: 'Ações', value: 'actions', align: 'right', nowrap: true },
+          ]"
+          :items="items || []"
+        >
+          <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
+          <template #item-order="{ index }">
+            <div class="d-flex flex-column align-center justify-center">
+              <UiButton
+                density="compact"
+                :disabled="index === 0 || isReordering"
+                icon="chevronUp"
+                size="x-small"
+                variant="text"
+                @click.stop="moveItemUp(index)"
+              />
+              <UiButton
+                density="compact"
+                :disabled="index === (items?.length || 0) - 1 || isReordering"
+                icon="chevronDown"
+                size="x-small"
+                variant="text"
+                @click.stop="moveItemDown(index)"
+              />
+            </div>
+          </template>
+          <template #item-product="{ item }">
+            <div class="d-flex align-center flex-nowrap ga-1" style="min-width: 250px">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold text-truncate"
+                :to="`/demands/${demandId}/items/${item.id}`"
+              >
+                {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
+              </NuxtLink>
+              <UiChip
+                v-if="item.measurement_units"
+                class="flex-shrink-0"
+                color="secondary"
+                size="x-small"
+                variant="flat"
+              >
+                {{ item.unit_name_snapshot || item.measurement_units.name }}
+              </UiChip>
+              <UiButton
+                color="grey"
+                icon="externalLink"
+                size="x-small"
+                title="Cadastro do Produto"
+                :to="`/products/${item.product_id}`"
+                variant="text"
+              />
+            </div>
+          </template>
+          <template #item-expense_nature="{ item }">
+            <span
+              :title="
+                item.expense_nature_name_snapshot ||
+                (item.product as { expense_natures?: { name: string } })?.expense_natures?.name ||
+                ''
+              "
             >
-              {{ item.unit_name_snapshot || item.measurement_units.name }}
-            </UiChip>
-          </NuxtLink>
-          <UiButton
-            class="ml-1"
-            color="grey"
-            icon="externalLink"
-            size="x-small"
-            title="Cadastro do Produto"
-            :to="`/products/${item.product_id}`"
-            variant="text"
-          />
-        </template>
-        <template #item-expense_nature="{ item }">
-          {{
-            item.expense_nature_name_snapshot ||
-            (item.product as { expense_natures?: { name: string } })?.expense_natures?.name ||
-            '-'
-          }}
-        </template>
-        <template #item-quantity="{ item }">
-          {{ item.quantity }}
-        </template>
-        <template #item-reference_price="{ item }">
-          {{ formatReferencePrice(item.reference_price) }}
-        </template>
-        <template #item-total_reference="{ item }">
-          <span class="text-grey font-weight-bold">
-            {{
-              formatCurrency(
-                item.reference_price != null && item.quantity != null
-                  ? Number(item.reference_price) * Number(item.quantity)
-                  : null,
-              )
-            }}
-          </span>
-        </template>
-        <template #item-best_bid="{ item }">
-          <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
-            <span class="text-success font-weight-bold">
+              {{
+                (item.product as { expense_natures?: { id: string } })?.expense_natures?.id ||
+                item.expense_nature_name_snapshot ||
+                (item.product as { expense_natures?: { name: string } })?.expense_natures?.name ||
+                '-'
+              }}
+            </span>
+          </template>
+          <template #item-quantity="{ item }">
+            {{ item.quantity }}
+          </template>
+          <template #item-reference_price="{ item }">
+            {{ formatReferencePrice(item.reference_price) }}
+          </template>
+          <template #item-total_reference="{ item }">
+            <span class="text-grey font-weight-bold">
               {{
                 formatCurrency(
-                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)),
+                  item.reference_price != null && item.quantity != null
+                    ? Number(item.reference_price) * Number(item.quantity)
+                    : null,
                 )
               }}
             </span>
           </template>
-          <span v-else class="text-grey">-</span>
-        </template>
-        <template #item-total_final="{ item }">
-          <template
-            v-if="
-              item.demand_product_bids &&
-              item.demand_product_bids.length > 0 &&
-              item.quantity != null
-            "
-          >
-            <span class="text-success font-weight-bold">
-              {{
-                formatCurrency(
-                  Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) *
-                    Number(item.quantity),
-                )
-              }}
-            </span>
+          <template #item-best_bid="{ item }">
+            <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
+              <span class="text-success font-weight-bold">
+                {{
+                  formatCurrency(
+                    Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)),
+                  )
+                }}
+              </span>
+            </template>
+            <span v-else class="text-grey">-</span>
           </template>
-          <span v-else class="text-grey">-</span>
-        </template>
-        <template #item-actions="{ item }">
-          <UiButton
-            v-if="demand?.status === 'quotation'"
-            color="primary"
-            size="small"
-            title="Editar Item"
-            variant="text"
-            @click="openEditItemModal(item)"
-          >
-            <UiIcon name="edit" />
-          </UiButton>
-          <UiButton
-            v-if="demand?.status === 'quotation'"
-            color="error"
-            icon="delete"
-            size="small"
-            title="Remover"
-            variant="text"
-            @click="removeItem(item.id, item.product?.name || '')"
-          />
-        </template>
-      </UiTable>
+          <template #item-total_final="{ item }">
+            <template
+              v-if="
+                item.demand_product_bids &&
+                item.demand_product_bids.length > 0 &&
+                item.quantity != null
+              "
+            >
+              <span class="text-success font-weight-bold">
+                {{
+                  formatCurrency(
+                    Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) *
+                      Number(item.quantity),
+                  )
+                }}
+              </span>
+            </template>
+            <span v-else class="text-grey">-</span>
+          </template>
+          <template #item-actions="{ item }">
+            <div class="d-flex flex-nowrap align-center justify-end">
+              <UiButton
+                v-if="demand?.status === 'quotation'"
+                color="primary"
+                icon="edit"
+                size="small"
+                title="Editar Item"
+                variant="text"
+                @click="openEditItemModal(item)"
+              />
+              <UiButton
+                v-if="demand?.status === 'quotation'"
+                color="error"
+                icon="delete"
+                size="small"
+                title="Remover"
+                variant="text"
+                @click="removeItem(item.id, item.product?.name || '')"
+              />
+            </div>
+          </template>
+        </UiTable>
+      </div>
       <div v-if="itemsPending" class="text-center py-4">
         <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
       </div>

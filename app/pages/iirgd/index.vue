@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
   import { padAndFormatRg, formatCpf, isValidRgSP, isValidCpf } from '~/utils/formatters'
   import {
     IIRGD_STATUS_LABELS,
@@ -125,15 +125,8 @@
     modal.value.isOpen = false
   }
 
-  const onRgInput = (val: string | null) => {
-    if (val !== null) {
-      setFieldValue('rg', padAndFormatRg(val, false), false) // Format while typing without padding
-    }
-  }
-
   const onRgBlur = async () => {
-    const formattedRg = padAndFormatRg(values.rg || '', true)
-    setFieldValue('rg', formattedRg, false)
+    const formattedRg = values.rg || ''
 
     if (!formattedRg && !values.cpf) {
       existingCitizen.value = null
@@ -157,15 +150,8 @@
     }
   }
 
-  const onCpfInput = (val: string | null) => {
-    if (val !== null) {
-      setFieldValue('cpf', formatCpf(val), false)
-    }
-  }
-
   const onCpfBlur = async () => {
-    const formattedCpf = formatCpf(values.cpf || '')
-    setFieldValue('cpf', formattedCpf, false)
+    const formattedCpf = values.cpf || ''
 
     if (!formattedCpf && !values.rg) {
       existingCitizen.value = null
@@ -356,25 +342,21 @@
           />
         </UiCol>
         <UiCol cols="12" sm="4">
-          <UiInput
-            :disabled="!!existingCitizen?.rg"
-            :error-messages="errors.rg"
-            label="Número do RG"
-            :model-value="rg"
-            placeholder="00000000-0"
-            @blur="onRgBlur"
-            @update:model-value="onRgInput"
+          <UiCpfInput
+            v-model="cpf"
+            :disabled="!!existingCitizen?.cpf"
+            :error-messages="errors.cpf"
+            label="CPF *"
+            @blur="onCpfBlur"
           />
         </UiCol>
         <UiCol cols="12" sm="4">
-          <UiInput
-            :disabled="!!existingCitizen?.cpf"
-            :error-messages="errors.cpf"
-            label="CPF"
-            :model-value="cpf"
-            placeholder="000.000.000-00"
-            @blur="onCpfBlur"
-            @update:model-value="onCpfInput"
+          <UiRgInput
+            v-model="rg"
+            :disabled="!!existingCitizen?.rg"
+            :error-messages="errors.rg"
+            label="Número do RG (Opcional)"
+            @blur="onRgBlur"
           />
         </UiCol>
         <UiCol cols="12">

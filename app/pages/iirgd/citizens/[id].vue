@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { iirgdCitizenFormSchema } from '~/schemas/forms/iirgd-citizen'
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
@@ -10,11 +12,15 @@
   const route = useRoute()
   const router = useRouter()
 
-  const { fetchCitizenById } = useIirgdCitizens()
+  const { fetchCitizenById, updateCitizen } = useIirgdCitizens()
 
   const citizenId = route.params.id as string
 
-  const { data: citizen, pending } = useAsyncData(`iirgd-citizen-${citizenId}`, async () => {
+  const {
+    data: citizen,
+    pending,
+    refresh,
+  } = useAsyncData(`iirgd-citizen-${citizenId}`, async () => {
     try {
       return await fetchCitizenById(citizenId)
     } catch (e) {
@@ -27,6 +33,52 @@
     title: computed(() =>
       citizen.value ? `Cidadão: ${citizen.value.name}` : 'Detalhes do Cidadão',
     ),
+  })
+
+  // Edit logic
+  const isEditModalOpen = ref(false)
+  const isSaving = ref(false)
+  const saveError = ref('')
+
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdCitizenFormSchema, {
+    name: '',
+    rg: '',
+    cpf: '',
+  })
+
+  const [name, nameProps] = defineField('name')
+  const [rg, rgProps] = defineField('rg', { validateOnModelUpdate: false })
+  const [cpf, cpfProps] = defineField('cpf', { validateOnModelUpdate: false })
+
+  const openEditModal = () => {
+    if (citizen.value) {
+      resetForm({
+        values: {
+          name: citizen.value.name,
+          rg: citizen.value.rg || '',
+          cpf: citizen.value.cpf || '',
+        },
+      })
+    }
+    saveError.value = ''
+    isEditModalOpen.value = true
+  }
+
+  const handleSave = handleSubmit(async (values) => {
+    isSaving.value = true
+    saveError.value = ''
+    try {
+      await updateCitizen(citizenId, {
+        name: values.name,
+        rg: values.rg || null,
+      })
+      await refresh()
+      isEditModalOpen.value = false
+    } catch (err: unknown) {
+      saveError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isSaving.value = false
+    }
   })
 </script>
 
@@ -54,10 +106,13 @@
           <!-- Cabeçalho Principal -->
           <div class="d-flex align-center mb-6">
             <UiIcon class="mr-3" color="primary" name="userBadge" size="32" />
-            <div>
+            <div class="flex-grow-1">
               <div class="text-h5 font-weight-bold">{{ citizen.name }}</div>
               <div class="text-subtitle-2 text-medium-emphasis">Ficha do Cidadão e Histórico</div>
             </div>
+            <UiButton color="primary" prepend-icon="edit" variant="tonal" @click="openEditModal">
+              Editar
+            </UiButton>
           </div>
 
           <!-- Bloco Superior: Informações do Cidadão (Banner / Cards Horizontais) -->
@@ -169,5 +224,45 @@
     <div v-else>
       <UiAlert type="error" variant="tonal">Cidadão não encontrado.</UiAlert>
     </div>
+
+    <!-- Edit Modal -->
+    <UiModal v-model="isEditModalOpen" max-width="500px" title="Editar Cidadão">
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
+
+      <form @submit.prevent="handleSave">
+        <UiInput
+          v-model="cpf"
+          v-bind="cpfProps"
+          v-mask="'###.###.###-##'"
+          class="mb-3"
+          disabled
+          :error-messages="errors.cpf"
+          label="CPF (Não Editável)"
+        />
+
+        <UiInput
+          v-model="name"
+          v-bind="nameProps"
+          class="mb-3"
+          :error-messages="errors.name"
+          label="Nome *"
+        />
+
+        <UiRgInput
+          v-model="rg"
+          v-bind="rgProps"
+          class="mb-3"
+          :error-messages="errors.rg"
+          label="RG (Opcional, apenas números ou X)"
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <UiButton color="grey" variant="text" @click="isEditModalOpen = false">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" type="submit">Salvar Alterações</UiButton>
+        </div>
+      </form>
+    </UiModal>
   </div>
 </template>

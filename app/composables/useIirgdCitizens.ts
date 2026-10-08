@@ -63,9 +63,61 @@ export const useIirgdCitizens = () => {
     return data
   }
 
+  const createCitizen = async (payload: {
+    name: string
+    rg?: string | null
+    cpf?: string | null
+  }) => {
+    const { data, error } = await supabase
+      .from('iirgd_citizens')
+      .insert([
+        {
+          name: payload.name,
+          rg: payload.rg || null,
+          cpf: payload.cpf || null,
+        },
+      ])
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error(error)
+      if (error.code === '23505') {
+        throw new Error('Já existe um cidadão cadastrado com este RG ou CPF.')
+      }
+      throw new Error('Erro ao cadastrar cidadão')
+    }
+
+    return data
+  }
+
+  const updateCitizen = async (id: string, payload: { name: string; rg?: string | null }) => {
+    const { data, error } = await supabase
+      .from('iirgd_citizens')
+      .update({
+        name: payload.name,
+        rg: payload.rg || null,
+      })
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error(error)
+      if (error.code === '23505') {
+        throw new Error('Já existe um cidadão cadastrado com este RG.')
+      }
+      throw new Error('Erro ao atualizar cidadão')
+    }
+
+    return data
+  }
+
   return {
     fetchCitizens,
     fetchCitizenById,
     fetchCitizenByDocument,
+    createCitizen,
+    updateCitizen,
   }
 }

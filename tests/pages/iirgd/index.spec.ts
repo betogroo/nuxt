@@ -67,6 +67,8 @@ describe('IIRGD Page', () => {
           UiTable: true,
           UiButton: true,
           UiInput: true,
+          UiCpfInput: true,
+          UiRgInput: true,
           UiSelect: true,
           UiModal: true,
           UiAlert: true,

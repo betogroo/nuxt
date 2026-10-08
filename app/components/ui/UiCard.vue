@@ -13,9 +13,10 @@
     <v-card-title
       v-if="title || $slots.header"
       :class="[
-        'd-flex align-center px-5 pt-5 pb-3',
+        'd-flex align-center px-5 pt-5 pb-3 flex-wrap ga-2',
         transparentHeader ? 'text-high-emphasis' : 'text-primary font-weight-semibold',
       ]"
+      style="white-space: normal"
     >
       <slot name="header">
         {{ title }}

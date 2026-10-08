@@ -1,5 +1,7 @@
 <script setup lang="ts">
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { iirgdCitizenFormSchema } from '~/schemas/forms/iirgd-citizen'
 
   definePageMeta({
     middleware: ['iirgd'],
@@ -11,9 +13,13 @@
     roles: ['admin', 'iirgd'],
   })
 
-  const { fetchCitizens } = useIirgdCitizens()
+  const { fetchCitizens, createCitizen } = useIirgdCitizens()
 
-  const { data: citizens, pending } = useAsyncData('iirgd-citizens-list', async () => {
+  const {
+    data: citizens,
+    pending,
+    refresh,
+  } = useAsyncData('iirgd-citizens-list', async () => {
     try {
       return await fetchCitizens()
     } catch (e) {
@@ -25,6 +31,44 @@
   useHead({
     title: 'Cidadãos IIRGD',
   })
+
+  const isAddModalOpen = ref(false)
+  const isSaving = ref(false)
+  const saveError = ref('')
+
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdCitizenFormSchema, {
+    name: '',
+    rg: '',
+    cpf: '',
+  })
+
+  const [name, nameProps] = defineField('name')
+  const [rg, rgProps] = defineField('rg', { validateOnModelUpdate: false })
+  const [cpf, cpfProps] = defineField('cpf', { validateOnModelUpdate: false })
+
+  const openAddModal = () => {
+    resetForm()
+    saveError.value = ''
+    isAddModalOpen.value = true
+  }
+
+  const handleSave = handleSubmit(async (values) => {
+    isSaving.value = true
+    saveError.value = ''
+    try {
+      await createCitizen({
+        name: values.name,
+        rg: values.rg || null,
+        cpf: values.cpf || null,
+      })
+      await refresh()
+      isAddModalOpen.value = false
+    } catch (err: unknown) {
+      saveError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isSaving.value = false
+    }
+  })
 </script>
 
 <template>
@@ -35,6 +79,21 @@
     />
 
     <UiCard class="mt-6" variant="outlined">
+      <template #header>
+        <div class="d-flex flex-wrap align-center w-100 ga-2">
+          <UiIcon class="mr-2 text-primary" left name="usersGroup" />
+          <span>Cidadãos Cadastrados</span>
+          <UiChip class="flex-shrink-0" color="primary" size="small" variant="flat">
+            {{ citizens?.length || 0 }}
+          </UiChip>
+          <div class="ml-auto">
+            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
+              Adicionar Cidadão
+            </UiButton>
+          </div>
+        </div>
+      </template>
+
       <UiTable
         :headers="[
           { text: 'Nome', value: 'name' },
@@ -64,5 +123,42 @@
         </template>
       </UiTable>
     </UiCard>
+
+    <UiModal v-model="isAddModalOpen" max-width="500px" persistent title="Adicionar Cidadão">
+      <UiAlert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
+        {{ saveError }}
+      </UiAlert>
+
+      <form @submit.prevent="handleSave">
+        <UiInput
+          v-model="name"
+          v-bind="nameProps"
+          class="mb-3"
+          :error-messages="errors.name"
+          label="Nome"
+        />
+
+        <UiCpfInput
+          v-model="cpf"
+          v-bind="cpfProps"
+          class="mb-3"
+          :error-messages="errors.cpf"
+          label="CPF *"
+        />
+
+        <UiRgInput
+          v-model="rg"
+          v-bind="rgProps"
+          class="mb-3"
+          :error-messages="errors.rg"
+          label="RG (opcional, apenas números ou X)"
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <UiButton color="grey" variant="text" @click="isAddModalOpen = false">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" type="submit">Salvar</UiButton>
+        </div>
+      </form>
+    </UiModal>
   </div>
 </template>

@@ -5,6 +5,7 @@
       value: string
       align?: 'left' | 'center' | 'right'
       sortable?: boolean
+      nowrap?: boolean
     }>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     items: Array<any>
@@ -22,6 +23,7 @@
           :class="[
             'text-caption text-uppercase font-weight-bold text-medium-emphasis py-3',
             header.align ? `text-${header.align}` : 'text-left',
+            { 'text-no-wrap': header.nowrap },
           ]"
         >
           {{ header.text }}
@@ -43,7 +45,11 @@
           <td
             v-for="header in headers"
             :key="header.value"
-            :class="['py-3', header.align ? `text-${header.align}` : 'text-left']"
+            :class="[
+              'py-3',
+              header.align ? `text-${header.align}` : 'text-left',
+              { 'text-no-wrap': header.nowrap },
+            ]"
           >
             <slot :index="index" :item="item" :name="`item-${header.value}`">
               {{ item[header.value] }}
