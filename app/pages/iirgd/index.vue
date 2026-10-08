@@ -81,12 +81,12 @@
     return chunks
   })
 
-  const copyRgs = async () => {
+  const copyChunk = async (chunk: string) => {
     try {
-      await navigator.clipboard.writeText(consultadosRgsChunks.value.join('\n'))
-      toast.success('RGs agrupados copiados para a área de transferência!')
+      await navigator.clipboard.writeText(chunk)
+      toast.success('Bloco de RGs copiado!')
     } catch (e) {
-      toast.error('Falha ao copiar RGs.')
+      toast.error('Falha ao copiar bloco de RGs.')
       console.error(e)
     }
   }
@@ -355,11 +355,15 @@
       <div class="d-flex align-center mb-2">
         <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
         <UiSpacer />
-        <UiButton size="small" variant="tonal" prepend-icon="copy" @click="copyRgs">Copiar Texto</UiButton>
+        
       </div>
       <UiCard variant="outlined" class="bg-grey-lighten-4">
         <UiList bg-color="transparent" density="compact">
-          <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk" />
+          <UiListItem v-for="(chunk, index) in consultadosRgsChunks" :key="index" :title="chunk">
+            <template #append>
+              <UiButton size="small" variant="text" icon="copy" color="primary" @click="copyChunk(chunk)" />
+            </template>
+          </UiListItem>
         </UiList>
       </UiCard>
     </div>
