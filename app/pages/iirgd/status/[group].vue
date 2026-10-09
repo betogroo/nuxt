@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  
+
   import { usePagination } from '~/composables/usePagination'
   import { useIirgdDemands, type IirgdDemand } from '~/composables/useIirgdDemands'
   import {
