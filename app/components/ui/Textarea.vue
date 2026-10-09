@@ -3,8 +3,20 @@
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
   defineOptions({ inheritAttrs: false })
 
+  const props = defineProps<{
+    variant?: UiVariant
+    size?: UiSize
+    rounded?: UiRounded
+    rows?: number | string
+  }>()
+
   const vuetifyVariant = computed(() => {
-    const map: Record<UiVariant, string> = { solid: 'solo', outline: 'outlined', ghost: 'plain', soft: 'filled' }
+    const map: Record<UiVariant, string> = {
+      solid: 'solo',
+      outline: 'outlined',
+      ghost: 'plain',
+      soft: 'filled',
+    }
     return props.variant ? map[props.variant] : 'outlined'
   })
 
@@ -21,7 +33,13 @@
 </script>
 
 <template>
-  <v-textarea v-bind="$attrs">
+  <v-textarea
+    v-bind="$attrs"
+    :density="vuetifyDensity as any"
+    :rounded="vuetifyRounded"
+    :rows="props.rows || 3"
+    :variant="vuetifyVariant as any"
+  >
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData || {}" />
     </template>

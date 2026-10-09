@@ -111,7 +111,7 @@
     </UiAlert>
 
     <UiRow dense>
-      <UiCol cols="12" sm="4">
+      <UiCol cols="12">
         <UiSelect
           v-model="stationCode"
           :error-messages="errors.station_code"
@@ -120,22 +120,21 @@
           placeholder="Selecione"
         />
       </UiCol>
-      <UiCol cols="12" sm="4">
-        <UiCpfInput
-          v-model="cpf"
-          :disabled="!!existingCitizen?.cpf"
-          :error-messages="errors.cpf"
-          label="CPF *"
-          @blur="onCpfBlur"
-        />
-      </UiCol>
-      <UiCol cols="12" sm="4">
+      <UiCol cols="12" sm="6">
         <UiRgInput
           v-model="rg"
           :disabled="!!existingCitizen?.rg"
           :error-messages="errors.rg"
-          label="Número do RG (Opcional)"
+          label="Número do RG *"
           @blur="onRgBlur"
+        />
+      </UiCol>
+      <UiCol cols="12" sm="6">
+        <UiCpfInput
+          v-model="cpf"
+          :disabled="!!existingCitizen?.cpf"
+          :error-messages="errors.cpf"
+          label="CPF (Opcional)"
         />
       </UiCol>
       <UiCol cols="12">
