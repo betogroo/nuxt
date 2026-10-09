@@ -11,6 +11,8 @@ Object.assign(supabaseFromMock, {
   eq: vi.fn(() => supabaseFromMock),
   not: vi.fn(() => supabaseFromMock),
   or: vi.fn(() => supabaseFromMock),
+  in: vi.fn(() => supabaseFromMock),
+  range: vi.fn(() => supabaseFromMock),
   single: vi.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null }),
 })
 
@@ -29,14 +31,18 @@ mockNuxtImport('useLogger', () => () => ({
 describe('useIirgdDemands', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    supabaseFromMock.order.mockResolvedValue({ data: [{ id: '1', name: 'Test' }], error: null })
+    supabaseFromMock.order.mockResolvedValue({
+      data: [{ id: '1', name: 'Test' }],
+      count: 1,
+      error: null,
+    })
   })
 
   it('fetchDemands should return data', async () => {
     const { fetchDemands } = useIirgdDemands()
     const result = await fetchDemands()
     expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_demands')
-    expect(result).toEqual([{ id: '1', name: 'Test' }])
+    expect(result).toEqual({ data: [{ id: '1', name: 'Test' }], count: 1 })
   })
 
   it('createDemand should check citizen, create citizen if not exists, create demand and log action', async () => {

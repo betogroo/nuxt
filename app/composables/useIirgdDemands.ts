@@ -28,17 +28,107 @@ export const useIirgdDemands = () => {
   const user = useSupabaseUser()
   const { logAction } = useLogger()
 
-  const fetchDemands = async () => {
-    const { data, error } = await supabase
+  const fetchDemandCounts = async () => {
+    const { data, error } = await supabase.from('iirgd_demands').select('status')
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar contagens de demandas do IIRGD')
+    }
+
+    const counts = {
+      em_andamento: 0,
+      consultado: 0,
+      liberado: 0,
+      emitidos: 0,
+      erros: 0,
+    }
+
+    if (data) {
+      data.forEach((d) => {
+        if (['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status)) {
+          counts.em_andamento++
+        } else if (d.status === 'confronted') {
+          counts.consultado++
+        } else if (d.status === 'released') {
+          counts.liberado++
+        } else if (d.status === 'issued') {
+          counts.emitidos++
+        } else if (
+          ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(d.status)
+        ) {
+          counts.erros++
+        }
+      })
+    }
+    return counts
+  }
+
+  const fetchDemands = async (options?: {
+    page?: number
+    itemsPerPage?: number
+    statusGroup?: string
+    searchQuery?: string
+    stationCode?: string
+    noPagination?: boolean
+  }) => {
+    const {
+      page = 1,
+      itemsPerPage = 10,
+      statusGroup,
+      searchQuery,
+      stationCode,
+      noPagination = false,
+    } = options || {}
+
+    let query = supabase
       .from('iirgd_demands')
-      .select('*, iirgd_citizens(*)')
-      .order('created_at', { ascending: false })
+      .select('*, iirgd_citizens!inner(*)', { count: 'exact' })
+
+    if (statusGroup) {
+      const statusMap: Record<string, string[]> = {
+        'em-andamento': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
+        consultado: ['confronted'],
+        liberado: ['released'],
+        emitidos: ['issued'],
+        erros: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
+      }
+      if (statusMap[statusGroup]) {
+        query = query.in('status', statusMap[statusGroup])
+      }
+    }
+
+    if (stationCode) {
+      query = query.eq('station_code', stationCode)
+    }
+
+    if (searchQuery) {
+      const { data: citIds, error: citErr } = await supabase
+        .from('iirgd_citizens')
+        .select('id')
+        .or(`name.ilike.%${searchQuery}%,rg.ilike.%${searchQuery}%,cpf.ilike.%${searchQuery}%`)
+
+      if (!citErr && citIds) {
+        if (citIds.length === 0) return { data: [], count: 0 }
+        query = query.in(
+          'citizen_id',
+          citIds.map((c) => c.id),
+        )
+      }
+    }
+
+    if (!noPagination) {
+      const from = (page - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      query = query.range(from, to)
+    }
+
+    const { data, count, error } = await query.order('created_at', { ascending: false })
 
     if (error) {
       console.error(error)
       throw new Error('Erro ao buscar demandas do IIRGD')
     }
-    return data
+    return { data: data || [], count: count || 0 }
   }
 
   const createDemand = async (payload: {
@@ -223,6 +313,7 @@ export const useIirgdDemands = () => {
 
   return {
     fetchDemands,
+    fetchDemandCounts,
     fetchDemandById,
     fetchCitizenHistory,
     fetchDemandStatusHistory,
