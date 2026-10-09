@@ -9,6 +9,7 @@ Whenever a new feature is implemented, use the `logAction` function to record th
 # Database Naming
 
 All database table names, column names, functions, triggers, and any other database artifacts MUST be written in English. Use English for enum types and values as well (e.g., use 'consumption' instead of 'consumo').
+Furthermore, all Route names, URL parameters and their programmatic mappings (e.g. /status/in-progress instead of /status/em-andamento) MUST ALWAYS be in English.
 
 # Planning (CRITICAL / MANDATORY)
 

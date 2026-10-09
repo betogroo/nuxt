@@ -23,11 +23,11 @@
   // Buscar apenas as contagens
   const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
     default: () => ({
-      em_andamento: 0,
-      consultado: 0,
-      liberado: 0,
-      emitidos: 0,
-      erros: 0,
+      inProgress: 0,
+      consulted: 0,
+      released: 0,
+      issued: 0,
+      errors: 0,
     }),
   })
 
@@ -35,37 +35,37 @@
 
   const cards = computed(() => [
     {
-      group: 'em-andamento',
+      group: 'in-progress',
       label: 'Em Andamento',
-      count: counts.value.em_andamento,
+      count: counts.value.inProgress,
       icon: 'time',
       color: 'primary',
     },
     {
-      group: 'consultado',
+      group: 'consulted',
       label: 'Consultado',
-      count: counts.value.consultado,
+      count: counts.value.consulted,
       icon: 'search',
       color: 'info',
     },
     {
-      group: 'liberado',
+      group: 'released',
       label: 'Liberado',
-      count: counts.value.liberado,
+      count: counts.value.released,
       icon: 'check',
       color: 'teal',
     },
     {
-      group: 'emitidos',
+      group: 'issued',
       label: 'Emitidos',
-      count: counts.value.emitidos,
+      count: counts.value.issued,
       icon: 'success',
       color: 'success',
     },
     {
-      group: 'erros',
+      group: 'errors',
       label: 'Erros',
-      count: counts.value.erros,
+      count: counts.value.errors,
       icon: 'alert',
       color: 'error',
     },

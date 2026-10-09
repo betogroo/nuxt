@@ -26,11 +26,11 @@
   })
 
   const titles: Record<string, string> = {
-    'em-andamento': 'Em Andamento',
-    consultado: 'Consultados',
-    liberado: 'Liberados',
-    emitidos: 'Emitidos',
-    erros: 'Erros e Pendências',
+    'in-progress': 'Em Andamento',
+    consulted: 'Consultados',
+    released: 'Liberados',
+    issued: 'Emitidos',
+    errors: 'Erros e Pendências',
   }
 
   useHead({
@@ -45,7 +45,7 @@
   const searchQuery = ref('')
   const stationCode = ref<string | null>(null)
 
-  const isUnpaginated = group === 'consultado'
+  const isUnpaginated = group === 'consulted'
 
   const {
     data: demands,
@@ -188,11 +188,11 @@
     <UiContainer>
       <!-- Navegação Facilitada entre status -->
       <UiTabs v-model="currentTab" class="mb-4">
-        <UiTab value="em-andamento">Em Andamento</UiTab>
-        <UiTab value="consultado">Consultados</UiTab>
-        <UiTab value="liberado">Liberados</UiTab>
-        <UiTab value="emitidos">Emitidos</UiTab>
-        <UiTab value="erros">Erros</UiTab>
+        <UiTab value="in-progress">Em Andamento</UiTab>
+        <UiTab value="consulted">Consultados</UiTab>
+        <UiTab value="released">Liberados</UiTab>
+        <UiTab value="issued">Emitidos</UiTab>
+        <UiTab value="errors">Erros</UiTab>
       </UiTabs>
 
       <UiCard variant="outline">
@@ -214,7 +214,7 @@
                 @click="refresh"
               />
               <UiButton
-                v-if="group === 'em-andamento'"
+                v-if="group === 'in-progress'"
                 color="primary"
                 prepend-icon="add"
                 @click="isNewDemandModalOpen = true"
@@ -310,7 +310,7 @@
 
       <!-- Chunk RGs -->
       <UiCard
-        v-if="group === 'consultado' && consultadosRgsChunks.length"
+        v-if="group === 'consulted' && consultadosRgsChunks.length"
         class="mt-6"
         variant="outline"
       >
@@ -349,7 +349,7 @@
 
       <!-- Modais -->
       <IirgdNewDemandModal
-        v-if="group === 'em-andamento'"
+        v-if="group === 'in-progress'"
         v-model="isNewDemandModalOpen"
         @created="refresh"
       />

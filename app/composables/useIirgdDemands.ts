@@ -36,27 +36,27 @@ export const useIirgdDemands = () => {
     }
 
     const counts = {
-      em_andamento: 0,
-      consultado: 0,
-      liberado: 0,
-      emitidos: 0,
-      erros: 0,
+      inProgress: 0,
+      consulted: 0,
+      released: 0,
+      issued: 0,
+      errors: 0,
     }
 
     if (data) {
       data.forEach((d) => {
         if (['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status)) {
-          counts.em_andamento++
+          counts.inProgress++
         } else if (d.status === 'confronted') {
-          counts.consultado++
+          counts.consulted++
         } else if (d.status === 'released') {
-          counts.liberado++
+          counts.released++
         } else if (d.status === 'issued') {
-          counts.emitidos++
+          counts.issued++
         } else if (
           ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(d.status)
         ) {
-          counts.erros++
+          counts.errors++
         }
       })
     }
@@ -86,11 +86,11 @@ export const useIirgdDemands = () => {
 
     if (statusGroup) {
       const statusMap: Record<string, string[]> = {
-        'em-andamento': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
-        consultado: ['confronted'],
-        liberado: ['released'],
-        emitidos: ['issued'],
-        erros: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
+        'in-progress': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
+        consulted: ['confronted'],
+        released: ['released'],
+        issued: ['issued'],
+        errors: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
       }
       if (statusMap[statusGroup]) {
         query = query.in('status', statusMap[statusGroup])

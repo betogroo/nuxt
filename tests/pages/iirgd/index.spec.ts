@@ -17,11 +17,11 @@ mockNuxtImport('useAsyncData', () => {
   return () => ({
     data: {
       value: {
-        em_andamento: 5,
-        consultado: 1,
-        liberado: 2,
-        emitidos: 3,
-        erros: 0,
+        inProgress: 5,
+        consulted: 1,
+        released: 2,
+        issued: 3,
+        errors: 0,
       },
     },
     pending: { value: false },
