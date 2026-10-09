@@ -198,7 +198,7 @@
       <UiCard variant="outline">
         <template #header>
           <div class="d-flex flex-wrap align-center w-100 ga-2">
-            <UiIcon class="text-primary" name="list" />
+            <UiIcon class="text-primary" left name="recordsList" />
             <span class="font-weight-medium">Demandas: {{ titles[group] }}</span>
             <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">
               {{ totalItems }}
@@ -316,7 +316,7 @@
       >
         <template #header>
           <div class="d-flex flex-wrap align-center w-100 ga-2">
-            <UiIcon class="text-primary" name="copy" />
+            <UiIcon class="text-primary" left name="copy" />
             <span class="font-weight-medium">RGs para Sistema Externo</span>
           </div>
         </template>
