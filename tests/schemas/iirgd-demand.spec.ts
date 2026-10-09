@@ -6,8 +6,8 @@ const VALID_CPF = '123.456.789-09'
 
 const base = {
   station_code: '1342-5',
-  rg: '',
-  cpf: VALID_CPF,
+  rg: VALID_RG,
+  cpf: '',
   name: 'Maria da Silva',
   observation: '',
 }
@@ -19,12 +19,12 @@ const messagesFor = (input: unknown, path: string): string[] => {
 }
 
 describe('iirgdDemandFormSchema', () => {
-  it('aceita um formulário válido com CPF e RG vazio', () => {
+  it('aceita um formulário válido com RG e CPF vazio', () => {
     expect(iirgdDemandFormSchema.safeParse(base).success).toBe(true)
   })
 
   it('aceita um formulário válido com CPF e RG preenchidos', () => {
-    const result = iirgdDemandFormSchema.safeParse({ ...base, rg: VALID_RG })
+    const result = iirgdDemandFormSchema.safeParse({ ...base, cpf: VALID_CPF })
     expect(result.success).toBe(true)
   })
 
@@ -45,10 +45,10 @@ describe('iirgdDemandFormSchema', () => {
     expect(result.success && result.data.name).toBe('Maria')
   })
 
-  it('exige CPF', () => {
-    expect(messagesFor({ ...base, cpf: '' }, 'cpf')).toEqual([
-      'O CPF é obrigatório.',
-      'O CPF informado é inválido.',
+  it('exige RG', () => {
+    expect(messagesFor({ ...base, rg: '' }, 'rg')).toEqual([
+      'O RG é obrigatório.',
+      'O RG informado é inválido ou seu dígito verificador não confere.',
     ])
   })
 
@@ -58,7 +58,7 @@ describe('iirgdDemandFormSchema', () => {
     ])
   })
 
-  it('rejeita CPF inválido', () => {
+  it('rejeita CPF inválido se preenchido', () => {
     expect(messagesFor({ ...base, cpf: '123.456.789-00' }, 'cpf')).toEqual([
       'O CPF informado é inválido.',
     ])

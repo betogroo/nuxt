@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { cpfValidator, optionalRgSp } from '../validators'
+import { optionalCpf, rgSpValidator } from '../validators'
 
 export const iirgdCitizenFormSchema = z.object({
   name: z.string({ error: 'O Nome é obrigatório.' }).trim().min(1, 'O Nome é obrigatório.'),
-  cpf: cpfValidator,
-  rg: optionalRgSp,
+  cpf: optionalCpf,
+  rg: rgSpValidator,
 })
 
 export type IirgdCitizenFormInput = z.input<typeof iirgdCitizenFormSchema>

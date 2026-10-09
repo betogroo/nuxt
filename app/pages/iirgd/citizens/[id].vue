@@ -259,7 +259,9 @@
         />
 
         <div class="d-flex justify-end ga-2 mt-4">
-          <UiButton color="grey" variant="ghost" @click="isEditModalOpen = false">Cancelar</UiButton>
+          <UiButton color="grey" variant="ghost" @click="isEditModalOpen = false"
+            >Cancelar</UiButton
+          >
           <UiButton color="primary" :loading="isSaving" type="submit">Salvar Alterações</UiButton>
         </div>
       </form>

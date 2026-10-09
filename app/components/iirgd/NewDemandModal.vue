@@ -78,29 +78,6 @@
     }
   }
 
-  const onCpfBlur = async () => {
-    const formattedCpf = values.cpf || ''
-
-    if (!formattedCpf && !values.rg) {
-      existingCitizen.value = null
-      return
-    }
-
-    if (!formattedCpf) return
-
-    const { valid } = await validateField('cpf')
-    if (!valid) return
-
-    const citizen = await fetchCitizenByDocument('cpf', formattedCpf)
-    if (citizen) {
-      existingCitizen.value = citizen
-      setFieldValue('name', citizen.name)
-      if (citizen.rg && !values.rg) {
-        setFieldValue('rg', citizen.rg)
-      }
-    }
-  }
-
   const closeModal = () => {
     isOpen.value = false
   }

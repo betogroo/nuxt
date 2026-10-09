@@ -1,6 +1,15 @@
 import { z } from 'zod'
 import { isValidCpf, isValidRgSP, isValidCnpj } from '~/utils/formatters'
 
+/** RG obrigatório no formato SP com dígito verificador válido. */
+export const rgSpValidator = z
+  .string({ required_error: 'O RG é obrigatório.' })
+  .trim()
+  .min(1, 'O RG é obrigatório.')
+  .refine(isValidRgSP, {
+    message: 'O RG informado é inválido ou seu dígito verificador não confere.',
+  })
+
 /** RG opcional no formato SP (00000000-X) com dígito verificador válido. */
 export const optionalRgSp = z
   .string()

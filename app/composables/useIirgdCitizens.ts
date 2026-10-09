@@ -86,11 +86,7 @@ export const useIirgdCitizens = () => {
     return data
   }
 
-  const createCitizen = async (payload: {
-    name: string
-    rg?: string | null
-    cpf?: string | null
-  }) => {
+  const createCitizen = async (payload: { name: string; rg: string; cpf?: string | null }) => {
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .insert([

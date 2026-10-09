@@ -3,7 +3,7 @@ import type { IirgdDemandStatus } from '~/constants/iirgd-status'
 export interface IirgdCitizen {
   id?: string
   name: string
-  rg?: string | null
+  rg: string
   cpf?: string | null
   created_at?: string
   updated_at?: string
@@ -142,13 +142,11 @@ export const useIirgdDemands = () => {
     let citizenId = null
     let existingCitizen = null
 
-    if (payload.rg || payload.cpf) {
-      const query = supabase.from('iirgd_citizens').select('*')
-      const orConditions = []
-      if (payload.rg) orConditions.push(`rg.eq.${payload.rg}`)
-      if (payload.cpf) orConditions.push(`cpf.eq.${payload.cpf}`)
-
-      const { data: citizens, error: citError } = await query.or(orConditions.join(','))
+    if (payload.rg) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('rg', payload.rg)
 
       if (!citError && citizens && citizens.length > 0) {
         existingCitizen = citizens[0]
