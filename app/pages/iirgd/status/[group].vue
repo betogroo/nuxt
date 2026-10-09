@@ -309,39 +309,43 @@
       </UiCard>
 
       <!-- Chunk RGs -->
-      <div v-if="group === 'consultado' && consultadosRgsChunks.length" class="mt-6">
-        <div class="d-flex align-center mb-2">
-          <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
-          <UiSpacer />
-        </div>
-        <UiCard class="bg-grey-lighten-4" variant="outline">
-          <UiList bg-color="transparent" size="sm">
-            <UiListItem
-              v-for="(chunk, index) in consultadosRgsChunks"
-              :key="index"
-              :title="chunk.text"
-            >
-              <template #append>
-                <UiButton
-                  color="primary"
-                  icon="copy"
-                  size="sm"
-                  variant="ghost"
-                  @click="copyChunk(chunk.text)"
-                />
-                <UiButton
-                  class="ml-2"
-                  color="success"
-                  icon="check"
-                  size="sm"
-                  variant="ghost"
-                  @click="openReleaseModal(chunk.demands)"
-                />
-              </template>
-            </UiListItem>
-          </UiList>
-        </UiCard>
-      </div>
+      <UiCard
+        v-if="group === 'consultado' && consultadosRgsChunks.length"
+        class="mt-6"
+        variant="outline"
+      >
+        <template #header>
+          <div class="d-flex flex-wrap align-center w-100 ga-2">
+            <UiIcon class="text-primary" name="copy" />
+            <span class="font-weight-medium">RGs para Sistema Externo</span>
+          </div>
+        </template>
+        <UiList bg-color="transparent" class="pa-0" size="sm">
+          <UiListItem
+            v-for="(chunk, index) in consultadosRgsChunks"
+            :key="index"
+            :title="chunk.text"
+          >
+            <template #append>
+              <UiButton
+                color="primary"
+                icon="copy"
+                size="sm"
+                variant="ghost"
+                @click="copyChunk(chunk.text)"
+              />
+              <UiButton
+                class="ml-2"
+                color="success"
+                icon="check"
+                size="sm"
+                variant="ghost"
+                @click="openReleaseModal(chunk.demands)"
+              />
+            </template>
+          </UiListItem>
+        </UiList>
+      </UiCard>
 
       <!-- Modais -->
       <IirgdNewDemandModal
