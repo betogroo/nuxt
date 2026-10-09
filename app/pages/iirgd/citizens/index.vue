@@ -1,7 +1,9 @@
 <script setup lang="ts">
+  import { ref, watch } from 'vue'
   import { padAndFormatRg, formatCpf } from '~/utils/formatters'
   import { useZodForm } from '~/composables/useZodForm'
   import { iirgdCitizenFormSchema } from '~/schemas/forms/iirgd-citizen'
+  import { usePagination } from '~/composables/usePagination'
 
   definePageMeta({
     middleware: ['iirgd'],
@@ -14,19 +16,38 @@
   })
 
   const { fetchCitizens, createCitizen } = useIirgdCitizens()
+  const toast = useToast()
+
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
+  const searchQuery = ref('')
 
   const {
     data: citizens,
     pending,
     refresh,
-  } = useAsyncData('iirgd-citizens-list', async () => {
-    try {
-      return await fetchCitizens()
-    } catch (e) {
-      console.error(e)
-      return []
-    }
-  })
+  } = useAsyncData(
+    'iirgd-citizens-list',
+    async () => {
+      try {
+        const res = await fetchCitizens({
+          page: currentPage.value,
+          itemsPerPage: itemsPerPage.value,
+          searchQuery: searchQuery.value,
+        })
+        totalItems.value = res.count
+        return res.data || []
+      } catch (e) {
+        console.error(e)
+        return []
+      }
+    },
+    {
+      watch: [currentPage, searchQuery],
+      default: () => [],
+    },
+  )
+
+  watch(searchQuery, () => resetPage())
 
   useHead({
     title: 'Cidadãos IIRGD',
@@ -52,7 +73,7 @@
     isAddModalOpen.value = true
   }
 
-  const handleSave = handleSubmit(async (values) => {
+  const onSubmit = handleSubmit(async (values) => {
     isSaving.value = true
     saveError.value = ''
     try {
@@ -61,10 +82,11 @@
         rg: values.rg || null,
         cpf: values.cpf || null,
       })
-      await refresh()
       isAddModalOpen.value = false
-    } catch (err: unknown) {
-      saveError.value = err instanceof Error ? err.message : String(err)
+      toast.success('Cidadão cadastrado com sucesso!')
+      await refresh()
+    } catch (e: unknown) {
+      saveError.value = e instanceof Error ? e.message : 'Erro ao salvar.'
     } finally {
       isSaving.value = false
     }
@@ -73,26 +95,44 @@
 
 <template>
   <div>
-    <PageHeader
-      description="Listagem de todos os cidadãos com histórico de solicitações de liberação de documentos."
+    <UiPageHeader
+      subtitle="Listagem de todos os cidadãos com histórico de solicitações de liberação de documentos."
       title="Cidadãos"
     />
 
     <UiCard class="mt-6" variant="outline">
       <template #header>
         <div class="d-flex flex-wrap align-center w-100 ga-2">
-          <UiIcon class="mr-2 text-primary" left name="usersGroup" />
+          <UiIcon class="text-primary" left name="usersGroup" />
           <span>Cidadãos Cadastrados</span>
           <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">
-            {{ citizens?.length || 0 }}
+            {{ totalItems }}
           </UiChip>
-          <div class="ml-auto">
+          <div class="ml-auto d-flex align-center" style="gap: 8px">
+            <UiButton
+              color="secondary"
+              icon="refresh"
+              :loading="pending"
+              size="sm"
+              variant="soft"
+              @click="refresh"
+            />
             <UiButton color="primary" prepend-icon="add" @click="openAddModal">
               Adicionar Cidadão
             </UiButton>
           </div>
         </div>
       </template>
+
+      <div class="px-4 pt-4 pb-2">
+        <UiInput
+          v-model="searchQuery"
+          clearable
+          hide-details
+          icon="search"
+          placeholder="Buscar cidadão por Nome, RG ou CPF"
+        />
+      </div>
 
       <UiTable
         :headers="[
@@ -122,41 +162,51 @@
           {{ new Date(item.created_at).toLocaleDateString('pt-BR') }}
         </template>
       </UiTable>
+
+      <template #actions>
+        <UiPagination
+          v-model="currentPage"
+          class="mt-2"
+          :length="totalPages"
+          size="sm"
+          :total-visible="5"
+        />
+      </template>
     </UiCard>
 
-    <UiModal v-model="isAddModalOpen" max-width="500px" persistent title="Adicionar Cidadão">
+    <UiModal v-model="isAddModalOpen" max-width="500px" title="Novo Cidadão IIRGD">
       <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
         {{ saveError }}
       </UiAlert>
 
-      <form @submit.prevent="handleSave">
+      <form @submit.prevent="onSubmit">
         <UiInput
           v-model="name"
-          v-bind="nameProps"
           class="mb-3"
           :error-messages="errors.name"
-          label="Nome"
+          label="Nome Completo *"
+          v-bind="nameProps"
         />
-
-        <UiCpfInput
-          v-model="cpf"
-          v-bind="cpfProps"
-          class="mb-3"
-          :error-messages="errors.cpf"
-          label="CPF *"
-        />
-
         <UiRgInput
           v-model="rg"
-          v-bind="rgProps"
           class="mb-3"
           :error-messages="errors.rg"
-          label="RG (opcional, apenas números ou X)"
+          label="Número do RG"
+          v-bind="rgProps"
+        />
+        <UiCpfInput
+          v-model="cpf"
+          class="mb-3"
+          :error-messages="errors.cpf"
+          label="Número do CPF"
+          v-bind="cpfProps"
         />
 
-        <div class="d-flex justify-end ga-2 mt-4">
-          <UiButton color="grey" variant="ghost" @click="isAddModalOpen = false">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" type="submit">Salvar</UiButton>
+        <div class="d-flex justify-end gap-2 mt-4">
+          <UiButton variant="ghost" @click="isAddModalOpen = false">Cancelar</UiButton>
+          <UiButton color="primary" :loading="isSaving" type="submit" variant="solid">
+            Salvar Cidadão
+          </UiButton>
         </div>
       </form>
     </UiModal>

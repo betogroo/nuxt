@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { useRoute } from 'vue-router'
+  
   import { usePagination } from '~/composables/usePagination'
   import { useIirgdDemands, type IirgdDemand } from '~/composables/useIirgdDemands'
   import {
@@ -76,7 +76,7 @@
 
   // Chunk logic
   const consultadosRgsChunks = computed(() => {
-    if (group !== 'consultado') return []
+    if (group !== 'consulted') return []
     const validDemands = demands.value.filter((d) => d.iirgd_citizens?.rg)
     const chunks: Array<{ text: string; demands: IirgdDemand[] }> = []
     for (let i = 0; i < validDemands.length; i += 8) {

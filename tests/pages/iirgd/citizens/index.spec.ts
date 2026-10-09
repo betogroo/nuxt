@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
+import { ref } from 'vue'
 import CitizensPage from '~/pages/iirgd/citizens/index.vue'
 
 mockNuxtImport('useHead', () => vi.fn())
@@ -15,11 +16,19 @@ mockNuxtImport('useIirgdCitizens', () => {
 
 mockNuxtImport('useAsyncData', () => {
   return () => ({
-    data: {
-      value: [{ id: 'cit-1', name: 'John Doe', rg: '123', created_at: new Date().toISOString() }],
-    },
-    pending: { value: false },
+    data: ref([{ id: 'cit-1', name: 'John Doe', rg: '123', created_at: new Date().toISOString() }]),
+    pending: ref(false),
     refresh: vi.fn(),
+  })
+})
+
+mockNuxtImport('usePagination', () => {
+  return () => ({
+    currentPage: ref(1),
+    itemsPerPage: ref(10),
+    totalItems: ref(1),
+    totalPages: ref(1),
+    resetPage: vi.fn(),
   })
 })
 
@@ -38,7 +47,7 @@ describe('Citizens Index Page', () => {
       global: {
         stubs: {
           NuxtLink: true,
-          PageHeader: true,
+          UiPageHeader: true,
           UiCard: true,
           UiTable: true,
           UiIcon: true,
@@ -48,6 +57,7 @@ describe('Citizens Index Page', () => {
           UiInput: true,
           UiCpfInput: true,
           UiRgInput: true,
+          UiPagination: true,
         },
       },
     })
@@ -59,9 +69,9 @@ describe('Citizens Index Page', () => {
       global: {
         stubs: {
           NuxtLink: true,
-          PageHeader: true,
+          UiPageHeader: true,
           UiCard: {
-            template: '<div><slot name="header" /><slot /></div>'
+            template: '<div><slot name="header" /><slot /></div>',
           },
           UiTable: true,
           UiIcon: true,
@@ -71,6 +81,7 @@ describe('Citizens Index Page', () => {
           UiInput: true,
           UiCpfInput: true,
           UiRgInput: true,
+          UiPagination: true,
         },
       },
     })

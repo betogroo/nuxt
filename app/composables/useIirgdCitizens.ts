@@ -13,17 +13,40 @@ export interface IirgdCitizenWithDemands {
 export const useIirgdCitizens = () => {
   const supabase = useSupabaseClient()
 
-  const fetchCitizens = async () => {
-    const { data, error } = await supabase
+  const fetchCitizens = async (options?: {
+    page?: number
+    itemsPerPage?: number
+    searchQuery?: string
+  }) => {
+    const { page = 1, itemsPerPage = 10, searchQuery } = options || {}
+
+    let query = supabase
       .from('iirgd_citizens')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('name', { ascending: true })
+
+    if (searchQuery) {
+      const searchNumber = searchQuery.replace(/\D/g, '')
+      if (searchNumber.length >= 3) {
+        query = query.or(
+          `name.ilike.%${searchQuery}%,rg.ilike.%${searchNumber}%,cpf.ilike.%${searchNumber}%`,
+        )
+      } else {
+        query = query.or(`name.ilike.%${searchQuery}%`)
+      }
+    }
+
+    const from = (page - 1) * itemsPerPage
+    const to = from + itemsPerPage - 1
+    query = query.range(from, to)
+
+    const { data, count, error } = await query
 
     if (error) {
       console.error(error)
       throw new Error('Erro ao buscar lista de cidadãos do IIRGD')
     }
-    return data
+    return { data, count: count || 0 }
   }
 
   const fetchCitizenById = async (id: string): Promise<IirgdCitizenWithDemands> => {
