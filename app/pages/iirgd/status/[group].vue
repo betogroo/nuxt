@@ -99,6 +99,16 @@
     }
   }
 
+  const copySingleRg = async (rgFormatted: string) => {
+    try {
+      await navigator.clipboard.writeText(rgFormatted)
+      toast.success('RG copiado para a área de transferência!')
+    } catch (e) {
+      toast.error('Falha ao copiar.')
+      console.error(e)
+    }
+  }
+
   // Release Modal
   const releaseModal = ref({
     isOpen: false,
@@ -273,7 +283,18 @@
             </NuxtLink>
           </template>
           <template #item-rg="{ item }">
-            {{ item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-' }}
+            <div v-if="item.iirgd_citizens?.rg" class="d-flex align-center ga-1">
+              <span>{{ padAndFormatRg(item.iirgd_citizens.rg, true) }}</span>
+              <UiButton
+                color="secondary"
+                icon="copy"
+                size="xs"
+                title="Copiar RG"
+                variant="ghost"
+                @click="copySingleRg(padAndFormatRg(item.iirgd_citizens.rg, true))"
+              />
+            </div>
+            <span v-else>-</span>
           </template>
           <template #item-cpf="{ item }">
             {{ item.iirgd_citizens?.cpf || '-' }}
