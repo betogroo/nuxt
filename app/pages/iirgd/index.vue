@@ -78,7 +78,7 @@
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       subtitle="Visão geral e acesso rápido às demandas do Instituto de Identificação"
       title="Dashboard IIRGD"
     >
@@ -96,7 +96,7 @@
           Nova Demanda
         </UiButton>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <UiContainer>
       <UiRow>
@@ -111,7 +111,9 @@
                 <div class="text-subtitle-1 text-medium-emphasis mb-1">{{ card.label }}</div>
                 <div class="text-h4 font-weight-bold">{{ card.count }}</div>
               </div>
-              <UiAvatar :color="card.color" :icon="card.icon" size="lg" variant="soft" />
+              <UiAvatar :color="card.color" size="lg" variant="soft">
+                <UiIcon :name="card.icon" />
+              </UiAvatar>
             </div>
           </UiCard>
         </UiCol>

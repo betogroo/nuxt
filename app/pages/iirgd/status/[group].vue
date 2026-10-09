@@ -19,6 +19,12 @@
   const route = useRoute()
   const group = route.params.group as string
 
+  // Para o UiTabs e navegação
+  const currentTab = computed({
+    get: () => group,
+    set: (val) => navigateTo(`/iirgd/status/${val}`),
+  })
+
   const titles: Record<string, string> = {
     'em-andamento': 'Em Andamento',
     consultado: 'Consultados',
@@ -39,7 +45,6 @@
   const searchQuery = ref('')
   const stationCode = ref<string | null>(null)
 
-  // O "consultado" não usa paginação (traz tudo)
   const isUnpaginated = group === 'consultado'
 
   const {
@@ -67,24 +72,19 @@
     },
   )
 
-  // Reset page when filters change
   watch([searchQuery, stationCode], () => resetPage())
 
-  // --- Lógica exclusiva do "Consultado" (Bulk Release de RGs em blocos de 8) ---
+  // Chunk logic
   const consultadosRgsChunks = computed(() => {
     if (group !== 'consultado') return []
     const validDemands = demands.value.filter((d) => d.iirgd_citizens?.rg)
-
     const chunks: Array<{ text: string; demands: IirgdDemand[] }> = []
     for (let i = 0; i < validDemands.length; i += 8) {
       const chunkDemands = validDemands.slice(i, i + 8)
       const chunkString = chunkDemands
         .map((d) => d.iirgd_citizens.rg.replace(/[^a-zA-Z0-9]/g, ''))
         .join('')
-      chunks.push({
-        text: chunkString,
-        demands: chunkDemands,
-      })
+      chunks.push({ text: chunkString, demands: chunkDemands })
     }
     return chunks
   })
@@ -92,21 +92,20 @@
   const copyChunk = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      toast.success('RGs copiados para a área de transferência!')
+      toast.success('RGs copiados!')
     } catch (e) {
-      toast.error('Falha ao copiar bloco de RGs.')
+      toast.error('Falha ao copiar.')
       console.error(e)
     }
   }
 
-  // Modal de liberação
+  // Release Modal
   const releaseModal = ref({
     isOpen: false,
     demands: [] as IirgdDemand[],
     isSaving: false,
     error: '',
   })
-
   const openReleaseModal = (chunkDemands: IirgdDemand[]) => {
     releaseModal.value.demands = chunkDemands
     releaseModal.value.isOpen = true
@@ -118,27 +117,64 @@
     releaseModal.value.error = ''
     try {
       for (const demand of releaseModal.value.demands) {
-        if (demand.id) {
-          await updateDemand(demand.id, { status: 'released' })
-        }
+        if (demand.id) await updateDemand(demand.id, { status: 'released' })
       }
       releaseModal.value.isOpen = false
-      toast.success('Demandas liberadas com sucesso!')
+      toast.success('Demandas liberadas!')
       await refresh()
     } catch (e: unknown) {
-      releaseModal.value.error = e instanceof Error ? e.message : 'Erro ao liberar demandas'
+      releaseModal.value.error = e instanceof Error ? e.message : 'Erro.'
     } finally {
       releaseModal.value.isSaving = false
     }
   }
 
-  // Nova Demanda Modal
+  // Status Inline Modal logic
+  const statusModal = ref({
+    isOpen: false,
+    isSaving: false,
+    demand: null as IirgdDemand | null,
+    newStatus: '' as string,
+    error: '',
+  })
+
+  const statusOptions = Object.entries(IIRGD_STATUS_LABELS).map(([value, title]) => ({
+    title,
+    value,
+  }))
+
+  const openStatusModal = (demand: IirgdDemand) => {
+    statusModal.value.demand = demand
+    statusModal.value.newStatus = demand.status as string
+    statusModal.value.isOpen = true
+    statusModal.value.error = ''
+  }
+
+  const confirmStatusChange = async () => {
+    if (!statusModal.value.demand?.id || !statusModal.value.newStatus) return
+
+    statusModal.value.isSaving = true
+    statusModal.value.error = ''
+    try {
+      await updateDemand(statusModal.value.demand.id, {
+        status: statusModal.value.newStatus as IirgdDemandStatus,
+      })
+      toast.success('Status atualizado!')
+      statusModal.value.isOpen = false
+      await refresh()
+    } catch (e: unknown) {
+      statusModal.value.error = e instanceof Error ? e.message : 'Erro ao atualizar.'
+    } finally {
+      statusModal.value.isSaving = false
+    }
+  }
+
   const isNewDemandModalOpen = ref(false)
 </script>
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       :subtitle="`Gestão de demandas com status: ${titles[group]}`"
       :title="titles[group] || 'Lista de Demandas'"
     >
@@ -151,9 +187,8 @@
           variant="soft"
           @click="navigateTo('/iirgd')"
         >
-          Voltar ao Dashboard
+          Dashboard
         </UiButton>
-
         <UiButton
           class="mr-2"
           color="secondary"
@@ -163,7 +198,6 @@
           variant="soft"
           @click="refresh"
         />
-
         <UiButton
           v-if="group === 'em-andamento'"
           color="primary"
@@ -173,9 +207,18 @@
           Nova Demanda
         </UiButton>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <UiContainer>
+      <!-- Navegação Facilitada entre status -->
+      <UiTabs v-model="currentTab" class="mb-4">
+        <UiTab value="em-andamento">Em Andamento</UiTab>
+        <UiTab value="consultado">Consultados</UiTab>
+        <UiTab value="liberado">Liberados</UiTab>
+        <UiTab value="emitidos">Emitidos</UiTab>
+        <UiTab value="erros">Erros</UiTab>
+      </UiTabs>
+
       <!-- Filters -->
       <UiRow class="mb-4">
         <UiCol cols="12" sm="8">
@@ -235,8 +278,12 @@
             <UiChip
               :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'grey'"
               size="sm"
+              style="cursor: pointer"
+              variant="soft"
+              @click="openStatusModal(item)"
             >
               {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
+              <UiIcon class="ml-1" name="edit" size="xs" />
             </UiChip>
           </template>
           <template #item-created_at="{ item }">
@@ -247,7 +294,7 @@
         </UiTable>
 
         <template v-if="!isUnpaginated" #actions>
-          <Pagination
+          <UiPagination
             v-model="currentPage"
             class="mt-2"
             :length="totalPages"
@@ -257,7 +304,7 @@
         </template>
       </UiCard>
 
-      <!-- Seção exclusiva da aba Consultado: Blocos de 8 RGs -->
+      <!-- Chunk RGs -->
       <div v-if="group === 'consultado' && consultadosRgsChunks.length" class="mt-6">
         <div class="d-flex align-center mb-2">
           <h3 class="text-h6 mb-0">RGs para Sistema Externo</h3>
@@ -292,22 +339,21 @@
         </UiCard>
       </div>
 
-      <!-- Modais Extras -->
+      <!-- Modais -->
       <IirgdNewDemandModal
         v-if="group === 'em-andamento'"
         v-model="isNewDemandModalOpen"
         @created="refresh"
       />
 
+      <!-- Modal de Liberação de Lote -->
       <UiModal v-model="releaseModal.isOpen" max-width="600px" title="Liberar Demandas">
         <UiAlert v-if="releaseModal.error" class="mb-4" size="sm" type="error" variant="soft">
           {{ releaseModal.error }}
         </UiAlert>
-
         <p class="mb-4 text-body-2 text-medium-emphasis">
           As seguintes demandas serão atualizadas para <strong>Liberado</strong>:
         </p>
-
         <UiTable
           :headers="[
             { text: 'RG', value: 'rg' },
@@ -316,14 +362,11 @@
           ]"
           :items="releaseModal.demands"
         >
-          <template #item-rg="{ item }">
-            {{ item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-' }}
-          </template>
-          <template #item-name="{ item }">
-            {{ item.iirgd_citizens?.name || '-' }}
-          </template>
+          <template #item-rg="{ item }">{{
+            item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-'
+          }}</template>
+          <template #item-name="{ item }">{{ item.iirgd_citizens?.name || '-' }}</template>
         </UiTable>
-
         <template #actions>
           <UiButton variant="ghost" @click="releaseModal.isOpen = false">Cancelar</UiButton>
           <UiButton
@@ -333,6 +376,36 @@
             @click="confirmRelease"
           >
             Confirmar Liberação
+          </UiButton>
+        </template>
+      </UiModal>
+
+      <!-- Modal de Mudança de Status Inline -->
+      <UiModal v-model="statusModal.isOpen" max-width="400px" title="Alterar Status">
+        <UiAlert v-if="statusModal.error" class="mb-4" size="sm" type="error" variant="soft">
+          {{ statusModal.error }}
+        </UiAlert>
+        <p class="mb-4 text-body-2 text-medium-emphasis">
+          Selecione o novo status para a demanda de
+          <strong>{{ statusModal.demand?.iirgd_citizens?.name || 'Desconhecido' }}</strong
+          >:
+        </p>
+        <UiSelect
+          v-model="statusModal.newStatus"
+          item-title="title"
+          item-value="value"
+          :items="statusOptions"
+          label="Novo Status"
+        />
+        <template #actions>
+          <UiButton variant="ghost" @click="statusModal.isOpen = false">Cancelar</UiButton>
+          <UiButton
+            color="primary"
+            :loading="statusModal.isSaving"
+            variant="solid"
+            @click="confirmStatusChange"
+          >
+            Salvar
           </UiButton>
         </template>
       </UiModal>
