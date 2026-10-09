@@ -186,28 +186,9 @@
     </div>
 
     <UiPageHeader
-      :subtitle="`Gestão de demandas com status: ${titles[group]}`"
+      subtitle="Listagem das demandas agrupadas pelo seu respectivo status."
       :title="titles[group] || 'Lista de Demandas'"
     >
-      <template #actions>
-        <UiButton
-          class="mr-2"
-          color="secondary"
-          icon="refresh"
-          :loading="pending"
-          size="sm"
-          variant="soft"
-          @click="refresh"
-        />
-        <UiButton
-          v-if="group === 'em-andamento'"
-          color="primary"
-          prepend-icon="add"
-          @click="isNewDemandModalOpen = true"
-        >
-          Nova Demanda
-        </UiButton>
-      </template>
     </UiPageHeader>
 
     <UiContainer>
@@ -220,30 +201,58 @@
         <UiTab value="erros">Erros</UiTab>
       </UiTabs>
 
-      <!-- Filters -->
-      <UiRow class="mb-4">
-        <UiCol cols="12" sm="8">
-          <UiInput
-            v-model="searchQuery"
-            clearable
-            hide-details
-            icon="search"
-            placeholder="Buscar por Nome, RG ou CPF"
-          />
-        </UiCol>
-        <UiCol cols="12" sm="4">
-          <UiSelect
-            v-model="stationCode"
-            clearable
-            hide-details
-            :items="['Todos', ...IIRGD_STATION_CODES]"
-            placeholder="Filtrar por Posto"
-          />
-        </UiCol>
-      </UiRow>
+      <UiCard variant="outline">
+        <template #header>
+          <div class="d-flex flex-wrap align-center w-100 ga-2">
+            <UiIcon class="text-primary" name="list" />
+            <span class="font-weight-medium">Demandas: {{ titles[group] }}</span>
+            <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">
+              {{ totalItems }}
+            </UiChip>
 
-      <!-- Table -->
-      <UiCard>
+            <div class="ml-auto d-flex align-center" style="gap: 8px">
+              <UiButton
+                color="secondary"
+                icon="refresh"
+                :loading="pending"
+                size="sm"
+                variant="soft"
+                @click="refresh"
+              />
+              <UiButton
+                v-if="group === 'em-andamento'"
+                color="primary"
+                prepend-icon="add"
+                @click="isNewDemandModalOpen = true"
+              >
+                Nova Demanda
+              </UiButton>
+            </div>
+          </div>
+        </template>
+
+        <div class="px-4 pt-4 pb-2">
+          <UiRow>
+            <UiCol cols="12" sm="8">
+              <UiInput
+                v-model="searchQuery"
+                clearable
+                hide-details
+                icon="search"
+                placeholder="Buscar por Nome, RG ou CPF"
+              />
+            </UiCol>
+            <UiCol cols="12" sm="4">
+              <UiSelect
+                v-model="stationCode"
+                clearable
+                hide-details
+                :items="['Todos', ...IIRGD_STATION_CODES]"
+                placeholder="Filtrar por Posto"
+              />
+            </UiCol>
+          </UiRow>
+        </div>
         <UiTable
           :headers="[
             { text: 'Código Posto', value: 'station_code' },

@@ -21,11 +21,7 @@
   const { fetchDemandCounts } = useIirgdDemands()
 
   // Buscar apenas as contagens
-  const {
-    data: counts,
-    pending,
-    refresh,
-  } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
+  const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
     default: () => ({
       em_andamento: 0,
       consultado: 0,
@@ -82,24 +78,23 @@
       subtitle="Visão geral e acesso rápido às demandas do Instituto de Identificação"
       title="Dashboard IIRGD"
     >
-      <template #actions>
-        <UiButton
-          class="mr-2"
-          color="secondary"
-          icon="refresh"
-          :loading="pending"
-          size="sm"
-          variant="soft"
-          @click="refresh"
-        />
-        <UiButton color="primary" prepend-icon="add" @click="isModalOpen = true">
-          Nova Demanda
-        </UiButton>
-      </template>
     </UiPageHeader>
 
     <UiContainer>
       <UiRow>
+        <UiCol cols="12" md="4" sm="6">
+          <UiCard
+            class="cursor-pointer transition-swing h-100 d-flex flex-column align-center justify-center bg-primary"
+            hover
+            @click="isModalOpen = true"
+          >
+            <div class="pa-4 text-center">
+              <UiIcon class="mb-2" name="add" size="xl" />
+              <div class="text-h6 font-weight-bold">Nova Demanda</div>
+            </div>
+          </UiCard>
+        </UiCol>
+
         <UiCol v-for="card in cards" :key="card.group" cols="12" md="4" sm="6">
           <UiCard
             class="cursor-pointer transition-swing"
