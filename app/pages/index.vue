@@ -4,7 +4,7 @@
     navLabel: 'Início',
     navGroup: 'public',
     navOrder: 1,
-    roles: ['admin', 'uge', 'iirgd', 'user'],
+    roles: ['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user'],
     showIn: ['drawer'],
   })
   const title = 'Início'

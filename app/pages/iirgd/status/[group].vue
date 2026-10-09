@@ -10,6 +10,7 @@
   } from '~/constants/iirgd-status'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
   import { padAndFormatRg } from '~/utils/formatters'
+  import { ROLES } from '~/constants/roles'
 
   definePageMeta({
     middleware: ['iirgd'],
@@ -17,7 +18,13 @@
   })
 
   const route = useRoute()
+  const { profile } = useProfile()
   const group = route.params.group as string
+
+  // Restringir acesso para iirgd_user
+  if (profile.value?.role === ROLES.IIRGD_USER && ['consulted', 'released'].includes(group)) {
+    throw createError({ statusCode: 403, message: 'Acesso negado' })
+  }
 
   // Para o UiTabs e navegação
   const currentTab = computed({
@@ -46,6 +53,7 @@
   const stationCode = ref<string | null>(null)
 
   const isUnpaginated = group === 'consulted'
+  const canEditStatus = computed(() => profile.value?.role !== ROLES.IIRGD_USER)
 
   const {
     data: demands,
@@ -199,8 +207,8 @@
       <!-- Navegação Facilitada entre status -->
       <UiTabs v-model="currentTab" class="mb-4">
         <UiTab value="in-progress">Em Andamento</UiTab>
-        <UiTab value="consulted">Consultados</UiTab>
-        <UiTab value="released">Liberados</UiTab>
+        <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="consulted">Consultados</UiTab>
+        <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="released">Liberados</UiTab>
         <UiTab value="issued">Emitidos</UiTab>
         <UiTab value="errors">Erros</UiTab>
       </UiTabs>
@@ -303,12 +311,12 @@
             <UiChip
               :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'grey'"
               size="sm"
-              style="cursor: pointer"
+              :style="canEditStatus ? 'cursor: pointer' : ''"
               variant="soft"
-              @click="openStatusModal(item)"
+              @click="canEditStatus ? openStatusModal(item) : undefined"
             >
               {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
-              <UiIcon class="ml-1" name="edit" size="xs" />
+              <UiIcon v-if="canEditStatus" class="ml-1" name="edit" size="xs" />
             </UiChip>
           </template>
           <template #item-created_at="{ item }">

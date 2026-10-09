@@ -275,12 +275,7 @@
 
           <!-- Paginação -->
           <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-            <UiPagination
-              v-model="currentPage"
-              size="md"
-              :length="totalPages"
-              :total-visible="7"
-            />
+            <UiPagination v-model="currentPage" :length="totalPages" size="md" :total-visible="7" />
           </div>
         </UiCard>
       </UiCol>

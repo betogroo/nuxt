@@ -299,9 +299,9 @@
           <UiAlert
             border="start"
             color="warning"
-            size="sm"
             icon="alert"
             rounded="xl"
+            size="sm"
             :title="`${pendingUnits.length} unidade(s) pendente(s) de revisão`"
             variant="soft"
           >
@@ -318,12 +318,7 @@
                   <UiIcon color="warning" name="balance" size="18" />
                   <span class="text-body-2 font-weight-medium">{{ unit.name }}</span>
                 </div>
-                <UiButton
-                  color="warning"
-                  size="sm"
-                  variant="soft"
-                  @click="openResolveModal(unit)"
-                >
+                <UiButton color="warning" size="sm" variant="soft" @click="openResolveModal(unit)">
                   Resolver
                 </UiButton>
               </div>
@@ -377,9 +372,9 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              size="sm"
               hide-details
               :model-value="item.is_active"
+              size="sm"
               @update:model-value="toggleStatus(item)"
             />
           </template>
@@ -428,12 +423,7 @@
           :loading="aliasesPending"
         >
           <template #item-is_pending="{ item }">
-            <UiChip
-              :color="item.is_pending ? 'warning' : 'success'"
-              label
-              size="sm"
-              variant="soft"
-            >
+            <UiChip :color="item.is_pending ? 'warning' : 'success'" label size="sm" variant="soft">
               {{ item.is_pending ? 'Pendente' : 'Ativo' }}
             </UiChip>
           </template>
@@ -479,7 +469,6 @@
         v-bind="aliasIdsProps"
         chips
         closable-chips
-        size="md"
         :error-messages="saveErrors.aliasIds"
         :item-title="
           (item: Record<string, unknown>) => (item.code ? `${item.code} - ${item.name}` : item.name)
@@ -489,6 +478,7 @@
         label="Vincular Registros Alternativos"
         multiple
         rounded="lg"
+        size="md"
         variant="outline"
       />
 

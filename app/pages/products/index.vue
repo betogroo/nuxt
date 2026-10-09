@@ -201,19 +201,18 @@
             <UiSelect
               v-model="selectedExpenseNature"
               clearable
-              size="sm"
               hide-details
               item-title="name"
               item-value="id"
               :items="expenseNatures || []"
               label="Natureza de Despesa"
               rounded="lg"
+              size="sm"
               style="min-width: 200px; max-width: 260px"
               variant="outline"
             />
             <UiSelect
               v-model="statusFilter"
-              size="sm"
               hide-details
               item-title="title"
               item-value="value"
@@ -224,6 +223,7 @@
               ]"
               label="Status"
               rounded="lg"
+              size="sm"
               style="min-width: 130px; max-width: 160px"
               variant="outline"
             />
@@ -284,9 +284,9 @@
         <template #item-is_active="{ item }">
           <UiSwitch
             color="success"
-            size="sm"
             hide-details
             :model-value="item.is_active"
+            size="sm"
             @update:model-value="toggleStatus(item)"
           />
         </template>
@@ -350,7 +350,6 @@
         v-model="expenseNatureId"
         v-bind="expenseNatureIdProps"
         class="mb-3"
-        size="md"
         :error-messages="errors.expense_nature_id"
         :item-title="
           (item: Record<string, unknown>) =>
@@ -360,6 +359,7 @@
         :items="expenseNatures || []"
         label="Natureza de Despesa *"
         rounded="lg"
+        size="md"
         variant="outline"
       />
 
@@ -393,7 +393,6 @@
         v-bind="productClassIdProps"
         class="mb-3"
         clearable
-        size="md"
         :error-messages="errors.product_class_id"
         :item-title="
           (item: Record<string, unknown>) =>
@@ -403,6 +402,7 @@
         :items="productClasses || []"
         label="Classe de Produto"
         rounded="lg"
+        size="md"
         variant="outline"
       />
 

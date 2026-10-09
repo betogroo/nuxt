@@ -4,7 +4,7 @@
     navLabel: 'Sobre',
     navGroup: 'public',
     navOrder: 2,
-    roles: ['admin', 'uge', 'iirgd', 'user'],
+    roles: ['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user'],
     showIn: ['drawer'],
   })
   const title = 'Sobre'

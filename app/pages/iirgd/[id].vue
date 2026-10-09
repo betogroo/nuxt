@@ -6,7 +6,11 @@
     IIRGD_STATUS_GROUPS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
+  import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
   import { iirgdStatusChangeFormSchema } from '~/schemas/forms/iirgd-status-change'
+  import { ROLES } from '~/constants/roles'
+  const stationCodes = IIRGD_STATION_CODES
+  const { profile } = useProfile()
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
@@ -53,6 +57,14 @@
   }
 
   // Modal State para Editar Observação/Status
+  const canEditStatus = computed(() => {
+    return profile.value?.role === ROLES.ADMIN || profile.value?.role === ROLES.IIRGD_MANAGER
+  })
+
+  const canEditData = computed(() => {
+    return canEditStatus.value || demand.value?.status === 'new'
+  })
+
   const isEditing = ref(false)
   const isSaving = ref(false)
   const editError = ref('')
@@ -60,9 +72,11 @@
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdStatusChangeFormSchema, {
     status: 'new',
     observation: '',
+    station_code: '',
   })
   const [status] = defineField('status')
   const [observation] = defineField('observation')
+  const [stationCode] = defineField('station_code')
 
   // Achatar os grupos para o UiSelect formatando com o nome do grupo
   const statusOptions = computed(() => {
@@ -80,6 +94,7 @@
         values: {
           status: (demand.value.status as IirgdDemandStatus) || 'new',
           observation: demand.value.observation || '',
+          station_code: demand.value.station_code || '',
         },
       })
       editError.value = ''
@@ -99,6 +114,7 @@
       await updateDemand(demandId, {
         status: formValues.status,
         observation: formValues.observation,
+        station_code: formValues.station_code,
       })
 
       await refresh()
@@ -253,6 +269,7 @@
                       <div class="text-subtitle-1 font-weight-bold">Acompanhamento</div>
                     </div>
                     <UiButton
+                      v-if="canEditData"
                       color="primary"
                       prepend-icon="edit"
                       size="sm"
@@ -270,8 +287,8 @@
                   <UiTimeline
                     v-if="statusHistory && statusHistory.length"
                     align="start"
-                    size="sm"
                     side="end"
+                    size="sm"
                   >
                     <UiTimelineItem
                       v-for="item in statusHistory"
@@ -397,6 +414,7 @@
       <UiRow dense>
         <UiCol cols="12">
           <UiSelect
+            v-if="canEditStatus"
             v-model="status"
             :error-messages="errors.status"
             item-title="title"
@@ -406,13 +424,22 @@
           />
         </UiCol>
         <UiCol cols="12">
+          <UiSelect
+            v-model="stationCode"
+            :error-messages="errors.station_code"
+            :items="stationCodes"
+            label="Código do Posto"
+            placeholder="Selecione"
+          />
+        </UiCol>
+        <UiCol cols="12">
           <UiTextarea
             v-model="observation"
-            size="md"
             :error-messages="errors.observation"
             label="Observações Gerais"
             rounded="lg"
             rows="4"
+            size="md"
             variant="outline"
           />
         </UiCol>

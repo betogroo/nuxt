@@ -153,24 +153,24 @@
           <UiInput
             v-model="searchQuery"
             clearable
-            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
+            size="sm"
             style="min-width: 200px; max-width: 260px"
             variant="outline"
           />
           <UiSelect
             v-model="statusFilter"
             clearable
-            size="sm"
             hide-details
             item-title="title"
             item-value="value"
             :items="statusOptions"
             label="Status"
             rounded="lg"
+            size="sm"
             style="min-width: 180px; max-width: 220px"
             variant="outline"
           />
@@ -277,9 +277,9 @@
       <div v-if="totalPages > 1" class="d-flex justify-center py-4">
         <UiPagination
           v-model="currentPage"
-          size="md"
           :length="totalPages"
           rounded="lg"
+          size="md"
           :total-visible="7"
         />
       </div>

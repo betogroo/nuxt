@@ -12,7 +12,7 @@
     navGroup: 'iirgd',
     showIn: ['drawer'],
     navOrder: 2,
-    roles: ['admin', 'iirgd'],
+    roles: ['admin', 'iirgd_user', 'iirgd_manager'],
   })
 
   const { fetchCitizens, createCitizen } = useIirgdCitizens()

@@ -124,11 +124,11 @@
           <UiInput
             v-model="searchQuery"
             clearable
-            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
+            size="sm"
             style="max-width: 260px"
             variant="outline"
             @update:model-value="handleSearch"
@@ -166,9 +166,9 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              size="sm"
               hide-details
               :model-value="item.is_active"
+              size="sm"
               @update:model-value="toggleStatus(item)"
             />
           </template>
@@ -210,9 +210,9 @@
           <UiAlert
             border="start"
             color="warning"
-            size="sm"
             icon="clockAlert"
             rounded="xl"
+            size="sm"
             :title="`${pendingNatures.length} natureza(s) aguardando revisão`"
             variant="soft"
           >
@@ -336,13 +336,13 @@
         <UiAutocomplete
           v-model="finalNatureId"
           v-bind="finalNatureIdProps"
-          size="md"
           :error-messages="resolveErrors.finalTargetId"
           :item-title="(item: Record<string, unknown>) => `${item.id} - ${item.name}`"
           item-value="id"
           :items="allActiveNatures || []"
           label="Natureza Oficial de Destino"
           rounded="lg"
+          size="md"
           variant="outline"
         />
       </div>

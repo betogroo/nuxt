@@ -5,7 +5,35 @@
  */
 
 import { z } from 'zod'
-import type { Json } from './../../types/database.types'
+import { type Json } from './../../types/database.types'
+
+export const publicDemandStatusSchema = z.enum([
+  'planning',
+  'quotation',
+  'bidding_notice',
+  'dispute',
+  'homologation',
+  'completed',
+  'cancelled',
+])
+
+export const publicDemandTypeSchema = z.enum(['consumption', 'permanent'])
+
+export const publicIirgdDemandStatusSchema = z.enum([
+  'new',
+  'confronted',
+  'released',
+  'issued',
+  'mailbag',
+  'cegaf',
+  'no_data',
+  'other_pending',
+  'protocol_cancelled',
+  'awaiting_collection',
+  'confrontation_failed',
+])
+
+export const publicUserRoleSchema = z.enum(['user', 'admin', 'iirgd_user', 'uge', 'iirgd_manager'])
 
 export const jsonSchema: z.ZodSchema<Json> = z.lazy(() =>
   z
@@ -183,17 +211,24 @@ export const publicDemandResponsiblesRelationshipsSchema = z.tuple([
   }),
 ])
 
-export const publicDemandStatusSchema = z.enum([
-  'planning',
-  'quotation',
-  'bidding_notice',
-  'dispute',
-  'homologation',
-  'completed',
-  'cancelled',
-])
-
-export const publicDemandTypeSchema = z.enum(['consumption', 'permanent'])
+export const publicDemandsRowSchema = z.object({
+  bidding_notice_number: z.string().nullable(),
+  contract_number: z.string().nullable(),
+  created_at: z.string(),
+  dispute_date: z.string().nullable(),
+  dispute_number: z.string().nullable(),
+  id: z.string(),
+  id_pca: z.string().nullable(),
+  internal_process_number: z.string().nullable(),
+  is_return_requested: z.boolean().nullable(),
+  name: z.string(),
+  offer_opening_date: z.string().nullable(),
+  process_number: z.string().nullable(),
+  status: publicDemandStatusSchema,
+  type: publicDemandTypeSchema,
+  updated_at: z.string(),
+  user_id: z.string(),
+})
 
 export const publicDemandsInsertSchema = z.object({
   bidding_notice_number: z.string().optional().nullable(),
@@ -297,59 +332,6 @@ export const publicIirgdCitizensUpdateSchema = z.object({
   updated_at: z.string().optional(),
 })
 
-export const publicIirgdDemandStatusSchema = z.enum([
-  'new',
-  'confronted',
-  'released',
-  'issued',
-  'mailbag',
-  'cegaf',
-  'no_data',
-  'other_pending',
-  'protocol_cancelled',
-  'awaiting_collection',
-  'confrontation_failed',
-])
-
-export const publicIirgdDemandsInsertSchema = z.object({
-  citizen_id: z.string(),
-  created_at: z.string().optional().nullable(),
-  created_by: z.string().optional().nullable(),
-  id: z.string().optional(),
-  observation: z.string().optional().nullable(),
-  station_code: z.string(),
-  status: publicIirgdDemandStatusSchema.optional(),
-  updated_at: z.string().optional().nullable(),
-})
-
-export const publicIirgdDemandsUpdateSchema = z.object({
-  citizen_id: z.string().optional(),
-  created_at: z.string().optional().nullable(),
-  created_by: z.string().optional().nullable(),
-  id: z.string().optional(),
-  observation: z.string().optional().nullable(),
-  station_code: z.string().optional(),
-  status: publicIirgdDemandStatusSchema.optional(),
-  updated_at: z.string().optional().nullable(),
-})
-
-export const publicIirgdDemandsRelationshipsSchema = z.tuple([
-  z.object({
-    foreignKeyName: z.literal('iirgd_demands_citizen_id_fkey'),
-    columns: z.tuple([z.literal('citizen_id')]),
-    isOneToOne: z.literal(false),
-    referencedRelation: z.literal('iirgd_citizens'),
-    referencedColumns: z.tuple([z.literal('id')]),
-  }),
-  z.object({
-    foreignKeyName: z.literal('iirgd_demands_created_by_fkey'),
-    columns: z.tuple([z.literal('created_by')]),
-    isOneToOne: z.literal(false),
-    referencedRelation: z.literal('profiles'),
-    referencedColumns: z.tuple([z.literal('id')]),
-  }),
-])
-
 export const publicIirgdDemandStatusHistoryRowSchema = z.object({
   created_at: z.string(),
   created_by: z.string().nullable(),
@@ -390,6 +372,56 @@ export const publicIirgdDemandStatusHistoryRelationshipsSchema = z.tuple([
     columns: z.tuple([z.literal('demand_id')]),
     isOneToOne: z.literal(false),
     referencedRelation: z.literal('iirgd_demands'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
+])
+
+export const publicIirgdDemandsRowSchema = z.object({
+  citizen_id: z.string(),
+  created_at: z.string().nullable(),
+  created_by: z.string().nullable(),
+  id: z.string(),
+  observation: z.string().nullable(),
+  station_code: z.string(),
+  status: publicIirgdDemandStatusSchema,
+  updated_at: z.string().nullable(),
+})
+
+export const publicIirgdDemandsInsertSchema = z.object({
+  citizen_id: z.string(),
+  created_at: z.string().optional().nullable(),
+  created_by: z.string().optional().nullable(),
+  id: z.string().optional(),
+  observation: z.string().optional().nullable(),
+  station_code: z.string(),
+  status: publicIirgdDemandStatusSchema.optional(),
+  updated_at: z.string().optional().nullable(),
+})
+
+export const publicIirgdDemandsUpdateSchema = z.object({
+  citizen_id: z.string().optional(),
+  created_at: z.string().optional().nullable(),
+  created_by: z.string().optional().nullable(),
+  id: z.string().optional(),
+  observation: z.string().optional().nullable(),
+  station_code: z.string().optional(),
+  status: publicIirgdDemandStatusSchema.optional(),
+  updated_at: z.string().optional().nullable(),
+})
+
+export const publicIirgdDemandsRelationshipsSchema = z.tuple([
+  z.object({
+    foreignKeyName: z.literal('iirgd_demands_citizen_id_fkey'),
+    columns: z.tuple([z.literal('citizen_id')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('iirgd_citizens'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
+  z.object({
+    foreignKeyName: z.literal('iirgd_demands_created_by_fkey'),
+    columns: z.tuple([z.literal('created_by')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('profiles'),
     referencedColumns: z.tuple([z.literal('id')]),
   }),
 ])
@@ -607,7 +639,16 @@ export const publicProductsRelationshipsSchema = z.tuple([
   }),
 ])
 
-export const publicUserRoleSchema = z.enum(['user', 'admin', 'iirgd', 'uge'])
+export const publicProfilesRowSchema = z.object({
+  avatar_url: z.string().nullable(),
+  created_at: z.string(),
+  id: z.string(),
+  is_active: z.boolean(),
+  name: z.string().nullable(),
+  role: publicUserRoleSchema,
+  theme: z.string().nullable(),
+  updated_at: z.string(),
+})
 
 export const publicProfilesInsertSchema = z.object({
   avatar_url: z.string().optional().nullable(),
@@ -698,44 +739,3 @@ export const publicGetMyCurrentRoleReturnsSchema = publicUserRoleSchema
 export const publicIsAdminArgsSchema = z.never()
 
 export const publicIsAdminReturnsSchema = z.boolean()
-
-export const publicDemandsRowSchema = z.object({
-  bidding_notice_number: z.string().nullable(),
-  contract_number: z.string().nullable(),
-  created_at: z.string(),
-  dispute_date: z.string().nullable(),
-  dispute_number: z.string().nullable(),
-  id: z.string(),
-  id_pca: z.string().nullable(),
-  internal_process_number: z.string().nullable(),
-  is_return_requested: z.boolean().nullable(),
-  name: z.string(),
-  offer_opening_date: z.string().nullable(),
-  process_number: z.string().nullable(),
-  status: publicDemandStatusSchema,
-  type: publicDemandTypeSchema,
-  updated_at: z.string(),
-  user_id: z.string(),
-})
-
-export const publicIirgdDemandsRowSchema = z.object({
-  citizen_id: z.string(),
-  created_at: z.string().nullable(),
-  created_by: z.string().nullable(),
-  id: z.string(),
-  observation: z.string().nullable(),
-  station_code: z.string(),
-  status: publicIirgdDemandStatusSchema,
-  updated_at: z.string().nullable(),
-})
-
-export const publicProfilesRowSchema = z.object({
-  avatar_url: z.string().nullable(),
-  created_at: z.string(),
-  id: z.string(),
-  is_active: z.boolean(),
-  name: z.string().nullable(),
-  role: publicUserRoleSchema,
-  theme: z.string().nullable(),
-  updated_at: z.string(),
-})

@@ -227,7 +227,6 @@
                       <UiCombobox
                         v-model="addUnitSearch"
                         bg-color="surface"
-                        size="md"
                         hide-details
                         item-title="displayName"
                         item-value="name"
@@ -235,6 +234,7 @@
                         label="Buscar ou criar unidade (ex: Bisnaga 90g)"
                         :return-object="false"
                         rounded="lg"
+                        size="md"
                         variant="outline"
                       />
                       <UiAlert v-if="addUnitError" class="mt-3" size="sm" type="error">
@@ -242,7 +242,12 @@
                       </UiAlert>
                       <div class="d-flex justify-end mt-4 gap-2">
                         <UiButton variant="ghost" @click="cancelAddUnit">Cancelar</UiButton>
-                        <UiButton color="primary" :loading="adding" variant="solid" @click="addUnit">
+                        <UiButton
+                          color="primary"
+                          :loading="adding"
+                          variant="solid"
+                          @click="addUnit"
+                        >
                           Adicionar Unidade
                         </UiButton>
                       </div>

@@ -187,7 +187,8 @@
   > = {
     admin: { color: 'primary', label: 'Admin', variant: 'flat' },
     uge: { color: 'warning', label: 'UGE', variant: 'tonal' },
-    iirgd: { color: 'info', label: 'IIRGD', variant: 'tonal' },
+    iirgd_user: { color: 'info', label: 'IIRGD', variant: 'tonal' },
+    iirgd_manager: { color: 'info', label: 'Gestor IIRGD', variant: 'solid' },
     user: { color: 'default', label: 'Usuário', variant: 'outlined' },
   }
 </script>
@@ -211,11 +212,11 @@
           v-model="searchQuery"
           class="mt-0 mb-0"
           clearable
-          size="sm"
           hide-details
           label="Buscar..."
           prepend-inner-icon="search"
           rounded="lg"
+          size="sm"
           style="max-width: 260px"
           variant="outline"
         />
@@ -281,10 +282,10 @@
         <template #item-is_active="{ item }">
           <UiSwitch
             color="success"
-            size="sm"
             :disabled="item.id === loggedProfile?.id"
             hide-details
             :model-value="item.is_active"
+            size="sm"
             @update:model-value="toggleUserStatus(item)"
           />
         </template>
@@ -357,9 +358,9 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               color="success"
-              size="sm"
               hide-details
               :model-value="item.is_active"
+              size="sm"
               @update:model-value="toggleUserStatus(item)"
             />
           </template>
@@ -390,7 +391,7 @@
           </div>
         </div>
         <UiSpacer />
-        <UiButton size="sm" icon="close" variant="ghost" @click="closeEditModal" />
+        <UiButton icon="close" size="sm" variant="ghost" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
@@ -409,7 +410,6 @@
         v-model="editRole"
         v-bind="editRoleProps"
         class="mb-3"
-        size="md"
         :disabled="isSelf"
         :error-messages="editErrors.role"
         :hint="
@@ -423,11 +423,13 @@
           { title: 'Usuário', value: 'user' },
           { title: 'UGE', value: 'uge' },
           { title: 'Administrador', value: 'admin' },
-          { title: 'IIRGD', value: 'iirgd' },
+          { title: 'Usuário IIRGD', value: 'iirgd_user' },
+          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
         ]"
         label="Cargo (Role)"
         persistent-hint
         rounded="lg"
+        size="md"
         variant="outline"
       />
 
@@ -489,7 +491,6 @@
         v-model="createRole"
         v-bind="createRoleProps"
         class="mb-3"
-        size="md"
         :error-messages="createErrors.role"
         item-title="title"
         item-value="value"
@@ -497,10 +498,12 @@
           { title: 'Usuário', value: 'user' },
           { title: 'UGE', value: 'uge' },
           { title: 'Administrador', value: 'admin' },
-          { title: 'IIRGD', value: 'iirgd' },
+          { title: 'Usuário IIRGD', value: 'iirgd_user' },
+          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
         ]"
         label="Cargo (Role)"
         rounded="lg"
+        size="md"
         variant="outline"
       />
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { useIirgdDemands } from '~/composables/useIirgdDemands'
+  import { ROLES } from '~/constants/roles'
 
   definePageMeta({
     icon: 'userBadge',
@@ -10,7 +11,7 @@
     navColor: 'deep-purple',
     navGroup: 'iirgd',
     navOrder: 40,
-    roles: ['admin', 'iirgd'],
+    roles: ['admin', 'iirgd_user', 'iirgd_manager'],
     showIn: ['drawer', 'home'],
   })
 
@@ -78,45 +79,53 @@
     }),
   })
 
+  const { profile } = useProfile()
   const isModalOpen = ref(false)
 
-  const cards = computed(() => [
-    {
-      group: 'in-progress',
-      label: 'Em Andamento',
-      count: counts.value.inProgress,
-      icon: 'time',
-      color: 'primary',
-    },
-    {
-      group: 'consulted',
-      label: 'Consultado',
-      count: counts.value.consulted,
-      icon: 'search',
-      color: 'info',
-    },
-    {
-      group: 'released',
-      label: 'Liberado',
-      count: counts.value.released,
-      icon: 'check',
-      color: 'teal',
-    },
-    {
-      group: 'issued',
-      label: 'Emitidos',
-      count: counts.value.issued,
-      icon: 'success',
-      color: 'success',
-    },
-    {
-      group: 'errors',
-      label: 'Erros',
-      count: counts.value.errors,
-      icon: 'alert',
-      color: 'error',
-    },
-  ])
+  const cards = computed(() => {
+    const all = [
+      {
+        group: 'in-progress',
+        label: 'Em Andamento',
+        count: counts.value.inProgress,
+        icon: 'time',
+        color: 'primary',
+      },
+      {
+        group: 'consulted',
+        label: 'Consultado',
+        count: counts.value.consulted,
+        icon: 'search',
+        color: 'info',
+      },
+      {
+        group: 'released',
+        label: 'Liberado',
+        count: counts.value.released,
+        icon: 'check',
+        color: 'teal',
+      },
+      {
+        group: 'issued',
+        label: 'Emitidos',
+        count: counts.value.issued,
+        icon: 'success',
+        color: 'success',
+      },
+      {
+        group: 'errors',
+        label: 'Erros',
+        count: counts.value.errors,
+        icon: 'close',
+        color: 'error',
+      },
+    ]
+
+    if (profile.value?.role === ROLES.IIRGD_USER) {
+      return all.filter((c) => ['in-progress', 'issued', 'errors'].includes(c.group))
+    }
+    return all
+  })
 </script>
 
 <template>

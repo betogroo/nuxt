@@ -4,8 +4,12 @@
  * ==========================================
  */
 
-import type { z } from 'zod'
-import type * as generated from './database.schemas'
+import { z } from 'zod'
+import * as generated from './database.schemas'
+export type PublicDemandStatus = z.infer<typeof generated.publicDemandStatusSchema>
+export type PublicDemandType = z.infer<typeof generated.publicDemandTypeSchema>
+export type PublicIirgdDemandStatus = z.infer<typeof generated.publicIirgdDemandStatusSchema>
+export type PublicUserRole = z.infer<typeof generated.publicUserRoleSchema>
 export type Json = z.infer<typeof generated.jsonSchema>
 export type PublicDemandProductBidsRow = z.infer<typeof generated.publicDemandProductBidsRowSchema>
 export type PublicDemandProductBidsInsert = z.infer<
@@ -35,8 +39,7 @@ export type PublicDemandResponsiblesUpdate = z.infer<
 export type PublicDemandResponsiblesRelationships = z.infer<
   typeof generated.publicDemandResponsiblesRelationshipsSchema
 >
-export type PublicDemandStatus = z.infer<typeof generated.publicDemandStatusSchema>
-export type PublicDemandType = z.infer<typeof generated.publicDemandTypeSchema>
+export type PublicDemandsRow = z.infer<typeof generated.publicDemandsRowSchema>
 export type PublicDemandsInsert = z.infer<typeof generated.publicDemandsInsertSchema>
 export type PublicDemandsUpdate = z.infer<typeof generated.publicDemandsUpdateSchema>
 export type PublicDemandsRelationships = z.infer<typeof generated.publicDemandsRelationshipsSchema>
@@ -46,12 +49,6 @@ export type PublicExpenseNaturesUpdate = z.infer<typeof generated.publicExpenseN
 export type PublicIirgdCitizensRow = z.infer<typeof generated.publicIirgdCitizensRowSchema>
 export type PublicIirgdCitizensInsert = z.infer<typeof generated.publicIirgdCitizensInsertSchema>
 export type PublicIirgdCitizensUpdate = z.infer<typeof generated.publicIirgdCitizensUpdateSchema>
-export type PublicIirgdDemandStatus = z.infer<typeof generated.publicIirgdDemandStatusSchema>
-export type PublicIirgdDemandsInsert = z.infer<typeof generated.publicIirgdDemandsInsertSchema>
-export type PublicIirgdDemandsUpdate = z.infer<typeof generated.publicIirgdDemandsUpdateSchema>
-export type PublicIirgdDemandsRelationships = z.infer<
-  typeof generated.publicIirgdDemandsRelationshipsSchema
->
 export type PublicIirgdDemandStatusHistoryRow = z.infer<
   typeof generated.publicIirgdDemandStatusHistoryRowSchema
 >
@@ -63,6 +60,12 @@ export type PublicIirgdDemandStatusHistoryUpdate = z.infer<
 >
 export type PublicIirgdDemandStatusHistoryRelationships = z.infer<
   typeof generated.publicIirgdDemandStatusHistoryRelationshipsSchema
+>
+export type PublicIirgdDemandsRow = z.infer<typeof generated.publicIirgdDemandsRowSchema>
+export type PublicIirgdDemandsInsert = z.infer<typeof generated.publicIirgdDemandsInsertSchema>
+export type PublicIirgdDemandsUpdate = z.infer<typeof generated.publicIirgdDemandsUpdateSchema>
+export type PublicIirgdDemandsRelationships = z.infer<
+  typeof generated.publicIirgdDemandsRelationshipsSchema
 >
 export type PublicLogsRow = z.infer<typeof generated.publicLogsRowSchema>
 export type PublicLogsInsert = z.infer<typeof generated.publicLogsInsertSchema>
@@ -102,7 +105,7 @@ export type PublicProductsUpdate = z.infer<typeof generated.publicProductsUpdate
 export type PublicProductsRelationships = z.infer<
   typeof generated.publicProductsRelationshipsSchema
 >
-export type PublicUserRole = z.infer<typeof generated.publicUserRoleSchema>
+export type PublicProfilesRow = z.infer<typeof generated.publicProfilesRowSchema>
 export type PublicProfilesInsert = z.infer<typeof generated.publicProfilesInsertSchema>
 export type PublicProfilesUpdate = z.infer<typeof generated.publicProfilesUpdateSchema>
 export type PublicSuppliersRow = z.infer<typeof generated.publicSuppliersRowSchema>
@@ -120,6 +123,3 @@ export type PublicGetMyCurrentRoleReturns = z.infer<
 >
 export type PublicIsAdminArgs = z.infer<typeof generated.publicIsAdminArgsSchema>
 export type PublicIsAdminReturns = z.infer<typeof generated.publicIsAdminReturnsSchema>
-export type PublicDemandsRow = z.infer<typeof generated.publicDemandsRowSchema>
-export type PublicIirgdDemandsRow = z.infer<typeof generated.publicIirgdDemandsRowSchema>
-export type PublicProfilesRow = z.infer<typeof generated.publicProfilesRowSchema>

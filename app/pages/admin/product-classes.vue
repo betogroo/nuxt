@@ -124,11 +124,11 @@
           <UiInput
             v-model="searchQuery"
             clearable
-            size="sm"
             hide-details
             label="Buscar..."
             prepend-inner-icon="search"
             rounded="lg"
+            size="sm"
             style="max-width: 260px"
             variant="outline"
             @update:model-value="handleSearch"
@@ -168,9 +168,9 @@
             <UiSwitch
               class="d-inline-flex"
               color="primary"
-              size="sm"
               hide-details
               :model-value="item.is_active"
+              size="sm"
               @update:model-value="toggleStatus(item)"
             />
           </template>
@@ -196,12 +196,7 @@
         </UiTable>
 
         <div v-if="totalPages > 1" class="d-flex justify-center pa-4 border-t">
-          <UiPagination
-            v-model="currentPage"
-            size="md"
-            :length="totalPages"
-            :total-visible="7"
-          />
+          <UiPagination v-model="currentPage" :length="totalPages" size="md" :total-visible="7" />
         </div>
       </UiCard>
     </div>
@@ -310,10 +305,10 @@
           v-model="isActive"
           v-bind="isActiveProps"
           color="primary"
-          size="sm"
           :error-messages="saveErrors.is_active"
           hide-details
           label="Classe Ativa"
+          size="sm"
         />
       </UiForm>
 

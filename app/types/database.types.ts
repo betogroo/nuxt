@@ -280,6 +280,48 @@ export type Database = {
         }
         Relationships: []
       }
+      iirgd_demand_status_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          demand_id: string
+          id: string
+          observation: string | null
+          status: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          demand_id: string
+          id?: string
+          observation?: string | null
+          status: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          demand_id?: string
+          id?: string
+          observation?: string | null
+          status?: Database['public']['Enums']['iirgd_demand_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'iirgd_demand_status_history_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'iirgd_demand_status_history_demand_id_fkey'
+            columns: ['demand_id']
+            isOneToOne: false
+            referencedRelation: 'iirgd_demands'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       iirgd_demands: {
         Row: {
           citizen_id: string
@@ -324,48 +366,6 @@ export type Database = {
             columns: ['created_by']
             isOneToOne: false
             referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      iirgd_demand_status_history: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          demand_id: string
-          id: string
-          observation: string | null
-          status: Database['public']['Enums']['iirgd_demand_status']
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          demand_id: string
-          id?: string
-          observation?: string | null
-          status: Database['public']['Enums']['iirgd_demand_status']
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          demand_id?: string
-          id?: string
-          observation?: string | null
-          status?: Database['public']['Enums']['iirgd_demand_status']
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'iirgd_demand_status_history_created_by_fkey'
-            columns: ['created_by']
-            isOneToOne: false
-            referencedRelation: 'profiles'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'iirgd_demand_status_history_demand_id_fkey'
-            columns: ['demand_id']
-            isOneToOne: false
-            referencedRelation: 'iirgd_demands'
             referencedColumns: ['id']
           },
         ]
@@ -684,7 +684,6 @@ export type Database = {
         | 'completed'
         | 'cancelled'
       demand_type: 'consumption' | 'permanent'
-      user_role: 'user' | 'admin' | 'iirgd' | 'uge'
       iirgd_demand_status:
         | 'new'
         | 'confronted'
@@ -697,6 +696,7 @@ export type Database = {
         | 'protocol_cancelled'
         | 'awaiting_collection'
         | 'confrontation_failed'
+      user_role: 'user' | 'admin' | 'iirgd_user' | 'uge' | 'iirgd_manager'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -828,7 +828,6 @@ export const Constants = {
         'cancelled',
       ],
       demand_type: ['consumption', 'permanent'],
-      user_role: ['user', 'admin', 'iirgd', 'uge'],
       iirgd_demand_status: [
         'new',
         'confronted',
@@ -842,6 +841,7 @@ export const Constants = {
         'awaiting_collection',
         'confrontation_failed',
       ],
+      user_role: ['user', 'admin', 'iirgd_user', 'uge', 'iirgd_manager'],
     },
   },
 } as const

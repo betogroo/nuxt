@@ -650,7 +650,6 @@
           <template #item-order="{ index }">
             <div class="d-flex flex-column align-center justify-center">
               <UiButton
-               
                 :disabled="index === 0 || isReordering"
                 icon="chevronUp"
                 size="xs"
@@ -658,7 +657,6 @@
                 @click.stop="moveItemUp(index)"
               />
               <UiButton
-               
                 :disabled="index === (items?.length || 0) - 1 || isReordering"
                 icon="chevronDown"
                 size="xs"
@@ -900,24 +898,19 @@
           v-model="selectedProductId"
           v-model:search="searchProductText"
           clearable
-          size="md"
           item-title="name"
           item-value="id"
           :items="allProducts || []"
           label="Buscar Produto"
           placeholder="Digite o nome do produto..."
+          size="md"
           variant="outline"
         >
           <!-- Personalizando a pesquisa no front-end para simplificar -->
           <template #no-data>
             <div class="pa-3 text-center">
               <span class="text-grey mr-2">Produto não encontrado.</span>
-              <UiButton
-                color="primary"
-                size="sm"
-                variant="soft"
-                @click="activateNewProductMode"
-              >
+              <UiButton color="primary" size="sm" variant="soft" @click="activateNewProductMode">
                 Cadastrar novo
               </UiButton>
             </div>
@@ -980,7 +973,6 @@
           v-if="!isSuggestingNature"
           v-model="newProductExpenseNatureId"
           class="mb-4"
-          size="md"
           :item-title="
             (item: Record<string, unknown>) =>
               typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
@@ -988,6 +980,7 @@
           item-value="id"
           :items="expenseNatures || []"
           label="Natureza de Despesa"
+          size="md"
           variant="outline"
         />
 
@@ -1060,13 +1053,7 @@
       :title="`Avançar para: ${formatDemandStatus(targetStatus)}`"
       transparent-header
     >
-      <UiAlert
-        v-if="advanceModal.error.value"
-        class="mb-4"
-        size="sm"
-        type="error"
-        variant="soft"
-      >
+      <UiAlert v-if="advanceModal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ advanceModal.error.value }}
       </UiAlert>
 
@@ -1149,13 +1136,7 @@
       title="Confirmar Retorno de Fase"
       transparent-header
     >
-      <UiAlert
-        v-if="revertModal.error.value"
-        class="mb-4"
-        size="sm"
-        type="error"
-        variant="soft"
-      >
+      <UiAlert v-if="revertModal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ revertModal.error.value }}
       </UiAlert>
 
@@ -1170,7 +1151,10 @@
       </p>
 
       <template #actions>
-        <UiButton :disabled="revertModal.isSaving.value" variant="ghost" @click="revertModal.close()"
+        <UiButton
+          :disabled="revertModal.isSaving.value"
+          variant="ghost"
+          @click="revertModal.close()"
           >Cancelar</UiButton
         >
         <UiButton

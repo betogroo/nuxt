@@ -13,7 +13,12 @@ export default defineNuxtRouteMiddleware(async () => {
     await fetchProfile()
   }
 
-  if (profile.value?.role !== ROLES.ADMIN && profile.value?.role !== ROLES.IIRGD) {
+  const isAllowed =
+    profile.value?.role === ROLES.ADMIN ||
+    profile.value?.role === ROLES.IIRGD_USER ||
+    profile.value?.role === ROLES.IIRGD_MANAGER
+
+  if (!isAllowed) {
     return navigateTo('/')
   }
 })

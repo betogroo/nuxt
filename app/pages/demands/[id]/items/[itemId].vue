@@ -424,7 +424,6 @@
           v-model="eiBidIntervalType"
           v-bind="eiBidIntervalTypeProps"
           class="mr-2 flex-grow-1"
-          size="md"
           :error-messages="eiErrors.bid_interval_type"
           hide-details
           :items="[
@@ -432,6 +431,7 @@
             { title: 'Monetário (R$)', value: 'monetary' },
           ]"
           label="Tipo de Intervalo"
+          size="md"
           variant="outline"
         />
         <UiInput
@@ -475,10 +475,10 @@
         v-bind="bidIsNewProps"
         class="mb-4"
         color="primary"
-        size="sm"
         :error-messages="bidErrors.isNewSupplier"
         hide-details
         label="Fornecedor não está na lista? Cadastrar Novo."
+        size="sm"
       ></UiSwitch>
 
       <!-- Fornecedor Existente -->
@@ -488,13 +488,13 @@
         v-bind="bidSupplierIdProps"
         class="mb-3"
         color="primary"
-        size="md"
         :error-messages="bidErrors.supplierId"
         item-title="company_name"
         item-value="id"
         :items="suppliers"
         label="Selecionar Fornecedor*"
         placeholder="Busque pela razão social..."
+        size="md"
         variant="outline"
       ></UiAutocomplete>
 

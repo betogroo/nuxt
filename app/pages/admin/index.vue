@@ -110,9 +110,9 @@
           <UiAlert
             border="start"
             color="warning"
-            size="sm"
             icon="clipboardClock"
             rounded="xl"
+            size="sm"
             title="Tarefas Pendentes de Revisão"
             variant="soft"
           >

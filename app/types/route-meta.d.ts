@@ -1,16 +1,12 @@
-export type NavTarget = 'drawer' | 'home' | 'admin-shortcuts'
-export type NavGroup = 'public' | 'management' | 'iirgd' | 'admin'
-export type UserRole = 'admin' | 'uge' | 'iirgd' | 'user'
+import 'vue-router'
+
+export type UserRole = 'admin' | 'uge' | 'iirgd_user' | 'iirgd_manager' | 'user'
 
 declare module 'vue-router' {
   interface RouteMeta {
+    title?: string
     icon?: string
-    navLabel?: string
-    navSubtitle?: string
-    navColor?: string
-    navGroup?: NavGroup
-    navOrder?: number
+    order?: number
     roles?: UserRole[]
-    showIn?: NavTarget[]
   }
 }
