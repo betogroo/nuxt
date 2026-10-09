@@ -185,12 +185,6 @@
       </UiButton>
     </div>
 
-    <UiPageHeader
-      subtitle="Listagem das demandas agrupadas pelo seu respectivo status."
-      :title="titles[group] || 'Lista de Demandas'"
-    >
-    </UiPageHeader>
-
     <UiContainer>
       <!-- Navegação Facilitada entre status -->
       <UiTabs v-model="currentTab" class="mb-4">

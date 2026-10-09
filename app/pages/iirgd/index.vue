@@ -78,23 +78,15 @@
       subtitle="Visão geral e acesso rápido às demandas do Instituto de Identificação"
       title="Dashboard IIRGD"
     >
+      <template #actions>
+        <UiButton color="primary" prepend-icon="add" @click="isModalOpen = true">
+          Nova Demanda
+        </UiButton>
+      </template>
     </UiPageHeader>
 
     <UiContainer>
       <UiRow>
-        <UiCol cols="12" md="4" sm="6">
-          <UiCard
-            class="cursor-pointer transition-swing h-100 d-flex flex-column align-center justify-center bg-primary"
-            hover
-            @click="isModalOpen = true"
-          >
-            <div class="pa-4 text-center">
-              <UiIcon class="mb-2" name="add" size="xl" />
-              <div class="text-h6 font-weight-bold">Nova Demanda</div>
-            </div>
-          </UiCard>
-        </UiCol>
-
         <UiCol v-for="card in cards" :key="card.group" cols="12" md="4" sm="6">
           <UiCard
             class="cursor-pointer transition-swing"
