@@ -174,21 +174,22 @@
 
 <template>
   <div>
+    <div class="mb-4">
+      <UiButton
+        color="default"
+        prepend-icon="arrowLeft"
+        variant="ghost"
+        @click="navigateTo('/iirgd')"
+      >
+        Voltar ao Dashboard
+      </UiButton>
+    </div>
+
     <UiPageHeader
       :subtitle="`Gestão de demandas com status: ${titles[group]}`"
       :title="titles[group] || 'Lista de Demandas'"
     >
       <template #actions>
-        <UiButton
-          class="mr-2"
-          color="secondary"
-          icon="arrowBack"
-          size="sm"
-          variant="soft"
-          @click="navigateTo('/iirgd')"
-        >
-          Dashboard
-        </UiButton>
         <UiButton
           class="mr-2"
           color="secondary"
