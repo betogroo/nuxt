@@ -236,6 +236,46 @@ export const useIirgdDemands = () => {
     return data
   }
 
+  const fetchIssuedDemandsTrend = async (days: number = 30) => {
+    const today = new Date()
+    const pastDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
+
+    const { data, error } = await supabase
+      .from('iirgd_demand_status_history')
+      .select('created_at')
+      .eq('status', 'issued')
+      .gte('created_at', pastDate.toISOString())
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar histórico de emissões do IIRGD')
+    }
+
+    const countsByDate: Record<string, number> = {}
+
+    // Initialize last X days with 0
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+      const dateStr = d.toISOString().split('T')[0]
+      countsByDate[dateStr] = 0
+    }
+
+    if (data) {
+      data.forEach((item) => {
+        const dateStr = item.created_at.split('T')[0]
+        if (countsByDate[dateStr] !== undefined) {
+          countsByDate[dateStr]++
+        }
+      })
+    }
+
+    return {
+      labels: Object.keys(countsByDate),
+      series: Object.values(countsByDate),
+    }
+  }
+
   const fetchDemandById = async (id: string) => {
     const { data, error } = await supabase
       .from('iirgd_demands')
@@ -312,6 +352,7 @@ export const useIirgdDemands = () => {
   return {
     fetchDemands,
     fetchDemandCounts,
+    fetchIssuedDemandsTrend,
     fetchDemandById,
     fetchCitizenHistory,
     fetchDemandStatusHistory,

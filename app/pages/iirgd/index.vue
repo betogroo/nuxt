@@ -18,7 +18,54 @@
     title: 'Dashboard IIRGD',
   })
 
-  const { fetchDemandCounts } = useIirgdDemands()
+  const { fetchDemandCounts, fetchIssuedDemandsTrend } = useIirgdDemands()
+
+  const { data: trendData } = useAsyncData(
+    'iirgd-demand-trend',
+    () => fetchIssuedDemandsTrend(30),
+    {
+      default: () => ({ labels: [] as string[], series: [] as number[] }),
+    },
+  )
+
+  const statusChartOptions = computed(() => ({
+    chart: { type: 'donut', fontFamily: 'inherit' },
+    labels: ['Em Andamento', 'Consultados', 'Liberados', 'Emitidos', 'Erros'],
+    colors: ['#2196F3', '#1976D2', '#009688', '#4CAF50', '#F44336'],
+    plotOptions: {
+      pie: { donut: { size: '70%' } },
+    },
+    dataLabels: { enabled: false },
+    legend: { position: 'bottom' },
+  }))
+
+  const statusChartSeries = computed(() => [
+    counts.value.inProgress,
+    counts.value.consulted,
+    counts.value.released,
+    counts.value.issued,
+    counts.value.errors,
+  ])
+
+  const trendChartOptions = computed(() => ({
+    chart: { type: 'area', fontFamily: 'inherit', toolbar: { show: false } },
+    colors: ['#4CAF50'],
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth', width: 2 },
+    xaxis: {
+      categories: trendData.value.labels,
+      type: 'datetime',
+      labels: { datetimeFormatter: { year: 'yyyy', month: "MMM 'yy", day: 'dd MMM' } },
+    },
+    fill: {
+      type: 'gradient',
+      gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 90, 100] },
+    },
+  }))
+
+  const trendChartSeries = computed(() => [
+    { name: 'Demandas Emitidas', data: trendData.value.series },
+  ])
 
   // Buscar apenas as contagens
   const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
@@ -101,6 +148,34 @@
               <UiAvatar :color="card.color" size="lg" variant="soft">
                 <UiIcon :name="card.icon" />
               </UiAvatar>
+            </div>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+      <UiRow class="mt-6">
+        <UiCol cols="12" md="6">
+          <UiCard class="h-100">
+            <div class="pa-4">
+              <div class="text-h6 mb-4">Distribuição de Status</div>
+              <UiChart
+                height="300"
+                :options="statusChartOptions"
+                :series="statusChartSeries"
+                type="donut"
+              />
+            </div>
+          </UiCard>
+        </UiCol>
+        <UiCol cols="12" md="6">
+          <UiCard class="h-100">
+            <div class="pa-4">
+              <div class="text-h6 mb-4">Emissões (Últimos 30 dias)</div>
+              <UiChart
+                height="300"
+                :options="trendChartOptions"
+                :series="trendChartSeries"
+                type="area"
+              />
             </div>
           </UiCard>
         </UiCol>
