@@ -174,13 +174,15 @@
 
     <div v-else-if="demand">
       <UiRow justify="center">
-        <UiCol cols="12" lg="10" xl="8">
+        <UiCol cols="12" lg="10" xl="9">
           <!-- Cabeçalho Principal -->
-          <div class="d-flex align-center mb-6">
-            <UiIcon class="mr-3" color="primary" name="userBadge" size="32" />
+          <div class="d-flex align-center flex-wrap ga-4 mb-8">
+            <UiIcon color="primary" name="userBadge" size="40" />
             <div>
               <div class="text-h5 font-weight-bold">{{ demand.iirgd_citizens?.name }}</div>
-              <div class="text-subtitle-2 text-medium-emphasis">Detalhes do atendimento IIRGD</div>
+              <div class="text-subtitle-2 text-medium-emphasis">
+                Atendimento IIRGD · Posto {{ demand.station_code }}
+              </div>
             </div>
             <UiSpacer />
             <UiChip
@@ -195,175 +197,171 @@
                 'Não informado'
               }}
             </UiChip>
+            <UiButton
+              v-if="canEditData"
+              color="primary"
+              prepend-icon="edit"
+              variant="solid"
+              @click="openEditModal"
+            >
+              Atualizar
+            </UiButton>
           </div>
 
           <UiRow>
-            <!-- Lado Esquerdo: Informações do Cidadão -->
-            <UiCol cols="12" md="6">
+            <!-- Cidadão -->
+            <UiCol cols="12" md="5">
               <UiCard class="h-100">
-                <div class="pa-5">
-                  <div class="d-flex align-center mb-4">
-                    <UiIcon class="mr-2" color="primary" name="contactDetails" />
-                    <div class="text-subtitle-1 font-weight-bold">Dados do Cidadão e Posto</div>
+                <template #header>
+                  <UiIcon color="primary" name="contactDetails" />
+                  <span>Cidadão</span>
+                </template>
+
+                <div class="d-flex flex-column ga-6">
+                  <div>
+                    <div class="text-overline text-medium-emphasis">Nome completo</div>
+                    <NuxtLink
+                      class="text-body-1 font-weight-medium text-decoration-none text-primary"
+                      :to="`/iirgd/citizens/${demand.citizen_id}`"
+                    >
+                      {{ demand.iirgd_citizens?.name }}
+                    </NuxtLink>
                   </div>
 
-                  <div class="d-flex flex-column gap-4">
-                    <UiRow dense>
-                      <UiCol cols="12" sm="6">
-                        <div class="text-caption text-medium-emphasis">Código do Posto</div>
-                        <div class="mt-1">
-                          <UiChip color="blue-grey" label size="sm" variant="soft">
-                            {{ demand.station_code }}
-                          </UiChip>
-                        </div>
-                      </UiCol>
-                      <UiCol cols="12" sm="6">
-                        <div class="text-caption text-medium-emphasis">Tipo do Documento</div>
-                        <div class="mt-1">
-                          <span class="text-body-1 font-weight-medium">
-                            {{ demand.iirgd_document_types?.name || '-' }}
-                          </span>
-                        </div>
-                      </UiCol>
-                    </UiRow>
+                  <div>
+                    <div class="text-overline text-medium-emphasis">RG</div>
+                    <div class="text-body-1 font-weight-medium">
+                      {{
+                        demand.iirgd_citizens?.rg
+                          ? padAndFormatRg(demand.iirgd_citizens.rg, true)
+                          : '-'
+                      }}
+                    </div>
+                  </div>
 
-                    <UiDivider />
-
-                    <UiRow dense>
-                      <UiCol cols="12" sm="6">
-                        <div class="text-caption text-medium-emphasis">Nome Completo</div>
-                        <NuxtLink
-                          class="text-body-1 font-weight-medium text-decoration-none text-primary"
-                          :to="`/iirgd/citizens/${demand.citizen_id}`"
-                        >
-                          {{ demand.iirgd_citizens?.name }}
-                        </NuxtLink>
-                      </UiCol>
-                    </UiRow>
-
-                    <UiRow dense>
-                      <UiCol cols="12" sm="6">
-                        <div class="text-caption text-medium-emphasis">RG</div>
-                        <div class="text-body-1 font-weight-mono">
-                          {{
-                            demand.iirgd_citizens?.rg
-                              ? padAndFormatRg(demand.iirgd_citizens.rg, true)
-                              : '-'
-                          }}
-                        </div>
-                      </UiCol>
-                      <UiCol cols="12" sm="6">
-                        <div class="text-caption text-medium-emphasis">CPF</div>
-                        <div class="text-body-1 font-weight-mono">
-                          {{
-                            demand.iirgd_citizens?.cpf ? formatCpf(demand.iirgd_citizens.cpf) : '-'
-                          }}
-                        </div>
-                      </UiCol>
-                    </UiRow>
-
-                    <UiDivider />
-
-                    <div>
-                      <div class="text-caption text-medium-emphasis mb-2">
-                        Histórico de Registro da Demanda Atual
-                      </div>
-                      <UiRow dense>
-                        <UiCol cols="12" sm="6">
-                          <div class="text-caption text-medium-emphasis">Criado em</div>
-                          <div class="text-body-2">
-                            {{ new Date(demand.created_at).toLocaleString('pt-BR') }}
-                          </div>
-                        </UiCol>
-                        <UiCol cols="12" sm="6">
-                          <div class="text-caption text-medium-emphasis">Cadastrado por</div>
-                          <div class="text-body-2">
-                            {{ demand.profiles?.name || 'Sistema' }}
-                          </div>
-                        </UiCol>
-                        <UiCol cols="12">
-                          <div class="text-caption text-medium-emphasis">Última atualização</div>
-                          <div class="text-body-2">
-                            {{ new Date(demand.updated_at).toLocaleString('pt-BR') }}
-                          </div>
-                        </UiCol>
-                      </UiRow>
+                  <div>
+                    <div class="text-overline text-medium-emphasis">CPF</div>
+                    <div class="text-body-1 font-weight-medium">
+                      {{ demand.iirgd_citizens?.cpf ? formatCpf(demand.iirgd_citizens.cpf) : '-' }}
                     </div>
                   </div>
                 </div>
               </UiCard>
             </UiCol>
 
-            <!-- Lado Direito: Status e Observação -->
-            <UiCol cols="12" md="6">
+            <!-- Atendimento -->
+            <UiCol cols="12" md="7">
               <UiCard class="h-100">
-                <div class="pa-5">
-                  <div class="d-flex align-center justify-space-between mb-4">
-                    <div class="d-flex align-center">
-                      <UiIcon class="mr-2" color="primary" name="document" />
-                      <div class="text-subtitle-1 font-weight-bold">Acompanhamento</div>
-                    </div>
-                    <UiButton
-                      v-if="canEditData"
-                      color="primary"
-                      prepend-icon="edit"
-                      size="sm"
-                      variant="soft"
-                      @click="openEditModal"
-                    >
-                      Atualizar
-                    </UiButton>
-                  </div>
+                <template #header>
+                  <UiIcon color="primary" name="document" />
+                  <span>Atendimento</span>
+                </template>
 
-                  <div class="text-body-2 text-medium-emphasis mb-4">
-                    Acompanhe a situação do atendimento e registre observações relevantes.
-                  </div>
-
-                  <UiTimeline
-                    v-if="statusHistory && statusHistory.length"
-                    align="start"
-                    side="end"
-                    size="sm"
-                  >
-                    <UiTimelineItem
-                      v-for="item in statusHistory"
-                      :key="item.id"
-                      :dot-color="
-                        IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'
-                      "
-                      size="sm"
-                    >
-                      <div class="d-flex flex-column mb-3">
-                        <div class="d-flex align-center justify-space-between mb-1">
-                          <strong>{{
-                            IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status
-                          }}</strong>
-                          <span class="text-caption text-medium-emphasis">
-                            {{ new Date(item.created_at).toLocaleString('pt-BR') }}
-                          </span>
-                        </div>
-                        <div class="text-body-2 text-medium-emphasis">
-                          por {{ item.profiles?.name || 'Sistema' }}
-                        </div>
-                        <div
-                          v-if="item.observation"
-                          class="bg-surface-variant rounded pa-2 mt-2 text-body-2"
-                          style="white-space: pre-wrap"
-                        >
-                          {{ item.observation }}
-                        </div>
+                <div class="d-flex flex-column ga-6">
+                  <UiRow>
+                    <UiCol cols="12" sm="6">
+                      <div class="text-overline text-medium-emphasis">Código do posto</div>
+                      <div class="mt-1">
+                        <UiChip color="blue-grey" label size="sm" variant="soft">
+                          {{ demand.station_code }}
+                        </UiChip>
                       </div>
-                    </UiTimelineItem>
-                  </UiTimeline>
+                    </UiCol>
+                    <UiCol cols="12" sm="6">
+                      <div class="text-overline text-medium-emphasis">Tipo do documento</div>
+                      <div class="text-body-1 font-weight-medium">
+                        {{ demand.iirgd_document_types?.name || '-' }}
+                      </div>
+                    </UiCol>
+                  </UiRow>
 
-                  <div v-else class="text-center pa-4 text-medium-emphasis">
-                    Nenhum histórico registrado.
+                  <div>
+                    <div class="text-overline text-medium-emphasis">Observações gerais</div>
+                    <div
+                      v-if="demand.observation"
+                      class="bg-surface-variant rounded-lg pa-3 mt-1 text-body-2"
+                      style="white-space: pre-wrap"
+                    >
+                      {{ demand.observation }}
+                    </div>
+                    <div v-else class="text-body-2 text-medium-emphasis">
+                      Nenhuma observação registrada.
+                    </div>
                   </div>
+
+                  <UiDivider />
+
+                  <UiRow>
+                    <UiCol cols="12" sm="4">
+                      <div class="text-overline text-medium-emphasis">Criado em</div>
+                      <div class="text-body-2">
+                        {{ new Date(demand.created_at).toLocaleString('pt-BR') }}
+                      </div>
+                    </UiCol>
+                    <UiCol cols="12" sm="4">
+                      <div class="text-overline text-medium-emphasis">Cadastrado por</div>
+                      <div class="text-body-2">{{ demand.profiles?.name || 'Sistema' }}</div>
+                    </UiCol>
+                    <UiCol cols="12" sm="4">
+                      <div class="text-overline text-medium-emphasis">Última atualização</div>
+                      <div class="text-body-2">
+                        {{ new Date(demand.updated_at).toLocaleString('pt-BR') }}
+                      </div>
+                    </UiCol>
+                  </UiRow>
                 </div>
               </UiCard>
             </UiCol>
           </UiRow>
 
+          <!-- Histórico de acompanhamento -->
+          <UiCard class="mt-6">
+            <template #header>
+              <UiIcon color="primary" name="document" />
+              <span>Histórico de acompanhamento</span>
+            </template>
+
+            <div class="text-body-2 text-medium-emphasis mb-6">
+              Acompanhe a situação do atendimento e as observações registradas a cada mudança.
+            </div>
+
+            <UiTimeline v-if="statusHistory && statusHistory.length" align="start" side="end">
+              <UiTimelineItem
+                v-for="item in statusHistory"
+                :key="item.id"
+                :dot-color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'default'"
+                size="small"
+              >
+                <div class="d-flex flex-column pb-4">
+                  <div class="d-flex align-center flex-wrap ga-2 mb-1">
+                    <strong>{{
+                      IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status
+                    }}</strong>
+                    <UiSpacer />
+                    <span class="text-caption text-medium-emphasis">
+                      {{ new Date(item.created_at).toLocaleString('pt-BR') }}
+                    </span>
+                  </div>
+                  <div class="text-body-2 text-medium-emphasis">
+                    por {{ item.profiles?.name || 'Sistema' }}
+                  </div>
+                  <div
+                    v-if="item.observation"
+                    class="bg-surface-variant rounded-lg pa-3 mt-2 text-body-2"
+                    style="white-space: pre-wrap"
+                  >
+                    {{ item.observation }}
+                  </div>
+                </div>
+              </UiTimelineItem>
+            </UiTimeline>
+
+            <div v-else class="text-center pa-4 text-medium-emphasis">
+              Nenhum histórico registrado.
+            </div>
+          </UiCard>
+
+          <!-- Histórico de solicitações do cidadão -->
           <UiCard class="mt-6" title="Histórico de Solicitações do Cidadão" variant="outline">
             <UiTable
               :headers="[
