@@ -1,4 +1,4 @@
-﻿CREATE TABLE public.iirgd_settings (
+CREATE TABLE public.iirgd_settings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   alert_days integer NOT NULL DEFAULT 10,
   delay_days integer NOT NULL DEFAULT 15,
