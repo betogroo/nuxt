@@ -231,16 +231,6 @@ export const useIirgdDemands = () => {
     }
 
     if (data) {
-      // Registrar no histórico
-      await supabase.from('iirgd_demand_status_history').insert([
-        {
-          demand_id: data.id,
-          status: 'new',
-          observation: payload.observation,
-          created_by: user.value?.id || null,
-        },
-      ])
-
       await logAction(
         'CREATE_IIRGD_DEMAND',
         `Nova demanda IIRGD criada para ${payload.name} (Posto: ${payload.station_code})`,
@@ -347,17 +337,6 @@ export const useIirgdDemands = () => {
     }
 
     if (data) {
-      if (updates.status) {
-        await supabase.from('iirgd_demand_status_history').insert([
-          {
-            demand_id: data.id,
-            status: updates.status as IirgdDemandStatus,
-            observation: updates.observation || null,
-            created_by: user.value?.id || null,
-          },
-        ])
-      }
-
       await logAction('UPDATE_IIRGD_DEMAND', `Demanda IIRGD atualizada: ID ${data.id}`)
     }
 
