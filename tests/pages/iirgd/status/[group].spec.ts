@@ -20,6 +20,13 @@ mockNuxtImport('useIirgdDemands', () => {
   })
 })
 
+mockNuxtImport('useIirgdSettings', () => {
+  return () => ({
+    fetchSettings: vi.fn(),
+    computePriority: vi.fn(() => 'none'),
+  })
+})
+
 mockNuxtImport('useAsyncData', () => {
   return () => ({
     data: ref({

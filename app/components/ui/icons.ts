@@ -63,6 +63,7 @@ export const iconMap = {
   chevronDown: 'mdi-chevron-down',
   chevronUp: 'mdi-chevron-up',
   copy: 'mdi-content-copy',
+  settings: 'mdi-cog-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

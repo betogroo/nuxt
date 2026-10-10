@@ -17,6 +17,7 @@ export interface IirgdDemand {
   station_code: string
   observation?: string
   status?: string
+  priority?: 'alert' | 'delay' | 'normal' | 'none'
   created_by?: string | null
   created_at?: string
   updated_at?: string
@@ -126,7 +127,7 @@ export const useIirgdDemands = () => {
       query = query.range(from, to)
     }
 
-    const { data, count, error } = await query.order('created_at', { ascending: false })
+    const { data, count, error } = await query.order('created_at', { ascending: true })
 
     if (error) {
       console.error(error)

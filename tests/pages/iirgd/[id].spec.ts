@@ -21,6 +21,14 @@ mockNuxtImport('useIirgdDemands', () => {
   })
 })
 
+mockNuxtImport('useIirgdSettings', () => {
+  return () => ({
+    fetchSettings: vi.fn(),
+    updateSettings: vi.fn(),
+    computePriority: vi.fn(() => 'none'),
+  })
+})
+
 mockNuxtImport('useAsyncData', async () => {
   const { ref } = await import('vue')
   return () => ({

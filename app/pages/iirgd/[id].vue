@@ -27,8 +27,11 @@
     fetchAllActiveDocumentTypes(),
   )
 
+  const { fetchSettings, computePriority } = useIirgdSettings()
+  const { data: slaSettings } = useAsyncData('iirgd-settings', fetchSettings)
+
   const {
-    data: demand,
+    data: demandRaw,
     pending,
     refresh: refreshDemand,
   } = useAsyncData(`iirgd-demand-${demandId}`, async () => {
@@ -37,6 +40,14 @@
     } catch (e) {
       console.error(e)
       return null
+    }
+  })
+
+  const demand = computed(() => {
+    if (!demandRaw.value) return null
+    return {
+      ...demandRaw.value,
+      priority: computePriority(demandRaw.value, slaSettings.value || null),
     }
   })
 
@@ -197,6 +208,12 @@
                 'Não informado'
               }}
             </UiChip>
+            <UiChip v-if="demand.priority === 'delay'" color="error" size="default" variant="solid" label>
+              Atraso
+            </UiChip>
+            <UiChip v-else-if="demand.priority === 'alert'" color="warning" size="default" variant="solid" label>
+              Alerta
+            </UiChip>
             <UiButton
               v-if="canEditData"
               color="primary"
@@ -305,7 +322,7 @@
                     <UiCol cols="12" sm="4">
                       <div class="text-overline text-medium-emphasis">Última atualização</div>
                       <div class="text-body-2">
-                        {{ new Date(demand.updated_at).toLocaleString('pt-BR') }}
+                        {{ demand.updated_at ? new Date(demand.updated_at).toLocaleString('pt-BR') : '-' }}
                       </div>
                     </UiCol>
                   </UiRow>
@@ -472,7 +489,7 @@
           <UiSelect
             v-model="stationCode"
             :error-messages="errors.station_code"
-            :items="stationCodes"
+            :items="[...stationCodes]"
             label="Código do Posto"
             placeholder="Selecione"
           />

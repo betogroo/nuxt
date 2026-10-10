@@ -55,8 +55,11 @@
   const isUnpaginated = group === 'consulted'
   const canEditStatus = computed(() => profile.value?.role !== ROLES.IIRGD_USER)
 
+  const { fetchSettings, computePriority } = useIirgdSettings()
+  const { data: slaSettings } = useAsyncData('iirgd-settings', fetchSettings)
+
   const {
-    data: demands,
+    data: demandsRaw,
     pending,
     refresh,
   } = useAsyncData(
@@ -79,6 +82,13 @@
       default: () => [],
     },
   )
+
+  const demands = computed(() => {
+    return demandsRaw.value.map((d) => ({
+      ...d,
+      priority: computePriority(d, slaSettings.value || null),
+    }))
+  })
 
   watch([searchQuery, stationCode], () => resetPage())
 
@@ -287,12 +297,20 @@
             {{ item.iirgd_document_types?.name || '-' }}
           </template>
           <template #item-name="{ item }">
-            <NuxtLink
-              class="text-decoration-none text-primary font-weight-bold"
-              :to="`/iirgd/${item.id}`"
-            >
-              {{ item.iirgd_citizens?.name || 'Cidadão não identificado' }}
-            </NuxtLink>
+            <div class="d-flex align-center gap-2">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/iirgd/${item.id}`"
+              >
+                {{ item.iirgd_citizens?.name || 'Cidadão não identificado' }}
+              </NuxtLink>
+              <UiChip v-if="item.priority === 'delay'" color="error" size="xs" variant="solid">
+                Atraso
+              </UiChip>
+              <UiChip v-else-if="item.priority === 'alert'" color="warning" size="xs" variant="solid">
+                Alerta
+              </UiChip>
+            </div>
           </template>
           <template #item-rg="{ item }">
             <div v-if="item.iirgd_citizens?.rg" class="d-flex align-center ga-1">
