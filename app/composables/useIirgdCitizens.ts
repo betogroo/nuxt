@@ -5,13 +5,17 @@ export interface IirgdCitizenWithDemands {
   name: string
   rg: string | null
   cpf: string | null
+  created_by?: string | null
   created_at: string
   updated_at: string
   iirgd_demands: IirgdDemand[]
+  profiles?: { name: string | null }
 }
 
 export const useIirgdCitizens = () => {
   const supabase = useSupabaseClient()
+  const user = useSupabaseUser()
+  const { logAction } = useLogger()
 
   const fetchCitizens = async (options?: {
     page?: number
@@ -52,7 +56,7 @@ export const useIirgdCitizens = () => {
   const fetchCitizenById = async (id: string): Promise<IirgdCitizenWithDemands> => {
     const { data, error } = await supabase
       .from('iirgd_citizens')
-      .select('*, iirgd_demands(*)')
+      .select('*, iirgd_demands(*), profiles(name)')
       .eq('id', id)
       .single()
 
@@ -86,7 +90,7 @@ export const useIirgdCitizens = () => {
     return data
   }
 
-  const createCitizen = async (payload: { name: string; rg: string; cpf?: string | null }) => {
+  const createCitizen = async (payload: { name: string; rg?: string | null; cpf?: string | null }) => {
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .insert([
@@ -94,6 +98,7 @@ export const useIirgdCitizens = () => {
           name: payload.name,
           rg: payload.rg || null,
           cpf: payload.cpf || null,
+          created_by: user.value?.id || null,
         },
       ])
       .select('*')
@@ -107,14 +112,20 @@ export const useIirgdCitizens = () => {
       throw new Error('Erro ao cadastrar cidadão')
     }
 
+    await logAction('CREATE_IIRGD_CITIZEN', `Cidadão IIRGD cadastrado: ID ${data.id} - ${data.name}`)
+
     return data
   }
 
-  const updateCitizen = async (id: string, payload: { name: string; rg?: string | null }) => {
+  const updateCitizen = async (
+    id: string,
+    payload: { name: string; cpf?: string | null; rg?: string | null },
+  ) => {
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .update({
         name: payload.name,
+        cpf: payload.cpf || null,
         rg: payload.rg || null,
       })
       .eq('id', id)
@@ -124,10 +135,12 @@ export const useIirgdCitizens = () => {
     if (error) {
       console.error(error)
       if (error.code === '23505') {
-        throw new Error('Já existe um cidadão cadastrado com este RG.')
+        throw new Error('Já existe um cidadão cadastrado com este RG ou CPF.')
       }
       throw new Error('Erro ao atualizar cidadão')
     }
+
+    await logAction('UPDATE_IIRGD_CITIZEN', `Cidadão IIRGD atualizado: ID ${data.id} - ${data.name}`)
 
     return data
   }

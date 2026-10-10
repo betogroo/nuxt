@@ -53,19 +53,40 @@
     colors: ['#4CAF50'],
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth', width: 2 },
+    noData: {
+      text: 'Nenhuma emissão registrada nos últimos 30 dias',
+      align: 'center',
+      verticalAlign: 'middle',
+      style: {
+        fontSize: '14px',
+        fontFamily: 'inherit',
+      },
+    },
     xaxis: {
-      categories: trendData.value.labels,
+      categories: trendData.value?.labels || [],
       type: 'datetime',
       labels: { datetimeFormatter: { year: 'yyyy', month: "MMM 'yy", day: 'dd MMM' } },
+    },
+    yaxis: {
+      min: 0,
+      forceNiceScale: true,
+      labels: {
+        formatter: (val: number) => Math.round(val).toString(),
+      },
     },
     fill: {
       type: 'gradient',
       gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 90, 100] },
     },
+    tooltip: {
+      x: {
+        format: 'dd/MM/yyyy',
+      },
+    },
   }))
 
   const trendChartSeries = computed(() => [
-    { name: 'Demandas Emitidas', data: trendData.value.series },
+    { name: 'Demandas Emitidas', data: trendData.value?.series || [] },
   ])
 
   // Buscar apenas as contagens
@@ -156,6 +177,25 @@
               </div>
               <UiAvatar :color="card.color" size="lg" variant="soft">
                 <UiIcon :name="card.icon" />
+              </UiAvatar>
+            </div>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+      <UiRow v-if="[ROLES.ADMIN, ROLES.IIRGD_MANAGER].includes(profile?.role as string)" class="mt-6">
+        <UiCol cols="12">
+          <UiCard
+            class="cursor-pointer transition-swing"
+            hover
+            @click="navigateTo('/iirgd/reports')"
+          >
+            <div class="d-flex align-center justify-space-between pa-4">
+              <div>
+                <div class="text-h6 mb-1">Relatórios IIRGD</div>
+                <div class="text-body-2 text-medium-emphasis">Acesse a página de relatórios para extração de dados.</div>
+              </div>
+              <UiAvatar color="deep-purple" size="lg" variant="soft">
+                <UiIcon name="recordsList" />
               </UiAvatar>
             </div>
           </UiCard>

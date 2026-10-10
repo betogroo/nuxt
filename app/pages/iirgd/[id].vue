@@ -18,8 +18,14 @@
 
   const { fetchDemandById, updateDemand, fetchCitizenHistory, fetchDemandStatusHistory } =
     useIirgdDemands()
+  const { fetchAllActiveDocumentTypes, createPendingDocumentType } = useIirgdDocumentTypes()
 
   const demandId = route.params.id as string
+
+  // Fetch active document types for the combobox
+  const { data: activeDocumentTypes } = useAsyncData('active-iirgd-doc-types', () =>
+    fetchAllActiveDocumentTypes(),
+  )
 
   const {
     data: demand,
@@ -73,10 +79,12 @@
     status: 'new',
     observation: '',
     station_code: '',
+    document_type_id: '',
   })
   const [status] = defineField('status')
   const [observation] = defineField('observation')
   const [stationCode] = defineField('station_code')
+  const [documentTypeId] = defineField('document_type_id')
 
   // Achatar os grupos para o UiSelect formatando com o nome do grupo
   const statusOptions = computed(() => {
@@ -95,6 +103,7 @@
           status: (demand.value.status as IirgdDemandStatus) || 'new',
           observation: demand.value.observation || '',
           station_code: demand.value.station_code || '',
+          document_type_id: demand.value.document_type_id || '',
         },
       })
       editError.value = ''
@@ -111,10 +120,22 @@
       isSaving.value = true
       editError.value = ''
 
+      let finalDocumentTypeId = formValues.document_type_id
+      if (
+        finalDocumentTypeId &&
+        !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+          finalDocumentTypeId,
+        )
+      ) {
+        const newType = await createPendingDocumentType(finalDocumentTypeId)
+        finalDocumentTypeId = newType.id
+      }
+
       await updateDemand(demandId, {
         status: formValues.status,
         observation: formValues.observation,
         station_code: formValues.station_code,
+        document_type_id: finalDocumentTypeId || undefined,
       })
 
       await refresh()
@@ -196,6 +217,14 @@
                           </UiChip>
                         </div>
                       </UiCol>
+                      <UiCol cols="12" sm="6">
+                        <div class="text-caption text-medium-emphasis">Tipo do Documento</div>
+                        <div class="mt-1">
+                          <span class="text-body-1 font-weight-medium">
+                            {{ demand.iirgd_document_types?.name || '-' }}
+                          </span>
+                        </div>
+                      </UiCol>
                     </UiRow>
 
                     <UiDivider />
@@ -240,10 +269,16 @@
                         Histórico de Registro da Demanda Atual
                       </div>
                       <UiRow dense>
-                        <UiCol cols="12">
+                        <UiCol cols="12" sm="6">
                           <div class="text-caption text-medium-emphasis">Criado em</div>
                           <div class="text-body-2">
                             {{ new Date(demand.created_at).toLocaleString('pt-BR') }}
+                          </div>
+                        </UiCol>
+                        <UiCol cols="12" sm="6">
+                          <div class="text-caption text-medium-emphasis">Cadastrado por</div>
+                          <div class="text-body-2">
+                            {{ demand.profiles?.name || 'Sistema' }}
                           </div>
                         </UiCol>
                         <UiCol cols="12">
@@ -412,6 +447,18 @@
       </UiAlert>
 
       <UiRow dense>
+        <UiCol cols="12">
+          <UiCombobox
+            v-if="canEditData"
+            v-model="documentTypeId"
+            :error-messages="errors.document_type_id"
+            item-title="name"
+            item-value="id"
+            :items="activeDocumentTypes || []"
+            label="Tipo do Documento"
+            placeholder="Selecione ou digite um novo tipo..."
+          />
+        </UiCol>
         <UiCol cols="12">
           <UiSelect
             v-if="canEditStatus"

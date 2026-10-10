@@ -3,6 +3,7 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { useIirgdDemands } from '~/composables/useIirgdDemands'
   import { useIirgdCitizens } from '~/composables/useIirgdCitizens'
+  import { useIirgdDocumentTypes } from '~/composables/useIirgdDocumentTypes'
   import { iirgdDemandFormSchema, type IirgdDemandFormInput } from '~/schemas/forms/iirgd-demand'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
   import { padAndFormatRg, formatCpf, isValidRgSP } from '~/utils/formatters'
@@ -23,6 +24,7 @@
 
   const { createDemand } = useIirgdDemands()
   const { fetchCitizenByDocument } = useIirgdCitizens()
+  const { fetchAllActiveDocumentTypes, createPendingDocumentType } = useIirgdDocumentTypes()
   const toast = useToast()
 
   const isSaving = ref(false)
@@ -33,6 +35,7 @@
     rg: '',
     cpf: '',
     name: '',
+    document_type_id: '',
     observation: '',
   })
 
@@ -40,10 +43,15 @@
     useZodForm(iirgdDemandFormSchema, emptyDemandForm())
 
   const [stationCode] = defineField('station_code')
+  const [documentTypeId] = defineField('document_type_id')
   const [rg] = defineField('rg', { validateOnModelUpdate: false })
   const [cpf] = defineField('cpf', { validateOnModelUpdate: false })
   const [name] = defineField('name')
   const [observation] = defineField('observation')
+
+  const { data: documentTypes } = useAsyncData('active-document-types', fetchAllActiveDocumentTypes, {
+    default: () => [],
+  })
 
   // Ao abrir o modal, reseta os dados
   watch(isOpen, (newVal) => {
@@ -82,13 +90,22 @@
     isOpen.value = false
   }
 
+  const isUUID = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str)
+
   const saveDemand = handleSubmit(async (formValues) => {
     try {
       errorMessage.value = ''
       isSaving.value = true
+      
+      let finalDocTypeId = formValues.document_type_id
+      if (finalDocTypeId && !isUUID(finalDocTypeId)) {
+        const newType = await createPendingDocumentType(finalDocTypeId)
+        finalDocTypeId = newType.id
+      }
 
       await createDemand({
         ...formValues,
+        document_type_id: finalDocTypeId,
         rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : formValues.rg,
         cpf: formValues.cpf ? formatCpf(formValues.cpf) : formValues.cpf,
       })
@@ -118,6 +135,17 @@
           :items="[...IIRGD_STATION_CODES]"
           label="Código do Posto *"
           placeholder="Selecione"
+        />
+      </UiCol>
+      <UiCol cols="12">
+        <UiCombobox
+          v-model="documentTypeId"
+          :error-messages="errors.document_type_id"
+          :items="documentTypes"
+          item-title="name"
+          item-value="id"
+          label="Tipo do Documento *"
+          placeholder="Selecione ou digite um novo tipo..."
         />
       </UiCol>
       <UiCol cols="12" sm="6">

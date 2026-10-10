@@ -8,6 +8,9 @@ mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('definePageMeta', () => vi.fn())
 mockNuxtImport('useRoute', () => () => ({ params: { id: '123' } }))
 mockNuxtImport('useRouter', () => () => ({ push: vi.fn(), back: vi.fn() }))
+mockNuxtImport('useSupabaseClient', () => () => ({}))
+mockNuxtImport('useSupabaseUser', () => () => ({ value: { id: 'test-user' } }))
+mockNuxtImport('useProfile', () => () => ({ profile: { value: { role: 'admin' } } }))
 
 mockNuxtImport('useIirgdDemands', () => {
   return () => ({

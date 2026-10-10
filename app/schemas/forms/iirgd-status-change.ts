@@ -9,6 +9,8 @@ export const iirgdStatusChangeFormSchema = z
     station_code: z
       .enum(IIRGD_STATION_CODES, { error: 'O Código do Posto é obrigatório.' })
       .optional(),
+    // UUID of an existing type, or free text for a new (pending) suggestion
+    document_type_id: z.string().trim().optional(),
   })
   .refine((data) => data.status !== 'other_pending' || data.observation.trim().length > 0, {
     error: 'A observação é obrigatória para o status "Outra Pendência".',

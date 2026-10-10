@@ -10,6 +10,13 @@ mockNuxtImport('definePageMeta', () => vi.fn())
 mockNuxtImport('useIirgdDemands', () => {
   return () => ({
     fetchDemandCounts: vi.fn(),
+    fetchIssuedDemandsTrend: vi.fn(),
+  })
+})
+
+mockNuxtImport('useProfile', () => {
+  return () => ({
+    profile: { value: { role: 'admin' } },
   })
 })
 

@@ -7,10 +7,14 @@
     IIRGD_STATUS_COLORS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
+  import { ROLES } from '~/constants/roles'
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
   const router = useRouter()
+
+  const { profile } = useProfile()
+  const isAdmin = computed(() => profile.value?.role === ROLES.ADMIN)
 
   const { fetchCitizenById, updateCitizen } = useIirgdCitizens()
 
@@ -70,7 +74,10 @@
     try {
       await updateCitizen(citizenId, {
         name: values.name,
-        rg: values.rg || null,
+        cpf: values.cpf ? formatCpf(values.cpf) : null,
+        rg: isAdmin.value
+          ? (values.rg ? padAndFormatRg(values.rg, true) : null)
+          : (citizen.value?.rg || null),
       })
       await refresh()
       isEditModalOpen.value = false
@@ -136,13 +143,19 @@
                     {{ citizen.cpf ? formatCpf(citizen.cpf) : '-' }}
                   </div>
                 </UiCol>
-                <UiCol cols="12" sm="3">
+                <UiCol cols="12" sm="2">
+                  <div class="text-caption text-medium-emphasis">Cadastrado por</div>
+                  <div class="text-body-2 mt-1">
+                    {{ citizen.profiles?.name || 'Sistema' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" sm="2">
                   <div class="text-caption text-medium-emphasis">Primeiro contato</div>
                   <div class="text-body-2 mt-1">
                     {{ new Date(citizen.created_at).toLocaleString('pt-BR') }}
                   </div>
                 </UiCol>
-                <UiCol cols="12" sm="3">
+                <UiCol cols="12" sm="2">
                   <div class="text-caption text-medium-emphasis">Última atualização</div>
                   <div class="text-body-2 mt-1">
                     {{ new Date(citizen.updated_at).toLocaleString('pt-BR') }}
@@ -233,16 +246,6 @@
 
       <form @submit.prevent="handleSave">
         <UiInput
-          v-model="cpf"
-          v-bind="cpfProps"
-          v-mask="'###.###.###-##'"
-          class="mb-3"
-          disabled
-          :error-messages="errors.cpf"
-          label="CPF (Não Editável)"
-        />
-
-        <UiInput
           v-model="name"
           v-bind="nameProps"
           class="mb-3"
@@ -250,12 +253,23 @@
           label="Nome *"
         />
 
+        <UiCpfInput
+          v-model="cpf"
+          v-bind="cpfProps"
+          class="mb-3"
+          :error-messages="errors.cpf"
+          label="CPF"
+        />
+
         <UiRgInput
           v-model="rg"
           v-bind="rgProps"
           class="mb-3"
+          :disabled="!isAdmin"
           :error-messages="errors.rg"
-          label="RG (Opcional, apenas números ou X)"
+          :hint="!isAdmin ? 'A alteração de RG de cidadão já cadastrado é restrita a administradores.' : undefined"
+          :persistent-hint="!isAdmin"
+          label="RG (Apenas números ou X)"
         />
 
         <div class="d-flex justify-end ga-2 mt-4">

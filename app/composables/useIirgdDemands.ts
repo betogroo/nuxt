@@ -5,6 +5,7 @@ export interface IirgdCitizen {
   name: string
   rg: string
   cpf?: string | null
+  created_by?: string | null
   created_at?: string
   updated_at?: string
 }
@@ -12,13 +13,16 @@ export interface IirgdCitizen {
 export interface IirgdDemand {
   id?: string
   citizen_id: string
+  document_type_id?: string
   station_code: string
   observation?: string
   status?: string
-  created_by?: string
+  created_by?: string | null
   created_at?: string
   updated_at?: string
   iirgd_citizens?: IirgdCitizen
+  iirgd_document_types?: { name: string }
+  profiles?: { name: string | null }
 }
 
 export const useIirgdDemands = () => {
@@ -82,7 +86,7 @@ export const useIirgdDemands = () => {
 
     let query = supabase
       .from('iirgd_demands')
-      .select('*, iirgd_citizens!inner(*)', { count: 'exact' })
+      .select('*, iirgd_citizens!inner(*), iirgd_document_types(name)', { count: 'exact' })
 
     if (statusGroup) {
       const statusMap: Record<string, string[]> = {
@@ -134,6 +138,7 @@ export const useIirgdDemands = () => {
   const createDemand = async (payload: {
     station_code: string
     name: string
+    document_type_id?: string
     rg?: string | null
     cpf?: string | null
     observation?: string
@@ -186,7 +191,14 @@ export const useIirgdDemands = () => {
       // Create new citizen
       const { data: newCit, error: newCitError } = await supabase
         .from('iirgd_citizens')
-        .insert([{ name: payload.name, rg: payload.rg || null, cpf: payload.cpf || null }])
+        .insert([
+          {
+            name: payload.name,
+            rg: payload.rg || null,
+            cpf: payload.cpf || null,
+            created_by: user.value?.id || null,
+          },
+        ])
         .select()
         .single()
 
@@ -203,9 +215,11 @@ export const useIirgdDemands = () => {
       .insert([
         {
           citizen_id: citizenId,
+          document_type_id: payload.document_type_id || null,
           station_code: payload.station_code,
           observation: payload.observation,
           status: 'new',
+          created_by: user.value?.id || null,
         },
       ])
       .select('*, iirgd_citizens(*)')
@@ -238,6 +252,7 @@ export const useIirgdDemands = () => {
 
   const fetchIssuedDemandsTrend = async (days: number = 30) => {
     const today = new Date()
+    // Align with today's end of day in UTC
     const pastDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
 
     const { data, error } = await supabase
@@ -279,7 +294,7 @@ export const useIirgdDemands = () => {
   const fetchDemandById = async (id: string) => {
     const { data, error } = await supabase
       .from('iirgd_demands')
-      .select('*, iirgd_citizens(*)')
+      .select('*, iirgd_citizens(*), iirgd_document_types(name), profiles(name)')
       .eq('id', id)
       .single()
 

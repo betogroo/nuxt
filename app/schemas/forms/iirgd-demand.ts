@@ -6,6 +6,7 @@ const REQUIRED_STATION = 'O Código do Posto é obrigatório.'
 
 export const iirgdDemandFormSchema = z.object({
   station_code: z.enum(IIRGD_STATION_CODES, { error: REQUIRED_STATION }),
+  document_type_id: z.string({ error: 'O Tipo de Documento é obrigatório.' }).trim().min(1, 'O Tipo de Documento é obrigatório.'),
   cpf: optionalCpf,
   rg: rgSpValidator,
   name: z.string({ error: 'O Nome é obrigatório.' }).trim().min(1, 'O Nome é obrigatório.'),

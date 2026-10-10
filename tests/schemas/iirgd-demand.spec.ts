@@ -9,6 +9,7 @@ const base = {
   rg: VALID_RG,
   cpf: '',
   name: 'Maria da Silva',
+  document_type_id: 'eb7dbbb9-f018-4a57-ab66-b5ce53d39db7',
   observation: '',
 }
 

@@ -268,6 +268,7 @@
         <UiTable
           :headers="[
             { text: 'Código Posto', value: 'station_code' },
+            { text: 'Tipo Doc.', value: 'document_type_id' },
             { text: 'Nome', value: 'name' },
             { text: 'RG', value: 'rg' },
             { text: 'CPF', value: 'cpf' },
@@ -281,6 +282,9 @@
             <UiChip color="blue-grey" label size="sm" variant="soft">
               {{ item.station_code }}
             </UiChip>
+          </template>
+          <template #item-document_type_id="{ item }">
+            {{ item.iirgd_document_types?.name || '-' }}
           </template>
           <template #item-name="{ item }">
             <NuxtLink
