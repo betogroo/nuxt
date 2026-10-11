@@ -69,6 +69,7 @@ export const iconMap = {
   download: 'mdi-download',
   upload: 'mdi-upload',
   database: 'mdi-database',
+  chart: 'mdi-chart-box-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

@@ -70,12 +70,32 @@ export const usePendingTasks = () => {
     { default: () => 0 },
   )
 
+  const { data: pendingIirgdDocumentTypesCount, refresh: refreshPendingIirgdDocumentTypes } =
+    useAsyncData(
+      'pending-iirgd-doc-types-count',
+      async () => {
+        const { count, error } = await supabase
+          .from('iirgd_document_types')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_pending', true)
+
+        if (error) {
+          console.error('Erro ao buscar tipos de documento IIRGD pendentes:', error)
+          return 0
+        }
+
+        return count || 0
+      },
+      { default: () => 0 },
+    )
+
   const totalPending = computed(() => {
     return (
       (pendingUnitsCount.value || 0) +
       (pendingReturnsCount.value || 0) +
       (pendingExpenseNaturesCount.value || 0) +
-      (pendingProductClassesCount.value || 0)
+      (pendingProductClassesCount.value || 0) +
+      (pendingIirgdDocumentTypesCount.value || 0)
     )
   })
 
@@ -85,6 +105,7 @@ export const usePendingTasks = () => {
       refreshPendingReturns(),
       refreshPendingExpenseNatures(),
       refreshPendingProductClasses(),
+      refreshPendingIirgdDocumentTypes(),
     ])
   }
 
@@ -93,11 +114,13 @@ export const usePendingTasks = () => {
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
     pendingReturnsCount,
+    pendingIirgdDocumentTypesCount,
     totalPending,
     refreshAll,
     refreshPendingUnits,
     refreshPendingExpenseNatures,
     refreshPendingProductClasses,
     refreshPendingReturns,
+    refreshPendingIirgdDocumentTypes,
   }
 }

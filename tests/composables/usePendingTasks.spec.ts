@@ -33,6 +33,7 @@ describe('usePendingTasks', () => {
     const unitsMockEq = { count: 2, error: null }
     const demandsMockEq = { count: 4, error: null }
     const productClassesMockEq = { count: 1, error: null }
+    const docTypesMockEq = { count: 5, error: null }
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'expense_natures') {
@@ -59,12 +60,18 @@ describe('usePendingTasks', () => {
           eq: vi.fn().mockResolvedValue(productClassesMockEq),
         }
       }
+      if (table === 'iirgd_document_types') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(docTypesMockEq),
+        }
+      }
     })
 
     const { totalPending } = usePendingTasks()
 
     await new Promise((r) => setTimeout(r, 10))
 
-    expect(totalPending.value).toBe(10) // 3 + 2 + 4 + 1
+    expect(totalPending.value).toBe(15) // 3 + 2 + 4 + 1 + 5
   })
 })
