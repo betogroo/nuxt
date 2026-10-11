@@ -119,6 +119,11 @@ export function padAndFormatRg(value: string, pad: boolean = false): string {
   return v
 }
 
+export function formatCitizenName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name.trim().toUpperCase()
+}
+
 export function isValidRgSP(value: string | null | undefined): boolean {
   if (!value) return false
   const v = value.replace(/[^0-9xX]/g, '').toUpperCase()

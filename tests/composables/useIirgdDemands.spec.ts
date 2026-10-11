@@ -73,7 +73,7 @@ describe('useIirgdDemands', () => {
     // Inserted citizen
     expect(supabaseFromMock.insert).toHaveBeenCalledWith([
       {
-        name: 'John Doe',
+        name: 'JOHN DOE',
         rg: '00012345-6',
         cpf: '000.000.000-00',
         created_by: 'test-user-id',
@@ -95,7 +95,7 @@ describe('useIirgdDemands', () => {
 
     expect(logActionMock).toHaveBeenCalledWith(
       'CREATE_IIRGD_DEMAND',
-      `Nova demanda IIRGD criada para John Doe (Posto: 1342-5)`,
+      `Nova demanda IIRGD criada para JOHN DOE (Posto: 1342-5)`,
     )
     expect(result).toEqual({ id: 'dem-123' })
   })

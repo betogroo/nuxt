@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, formatCitizenName } from '~/utils/formatters'
   import { useZodForm } from '~/composables/useZodForm'
   import { iirgdCitizenFormSchema } from '~/schemas/forms/iirgd-citizen'
   import {
@@ -35,7 +35,7 @@
 
   useHead({
     title: computed(() =>
-      citizen.value ? `Cidadão: ${citizen.value.name}` : 'Detalhes do Cidadão',
+      citizen.value ? `Cidadão: ${formatCitizenName(citizen.value.name)}` : 'Detalhes do Cidadão',
     ),
   })
 
@@ -58,7 +58,7 @@
     if (citizen.value) {
       resetForm({
         values: {
-          name: citizen.value.name,
+          name: formatCitizenName(citizen.value.name),
           rg: citizen.value.rg || '',
           cpf: citizen.value.cpf || '',
         },
@@ -73,7 +73,7 @@
     saveError.value = ''
     try {
       await updateCitizen(citizenId, {
-        name: values.name,
+        name: formatCitizenName(values.name),
         cpf: values.cpf ? formatCpf(values.cpf) : null,
         rg: isAdmin.value
           ? (values.rg ? padAndFormatRg(values.rg, true) : null)
@@ -114,7 +114,7 @@
           <div class="d-flex align-center mb-6">
             <UiIcon class="mr-3" color="primary" name="userBadge" size="32" />
             <div class="flex-grow-1">
-              <div class="text-h5 font-weight-bold">{{ citizen.name }}</div>
+              <div class="text-h5 font-weight-bold">{{ formatCitizenName(citizen.name) }}</div>
               <div class="text-subtitle-2 text-medium-emphasis">Ficha do Cidadão e Histórico</div>
             </div>
             <UiButton color="primary" prepend-icon="edit" variant="soft" @click="openEditModal">
@@ -251,6 +251,7 @@
           class="mb-3"
           :error-messages="errors.name"
           label="Nome *"
+          @update:model-value="name = String($event || '').toUpperCase()"
         />
 
         <UiCpfInput

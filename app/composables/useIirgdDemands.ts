@@ -194,7 +194,7 @@ export const useIirgdDemands = () => {
         .from('iirgd_citizens')
         .insert([
           {
-            name: payload.name,
+            name: payload.name.trim().toUpperCase(),
             rg: payload.rg || null,
             cpf: payload.cpf || null,
             created_by: user.value?.id || null,
@@ -234,7 +234,7 @@ export const useIirgdDemands = () => {
     if (data) {
       await logAction(
         'CREATE_IIRGD_DEMAND',
-        `Nova demanda IIRGD criada para ${payload.name} (Posto: ${payload.station_code})`,
+        `Nova demanda IIRGD criada para ${payload.name.trim().toUpperCase()} (Posto: ${payload.station_code})`,
       )
     }
 

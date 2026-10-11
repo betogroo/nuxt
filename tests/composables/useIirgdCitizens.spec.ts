@@ -81,7 +81,7 @@ describe('useIirgdCitizens', () => {
     expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
     expect(supabaseFromMock.insert).toHaveBeenCalledWith([
       {
-        name: 'Jane Doe',
+        name: 'JANE DOE',
         rg: '12345678X',
         cpf: '00011122233',
         created_by: 'test-user-id',
@@ -111,7 +111,7 @@ describe('useIirgdCitizens', () => {
 
     expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
     expect(updateMock).toHaveBeenCalledWith({
-      name: 'John Updated',
+      name: 'JOHN UPDATED',
       cpf: '12345678901',
       rg: '12345678X',
     })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue'
-  import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, formatCitizenName } from '~/utils/formatters'
   import { useZodForm } from '~/composables/useZodForm'
   import { iirgdCitizenFormSchema } from '~/schemas/forms/iirgd-citizen'
   import { usePagination } from '~/composables/usePagination'
@@ -78,7 +78,7 @@
     saveError.value = ''
     try {
       await createCitizen({
-        name: values.name,
+        name: formatCitizenName(values.name),
         rg: values.rg || null,
         cpf: values.cpf || null,
       })
@@ -149,7 +149,7 @@
             class="text-decoration-none text-primary font-weight-bold"
             :to="`/iirgd/citizens/${item.id}`"
           >
-            {{ item.name }}
+            {{ formatCitizenName(item.name) }}
           </NuxtLink>
         </template>
         <template #item-rg="{ item }">
@@ -186,6 +186,7 @@
           :error-messages="errors.name"
           label="Nome Completo *"
           v-bind="nameProps"
+          @update:model-value="name = String($event || '').toUpperCase()"
         />
         <UiRgInput
           v-model="rg"

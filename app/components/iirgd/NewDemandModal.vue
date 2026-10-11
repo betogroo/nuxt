@@ -6,7 +6,7 @@
   import { useIirgdDocumentTypes } from '~/composables/useIirgdDocumentTypes'
   import { iirgdDemandFormSchema, type IirgdDemandFormInput } from '~/schemas/forms/iirgd-demand'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
-  import { padAndFormatRg, formatCpf, isValidRgSP } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, isValidRgSP, formatCitizenName } from '~/utils/formatters'
 
   const props = defineProps<{
     modelValue: boolean
@@ -79,7 +79,7 @@
     const citizen = await fetchCitizenByDocument('rg', formattedRg)
     if (citizen) {
       existingCitizen.value = citizen
-      setFieldValue('name', citizen.name)
+      setFieldValue('name', formatCitizenName(citizen.name))
       if (citizen.cpf && !values.cpf) {
         setFieldValue('cpf', citizen.cpf)
       }
@@ -105,6 +105,7 @@
 
       await createDemand({
         ...formValues,
+        name: formatCitizenName(formValues.name),
         document_type_id: finalDocTypeId,
         rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : formValues.rg,
         cpf: formValues.cpf ? formatCpf(formValues.cpf) : formValues.cpf,
@@ -171,6 +172,7 @@
           :disabled="!!existingCitizen"
           :error-messages="errors.name"
           label="Nome do Cidadão *"
+          @update:model-value="setFieldValue('name', String($event || '').toUpperCase())"
         />
       </UiCol>
       <UiCol cols="12">

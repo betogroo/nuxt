@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { padAndFormatRg, formatCpf } from '~/utils/formatters'
+  import { padAndFormatRg, formatCpf, formatCitizenName } from '~/utils/formatters'
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
@@ -160,7 +160,7 @@
 
   useHead({
     title: computed(() =>
-      demand.value ? `Demanda IIRGD: ${demand.value.iirgd_citizens?.name}` : 'Detalhes IIRGD',
+      demand.value ? `Demanda IIRGD: ${formatCitizenName(demand.value.iirgd_citizens?.name)}` : 'Detalhes IIRGD',
     ),
   })
 </script>
@@ -190,7 +190,7 @@
           <div class="d-flex align-center flex-wrap ga-4 mb-8">
             <UiIcon color="primary" name="userBadge" size="40" />
             <div>
-              <div class="text-h5 font-weight-bold">{{ demand.iirgd_citizens?.name }}</div>
+              <div class="text-h5 font-weight-bold">{{ formatCitizenName(demand.iirgd_citizens?.name) }}</div>
               <div class="text-subtitle-2 text-medium-emphasis">
                 Atendimento IIRGD · Posto {{ demand.station_code }}
               </div>
@@ -241,7 +241,7 @@
                       class="text-body-1 font-weight-medium text-decoration-none text-primary"
                       :to="`/iirgd/citizens/${demand.citizen_id}`"
                     >
-                      {{ demand.iirgd_citizens?.name }}
+                      {{ formatCitizenName(demand.iirgd_citizens?.name) }}
                     </NuxtLink>
                   </div>
 

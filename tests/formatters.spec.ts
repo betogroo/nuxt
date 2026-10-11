@@ -10,6 +10,7 @@ import {
   isValidCpf,
   padAndFormatRg,
   isValidRgSP,
+  formatCitizenName,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
@@ -143,4 +144,23 @@ describe('Formatadores (utils/formatters.ts)', () => {
       expect(isValidRgSP('A2345678-X')).toBe(false) // letter in base
     })
   })
+
+  describe('formatCitizenName', () => {
+    it('deve converter nome em minúsculas para maiúsculas e remover espaços extras', () => {
+      expect(formatCitizenName('joão da silva')).toBe('JOÃO DA SILVA')
+      expect(formatCitizenName('  maria aparecida  ')).toBe('MARIA APARECIDA')
+    })
+
+    it('deve manter nome já em maiúsculas inalterado', () => {
+      expect(formatCitizenName('CARLOS EDUARDO')).toBe('CARLOS EDUARDO')
+    })
+
+    it('deve retornar string vazia para valores nulos, indefinidos ou vazios', () => {
+      expect(formatCitizenName(null)).toBe('')
+      expect(formatCitizenName(undefined)).toBe('')
+      expect(formatCitizenName('')).toBe('')
+      expect(formatCitizenName('   ')).toBe('')
+    })
+  })
 })
+

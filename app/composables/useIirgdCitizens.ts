@@ -91,11 +91,12 @@ export const useIirgdCitizens = () => {
   }
 
   const createCitizen = async (payload: { name: string; rg?: string | null; cpf?: string | null }) => {
+    const sanitizedName = payload.name.trim().toUpperCase()
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .insert([
         {
-          name: payload.name,
+          name: sanitizedName,
           rg: payload.rg || null,
           cpf: payload.cpf || null,
           created_by: user.value?.id || null,
@@ -121,10 +122,11 @@ export const useIirgdCitizens = () => {
     id: string,
     payload: { name: string; cpf?: string | null; rg?: string | null },
   ) => {
+    const sanitizedName = payload.name.trim().toUpperCase()
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .update({
-        name: payload.name,
+        name: sanitizedName,
         cpf: payload.cpf || null,
         rg: payload.rg || null,
       })

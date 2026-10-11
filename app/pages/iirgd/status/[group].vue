@@ -9,7 +9,7 @@
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
-  import { padAndFormatRg } from '~/utils/formatters'
+  import { padAndFormatRg, formatCitizenName } from '~/utils/formatters'
   import { ROLES } from '~/constants/roles'
 
   definePageMeta({
@@ -302,7 +302,7 @@
                 class="text-decoration-none text-primary font-weight-bold"
                 :to="`/iirgd/${item.id}`"
               >
-                {{ item.iirgd_citizens?.name || 'Cidadão não identificado' }}
+                {{ formatCitizenName(item.iirgd_citizens?.name) || 'Cidadão não identificado' }}
               </NuxtLink>
               <UiChip v-if="item.priority === 'delay'" color="error" size="xs" variant="solid">
                 Atraso
@@ -424,7 +424,7 @@
           <template #item-rg="{ item }">{{
             item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-'
           }}</template>
-          <template #item-name="{ item }">{{ item.iirgd_citizens?.name || '-' }}</template>
+          <template #item-name="{ item }">{{ formatCitizenName(item.iirgd_citizens?.name) || '-' }}</template>
         </UiTable>
         <template #actions>
           <UiButton variant="ghost" @click="releaseModal.isOpen = false">Cancelar</UiButton>
@@ -446,7 +446,7 @@
         </UiAlert>
         <p class="mb-4 text-body-2 text-medium-emphasis">
           Selecione o novo status para a demanda de
-          <strong>{{ statusModal.demand?.iirgd_citizens?.name || 'Desconhecido' }}</strong
+          <strong>{{ formatCitizenName(statusModal.demand?.iirgd_citizens?.name) || 'Desconhecido' }}</strong
           >:
         </p>
         <UiSelect
