@@ -260,42 +260,43 @@ BEGIN
     GET DIAGNOSTICS v_count_demand_products = ROW_COUNT;
   END IF;
 
-  -- 7. Restaurar DEMAND_PRODUCT_BIDS
+  -- 7. Restaurar DEMAND_PRODUCT_BIDS (corrigido: amount, created_at, sem updated_at)
   IF v_data ? 'demand_product_bids' AND jsonb_typeof(v_data->'demand_product_bids') = 'array' THEN
-    INSERT INTO public.demand_product_bids (id, demand_product_id, supplier_id, created_by, created_at, updated_at)
+    INSERT INTO public.demand_product_bids (id, demand_product_id, supplier_id, amount, created_by, created_at)
     SELECT 
       (elem->>'id')::uuid,
       (elem->>'demand_product_id')::uuid,
       (elem->>'supplier_id')::uuid,
+      COALESCE((elem->>'amount')::numeric, 0),
       CASE WHEN (elem->>'created_by') IS NOT NULL AND EXISTS (SELECT 1 FROM public.profiles WHERE id = (elem->>'created_by')::uuid)
            THEN (elem->>'created_by')::uuid
            ELSE auth.uid()
       END,
-      COALESCE((elem->>'created_at')::timestamptz, now()),
-      COALESCE((elem->>'updated_at')::timestamptz, now())
+      COALESCE((elem->>'created_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'demand_product_bids') elem
     WHERE (elem->>'id') IS NOT NULL
       AND EXISTS (SELECT 1 FROM public.demand_products WHERE id = (elem->>'demand_product_id')::uuid)
+      AND EXISTS (SELECT 1 FROM public.suppliers WHERE id = (elem->>'supplier_id')::uuid)
     ON CONFLICT (id) DO UPDATE SET
       supplier_id = EXCLUDED.supplier_id,
-      updated_at = EXCLUDED.updated_at;
+      amount = EXCLUDED.amount;
 
     GET DIAGNOSTICS v_count_demand_bids = ROW_COUNT;
   END IF;
 
-  -- 8. Restaurar DEMAND_RESPONSIBLES
+  -- 8. Restaurar DEMAND_RESPONSIBLES (corrigido: chave primaria composta sem coluna id)
   IF v_data ? 'demand_responsibles' AND jsonb_typeof(v_data->'demand_responsibles') = 'array' THEN
-    INSERT INTO public.demand_responsibles (id, demand_id, user_id, created_at)
+    INSERT INTO public.demand_responsibles (demand_id, user_id, created_at)
     SELECT 
-      (elem->>'id')::uuid,
       (elem->>'demand_id')::uuid,
       (elem->>'user_id')::uuid,
       COALESCE((elem->>'created_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'demand_responsibles') elem
-    WHERE (elem->>'id') IS NOT NULL
+    WHERE (elem->>'demand_id') IS NOT NULL
+      AND (elem->>'user_id') IS NOT NULL
       AND EXISTS (SELECT 1 FROM public.demands WHERE id = (elem->>'demand_id')::uuid)
       AND EXISTS (SELECT 1 FROM public.profiles WHERE id = (elem->>'user_id')::uuid)
-    ON CONFLICT (id) DO NOTHING;
+    ON CONFLICT (demand_id, user_id) DO NOTHING;
 
     GET DIAGNOSTICS v_count_demand_responsibles = ROW_COUNT;
   END IF;
@@ -410,7 +411,6 @@ BEGIN
   RETURN v_restored_counts;
 
 EXCEPTION WHEN OTHERS THEN
-  -- Garante que reativa a trigger mesmo se houver erro
   ALTER TABLE public.iirgd_demands ENABLE TRIGGER trigger_iirgd_demand_status_change;
   RAISE;
 END;
