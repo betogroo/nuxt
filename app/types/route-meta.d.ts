@@ -2,7 +2,7 @@ import 'vue-router'
 
 export type UserRole = 'admin' | 'uge' | 'iirgd_user' | 'iirgd_manager' | 'user'
 export type NavTarget = 'drawer' | 'home' | 'admin-shortcuts'
-export type NavGroup = 'public' | 'management' | 'iirgd' | 'admin'
+export type NavGroup = 'public' | 'management' | 'iirgd' | 'admin' | 'info'
 
 declare module 'vue-router' {
   interface RouteMeta {

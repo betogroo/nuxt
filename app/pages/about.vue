@@ -1,9 +1,9 @@
 <script setup lang="ts">
   definePageMeta({
     icon: 'info',
-    navLabel: 'Sobre',
-    navGroup: 'public',
-    navOrder: 99,
+    navLabel: 'Sobre o Sistema',
+    navGroup: 'info',
+    navOrder: 10,
     roles: ['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user'],
     showIn: ['drawer'],
   })

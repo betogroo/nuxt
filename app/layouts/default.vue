@@ -97,6 +97,9 @@
       <!-- Navegação principal: limpa, intuitiva e organizada -->
       <UiList v-model:opened="openedGroups" class="px-3" nav size="sm">
         <template v-for="section in drawerSections" :key="section.group">
+          <!-- Separador para seção informativa / rodapé -->
+          <UiDivider v-if="section.group === 'info'" class="my-2" />
+
           <!-- Cabeçalho de seção (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
             <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">

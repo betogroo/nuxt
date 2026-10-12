@@ -85,6 +85,18 @@ describe('useNavLinks', () => {
         },
       },
       {
+        path: '/about',
+        meta: {
+          icon: 'info',
+          navLabel: 'Sobre o Sistema',
+          navColor: 'info',
+          navGroup: 'info',
+          navOrder: 10,
+          roles: ['admin'],
+          showIn: ['drawer'],
+        },
+      },
+      {
         path: '/no-nav',
         meta: { icon: 'mdi-test' }, // no showIn — must be excluded
       },
@@ -131,11 +143,13 @@ describe('useNavLinks', () => {
     mockProfileRef.value = { role: 'admin' }
     const { drawerLinks } = useNavLinks()
     const paths = drawerLinks.value.map((l) => l.path)
-    // management (order 1) comes before iirgd (order 2) comes before admin (order 3)
+    // management (order 1) comes before iirgd (order 2) comes before admin (order 3) comes before info (order 4)
     expect(paths.indexOf('/demands')).toBeLessThan(paths.indexOf('/iirgd'))
     expect(paths.indexOf('/iirgd')).toBeLessThan(paths.indexOf('/users'))
     // within admin group, users (60) comes before units (80)
     expect(paths.indexOf('/users')).toBeLessThan(paths.indexOf('/admin/units'))
+    // info group (order 4) comes at the very end after admin items
+    expect(paths.indexOf('/admin/backup')).toBeLessThan(paths.indexOf('/about'))
   })
 
   it('groups drawerByGroup correctly with section labels', () => {
