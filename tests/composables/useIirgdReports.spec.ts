@@ -38,7 +38,7 @@ describe('useIirgdReports', () => {
     vi.clearAllMocks()
   })
 
-  it('fetchIssuedDemandsByDocumentType should aggregate demands and calculate metrics', async () => {
+  it('fetchIssuedDemandsByDocumentType should aggregate demands, stations and calculate metrics', async () => {
     const mockHistoryData = [
       {
         demand_id: 'd1',
@@ -88,21 +88,33 @@ describe('useIirgdReports', () => {
     expect(result.totalIssued).toBe(3)
     expect(result.topDocumentType).toBe('Primeira Via')
 
+    // Stations
+    expect(result.stations).toContain('1342-5')
+    expect(result.stations).toContain('1062-9')
+    expect(result.stationTotals['1342-5']).toBe(2)
+    expect(result.stationTotals['1062-9']).toBe(1)
+
     const pVia = result.items.find((i) => i.documentTypeName === 'Primeira Via')
     expect(pVia).toBeDefined()
     expect(pVia?.count).toBe(2)
     expect(pVia?.percentage).toBe(66.7)
+    expect(pVia?.stationCounts?.['1342-5']).toBe(2)
+    expect(pVia?.stationCounts?.['1062-9']).toBe(0)
 
     const sVia = result.items.find((i) => i.documentTypeName === 'Segunda Via')
     expect(sVia).toBeDefined()
     expect(sVia?.count).toBe(1)
     expect(sVia?.percentage).toBe(33.3)
+    expect(sVia?.stationCounts?.['1342-5']).toBe(0)
+    expect(sVia?.stationCounts?.['1062-9']).toBe(1)
 
     // Antecedentes should have 0 count and 0%
     const ant = result.items.find((i) => i.documentTypeName === 'Antecedentes')
     expect(ant).toBeDefined()
     expect(ant?.count).toBe(0)
     expect(ant?.percentage).toBe(0)
+    expect(ant?.stationCounts?.['1342-5']).toBe(0)
+    expect(ant?.stationCounts?.['1062-9']).toBe(0)
 
     expect(result.periodDays).toBe(5)
     expect(result.dailyAverage).toBe(0.6)
@@ -146,6 +158,7 @@ describe('useIirgdReports', () => {
 
     expect(supabaseFromMock.eq).toHaveBeenCalledWith('iirgd_demands.station_code', '1342-5')
     expect(result.totalIssued).toBe(1)
+    expect(result.stations).toEqual(['1342-5'])
   })
 
   it('fetchIssuedDemandsByDocumentType should deduplicate same demand_id', async () => {
@@ -161,7 +174,7 @@ describe('useIirgdReports', () => {
         },
       },
       {
-        demand_id: 'd1', // duplicate history entry for same demand
+        demand_id: 'd1',
         created_at: '2026-10-02T15:00:00Z',
         iirgd_demands: {
           id: 'd1',
@@ -233,18 +246,29 @@ describe('useIirgdReports', () => {
     expect(unknownItem).toBeDefined()
     expect(unknownItem?.count).toBe(1)
     expect(unknownItem?.percentage).toBe(100)
+    expect(unknownItem?.stationCounts?.['1342-5']).toBe(1)
   })
 
-  it('exportIssuedDemandsToCsv should trigger logAction', async () => {
+  it('exportIssuedDemandsToCsv should trigger logAction and support multi-station CSV', async () => {
     const { exportIssuedDemandsToCsv } = useIirgdReports()
     const sampleData = {
-      items: [{ documentTypeId: 't1', documentTypeName: '1ª Via', count: 10, percentage: 100 }],
+      items: [
+        {
+          documentTypeId: 't1',
+          documentTypeName: '1ª Via',
+          count: 10,
+          percentage: 100,
+          stationCounts: { '1342-5': 6, '1062-9': 4 },
+        },
+      ],
       totalIssued: 10,
       topDocumentType: '1ª Via',
       dailyAverage: 2,
       periodDays: 5,
       startDate: '2026-10-01',
       endDate: '2026-10-05',
+      stations: ['1342-5', '1062-9'],
+      stationTotals: { '1342-5': 6, '1062-9': 4 },
     }
 
     await exportIssuedDemandsToCsv(sampleData)

@@ -108,6 +108,8 @@
         periodDays: 0,
         startDate: startDate.value,
         endDate: endDate.value,
+        stations: [...IIRGD_STATION_CODES],
+        stationTotals: {},
       }),
     },
   )
@@ -116,6 +118,8 @@
     applyPreset(presetId)
     refresh()
   }
+
+  const isAllStations = computed(() => !selectedStation.value)
 
   const displayedItems = computed(() => {
     if (!reportData.value?.items) return []
@@ -214,11 +218,25 @@
     },
   ])
 
-  const tableHeaders = [
-    { text: 'Tipo de Documento', value: 'documentTypeName' },
-    { text: 'Quantidade Emitida', value: 'count', align: 'center' as const },
-    { text: 'Percentual do Total', value: 'percentage', align: 'right' as const },
-  ]
+  const tableHeaders = computed(() => {
+    if (isAllStations.value && reportData.value?.stations && reportData.value.stations.length > 0) {
+      return [
+        { text: 'Tipo de Documento', value: 'documentTypeName' },
+        ...reportData.value.stations.map((st) => ({
+          text: `Posto ${st}`,
+          value: `station_${st}`,
+          align: 'center' as const,
+        })),
+        { text: 'Total Geral', value: 'count', align: 'center' as const },
+        { text: 'Percentual', value: 'percentage', align: 'right' as const },
+      ]
+    }
+    return [
+      { text: 'Tipo de Documento', value: 'documentTypeName' },
+      { text: 'Quantidade Emitida', value: 'count', align: 'center' as const },
+      { text: 'Percentual do Total', value: 'percentage', align: 'right' as const },
+    ]
+  })
 
   const handleExport = async () => {
     if (!reportData.value || reportData.value.items.length === 0) return
@@ -421,14 +439,25 @@
         <UiCol cols="12" lg="6">
           <UiCard class="h-100" variant="outline">
             <template #header>
-              <div class="d-flex align-center justify-space-between w-100">
+              <div class="d-flex align-center justify-space-between w-100 flex-wrap ga-2">
                 <span class="text-subtitle-1 font-weight-bold">Detalhamento dos Tipos</span>
-                <UiSwitch
-                  v-model="hideZeroCount"
-                  hide-details
-                  label="Ocultar sem emissões"
-                  size="sm"
-                />
+                <div class="d-flex align-center ga-3">
+                  <UiSwitch
+                    v-model="hideZeroCount"
+                    hide-details
+                    label="Ocultar sem emissões"
+                    size="sm"
+                  />
+                  <UiButton
+                    :disabled="!reportData || reportData.totalIssued === 0 || isExporting"
+                    prepend-icon="download"
+                    size="sm"
+                    variant="outline"
+                    @click="handleExport"
+                  >
+                    Exportar
+                  </UiButton>
+                </div>
               </div>
             </template>
 
@@ -440,11 +469,26 @@
                 </div>
               </template>
 
+              <!-- Dynamic slot for each station column when all stations is selected -->
+              <template
+                v-for="st in reportData?.stations || []"
+                :key="st"
+                #[`item-station_${st}`]="{ item }"
+              >
+                <UiChip
+                  :color="(item.stationCounts?.[st] || 0) > 0 ? 'primary' : 'default'"
+                  size="sm"
+                  :variant="(item.stationCounts?.[st] || 0) > 0 ? 'soft' : 'outline'"
+                >
+                  {{ item.stationCounts?.[st] || 0 }}
+                </UiChip>
+              </template>
+
               <template #item-count="{ item }">
                 <UiChip
-                  :color="item.count > 0 ? 'primary' : 'default'"
+                  :color="item.count > 0 ? (isAllStations ? 'secondary' : 'primary') : 'default'"
                   size="sm"
-                  :variant="item.count > 0 ? 'soft' : 'outline'"
+                  :variant="item.count > 0 ? 'solid' : 'outline'"
                 >
                   {{ item.count }}
                 </UiChip>
@@ -468,14 +512,25 @@
             <!-- Total Row Footer -->
             <div
               v-if="reportData && reportData.totalIssued > 0"
-              class="d-flex justify-space-between align-center pa-4 bg-surface-variant rounded-b-lg mt-3"
+              class="d-flex justify-space-between align-center flex-wrap pa-4 bg-surface-variant rounded-b-lg mt-3 ga-2"
             >
               <span class="text-subtitle-2 font-weight-bold">TOTAL GERAL EMITIDO</span>
-              <div class="d-flex align-center ga-3">
-                <UiChip color="success" size="sm" variant="solid">
-                  {{ reportData.totalIssued }} demandas
-                </UiChip>
-                <span class="text-subtitle-2 font-weight-bold">100.0%</span>
+              <div class="d-flex align-center flex-wrap ga-3">
+                <template v-if="isAllStations && reportData.stations">
+                  <div v-for="st in reportData.stations" :key="st" class="d-flex align-center ga-1">
+                    <span class="text-caption text-medium-emphasis">Posto {{ st }}:</span>
+                    <UiChip color="primary" size="sm" variant="soft">
+                      {{ reportData.stationTotals?.[st] ?? 0 }}
+                    </UiChip>
+                  </div>
+                </template>
+                <div class="d-flex align-center ga-1 ms-2">
+                  <span class="text-caption font-weight-bold">Total:</span>
+                  <UiChip color="success" size="sm" variant="solid">
+                    {{ reportData.totalIssued }}
+                  </UiChip>
+                </div>
+                <span class="text-subtitle-2 font-weight-bold ms-2">100.0%</span>
               </div>
             </div>
           </UiCard>

@@ -9,8 +9,20 @@ mockNuxtImport('definePageMeta', () => vi.fn())
 
 const mockReportData = {
   items: [
-    { documentTypeId: 't1', documentTypeName: '1ª Via', count: 15, percentage: 60 },
-    { documentTypeId: 't2', documentTypeName: '2ª Via', count: 10, percentage: 40 },
+    {
+      documentTypeId: 't1',
+      documentTypeName: '1ª Via',
+      count: 15,
+      percentage: 60,
+      stationCounts: { '1342-5': 10, '1062-9': 5 },
+    },
+    {
+      documentTypeId: 't2',
+      documentTypeName: '2ª Via',
+      count: 10,
+      percentage: 40,
+      stationCounts: { '1342-5': 5, '1062-9': 5 },
+    },
   ],
   totalIssued: 25,
   topDocumentType: '1ª Via',
@@ -18,6 +30,8 @@ const mockReportData = {
   periodDays: 5,
   startDate: '2026-10-01',
   endDate: '2026-10-05',
+  stations: ['1342-5', '1062-9'],
+  stationTotals: { '1342-5': 15, '1062-9': 10 },
 }
 
 const exportIssuedDemandsToCsvMock = vi.fn()
@@ -60,7 +74,24 @@ const defaultStubs = {
   UiIcon: true,
   UiChart: true,
   UiTable: {
-    template: '<table><slot /></table>',
+    props: ['headers', 'items'],
+    template: `
+      <table>
+        <thead>
+          <tr>
+            <th v-for="h in headers" :key="h.value">{{ h.text }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.documentTypeName">
+            <slot name="item-documentTypeName" :item="item" />
+            <slot v-for="st in ['1342-5', '1062-9']" :name="'item-station_' + st" :item="item" />
+            <slot name="item-count" :item="item" />
+            <slot name="item-percentage" :item="item" />
+          </tr>
+        </tbody>
+      </table>
+    `,
   },
   UiSwitch: true,
   UiChip: {
@@ -94,7 +125,7 @@ describe('IIRGD Reports Page', () => {
     expect(wrapper.text()).toContain('Média Diária')
   })
 
-  it('should call exportIssuedDemandsToCsv when export button is clicked', async () => {
+  it('should render station columns in detailed table when all stations is selected', async () => {
     const wrapper = mount(ReportsPage, {
       global: {
         stubs: defaultStubs,
@@ -102,10 +133,38 @@ describe('IIRGD Reports Page', () => {
     })
     await flushPromises()
 
-    const exportBtn = wrapper.findAll('button').find((btn) => btn.text().includes('Exportar CSV'))
-    expect(exportBtn).toBeDefined()
-    if (exportBtn) {
-      await exportBtn.trigger('click')
+    // Headers should contain Posto 1342-5 and Posto 1062-9
+    expect(wrapper.text()).toContain('Posto 1342-5')
+    expect(wrapper.text()).toContain('Posto 1062-9')
+    expect(wrapper.text()).toContain('Total Geral')
+
+    // Footer breakdown by station
+    expect(wrapper.text()).toContain('Posto 1342-5:')
+    expect(wrapper.text()).toContain('15')
+    expect(wrapper.text()).toContain('Posto 1062-9:')
+    expect(wrapper.text()).toContain('10')
+  })
+
+  it('should call exportIssuedDemandsToCsv when export button in table card is clicked', async () => {
+    const wrapper = mount(ReportsPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    // Find export button inside the card header
+    const exportButtons = wrapper
+      .findAll('button')
+      .filter((btn) => btn.text().trim() === 'Exportar' || btn.text().includes('Exportar'))
+    expect(exportButtons.length).toBeGreaterThanOrEqual(1)
+
+    const tableExportBtn = exportButtons.find((btn) => btn.text().trim() === 'Exportar')
+    if (tableExportBtn) {
+      await tableExportBtn.trigger('click')
+      expect(exportIssuedDemandsToCsvMock).toHaveBeenCalledWith(mockReportData)
+    } else {
+      await exportButtons[0].trigger('click')
       expect(exportIssuedDemandsToCsvMock).toHaveBeenCalledWith(mockReportData)
     }
   })

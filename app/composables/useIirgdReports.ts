@@ -1,10 +1,12 @@
 import type { Database } from '~/types/database.types'
+import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
 
 export interface DocumentTypeReportItem {
   documentTypeId: string | null
   documentTypeName: string
   count: number
   percentage: number
+  stationCounts?: Record<string, number>
 }
 
 export interface IssuedDemandsReportFilters {
@@ -21,6 +23,8 @@ export interface IssuedDemandsReportData {
   periodDays: number
   startDate: string
   endDate: string
+  stations: string[]
+  stationTotals: Record<string, number>
 }
 
 interface HistoryEntryWithDemand {
@@ -92,12 +96,31 @@ export const useIirgdReports = () => {
       throw new Error('Erro ao buscar demandas emitidas para o relatório')
     }
 
+    // Stations collection
+    const stationsSet = new Set<string>(
+      filters.stationCode ? [filters.stationCode] : IIRGD_STATION_CODES,
+    )
+    const stationTotals: Record<string, number> = {}
+
     // Map to hold aggregated counts
-    const countsMap = new Map<string, { id: string | null; name: string; count: number }>()
+    const countsMap = new Map<
+      string,
+      {
+        id: string | null
+        name: string
+        count: number
+        stationCounts: Record<string, number>
+      }
+    >()
 
     // Pre-populate with all known active document types (count: 0)
     for (const dt of activeTypes) {
-      countsMap.set(dt.name, { id: dt.id, name: dt.name, count: 0 })
+      countsMap.set(dt.name, {
+        id: dt.id,
+        name: dt.name,
+        count: 0,
+        stationCounts: {},
+      })
     }
 
     const seenDemandIds = new Set<string>()
@@ -115,31 +138,53 @@ export const useIirgdReports = () => {
           return
         }
 
+        const station = demand?.station_code || 'Outro'
+        stationsSet.add(station)
+
         const docTypeName = demand?.iirgd_document_types?.name || 'Não informado'
         const docTypeId = demand?.document_type_id || null
 
-        const existing = countsMap.get(docTypeName)
-        if (existing) {
-          existing.count += 1
-        } else {
-          countsMap.set(docTypeName, {
+        let existing = countsMap.get(docTypeName)
+        if (!existing) {
+          existing = {
             id: docTypeId,
             name: docTypeName,
-            count: 1,
-          })
+            count: 0,
+            stationCounts: {},
+          }
+          countsMap.set(docTypeName, existing)
         }
+
+        existing.count += 1
+        existing.stationCounts[station] = (existing.stationCounts[station] || 0) + 1
+        stationTotals[station] = (stationTotals[station] || 0) + 1
       })
     }
+
+    const stations = Array.from(stationsSet)
+    stations.forEach((st) => {
+      if (stationTotals[st] === undefined) {
+        stationTotals[st] = 0
+      }
+    })
 
     const rawItems = Array.from(countsMap.values())
     const totalIssued = rawItems.reduce((acc, curr) => acc + curr.count, 0)
 
-    const items: DocumentTypeReportItem[] = rawItems.map((item) => ({
-      documentTypeId: item.id,
-      documentTypeName: item.name,
-      count: item.count,
-      percentage: totalIssued > 0 ? Number(((item.count / totalIssued) * 100).toFixed(1)) : 0,
-    }))
+    const items: DocumentTypeReportItem[] = rawItems.map((item) => {
+      const stationCounts: Record<string, number> = {}
+      stations.forEach((st) => {
+        stationCounts[st] = item.stationCounts[st] || 0
+      })
+
+      return {
+        documentTypeId: item.id,
+        documentTypeName: item.name,
+        count: item.count,
+        percentage: totalIssued > 0 ? Number(((item.count / totalIssued) * 100).toFixed(1)) : 0,
+        stationCounts,
+      }
+    })
 
     // Sort by count descending, then name ascending
     items.sort((a, b) => {
@@ -166,6 +211,8 @@ export const useIirgdReports = () => {
       periodDays,
       startDate: filters.startDate,
       endDate: filters.endDate,
+      stations,
+      stationTotals,
     }
   }
 
@@ -173,15 +220,44 @@ export const useIirgdReports = () => {
     data: IssuedDemandsReportData,
     filename?: string,
   ): Promise<void> => {
-    const headers = ['Tipo de Documento', 'Quantidade Emitida', 'Percentual (%)']
-    const rows = data.items.map((item) => [
-      `"${item.documentTypeName.replace(/"/g, '""')}"`,
-      item.count.toString(),
-      `${item.percentage.toFixed(1)}%`,
-    ])
+    const isMultiStation = data.stations && data.stations.length > 1
 
-    // Total summary row
-    rows.push(['"TOTAL"', data.totalIssued.toString(), '100.0%'])
+    let headers: string[]
+    let rows: string[][]
+
+    if (isMultiStation) {
+      headers = [
+        'Tipo de Documento',
+        ...data.stations.map((st) => `Posto ${st}`),
+        'Total Geral',
+        'Percentual (%)',
+      ]
+
+      rows = data.items.map((item) => [
+        `"${item.documentTypeName.replace(/"/g, '""')}"`,
+        ...data.stations.map((st) => (item.stationCounts?.[st] ?? 0).toString()),
+        item.count.toString(),
+        `${item.percentage.toFixed(1)}%`,
+      ])
+
+      // Total summary row
+      rows.push([
+        '"TOTAL"',
+        ...data.stations.map((st) => (data.stationTotals?.[st] ?? 0).toString()),
+        data.totalIssued.toString(),
+        '100.0%',
+      ])
+    } else {
+      headers = ['Tipo de Documento', 'Quantidade Emitida', 'Percentual (%)']
+      rows = data.items.map((item) => [
+        `"${item.documentTypeName.replace(/"/g, '""')}"`,
+        item.count.toString(),
+        `${item.percentage.toFixed(1)}%`,
+      ])
+
+      // Total summary row
+      rows.push(['"TOTAL"', data.totalIssued.toString(), '100.0%'])
+    }
 
     const metadata = [
       `"Relatório: Demandas Emitidas por Tipo de Documento"`,
