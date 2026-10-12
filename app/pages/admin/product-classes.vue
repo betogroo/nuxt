@@ -8,7 +8,8 @@
     navSubtitle: 'Gerencie as classes de produtos',
     navColor: 'teal',
     navGroup: 'admin',
-    navOrder: 95,
+    navSubgroup: 'catalogs',
+    navOrder: 30,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })

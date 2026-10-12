@@ -4,11 +4,11 @@
   definePageMeta({
     middleware: ['admin'],
     icon: 'dashboard',
-    navLabel: 'Painel Admin',
+    navLabel: 'Painel Geral',
     navSubtitle: 'Métricas, configurações e auditoria',
     navColor: 'success',
     navGroup: 'admin',
-    navOrder: 50,
+    navOrder: 10,
     roles: ['admin'],
     showIn: ['drawer', 'home'],
   })
@@ -16,10 +16,11 @@
   useHead({ title: 'Painel de Administração - Geral' })
 
   const { fetchDashboardMetrics, getLogColor } = useAdminDashboard()
-  const { data: metrics, pending, refresh: refreshMetrics } = useAsyncData(
-    'admin-dashboard-metrics',
-    fetchDashboardMetrics,
-  )
+  const {
+    data: metrics,
+    pending,
+    refresh: refreshMetrics,
+  } = useAsyncData('admin-dashboard-metrics', fetchDashboardMetrics)
 
   const {
     pendingUnitsCount,
@@ -248,7 +249,15 @@
       to: '/admin/backup',
       category: 'governance',
       categoryLabel: 'Governança & Segurança',
-      keywords: ['backup', 'restauração', 'restaurar', 'exportar', 'download', 'segurança', 'banco'],
+      keywords: [
+        'backup',
+        'restauração',
+        'restaurar',
+        'exportar',
+        'download',
+        'segurança',
+        'banco',
+      ],
     },
     {
       id: 'logs',
@@ -332,14 +341,7 @@
     <template v-else-if="metrics">
       <!-- 1. Cards Principais de Indicadores (KPIs) -->
       <UiRow class="mb-6">
-        <UiCol
-          v-for="card in metricCards"
-          :key="card.id"
-          cols="12"
-          lg="2"
-          md="4"
-          sm="6"
-        >
+        <UiCol v-for="card in metricCards" :key="card.id" cols="12" lg="2" md="4" sm="6">
           <UiCard
             border
             class="kpi-card h-100"
@@ -384,13 +386,16 @@
             variant="soft"
           >
             <div class="text-body-2 text-medium-emphasis mb-4">
-              Existem registros aguardando aprovação ou retornos de demandas que necessitam de intervenção.
+              Existem registros aguardando aprovação ou retornos de demandas que necessitam de
+              intervenção.
             </div>
 
             <UiRow class="ga-y-3">
               <!-- Unidades de Medida -->
               <UiCol v-if="pendingUnitsCount > 0" cols="12" md="4" sm="6">
-                <div class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border">
+                <div
+                  class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border"
+                >
                   <div class="d-flex align-center gap-2">
                     <UiIcon color="warning" name="balance" size="18" />
                     <div>
@@ -408,13 +413,16 @@
 
               <!-- Naturezas de Despesa -->
               <UiCol v-if="pendingExpenseNaturesCount > 0" cols="12" md="4" sm="6">
-                <div class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border">
+                <div
+                  class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border"
+                >
                   <div class="d-flex align-center gap-2">
                     <UiIcon color="orange" name="finances" size="18" />
                     <div>
                       <div class="text-caption font-weight-bold">Naturezas de Despesa</div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ pendingExpenseNaturesCount }} {{ pendingExpenseNaturesCount === 1 ? 'item' : 'itens' }}
+                        {{ pendingExpenseNaturesCount }}
+                        {{ pendingExpenseNaturesCount === 1 ? 'item' : 'itens' }}
                       </div>
                     </div>
                   </div>
@@ -426,13 +434,16 @@
 
               <!-- Classes de Produtos -->
               <UiCol v-if="pendingProductClassesCount > 0" cols="12" md="4" sm="6">
-                <div class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border">
+                <div
+                  class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border"
+                >
                   <div class="d-flex align-center gap-2">
                     <UiIcon color="teal" name="categories" size="18" />
                     <div>
                       <div class="text-caption font-weight-bold">Classes de Produtos</div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ pendingProductClassesCount }} {{ pendingProductClassesCount === 1 ? 'item' : 'itens' }}
+                        {{ pendingProductClassesCount }}
+                        {{ pendingProductClassesCount === 1 ? 'item' : 'itens' }}
                       </div>
                     </div>
                   </div>
@@ -444,17 +455,25 @@
 
               <!-- Tipos de Documento IIRGD -->
               <UiCol v-if="pendingIirgdDocumentTypesCount > 0" cols="12" md="4" sm="6">
-                <div class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border">
+                <div
+                  class="d-flex align-center justify-space-between pa-3 rounded-lg bg-surface border"
+                >
                   <div class="d-flex align-center gap-2">
                     <UiIcon color="deep-purple" name="document" size="18" />
                     <div>
                       <div class="text-caption font-weight-bold">Documentos IIRGD</div>
                       <div class="text-caption text-medium-emphasis">
-                        {{ pendingIirgdDocumentTypesCount }} {{ pendingIirgdDocumentTypesCount === 1 ? 'tipo' : 'tipos' }}
+                        {{ pendingIirgdDocumentTypesCount }}
+                        {{ pendingIirgdDocumentTypesCount === 1 ? 'tipo' : 'tipos' }}
                       </div>
                     </div>
                   </div>
-                  <UiButton color="deep-purple" size="xs" to="/admin/iirgd-document-types" variant="soft">
+                  <UiButton
+                    color="deep-purple"
+                    size="xs"
+                    to="/admin/iirgd-document-types"
+                    variant="soft"
+                  >
                     Revisar
                   </UiButton>
                 </div>
@@ -466,9 +485,13 @@
                   <div class="d-flex align-center justify-space-between mb-2">
                     <div class="d-flex align-center gap-2">
                       <UiIcon color="warning" name="alert" size="18" />
-                      <span class="text-caption font-weight-bold">Retornos de Status em Demandas</span>
+                      <span class="text-caption font-weight-bold"
+                        >Retornos de Status em Demandas</span
+                      >
                     </div>
-                    <UiChip color="warning" label size="xs">{{ pendingReturnsCount }} pendente(s)</UiChip>
+                    <UiChip color="warning" label size="xs"
+                      >{{ pendingReturnsCount }} pendente(s)</UiChip
+                    >
                   </div>
                   <div class="d-flex flex-column gap-2 mt-2">
                     <div
@@ -478,9 +501,16 @@
                     >
                       <div class="text-truncate mr-2">
                         <span class="text-body-2 font-weight-medium">{{ demand.name }}</span>
-                        <span class="text-caption text-medium-emphasis ml-2">Status: {{ demand.status }}</span>
+                        <span class="text-caption text-medium-emphasis ml-2"
+                          >Status: {{ demand.status }}</span
+                        >
                       </div>
-                      <UiButton color="primary" size="xs" :to="`/demands/${demand.id}`" variant="soft">
+                      <UiButton
+                        color="primary"
+                        size="xs"
+                        :to="`/demands/${demand.id}`"
+                        variant="soft"
+                      >
                         Acessar
                       </UiButton>
                     </div>
@@ -496,13 +526,17 @@
       <div class="mb-6">
         <UiCard elevation="0" rounded="xl">
           <template #header>
-            <div class="d-flex flex-column flex-md-row align-md-center justify-space-between w-100 gap-3">
+            <div
+              class="d-flex flex-column flex-md-row align-md-center justify-space-between w-100 gap-3"
+            >
               <div class="d-flex align-center gap-2">
                 <UiAvatar color="primary" rounded="lg" size="36" variant="soft">
                   <UiIcon name="settings" size="20" />
                 </UiAvatar>
                 <div>
-                  <div class="text-subtitle-1 font-weight-bold">Central de Configurações & Módulos</div>
+                  <div class="text-subtitle-1 font-weight-bold">
+                    Central de Configurações & Módulos
+                  </div>
                   <div class="text-caption text-medium-emphasis">
                     Acesso direto e simplificado a todos os recursos administrativos
                   </div>
@@ -510,7 +544,10 @@
               </div>
 
               <!-- Filtros e Busca Rápida -->
-              <div class="d-flex align-center gap-2 flex-wrap" style="min-width: 300px; max-width: 500px;">
+              <div
+                class="d-flex align-center gap-2 flex-wrap"
+                style="min-width: 300px; max-width: 500px"
+              >
                 <div class="flex-grow-1">
                   <UiInput
                     v-model="searchQuery"
@@ -529,7 +566,9 @@
 
           <!-- Filtros de Categoria em Chips -->
           <div class="d-flex align-center gap-2 mb-5 flex-wrap">
-            <span class="text-caption font-weight-medium text-medium-emphasis mr-1">Filtrar por:</span>
+            <span class="text-caption font-weight-medium text-medium-emphasis mr-1"
+              >Filtrar por:</span
+            >
             <UiChip
               :color="activeCategoryFilter === 'all' ? 'primary' : 'default'"
               filter
@@ -574,20 +613,8 @@
 
           <!-- Grade de Módulos Dinâmica -->
           <UiRow v-if="filteredModules.length > 0">
-            <UiCol
-              v-for="mod in filteredModules"
-              :key="mod.id"
-              cols="12"
-              lg="4"
-              md="6"
-            >
-              <UiCard
-                border
-                class="module-card h-100"
-                elevation="0"
-                rounded="xl"
-                :to="mod.to"
-              >
+            <UiCol v-for="mod in filteredModules" :key="mod.id" cols="12" lg="4" md="6">
+              <UiCard border class="module-card h-100" elevation="0" rounded="xl" :to="mod.to">
                 <div class="d-flex flex-column justify-space-between h-100">
                   <div>
                     <div class="d-flex align-center justify-space-between mb-3">
@@ -633,9 +660,7 @@
             <UiAvatar class="mb-3" color="default" rounded="circle" size="56" variant="soft">
               <UiIcon name="search" size="28" />
             </UiAvatar>
-            <div class="text-subtitle-1 font-weight-bold mb-1">
-              Nenhuma configuração encontrada
-            </div>
+            <div class="text-subtitle-1 font-weight-bold mb-1">Nenhuma configuração encontrada</div>
             <div class="text-body-2 text-medium-emphasis mb-4">
               Não encontramos nenhum módulo para o termo "{{ searchQuery }}".
             </div>
@@ -657,7 +682,9 @@
                     <UiIcon name="history" size="20" />
                   </UiAvatar>
                   <div>
-                    <div class="text-subtitle-1 font-weight-bold">Atividade Recente & Auditoria</div>
+                    <div class="text-subtitle-1 font-weight-bold">
+                      Atividade Recente & Auditoria
+                    </div>
                     <div class="text-caption text-medium-emphasis">
                       Registro das últimas operações realizadas no sistema
                     </div>
@@ -708,7 +735,9 @@
 
 <style scoped>
   .kpi-card {
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     border: 1px solid rgba(var(--v-border-color), 0.1);
   }
@@ -722,7 +751,10 @@
   }
 
   .module-card {
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s;
+    transition:
+      transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.2s;
     text-decoration: none;
     cursor: pointer;
     border: 1px solid rgba(var(--v-border-color), 0.1);

@@ -8,7 +8,8 @@
     navSubtitle: 'Gerencie os tipos de documento',
     navColor: 'deep-purple',
     navGroup: 'admin',
-    navOrder: 96,
+    navSubgroup: 'catalogs',
+    navOrder: 40,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })
@@ -301,10 +302,7 @@
     </UiModal>
 
     <!-- Resolve pending modal -->
-    <UiModal
-      v-model="isResolveModalOpen"
-      :title="`Revisar Tipo: ${targetPendingType?.name || ''}`"
-    >
+    <UiModal v-model="isResolveModalOpen" :title="`Revisar Tipo: ${targetPendingType?.name || ''}`">
       <UiAlert v-if="resolveError" class="mb-4" type="error">
         {{ resolveError }}
       </UiAlert>

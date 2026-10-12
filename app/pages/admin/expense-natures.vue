@@ -8,7 +8,8 @@
     navSubtitle: 'Gerencie naturezas de despesa',
     navColor: 'orange',
     navGroup: 'admin',
-    navOrder: 90,
+    navSubgroup: 'catalogs',
+    navOrder: 20,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })

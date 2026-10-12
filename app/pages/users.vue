@@ -18,7 +18,7 @@
     navSubtitle: 'Gerenciar contas e permissões',
     navColor: 'primary',
     navGroup: 'admin',
-    navOrder: 60,
+    navOrder: 20,
     roles: ['admin'],
     showIn: ['drawer', 'home', 'admin-shortcuts'],
   })

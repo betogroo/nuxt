@@ -10,7 +10,22 @@ export interface NavLinkMeta {
   roles: UserRole[]
   showIn: NavTarget[]
   navGroup: NavGroup
+  navSubgroup?: string
   navOrder: number
+}
+
+export interface NavSubgroupMeta {
+  id: string
+  label: string
+  icon: string
+  links: NavLinkMeta[]
+}
+
+export interface NavSection {
+  group: NavGroup
+  label: string
+  directLinks: NavLinkMeta[]
+  subgroups: NavSubgroupMeta[]
 }
 
 const GROUP_LABELS: Record<NavGroup, string> = {
@@ -25,6 +40,17 @@ const GROUP_ORDER: Record<NavGroup, number> = {
   management: 1,
   iirgd: 2,
   admin: 3,
+}
+
+const SUBGROUP_DEFINITIONS: Record<string, { label: string; icon: string }> = {
+  catalogs: {
+    label: 'Cadastros Auxiliares',
+    icon: 'categories',
+  },
+  system: {
+    label: 'Configurações & Sistema',
+    icon: 'settings',
+  },
 }
 
 export const useNavLinks = () => {
@@ -47,6 +73,7 @@ export const useNavLinks = () => {
         roles: (r.meta.roles as UserRole[]) || [],
         showIn: (r.meta.showIn as NavTarget[]) || [],
         navGroup: (r.meta.navGroup as NavGroup) || 'public',
+        navSubgroup: (r.meta.navSubgroup as string) || undefined,
         navOrder: (r.meta.navOrder as number) ?? 99,
       }))
       .sort((a, b) => {
@@ -66,7 +93,7 @@ export const useNavLinks = () => {
   /** Flat list of drawer links filtered by role */
   const drawerLinks = forTarget('drawer')
 
-  /** Drawer links grouped by navGroup for rendering section headers */
+  /** Drawer links grouped by navGroup for backward compatibility */
   const drawerByGroup = computed<Array<{ group: NavGroup; label: string; links: NavLinkMeta[] }>>(
     () => {
       const seen = new Set<NavGroup>()
@@ -82,11 +109,51 @@ export const useNavLinks = () => {
     },
   )
 
+  /** Structured drawer navigation with direct links and collapsible subgroups */
+  const drawerSections = computed<NavSection[]>(() => {
+    return drawerByGroup.value.map((section) => {
+      const directLinks: NavLinkMeta[] = []
+      const subgroupMap = new Map<string, NavLinkMeta[]>()
+
+      for (const link of section.links) {
+        if (link.navSubgroup) {
+          if (!subgroupMap.has(link.navSubgroup)) {
+            subgroupMap.set(link.navSubgroup, [])
+          }
+          subgroupMap.get(link.navSubgroup)!.push(link)
+        } else {
+          directLinks.push(link)
+        }
+      }
+
+      const subgroups: NavSubgroupMeta[] = []
+      for (const [subgroupId, links] of subgroupMap.entries()) {
+        const def = SUBGROUP_DEFINITIONS[subgroupId] || {
+          label: subgroupId,
+          icon: 'categories',
+        }
+        subgroups.push({
+          id: `${section.group}-${subgroupId}`,
+          label: def.label,
+          icon: def.icon,
+          links,
+        })
+      }
+
+      return {
+        group: section.group,
+        label: section.label,
+        directLinks,
+        subgroups,
+      }
+    })
+  })
+
   /** Cards for the home page quick-access section */
   const homeLinks = forTarget('home')
 
   /** Shortcut buttons for the admin dashboard */
   const adminShortcuts = forTarget('admin-shortcuts')
 
-  return { drawerLinks, drawerByGroup, homeLinks, adminShortcuts }
+  return { drawerLinks, drawerByGroup, drawerSections, homeLinks, adminShortcuts }
 }

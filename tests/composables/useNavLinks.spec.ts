@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref } from 'vue'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
+import { useNavLinks } from '~/composables/useNavLinks'
 
 // Mock useRouter with controlled routes
 const mockGetRoutes = vi.fn()
@@ -63,7 +65,21 @@ describe('useNavLinks', () => {
           navSubtitle: 'Gerencie unidades',
           navColor: 'warning',
           navGroup: 'admin',
+          navSubgroup: 'catalogs',
           navOrder: 80,
+          roles: ['admin'],
+          showIn: ['drawer', 'admin-shortcuts'],
+        },
+      },
+      {
+        path: '/admin/backup',
+        meta: {
+          icon: 'database',
+          navLabel: 'Backup & Restauração',
+          navColor: 'indigo',
+          navGroup: 'admin',
+          navSubgroup: 'system',
+          navOrder: 90,
           roles: ['admin'],
           showIn: ['drawer', 'admin-shortcuts'],
         },
@@ -132,6 +148,28 @@ describe('useNavLinks', () => {
     expect(admin?.label).toBe('Administração')
     expect(mgmt?.links.map((l) => l.path)).toContain('/demands')
     expect(admin?.links.map((l) => l.path)).toContain('/users')
+  })
+
+  it('structures drawerSections with directLinks and collapsible subgroups', () => {
+    mockProfileRef.value = { role: 'admin' }
+    const { drawerSections } = useNavLinks()
+    const sections = drawerSections.value
+
+    const adminSection = sections.find((s) => s.group === 'admin')
+    expect(adminSection).toBeDefined()
+    expect(adminSection?.directLinks.map((l) => l.path)).toContain('/users')
+    expect(adminSection?.directLinks.map((l) => l.path)).not.toContain('/admin/units')
+
+    // Subgroups in admin
+    const catalogsSubgroup = adminSection?.subgroups.find((sg) => sg.id === 'admin-catalogs')
+    expect(catalogsSubgroup).toBeDefined()
+    expect(catalogsSubgroup?.label).toBe('Cadastros Auxiliares')
+    expect(catalogsSubgroup?.links.map((l) => l.path)).toContain('/admin/units')
+
+    const systemSubgroup = adminSection?.subgroups.find((sg) => sg.id === 'admin-system')
+    expect(systemSubgroup).toBeDefined()
+    expect(systemSubgroup?.label).toBe('Configurações & Sistema')
+    expect(systemSubgroup?.links.map((l) => l.path)).toContain('/admin/backup')
   })
 
   it('admin role sees all links', () => {

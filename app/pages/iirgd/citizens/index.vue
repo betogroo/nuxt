@@ -7,11 +7,11 @@
 
   definePageMeta({
     middleware: ['iirgd'],
-    navLabel: 'Cidadãos (IIRGD)',
+    navLabel: 'Cidadãos',
     icon: 'usersGroup',
     navGroup: 'iirgd',
     showIn: ['drawer'],
-    navOrder: 2,
+    navOrder: 20,
     roles: ['admin', 'iirgd_user', 'iirgd_manager'],
   })
 

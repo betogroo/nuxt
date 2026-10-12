@@ -17,7 +17,8 @@
     navSubtitle: 'Gerencie unidades e alias',
     navColor: 'warning',
     navGroup: 'admin',
-    navOrder: 80,
+    navSubgroup: 'catalogs',
+    navOrder: 10,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })

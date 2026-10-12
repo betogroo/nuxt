@@ -1,12 +1,12 @@
 <script setup lang="ts">
   definePageMeta({
-    icon: 'searchDocument',
+    icon: 'history',
     middleware: ['admin'],
-    navLabel: 'Logs',
+    navLabel: 'Auditoria & Logs',
     navSubtitle: 'Auditoria de ações do sistema',
     navColor: 'blue-grey',
     navGroup: 'admin',
-    navOrder: 70,
+    navOrder: 30,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })

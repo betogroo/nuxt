@@ -6,11 +6,11 @@
     icon: 'userBadge',
     middleware: ['iirgd'],
     layout: 'default',
-    navLabel: 'IIRGD',
+    navLabel: 'Dashboard IIRGD',
     navSubtitle: 'Módulo de gestão IIRGD',
     navColor: 'deep-purple',
     navGroup: 'iirgd',
-    navOrder: 40,
+    navOrder: 10,
     roles: ['admin', 'iirgd_user', 'iirgd_manager'],
     showIn: ['drawer', 'home'],
   })
@@ -182,7 +182,10 @@
           </UiCard>
         </UiCol>
       </UiRow>
-      <UiRow v-if="[ROLES.ADMIN, ROLES.IIRGD_MANAGER].includes(profile?.role as string)" class="mt-6">
+      <UiRow
+        v-if="[ROLES.ADMIN, ROLES.IIRGD_MANAGER].includes(profile?.role as string)"
+        class="mt-6"
+      >
         <UiCol cols="12">
           <UiCard
             class="cursor-pointer transition-swing"
@@ -192,7 +195,9 @@
             <div class="d-flex align-center justify-space-between pa-4">
               <div>
                 <div class="text-h6 mb-1">Relatórios IIRGD</div>
-                <div class="text-body-2 text-medium-emphasis">Acesse a página de relatórios para extração de dados.</div>
+                <div class="text-body-2 text-medium-emphasis">
+                  Acesse a página de relatórios para extração de dados.
+                </div>
               </div>
               <UiAvatar color="deep-purple" size="lg" variant="soft">
                 <UiIcon name="recordsList" />

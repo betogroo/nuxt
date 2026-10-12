@@ -3,7 +3,7 @@
     icon: 'info',
     navLabel: 'Sobre',
     navGroup: 'public',
-    navOrder: 2,
+    navOrder: 99,
     roles: ['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user'],
     showIn: ['drawer'],
   })

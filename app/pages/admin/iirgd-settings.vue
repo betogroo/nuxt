@@ -1,16 +1,17 @@
 <script setup lang="ts">
   import { ref, onMounted } from 'vue'
-  import { useIirgdSettings, type IirgdSettings } from '~/composables/useIirgdSettings'
+  import { useIirgdSettings } from '~/composables/useIirgdSettings'
 
   definePageMeta({
-    icon: 'settings',
+    icon: 'clockAlert',
     middleware: ['admin'],
     layout: 'default',
     navLabel: 'SLA IIRGD',
     navSubtitle: 'Prazos e prioridades',
     navColor: 'orange',
     navGroup: 'admin',
-    navOrder: 95,
+    navSubgroup: 'system',
+    navOrder: 10,
     roles: ['admin'],
     showIn: ['drawer', 'admin-shortcuts'],
   })
@@ -33,7 +34,7 @@
         alertDays.value = data.alert_days
         delayDays.value = data.delay_days
       }
-    } catch (e: unknown) {
+    } catch {
       toast.error('Erro ao carregar configurações.')
     } finally {
       pending.value = false
@@ -49,7 +50,7 @@
         delay_days: Number(delayDays.value),
       })
       toast.success('Configurações atualizadas com sucesso.')
-    } catch (e: unknown) {
+    } catch {
       toast.error('Erro ao salvar as configurações.')
     } finally {
       isSaving.value = false
@@ -78,12 +79,7 @@
 
         <UiRow dense>
           <UiCol cols="12" md="6">
-            <UiInput
-              v-model="alertDays"
-              label="Dias para Alerta (Amarelo)"
-              min="1"
-              type="number"
-            />
+            <UiInput v-model="alertDays" label="Dias para Alerta (Amarelo)" min="1" type="number" />
           </UiCol>
           <UiCol cols="12" md="6">
             <UiInput
@@ -100,12 +96,7 @@
         </div>
 
         <template #actions>
-          <UiButton
-            color="primary"
-            :loading="isSaving"
-            prepend-icon="save"
-            @click="saveSettings"
-          >
+          <UiButton color="primary" :loading="isSaving" prepend-icon="save" @click="saveSettings">
             Salvar
           </UiButton>
         </template>

@@ -4,14 +4,14 @@
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
 
   definePageMeta({
-    icon: 'recordsList',
+    icon: 'chart',
     middleware: ['iirgd'],
     layout: 'default',
-    navLabel: 'Relatórios IIRGD',
+    navLabel: 'Relatórios',
     navSubtitle: 'Relatórios do módulo IIRGD',
     navColor: 'deep-purple',
     navGroup: 'iirgd',
-    navOrder: 50,
+    navOrder: 30,
     roles: ['admin', 'iirgd_manager'],
     showIn: ['drawer'],
   })

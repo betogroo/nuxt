@@ -39,7 +39,8 @@
   // Label do role formatado (usando constante centralizada)
   const roleLabel = ROLE_LABELS
 
-  const { drawerByGroup } = useNavLinks()
+  const { drawerSections } = useNavLinks()
+  const route = useRoute()
   const { getIcon } = usePageIcon()
 
   // Pending badges per path (preserved as-is for badge-specific logic)
@@ -49,6 +50,29 @@
     '/admin/expense-natures': pendingExpenseNaturesCount.value,
     '/admin/product-classes': pendingProductClassesCount.value,
   }))
+
+  const getSubgroupBadge = (subgroupLinks: { path: string }[]): number => {
+    return subgroupLinks.reduce((sum, link) => sum + (pathBadge.value[link.path] || 0), 0)
+  }
+
+  const openedGroups = ref<string[]>([])
+
+  // Watch route to open corresponding subgroup automatically
+  watch(
+    () => route.path,
+    (currentPath) => {
+      for (const section of drawerSections.value) {
+        for (const subgroup of section.subgroups) {
+          if (subgroup.links.some((l) => l.path === currentPath)) {
+            if (!openedGroups.value.includes(subgroup.id)) {
+              openedGroups.value.push(subgroup.id)
+            }
+          }
+        }
+      }
+    },
+    { immediate: true },
+  )
 </script>
 
 <template>
@@ -70,9 +94,9 @@
 
       <UiDivider class="mb-2" />
 
-      <!-- Navegação principal: gerada automaticamente por definePageMeta -->
-      <UiList class="px-3" size="sm" nav>
-        <template v-for="section in drawerByGroup" :key="section.group">
+      <!-- Navegação principal: limpa, intuitiva e organizada -->
+      <UiList v-model:opened="openedGroups" class="px-3" nav size="sm">
+        <template v-for="section in drawerSections" :key="section.group">
           <!-- Cabeçalho de seção (apenas para grupos com label) -->
           <div v-if="section.label" class="mt-3 mb-1">
             <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
@@ -80,8 +104,9 @@
             </span>
           </div>
 
+          <!-- Links Diretos da Seção -->
           <UiListItem
-            v-for="link in section.links"
+            v-for="link in section.directLinks"
             :key="link.path"
             :prepend-icon="link.icon"
             rounded="lg"
@@ -92,6 +117,41 @@
               <UiBadge color="error" :content="pathBadge[link.path]" inline />
             </template>
           </UiListItem>
+
+          <!-- Subgrupos Retráteis da Seção -->
+          <UiListGroup
+            v-for="subgroup in section.subgroups"
+            :key="subgroup.id"
+            :value="subgroup.id"
+          >
+            <template #activator="{ props }">
+              <UiListItem
+                v-bind="props"
+                :prepend-icon="subgroup.icon"
+                rounded="lg"
+                :title="subgroup.label"
+              >
+                <template v-if="getSubgroupBadge(subgroup.links) > 0" #append>
+                  <UiBadge color="error" :content="getSubgroupBadge(subgroup.links)" inline />
+                </template>
+              </UiListItem>
+            </template>
+
+            <!-- Links Filhos do Subgrupo -->
+            <UiListItem
+              v-for="subLink in subgroup.links"
+              :key="subLink.path"
+              class="ps-6"
+              :prepend-icon="subLink.icon"
+              rounded="lg"
+              :title="subLink.label"
+              :to="subLink.path"
+            >
+              <template v-if="pathBadge[subLink.path] > 0" #append>
+                <UiBadge color="error" :content="pathBadge[subLink.path]" inline />
+              </template>
+            </UiListItem>
+          </UiListGroup>
         </template>
       </UiList>
 
@@ -99,7 +159,7 @@
       <template #append>
         <UiDivider />
         <div v-if="user" class="pa-3">
-          <UiList size="sm" nav>
+          <UiList nav size="sm">
             <UiListItem
               rounded="lg"
               :subtitle="user.email"
@@ -117,8 +177,8 @@
                     <UiButton
                       v-bind="props"
                       color="error"
-                      size="sm"
                       icon="logout"
+                      size="sm"
                       variant="ghost"
                       @click.prevent="handleSignOut"
                     />
@@ -147,14 +207,7 @@
         :close-on-content-click="false"
       >
         <template #activator="{ props }">
-          <UiButton
-            v-bind="props"
-            class="mx-1"
-            size="md"
-            icon
-            rounded="lg"
-            variant="ghost"
-          >
+          <UiButton v-bind="props" class="mx-1" icon rounded="lg" size="md" variant="ghost">
             <UiBadge color="error" :content="totalPending">
               <UiIcon name="notifications" />
             </UiBadge>
@@ -164,7 +217,7 @@
           <template #header
             ><div class="text-subtitle-2 font-weight-bold">Pendências</div></template
           >
-          <UiList size="sm" nav>
+          <UiList nav size="sm">
             <UiListItem
               v-if="pendingUnitsCount > 0"
               :prepend-icon="getIcon('/admin/units')"
@@ -204,14 +257,7 @@
       <!-- Menu do usuário (mobile/alternativo) -->
       <UiMenu v-if="user">
         <template #activator="{ props }">
-          <UiButton
-            v-bind="props"
-            class="ml-1 mr-2"
-            size="md"
-            icon
-            rounded="lg"
-            variant="ghost"
-          >
+          <UiButton v-bind="props" class="ml-1 mr-2" icon rounded="lg" size="md" variant="ghost">
             <UiAvatar color="primary" size="32">
               <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
             </UiAvatar>
@@ -237,7 +283,7 @@
             </UiListItem>
           </UiList>
           <UiDivider />
-          <UiList size="sm" nav>
+          <UiList nav size="sm">
             <UiListItem
               :prepend-icon="getIcon('/profile')"
               rounded="lg"
