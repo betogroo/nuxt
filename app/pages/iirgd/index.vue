@@ -29,6 +29,17 @@
     },
   )
 
+  // Buscar contagens de demandas
+  const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
+    default: () => ({
+      inProgress: 0,
+      consulted: 0,
+      released: 0,
+      issued: 0,
+      errors: 0,
+    }),
+  })
+
   const statusChartOptions = computed(() => ({
     chart: { type: 'donut', fontFamily: 'inherit' },
     labels: ['Em Andamento', 'Consultados', 'Liberados', 'Emitidos', 'Erros'],
@@ -41,11 +52,11 @@
   }))
 
   const statusChartSeries = computed(() => [
-    counts.value.inProgress,
-    counts.value.consulted,
-    counts.value.released,
-    counts.value.issued,
-    counts.value.errors,
+    counts.value?.inProgress ?? 0,
+    counts.value?.consulted ?? 0,
+    counts.value?.released ?? 0,
+    counts.value?.issued ?? 0,
+    counts.value?.errors ?? 0,
   ])
 
   const trendChartOptions = computed(() => ({
@@ -89,17 +100,6 @@
     { name: 'Demandas Emitidas', data: trendData.value?.series || [] },
   ])
 
-  // Buscar apenas as contagens
-  const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
-    default: () => ({
-      inProgress: 0,
-      consulted: 0,
-      released: 0,
-      issued: 0,
-      errors: 0,
-    }),
-  })
-
   const { profile } = useProfile()
   const isModalOpen = ref(false)
 
@@ -108,35 +108,35 @@
       {
         group: 'in-progress',
         label: 'Em Andamento',
-        count: counts.value.inProgress,
+        count: counts.value?.inProgress ?? 0,
         icon: 'time',
         color: 'primary',
       },
       {
         group: 'consulted',
         label: 'Consultado',
-        count: counts.value.consulted,
+        count: counts.value?.consulted ?? 0,
         icon: 'search',
         color: 'info',
       },
       {
         group: 'released',
         label: 'Liberado',
-        count: counts.value.released,
+        count: counts.value?.released ?? 0,
         icon: 'check',
         color: 'teal',
       },
       {
         group: 'issued',
         label: 'Emitidos',
-        count: counts.value.issued,
+        count: counts.value?.issued ?? 0,
         icon: 'success',
         color: 'success',
       },
       {
         group: 'errors',
         label: 'Erros',
-        count: counts.value.errors,
+        count: counts.value?.errors ?? 0,
         icon: 'close',
         color: 'error',
       },
@@ -183,7 +183,7 @@
         </UiCol>
       </UiRow>
       <UiRow
-        v-if="[ROLES.ADMIN, ROLES.IIRGD_MANAGER].includes(profile?.role as string)"
+        v-if="profile?.role === ROLES.ADMIN || profile?.role === ROLES.IIRGD_MANAGER"
         class="mt-6"
       >
         <UiCol cols="12">

@@ -12,6 +12,8 @@
     variant?: UiVariant
     color?: UiColor
     rounded?: UiRounded
+    to?: string | Record<string, unknown>
+    href?: string
   }>()
 
   const attrs = useAttrs()
@@ -21,7 +23,7 @@
       solid: 'elevated',
       outline: 'outlined',
       ghost: 'text',
-      soft: 'tonal'
+      soft: 'tonal',
     }
     return props.variant ? map[props.variant] : undefined
   })
@@ -35,11 +37,13 @@
 <template>
   <v-card
     class="ui-card"
+    :color="color"
     :elevation="vuetifyVariant === 'outlined' ? 0 : (elevation ?? 1)"
+    :href="href"
     :loading="loading"
     :rounded="vuetifyRounded"
+    :to="to"
     :variant="vuetifyVariant"
-    :color="color"
     v-bind="attrs"
   >
     <!-- Header -->

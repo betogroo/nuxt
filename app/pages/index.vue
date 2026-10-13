@@ -42,11 +42,12 @@
       <UiCol v-for="link in homeLinks" :key="link.path" cols="12" md="4" sm="6">
         <UiCard
           border
-          class="quick-link-card pa-1"
+          class="quick-link-card pa-1 cursor-pointer"
           elevation="0"
           hover
           rounded="xl"
           :to="link.path"
+          @click="navigateTo(link.path)"
         >
           <div class="d-flex align-center gap-4 w-100">
             <UiAvatar :color="link.color" rounded="lg" size="52" variant="ghost">
