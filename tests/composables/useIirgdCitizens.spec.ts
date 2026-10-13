@@ -138,6 +138,28 @@ describe('useIirgdCitizens', () => {
     )
   })
 
+  it('updateCitizen should update other_document uppercase', async () => {
+    const updateMock = vi.fn().mockReturnValue(supabaseFromMock)
+    supabaseFromMock.update = updateMock
+    supabaseFromMock.single = vi.fn().mockResolvedValue({
+      data: { id: 'cit-1', name: 'John Updated', other_document: '0561015112-BA' },
+      error: null,
+    })
+
+    const { updateCitizen } = useIirgdCitizens()
+    await updateCitizen('cit-1', {
+      name: 'John Updated',
+      other_document: '0561015112-ba',
+    })
+
+    expect(updateMock).toHaveBeenCalledWith({
+      name: 'JOHN UPDATED',
+      cpf: null,
+      rg: null,
+      other_document: '0561015112-BA',
+    })
+  })
+
   it('fetchCitizenByDocument should query other_document formatted in uppercase', async () => {
     const maybeSingleMock = vi.fn().mockResolvedValue({
       data: { id: 'cit-ba', other_document: '0561015112-BA' },

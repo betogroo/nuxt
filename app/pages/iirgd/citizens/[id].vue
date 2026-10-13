@@ -44,21 +44,41 @@
   const isSaving = ref(false)
   const saveError = ref('')
 
-  const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdCitizenFormSchema, {
-    name: '',
-    rg: '',
-    cpf: '',
-  })
+  const { errors, defineField, resetForm, handleSubmit, setFieldValue } = useZodForm(
+    iirgdCitizenFormSchema,
+    {
+      name: '',
+      is_other_state: false,
+      other_document: '',
+      rg: '',
+      cpf: '',
+    },
+  )
 
   const [name, nameProps] = defineField('name')
+  const [isOtherState] = defineField('is_other_state')
+  const [otherDocument, otherDocumentProps] = defineField('other_document', {
+    validateOnModelUpdate: false,
+  })
   const [rg, rgProps] = defineField('rg', { validateOnModelUpdate: false })
   const [cpf, cpfProps] = defineField('cpf', { validateOnModelUpdate: false })
 
+  watch(isOtherState, (val) => {
+    if (val) {
+      setFieldValue('rg', '')
+    } else {
+      setFieldValue('other_document', '')
+    }
+  })
+
   const openEditModal = () => {
     if (citizen.value) {
+      const isOther = Boolean(citizen.value.other_document && !citizen.value.rg)
       resetForm({
         values: {
           name: formatCitizenName(citizen.value.name),
+          is_other_state: isOther,
+          other_document: citizen.value.other_document || '',
           rg: citizen.value.rg || '',
           cpf: citizen.value.cpf || '',
         },
@@ -76,10 +96,15 @@
         name: formatCitizenName(values.name),
         cpf: values.cpf ? formatCpf(values.cpf) : null,
         rg: isAdmin.value
-          ? values.rg
+          ? !values.is_other_state && values.rg
             ? padAndFormatRg(values.rg, true)
             : null
           : citizen.value?.rg || null,
+        other_document: isAdmin.value
+          ? values.is_other_state && values.other_document
+            ? values.other_document.trim().toUpperCase()
+            : null
+          : citizen.value?.other_document || null,
       })
       await refresh()
       isEditModalOpen.value = false
@@ -133,7 +158,7 @@
               </div>
 
               <UiRow dense>
-                <UiCol cols="12" sm="3">
+                <UiCol v-if="citizen.rg || !citizen.other_document" cols="12" sm="3">
                   <div class="text-caption text-medium-emphasis">RG (SP)</div>
                   <div class="text-body-1 font-weight-mono">
                     {{ citizen.rg ? padAndFormatRg(citizen.rg, true) : '-' }}
@@ -263,15 +288,35 @@
           @update:model-value="name = String($event || '').toUpperCase()"
         />
 
-        <UiCpfInput
-          v-model="cpf"
-          v-bind="cpfProps"
+        <UiCheckbox
+          v-model="isOtherState"
           class="mb-3"
-          :error-messages="errors.cpf"
-          label="CPF"
+          density="compact"
+          :disabled="!isAdmin"
+          hide-details
+          label="Cidadão de outro estado (sem RG de SP)"
+        />
+
+        <UiInput
+          v-if="isOtherState"
+          v-model="otherDocument"
+          v-bind="otherDocumentProps"
+          class="mb-3"
+          :disabled="!isAdmin"
+          :error-messages="errors.other_document"
+          :hint="
+            !isAdmin
+              ? 'A alteração de documento de cidadão já cadastrado é restrita a administradores.'
+              : undefined
+          "
+          label="Documento de Outro Estado *"
+          :persistent-hint="!isAdmin"
+          placeholder="Ex: 0561015112-BA"
+          @update:model-value="otherDocument = String($event || '').toUpperCase()"
         />
 
         <UiRgInput
+          v-else
           v-model="rg"
           v-bind="rgProps"
           class="mb-3"
@@ -284,6 +329,14 @@
           "
           label="RG (Apenas números ou X)"
           :persistent-hint="!isAdmin"
+        />
+
+        <UiCpfInput
+          v-model="cpf"
+          v-bind="cpfProps"
+          class="mb-3"
+          :error-messages="errors.cpf"
+          label="CPF"
         />
 
         <div class="d-flex justify-end ga-2 mt-4">

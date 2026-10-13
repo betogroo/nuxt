@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref } from 'vue'
+import CitizenDetailPage from '~/pages/iirgd/citizens/[id].vue'
 
 const profileMock = ref<{ role: string }>({ role: 'admin' })
 
@@ -45,8 +46,6 @@ mockNuxtImport('useZodForm', () => {
   })
 })
 
-import CitizenDetailPage from '~/pages/iirgd/citizens/[id].vue'
-
 const commonStubs = {
   UiButton: true,
   UiIcon: true,
@@ -58,6 +57,7 @@ const commonStubs = {
   UiChip: true,
   UiAlert: true,
   UiModal: { template: '<div><slot /></div>' },
+  UiCheckbox: true,
   UiInput: true,
   UiCpfInput: {
     name: 'UiCpfInput',

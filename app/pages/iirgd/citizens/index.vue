@@ -57,18 +57,43 @@
   const isSaving = ref(false)
   const saveError = ref('')
 
-  const { errors, defineField, resetForm, handleSubmit } = useZodForm(iirgdCitizenFormSchema, {
-    name: '',
-    rg: '',
-    cpf: '',
-  })
+  const { errors, defineField, resetForm, handleSubmit, setFieldValue } = useZodForm(
+    iirgdCitizenFormSchema,
+    {
+      name: '',
+      is_other_state: false,
+      rg: '',
+      other_document: '',
+      cpf: '',
+    },
+  )
 
   const [name, nameProps] = defineField('name')
+  const [isOtherState] = defineField('is_other_state')
+  const [otherDocument, otherDocumentProps] = defineField('other_document', {
+    validateOnModelUpdate: false,
+  })
   const [rg, rgProps] = defineField('rg', { validateOnModelUpdate: false })
   const [cpf, cpfProps] = defineField('cpf', { validateOnModelUpdate: false })
 
+  watch(isOtherState, (val) => {
+    if (val) {
+      setFieldValue('rg', '')
+    } else {
+      setFieldValue('other_document', '')
+    }
+  })
+
   const openAddModal = () => {
-    resetForm()
+    resetForm({
+      values: {
+        name: '',
+        is_other_state: false,
+        rg: '',
+        other_document: '',
+        cpf: '',
+      },
+    })
     saveError.value = ''
     isAddModalOpen.value = true
   }
@@ -79,8 +104,12 @@
     try {
       await createCitizen({
         name: formatCitizenName(values.name),
-        rg: values.rg || null,
-        cpf: values.cpf || null,
+        rg: !values.is_other_state && values.rg ? padAndFormatRg(values.rg, true) : null,
+        other_document:
+          values.is_other_state && values.other_document
+            ? values.other_document.trim().toUpperCase()
+            : null,
+        cpf: values.cpf ? formatCpf(values.cpf) : null,
       })
       isAddModalOpen.value = false
       toast.success('Cidadão cadastrado com sucesso!')
@@ -193,11 +222,29 @@
           v-bind="nameProps"
           @update:model-value="name = String($event || '').toUpperCase()"
         />
+        <UiCheckbox
+          v-model="isOtherState"
+          class="mb-3"
+          density="compact"
+          hide-details
+          label="Cidadão de outro estado (sem RG de SP)"
+        />
+        <UiInput
+          v-if="isOtherState"
+          v-model="otherDocument"
+          class="mb-3"
+          :error-messages="errors.other_document"
+          label="Documento de Outro Estado *"
+          placeholder="Ex: 0561015112-BA"
+          v-bind="otherDocumentProps"
+          @update:model-value="otherDocument = String($event || '').toUpperCase()"
+        />
         <UiRgInput
+          v-else
           v-model="rg"
           class="mb-3"
           :error-messages="errors.rg"
-          label="Número do RG"
+          label="Número do RG *"
           v-bind="rgProps"
         />
         <UiCpfInput
