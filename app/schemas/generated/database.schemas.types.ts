@@ -49,6 +49,9 @@ export type PublicExpenseNaturesUpdate = z.infer<typeof generated.publicExpenseN
 export type PublicIirgdCitizensRow = z.infer<typeof generated.publicIirgdCitizensRowSchema>
 export type PublicIirgdCitizensInsert = z.infer<typeof generated.publicIirgdCitizensInsertSchema>
 export type PublicIirgdCitizensUpdate = z.infer<typeof generated.publicIirgdCitizensUpdateSchema>
+export type PublicIirgdCitizensRelationships = z.infer<
+  typeof generated.publicIirgdCitizensRelationshipsSchema
+>
 export type PublicIirgdDemandStatusHistoryRow = z.infer<
   typeof generated.publicIirgdDemandStatusHistoryRowSchema
 >
@@ -67,6 +70,18 @@ export type PublicIirgdDemandsUpdate = z.infer<typeof generated.publicIirgdDeman
 export type PublicIirgdDemandsRelationships = z.infer<
   typeof generated.publicIirgdDemandsRelationshipsSchema
 >
+export type PublicIirgdDocumentTypesRow = z.infer<
+  typeof generated.publicIirgdDocumentTypesRowSchema
+>
+export type PublicIirgdDocumentTypesInsert = z.infer<
+  typeof generated.publicIirgdDocumentTypesInsertSchema
+>
+export type PublicIirgdDocumentTypesUpdate = z.infer<
+  typeof generated.publicIirgdDocumentTypesUpdateSchema
+>
+export type PublicIirgdSettingsRow = z.infer<typeof generated.publicIirgdSettingsRowSchema>
+export type PublicIirgdSettingsInsert = z.infer<typeof generated.publicIirgdSettingsInsertSchema>
+export type PublicIirgdSettingsUpdate = z.infer<typeof generated.publicIirgdSettingsUpdateSchema>
 export type PublicLogsRow = z.infer<typeof generated.publicLogsRowSchema>
 export type PublicLogsInsert = z.infer<typeof generated.publicLogsInsertSchema>
 export type PublicLogsUpdate = z.infer<typeof generated.publicLogsUpdateSchema>
@@ -117,9 +132,27 @@ export type PublicCanReadOwnProfileArgs = z.infer<
 export type PublicCanReadOwnProfileReturns = z.infer<
   typeof generated.publicCanReadOwnProfileReturnsSchema
 >
+export type PublicCanReadProfileForHistoryArgs = z.infer<
+  typeof generated.publicCanReadProfileForHistoryArgsSchema
+>
+export type PublicCanReadProfileForHistoryReturns = z.infer<
+  typeof generated.publicCanReadProfileForHistoryReturnsSchema
+>
+export type PublicGenerateSystemBackupArgs = z.infer<
+  typeof generated.publicGenerateSystemBackupArgsSchema
+>
+export type PublicGenerateSystemBackupReturns = z.infer<
+  typeof generated.publicGenerateSystemBackupReturnsSchema
+>
 export type PublicGetMyCurrentRoleArgs = z.infer<typeof generated.publicGetMyCurrentRoleArgsSchema>
 export type PublicGetMyCurrentRoleReturns = z.infer<
   typeof generated.publicGetMyCurrentRoleReturnsSchema
 >
 export type PublicIsAdminArgs = z.infer<typeof generated.publicIsAdminArgsSchema>
 export type PublicIsAdminReturns = z.infer<typeof generated.publicIsAdminReturnsSchema>
+export type PublicRestoreSystemBackupArgs = z.infer<
+  typeof generated.publicRestoreSystemBackupArgsSchema
+>
+export type PublicRestoreSystemBackupReturns = z.infer<
+  typeof generated.publicRestoreSystemBackupReturnsSchema
+>

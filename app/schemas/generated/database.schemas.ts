@@ -308,8 +308,10 @@ export const publicExpenseNaturesUpdateSchema = z.object({
 export const publicIirgdCitizensRowSchema = z.object({
   cpf: z.string().nullable(),
   created_at: z.string(),
+  created_by: z.string().nullable(),
   id: z.string(),
   name: z.string(),
+  other_document: z.string().nullable(),
   rg: z.string().nullable(),
   updated_at: z.string(),
 })
@@ -317,8 +319,10 @@ export const publicIirgdCitizensRowSchema = z.object({
 export const publicIirgdCitizensInsertSchema = z.object({
   cpf: z.string().optional().nullable(),
   created_at: z.string().optional(),
+  created_by: z.string().optional().nullable(),
   id: z.string().optional(),
   name: z.string(),
+  other_document: z.string().optional().nullable(),
   rg: z.string().optional().nullable(),
   updated_at: z.string().optional(),
 })
@@ -326,11 +330,23 @@ export const publicIirgdCitizensInsertSchema = z.object({
 export const publicIirgdCitizensUpdateSchema = z.object({
   cpf: z.string().optional().nullable(),
   created_at: z.string().optional(),
+  created_by: z.string().optional().nullable(),
   id: z.string().optional(),
   name: z.string().optional(),
+  other_document: z.string().optional().nullable(),
   rg: z.string().optional().nullable(),
   updated_at: z.string().optional(),
 })
+
+export const publicIirgdCitizensRelationshipsSchema = z.tuple([
+  z.object({
+    foreignKeyName: z.literal('iirgd_citizens_created_by_fkey'),
+    columns: z.tuple([z.literal('created_by')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('profiles'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
+])
 
 export const publicIirgdDemandStatusHistoryRowSchema = z.object({
   created_at: z.string(),
@@ -380,6 +396,7 @@ export const publicIirgdDemandsRowSchema = z.object({
   citizen_id: z.string(),
   created_at: z.string().nullable(),
   created_by: z.string().nullable(),
+  document_type_id: z.string().nullable(),
   id: z.string(),
   observation: z.string().nullable(),
   station_code: z.string(),
@@ -391,6 +408,7 @@ export const publicIirgdDemandsInsertSchema = z.object({
   citizen_id: z.string(),
   created_at: z.string().optional().nullable(),
   created_by: z.string().optional().nullable(),
+  document_type_id: z.string().optional().nullable(),
   id: z.string().optional(),
   observation: z.string().optional().nullable(),
   station_code: z.string(),
@@ -402,6 +420,7 @@ export const publicIirgdDemandsUpdateSchema = z.object({
   citizen_id: z.string().optional(),
   created_at: z.string().optional().nullable(),
   created_by: z.string().optional().nullable(),
+  document_type_id: z.string().optional().nullable(),
   id: z.string().optional(),
   observation: z.string().optional().nullable(),
   station_code: z.string().optional(),
@@ -424,7 +443,65 @@ export const publicIirgdDemandsRelationshipsSchema = z.tuple([
     referencedRelation: z.literal('profiles'),
     referencedColumns: z.tuple([z.literal('id')]),
   }),
+  z.object({
+    foreignKeyName: z.literal('iirgd_demands_document_type_id_fkey'),
+    columns: z.tuple([z.literal('document_type_id')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('iirgd_document_types'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
 ])
+
+export const publicIirgdDocumentTypesRowSchema = z.object({
+  created_at: z.string().nullable(),
+  id: z.string(),
+  is_active: z.boolean().nullable(),
+  is_pending: z.boolean().nullable(),
+  name: z.string(),
+  updated_at: z.string().nullable(),
+})
+
+export const publicIirgdDocumentTypesInsertSchema = z.object({
+  created_at: z.string().optional().nullable(),
+  id: z.string().optional(),
+  is_active: z.boolean().optional().nullable(),
+  is_pending: z.boolean().optional().nullable(),
+  name: z.string(),
+  updated_at: z.string().optional().nullable(),
+})
+
+export const publicIirgdDocumentTypesUpdateSchema = z.object({
+  created_at: z.string().optional().nullable(),
+  id: z.string().optional(),
+  is_active: z.boolean().optional().nullable(),
+  is_pending: z.boolean().optional().nullable(),
+  name: z.string().optional(),
+  updated_at: z.string().optional().nullable(),
+})
+
+export const publicIirgdSettingsRowSchema = z.object({
+  alert_days: z.number(),
+  delay_days: z.number(),
+  id: z.string(),
+  updated_at: z.string(),
+  updated_by: z.string().nullable(),
+})
+
+export const publicIirgdSettingsInsertSchema = z.object({
+  alert_days: z.number().optional(),
+  delay_days: z.number().optional(),
+  id: z.string().optional(),
+  updated_at: z.string().optional(),
+  updated_by: z.string().optional().nullable(),
+})
+
+export const publicIirgdSettingsUpdateSchema = z.object({
+  alert_days: z.number().optional(),
+  delay_days: z.number().optional(),
+  id: z.string().optional(),
+  updated_at: z.string().optional(),
+  updated_by: z.string().optional().nullable(),
+})
 
 export const publicLogsRowSchema = z.object({
   action: z.string(),
@@ -732,6 +809,14 @@ export const publicCanReadOwnProfileArgsSchema = z.object({
 
 export const publicCanReadOwnProfileReturnsSchema = z.boolean()
 
+export const publicCanReadProfileForHistoryArgsSchema = z.never()
+
+export const publicCanReadProfileForHistoryReturnsSchema = z.boolean()
+
+export const publicGenerateSystemBackupArgsSchema = z.never()
+
+export const publicGenerateSystemBackupReturnsSchema = jsonSchema
+
 export const publicGetMyCurrentRoleArgsSchema = z.never()
 
 export const publicGetMyCurrentRoleReturnsSchema = publicUserRoleSchema
@@ -739,3 +824,9 @@ export const publicGetMyCurrentRoleReturnsSchema = publicUserRoleSchema
 export const publicIsAdminArgsSchema = z.never()
 
 export const publicIsAdminReturnsSchema = z.boolean()
+
+export const publicRestoreSystemBackupArgsSchema = z.object({
+  p_payload: jsonSchema,
+})
+
+export const publicRestoreSystemBackupReturnsSchema = jsonSchema

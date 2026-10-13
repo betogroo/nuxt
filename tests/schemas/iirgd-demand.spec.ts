@@ -41,7 +41,7 @@ describe('isAntecedentesDocumentType', () => {
 })
 
 describe('iirgdDemandFormSchema', () => {
-  describe('Documentos Padrão (Não-Antecedentes)', () => {
+  describe('Documentos Padrão (Não-Antecedentes, SP)', () => {
     it('aceita um formulário válido com RG e CPF vazio', () => {
       expect(iirgdDemandFormSchema.safeParse(base).success).toBe(true)
     })
@@ -68,7 +68,7 @@ describe('iirgdDemandFormSchema', () => {
       expect(result.success && result.data.name).toBe('Maria')
     })
 
-    it('exige RG quando não for antecedentes (mesmo com CPF preenchido)', () => {
+    it('exige RG quando não for antecedentes nem outro estado (mesmo com CPF preenchido)', () => {
       expect(messagesFor({ ...base, rg: '', cpf: VALID_CPF }, 'rg')).toEqual([
         'O RG é obrigatório.',
       ])
@@ -84,6 +84,62 @@ describe('iirgdDemandFormSchema', () => {
       expect(messagesFor({ ...base, cpf: '123.456.789-00' }, 'cpf')).toEqual([
         'O CPF informado é inválido.',
       ])
+    })
+  })
+
+  describe('Documentos de Outro Estado (is_other_state = true)', () => {
+    const otherStateBase = {
+      ...base,
+      is_other_state: true,
+      rg: '',
+      cpf: '',
+      other_document: '0561015112-BA',
+    }
+
+    it('aceita documento de outro estado sem CPF e sem RG de SP', () => {
+      const result = iirgdDemandFormSchema.safeParse(otherStateBase)
+      expect(result.success).toBe(true)
+    })
+
+    it('aceita documento de outro estado alfanumérico com CPF preenchido', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...otherStateBase,
+        other_document: 'MG-12.345.678',
+        cpf: VALID_CPF,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('aceita cidadão de outro estado apenas com CPF (sem outro documento)', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...otherStateBase,
+        other_document: '',
+        cpf: VALID_CPF,
+      })
+      expect(result.success).toBe(true)
+    })
+
+    it('rejeita se outro estado for marcado mas nem outro documento nem CPF forem informados', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...otherStateBase,
+        other_document: '',
+        cpf: '',
+      })
+      expect(result.success).toBe(false)
+      expect(
+        messagesFor({ ...otherStateBase, other_document: '', cpf: '' }, 'other_document'),
+      ).toEqual(['Informe o Documento de Outro Estado ou o CPF.'])
+    })
+
+    it('rejeita caracteres inválidos em other_document', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...otherStateBase,
+        other_document: 'DOC#@!*&',
+      })
+      expect(result.success).toBe(false)
+      expect(
+        messagesFor({ ...otherStateBase, other_document: 'DOC#@!*&' }, 'other_document'),
+      ).toEqual(['O documento contém caracteres inválidos.'])
     })
   })
 

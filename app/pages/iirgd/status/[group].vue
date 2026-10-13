@@ -307,7 +307,12 @@
               <UiChip v-if="item.priority === 'delay'" color="error" size="xs" variant="solid">
                 Atraso
               </UiChip>
-              <UiChip v-else-if="item.priority === 'alert'" color="warning" size="xs" variant="solid">
+              <UiChip
+                v-else-if="item.priority === 'alert'"
+                color="warning"
+                size="xs"
+                variant="solid"
+              >
                 Alerta
               </UiChip>
             </div>
@@ -323,6 +328,10 @@
                 variant="ghost"
                 @click="copySingleRg(padAndFormatRg(item.iirgd_citizens.rg, true))"
               />
+            </div>
+            <div v-else-if="item.iirgd_citizens?.other_document" class="d-flex align-center ga-1">
+              <span>{{ item.iirgd_citizens.other_document }}</span>
+              <UiChip color="orange" label size="xs" variant="soft">Outro Estado</UiChip>
             </div>
             <span v-else>-</span>
           </template>
@@ -424,7 +433,9 @@
           <template #item-rg="{ item }">{{
             item.iirgd_citizens?.rg ? padAndFormatRg(item.iirgd_citizens.rg, true) : '-'
           }}</template>
-          <template #item-name="{ item }">{{ formatCitizenName(item.iirgd_citizens?.name) || '-' }}</template>
+          <template #item-name="{ item }">{{
+            formatCitizenName(item.iirgd_citizens?.name) || '-'
+          }}</template>
         </UiTable>
         <template #actions>
           <UiButton variant="ghost" @click="releaseModal.isOpen = false">Cancelar</UiButton>
@@ -446,7 +457,9 @@
         </UiAlert>
         <p class="mb-4 text-body-2 text-medium-emphasis">
           Selecione o novo status para a demanda de
-          <strong>{{ formatCitizenName(statusModal.demand?.iirgd_citizens?.name) || 'Desconhecido' }}</strong
+          <strong>{{
+            formatCitizenName(statusModal.demand?.iirgd_citizens?.name) || 'Desconhecido'
+          }}</strong
           >:
         </p>
         <UiSelect

@@ -21,8 +21,15 @@ export const iirgdDemandFormSchema = z
       .trim()
       .min(1, 'O Tipo de Documento é obrigatório.'),
     document_type_name: z.string().optional(),
+    is_other_state: z.boolean().optional(),
     cpf: optionalCpf,
     rg: optionalRgSp,
+    other_document: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^[a-zA-Z0-9\s\-_/.]+$/.test(val), {
+        message: 'O documento contém caracteres inválidos.',
+      }),
     name: z.string({ error: 'O Nome é obrigatório.' }).trim().min(1, 'O Nome é obrigatório.'),
     observation: z.string().optional(),
   })
@@ -33,9 +40,19 @@ export const iirgdDemandFormSchema = z
 
     const hasRg = Boolean(data.rg && data.rg.trim().length > 0)
     const hasCpf = Boolean(data.cpf && data.cpf.trim().length > 0)
+    const hasOtherDoc = Boolean(data.other_document && data.other_document.trim().length > 0)
 
-    if (isAntecedentes) {
-      if (!hasRg && !hasCpf) {
+    if (data.is_other_state) {
+      // Cidadão de outro estado sem RG de SP
+      if (!hasOtherDoc && !hasCpf) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['other_document'],
+          message: 'Informe o Documento de Outro Estado ou o CPF.',
+        })
+      }
+    } else if (isAntecedentes) {
+      if (!hasRg && !hasCpf && !hasOtherDoc) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['rg'],
@@ -48,7 +65,7 @@ export const iirgdDemandFormSchema = z
         })
       }
     } else {
-      if (!hasRg) {
+      if (!hasRg && !hasOtherDoc) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['rg'],

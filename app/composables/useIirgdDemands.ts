@@ -1,8 +1,9 @@
 export interface IirgdCitizen {
   id?: string
   name: string
-  rg: string
+  rg?: string | null
   cpf?: string | null
+  other_document?: string | null
   created_by?: string | null
   created_at?: string
   updated_at?: string
@@ -108,7 +109,9 @@ export const useIirgdDemands = () => {
       const { data: citIds, error: citErr } = await supabase
         .from('iirgd_citizens')
         .select('id')
-        .or(`name.ilike.%${searchQuery}%,rg.ilike.%${searchQuery}%,cpf.ilike.%${searchQuery}%`)
+        .or(
+          `name.ilike.%${searchQuery}%,rg.ilike.%${searchQuery}%,cpf.ilike.%${searchQuery}%,other_document.ilike.%${searchQuery}%`,
+        )
 
       if (!citErr && citIds) {
         if (citIds.length === 0) return { data: [], count: 0 }
@@ -140,21 +143,28 @@ export const useIirgdDemands = () => {
     document_type_id?: string
     rg?: string | null
     cpf?: string | null
+    other_document?: string | null
     observation?: string
   }) => {
-    if (!payload.rg && !payload.cpf) {
-      throw new Error('É necessário informar ao menos o RG ou o CPF.')
+    const cleanRg = payload.rg ? payload.rg.trim() : null
+    const cleanCpf = payload.cpf ? payload.cpf.trim() : null
+    const cleanOtherDoc = payload.other_document
+      ? payload.other_document.trim().toUpperCase()
+      : null
+
+    if (!cleanRg && !cleanCpf && !cleanOtherDoc) {
+      throw new Error('É necessário informar ao menos o RG, o CPF ou um Documento de Outro Estado.')
     }
 
-    // 1. Try to find existing citizen by RG or CPF
+    // 1. Try to find existing citizen by RG, CPF or Other Document
     let citizenId = null
     let existingCitizen = null
 
-    if (payload.rg) {
+    if (cleanRg) {
       const { data: citizens, error: citError } = await supabase
         .from('iirgd_citizens')
         .select('*')
-        .eq('rg', payload.rg)
+        .eq('rg', cleanRg)
 
       if (!citError && citizens && citizens.length > 0) {
         existingCitizen = citizens[0]
@@ -162,11 +172,23 @@ export const useIirgdDemands = () => {
       }
     }
 
-    if (!citizenId && payload.cpf) {
+    if (!citizenId && cleanCpf) {
       const { data: citizens, error: citError } = await supabase
         .from('iirgd_citizens')
         .select('*')
-        .eq('cpf', payload.cpf)
+        .eq('cpf', cleanCpf)
+
+      if (!citError && citizens && citizens.length > 0) {
+        existingCitizen = citizens[0]
+        citizenId = existingCitizen.id
+      }
+    }
+
+    if (!citizenId && cleanOtherDoc) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('other_document', cleanOtherDoc)
 
       if (!citError && citizens && citizens.length > 0) {
         existingCitizen = citizens[0]
@@ -196,8 +218,9 @@ export const useIirgdDemands = () => {
 
       // Update citizen if new docs provided
       const updates: Record<string, string> = {}
-      if (payload.rg && !existingCitizen.rg) updates.rg = payload.rg
-      if (payload.cpf && !existingCitizen.cpf) updates.cpf = payload.cpf
+      if (cleanRg && !existingCitizen.rg) updates.rg = cleanRg
+      if (cleanCpf && !existingCitizen.cpf) updates.cpf = cleanCpf
+      if (cleanOtherDoc && !existingCitizen.other_document) updates.other_document = cleanOtherDoc
 
       if (Object.keys(updates).length > 0) {
         await supabase.from('iirgd_citizens').update(updates).eq('id', citizenId)
@@ -209,8 +232,9 @@ export const useIirgdDemands = () => {
         .insert([
           {
             name: payload.name.trim().toUpperCase(),
-            rg: payload.rg || null,
-            cpf: payload.cpf || null,
+            rg: cleanRg,
+            cpf: cleanCpf,
+            other_document: cleanOtherDoc,
             created_by: user.value?.id || null,
           },
         ])

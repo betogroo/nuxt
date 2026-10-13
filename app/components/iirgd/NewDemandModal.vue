@@ -44,6 +44,8 @@
   const emptyDemandForm = (): Partial<IirgdDemandFormInput> => ({
     rg: '',
     cpf: '',
+    other_document: '',
+    is_other_state: false,
     name: '',
     document_type_id: '',
     document_type_name: '',
@@ -55,7 +57,9 @@
 
   const [stationCode] = defineField('station_code')
   const [documentTypeId] = defineField('document_type_id')
+  const [isOtherState] = defineField('is_other_state')
   const [rg] = defineField('rg', { validateOnModelUpdate: false })
+  const [otherDocument] = defineField('other_document', { validateOnModelUpdate: false })
   const [cpf] = defineField('cpf', { validateOnModelUpdate: false })
   const [name] = defineField('name')
   const [observation] = defineField('observation')
@@ -79,13 +83,26 @@
     return isAntecedentesDocumentType(selectedDocType.value?.name || values.document_type_id)
   })
 
-  // Ao alterar o tipo de documento, atualiza o nome no schema e revalida RG/CPF se já preenchidos
+  // Ao alterar o tipo de documento, atualiza o nome no schema e revalida documentos se já preenchidos
   watch(documentTypeId, async (newVal) => {
     const matched = documentTypes.value?.find((dt) => dt.id === newVal || dt.name === newVal)
     setFieldValue('document_type_name', matched?.name || newVal || '')
-    if (values.rg || values.cpf) {
-      await validateField('rg')
+    if (values.rg || values.cpf || values.other_document) {
+      if (values.is_other_state) {
+        await validateField('other_document')
+      } else {
+        await validateField('rg')
+      }
       await validateField('cpf')
+    }
+  })
+
+  // Ao alternar estado de origem do documento, limpa o campo correspondente
+  watch(isOtherState, (val) => {
+    if (val) {
+      setFieldValue('rg', '')
+    } else {
+      setFieldValue('other_document', '')
     }
   })
 
@@ -122,10 +139,33 @@
     }
   }
 
+  const onOtherDocumentBlur = async () => {
+    const formattedOther = (values.other_document || '').trim().toUpperCase()
+
+    if (!formattedOther && !values.cpf) {
+      existingCitizen.value = null
+      return
+    }
+
+    if (!formattedOther) return
+
+    const { valid } = await validateField('other_document')
+    if (!valid) return
+
+    const citizen = await fetchCitizenByDocument('other_document', formattedOther)
+    if (citizen) {
+      existingCitizen.value = citizen
+      setFieldValue('name', formatCitizenName(citizen.name))
+      if (citizen.cpf && !values.cpf) {
+        setFieldValue('cpf', citizen.cpf)
+      }
+    }
+  }
+
   const onCpfBlur = async () => {
     const formattedCpf = values.cpf || ''
 
-    if (!formattedCpf && !values.rg) {
+    if (!formattedCpf && !values.rg && !values.other_document) {
       existingCitizen.value = null
       return
     }
@@ -139,7 +179,11 @@
     if (citizen) {
       existingCitizen.value = citizen
       setFieldValue('name', formatCitizenName(citizen.name))
-      if (citizen.rg && !values.rg) {
+      if (citizen.other_document && !citizen.rg && !values.other_document) {
+        setFieldValue('is_other_state', true)
+        setFieldValue('other_document', citizen.other_document)
+      } else if (citizen.rg && !values.rg) {
+        setFieldValue('is_other_state', false)
         setFieldValue('rg', citizen.rg)
       }
     }
@@ -167,7 +211,12 @@
         ...formValues,
         name: formatCitizenName(formValues.name),
         document_type_id: finalDocTypeId,
-        rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : null,
+        rg:
+          !formValues.is_other_state && formValues.rg ? padAndFormatRg(formValues.rg, true) : null,
+        other_document:
+          formValues.is_other_state && formValues.other_document
+            ? formValues.other_document.trim().toUpperCase()
+            : null,
         cpf: formValues.cpf ? formatCpf(formValues.cpf) : null,
       })
 
@@ -209,12 +258,35 @@
           placeholder="Selecione ou digite um novo tipo..."
         />
       </UiCol>
+
+      <UiCol cols="12">
+        <UiCheckbox
+          v-model="isOtherState"
+          class="my-1"
+          density="compact"
+          hide-details
+          label="Cidadão de outro estado (sem RG de SP)"
+        />
+      </UiCol>
+
       <UiCol v-if="isAntecedentes" class="mb-2" cols="12">
         <div class="text-caption text-medium-emphasis">
           * Para Antecedentes, informe ao menos um documento (RG ou CPF).
         </div>
       </UiCol>
-      <UiCol cols="12" sm="6">
+
+      <UiCol v-if="isOtherState" cols="12" sm="6">
+        <UiInput
+          v-model="otherDocument"
+          :disabled="!!existingCitizen?.other_document"
+          :error-messages="errors.other_document"
+          label="Documento de Outro Estado *"
+          placeholder="Ex: 0561015112-BA"
+          @blur="onOtherDocumentBlur"
+          @update:model-value="setFieldValue('other_document', String($event || '').toUpperCase())"
+        />
+      </UiCol>
+      <UiCol v-else cols="12" sm="6">
         <UiRgInput
           v-model="rg"
           :disabled="!!existingCitizen?.rg"
@@ -223,6 +295,7 @@
           @blur="onRgBlur"
         />
       </UiCol>
+
       <UiCol cols="12" sm="6">
         <UiCpfInput
           v-model="cpf"
@@ -232,6 +305,7 @@
           @blur="onCpfBlur"
         />
       </UiCol>
+
       <UiCol cols="12">
         <UiInput
           v-model="name"

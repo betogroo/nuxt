@@ -76,6 +76,7 @@ describe('useIirgdDemands', () => {
         name: 'JOHN DOE',
         rg: '00012345-6',
         cpf: '000.000.000-00',
+        other_document: null,
         created_by: 'test-user-id',
       },
     ])
@@ -164,16 +165,84 @@ describe('useIirgdDemands', () => {
     ).rejects.toThrow('Este cidadão já possui uma solicitação em andamento.')
   })
 
-  it('createDemand should throw error if neither RG nor CPF is provided', async () => {
+  it('createDemand should throw error if neither RG, CPF nor other_document is provided', async () => {
     const { createDemand } = useIirgdDemands()
     await expect(
       createDemand({
         station_code: '1342-5',
         rg: null,
         cpf: null,
+        other_document: null,
         name: 'No Docs',
       }),
-    ).rejects.toThrow('É necessário informar ao menos o RG ou o CPF.')
+    ).rejects.toThrow('É necessário informar ao menos o RG, o CPF ou um Documento de Outro Estado.')
+  })
+
+  it('createDemand should find existing citizen by other_document when RG and CPF are not provided', async () => {
+    supabaseFromMock.eq.mockResolvedValueOnce({
+      data: [
+        {
+          id: 'cit-other-1',
+          name: 'BAHIAN CITIZEN',
+          other_document: '0561015112-BA',
+          rg: null,
+          cpf: null,
+        },
+      ],
+      error: null,
+    })
+    supabaseFromMock.in.mockResolvedValueOnce({ data: [], error: null })
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-other-1' }, error: null })
+
+    const { createDemand } = useIirgdDemands()
+    const result = await createDemand({
+      station_code: '1342-5',
+      name: 'Bahian Citizen',
+      other_document: '0561015112-BA',
+    })
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
+    expect(supabaseFromMock.eq).toHaveBeenCalledWith('other_document', '0561015112-BA')
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_demands')
+    expect(supabaseFromMock.insert).toHaveBeenCalledWith([
+      {
+        citizen_id: 'cit-other-1',
+        document_type_id: null,
+        station_code: '1342-5',
+        observation: undefined,
+        status: 'new',
+        created_by: 'test-user-id',
+      },
+    ])
+    expect(result).toEqual({ id: 'dem-other-1' })
+  })
+
+  it('createDemand should create new citizen with other_document when not found', async () => {
+    // Check by other_document returns empty
+    supabaseFromMock.eq.mockResolvedValueOnce({ data: [], error: null })
+    // Insert citizen
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'cit-new-ba' }, error: null })
+    // Insert demand
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-new-ba' }, error: null })
+
+    const { createDemand } = useIirgdDemands()
+    const result = await createDemand({
+      station_code: '1342-5',
+      name: 'New Citizen BA',
+      other_document: '0561015112-BA',
+    })
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
+    expect(supabaseFromMock.insert).toHaveBeenCalledWith([
+      {
+        name: 'NEW CITIZEN BA',
+        rg: null,
+        cpf: null,
+        other_document: '0561015112-BA',
+        created_by: 'test-user-id',
+      },
+    ])
+    expect(result).toEqual({ id: 'dem-new-ba' })
   })
 
   it('fetchDemandById should return a single demand', async () => {

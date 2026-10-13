@@ -153,7 +153,12 @@
           </NuxtLink>
         </template>
         <template #item-rg="{ item }">
-          {{ item.rg ? padAndFormatRg(item.rg, true) : '-' }}
+          <span v-if="item.rg">{{ padAndFormatRg(item.rg, true) }}</span>
+          <span v-else-if="item.other_document" class="d-flex align-center ga-1">
+            {{ item.other_document }}
+            <UiChip color="orange" label size="xs" variant="soft">Outro Estado</UiChip>
+          </span>
+          <span v-else>-</span>
         </template>
         <template #item-cpf="{ item }">
           {{ item.cpf ? formatCpf(item.cpf) : '-' }}

@@ -76,8 +76,10 @@
         name: formatCitizenName(values.name),
         cpf: values.cpf ? formatCpf(values.cpf) : null,
         rg: isAdmin.value
-          ? (values.rg ? padAndFormatRg(values.rg, true) : null)
-          : (citizen.value?.rg || null),
+          ? values.rg
+            ? padAndFormatRg(values.rg, true)
+            : null
+          : citizen.value?.rg || null,
       })
       await refresh()
       isEditModalOpen.value = false
@@ -132,9 +134,16 @@
 
               <UiRow dense>
                 <UiCol cols="12" sm="3">
-                  <div class="text-caption text-medium-emphasis">RG</div>
+                  <div class="text-caption text-medium-emphasis">RG (SP)</div>
                   <div class="text-body-1 font-weight-mono">
                     {{ citizen.rg ? padAndFormatRg(citizen.rg, true) : '-' }}
+                  </div>
+                </UiCol>
+                <UiCol v-if="citizen.other_document" cols="12" sm="3">
+                  <div class="text-caption text-medium-emphasis">Doc. Outro Estado</div>
+                  <div class="text-body-1 font-weight-mono d-flex align-center ga-1">
+                    <span>{{ citizen.other_document }}</span>
+                    <UiChip color="orange" label size="xs" variant="soft">Outro Estado</UiChip>
                   </div>
                 </UiCol>
                 <UiCol cols="12" sm="3">
@@ -268,9 +277,13 @@
           class="mb-3"
           :disabled="!isAdmin"
           :error-messages="errors.rg"
-          :hint="!isAdmin ? 'A alteração de RG de cidadão já cadastrado é restrita a administradores.' : undefined"
-          :persistent-hint="!isAdmin"
+          :hint="
+            !isAdmin
+              ? 'A alteração de RG de cidadão já cadastrado é restrita a administradores.'
+              : undefined
+          "
           label="RG (Apenas números ou X)"
+          :persistent-hint="!isAdmin"
         />
 
         <div class="d-flex justify-end ga-2 mt-4">

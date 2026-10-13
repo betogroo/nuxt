@@ -5,6 +5,7 @@ export interface IirgdCitizenWithDemands {
   name: string
   rg: string | null
   cpf: string | null
+  other_document: string | null
   created_by?: string | null
   created_at: string
   updated_at: string
@@ -33,10 +34,10 @@ export const useIirgdCitizens = () => {
       const searchNumber = searchQuery.replace(/\D/g, '')
       if (searchNumber.length >= 3) {
         query = query.or(
-          `name.ilike.%${searchQuery}%,rg.ilike.%${searchNumber}%,cpf.ilike.%${searchNumber}%`,
+          `name.ilike.%${searchQuery}%,rg.ilike.%${searchNumber}%,cpf.ilike.%${searchNumber}%,other_document.ilike.%${searchQuery}%`,
         )
       } else {
-        query = query.or(`name.ilike.%${searchQuery}%`)
+        query = query.or(`name.ilike.%${searchQuery}%,other_document.ilike.%${searchQuery}%`)
       }
     }
 
@@ -75,11 +76,12 @@ export const useIirgdCitizens = () => {
     return data as IirgdCitizenWithDemands
   }
 
-  const fetchCitizenByDocument = async (type: 'rg' | 'cpf', value: string) => {
+  const fetchCitizenByDocument = async (type: 'rg' | 'cpf' | 'other_document', value: string) => {
+    const cleanValue = type === 'other_document' ? value.trim().toUpperCase() : value.trim()
     const { data, error } = await supabase
       .from('iirgd_citizens')
       .select('*')
-      .eq(type, value)
+      .eq(type, cleanValue)
       .maybeSingle()
 
     if (error && error.code !== 'PGRST116') {
@@ -90,7 +92,12 @@ export const useIirgdCitizens = () => {
     return data
   }
 
-  const createCitizen = async (payload: { name: string; rg?: string | null; cpf?: string | null }) => {
+  const createCitizen = async (payload: {
+    name: string
+    rg?: string | null
+    cpf?: string | null
+    other_document?: string | null
+  }) => {
     const sanitizedName = payload.name.trim().toUpperCase()
     const { data, error } = await supabase
       .from('iirgd_citizens')
@@ -99,6 +106,9 @@ export const useIirgdCitizens = () => {
           name: sanitizedName,
           rg: payload.rg || null,
           cpf: payload.cpf || null,
+          other_document: payload.other_document
+            ? payload.other_document.trim().toUpperCase()
+            : null,
           created_by: user.value?.id || null,
         },
       ])
@@ -108,19 +118,29 @@ export const useIirgdCitizens = () => {
     if (error) {
       console.error(error)
       if (error.code === '23505') {
-        throw new Error('Já existe um cidadão cadastrado com este RG ou CPF.')
+        throw new Error(
+          'Já existe um cidadão cadastrado com este documento (RG, CPF ou Outro Estado).',
+        )
       }
       throw new Error('Erro ao cadastrar cidadão')
     }
 
-    await logAction('CREATE_IIRGD_CITIZEN', `Cidadão IIRGD cadastrado: ID ${data.id} - ${data.name}`)
+    await logAction(
+      'CREATE_IIRGD_CITIZEN',
+      `Cidadão IIRGD cadastrado: ID ${data.id} - ${data.name}`,
+    )
 
     return data
   }
 
   const updateCitizen = async (
     id: string,
-    payload: { name: string; cpf?: string | null; rg?: string | null },
+    payload: {
+      name: string
+      cpf?: string | null
+      rg?: string | null
+      other_document?: string | null
+    },
   ) => {
     const sanitizedName = payload.name.trim().toUpperCase()
     const { data, error } = await supabase
@@ -129,6 +149,7 @@ export const useIirgdCitizens = () => {
         name: sanitizedName,
         cpf: payload.cpf || null,
         rg: payload.rg || null,
+        other_document: payload.other_document ? payload.other_document.trim().toUpperCase() : null,
       })
       .eq('id', id)
       .select('*')
@@ -137,12 +158,17 @@ export const useIirgdCitizens = () => {
     if (error) {
       console.error(error)
       if (error.code === '23505') {
-        throw new Error('Já existe um cidadão cadastrado com este RG ou CPF.')
+        throw new Error(
+          'Já existe um cidadão cadastrado com este documento (RG, CPF ou Outro Estado).',
+        )
       }
       throw new Error('Erro ao atualizar cidadão')
     }
 
-    await logAction('UPDATE_IIRGD_CITIZEN', `Cidadão IIRGD atualizado: ID ${data.id} - ${data.name}`)
+    await logAction(
+      'UPDATE_IIRGD_CITIZEN',
+      `Cidadão IIRGD atualizado: ID ${data.id} - ${data.name}`,
+    )
 
     return data
   }

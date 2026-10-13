@@ -84,6 +84,7 @@ describe('useIirgdCitizens', () => {
         name: 'JANE DOE',
         rg: '12345678X',
         cpf: '00011122233',
+        other_document: null,
         created_by: 'test-user-id',
       },
     ])
@@ -114,6 +115,7 @@ describe('useIirgdCitizens', () => {
       name: 'JOHN UPDATED',
       cpf: '12345678901',
       rg: '12345678X',
+      other_document: null,
     })
     expect(supabaseFromMock.eq).toHaveBeenCalledWith('id', 'cit-1')
     expect(logActionMock).toHaveBeenCalledWith(
@@ -131,8 +133,48 @@ describe('useIirgdCitizens', () => {
     })
 
     const { updateCitizen } = useIirgdCitizens()
-    await expect(
-      updateCitizen('cit-1', { name: 'John', cpf: '123', rg: '456' }),
-    ).rejects.toThrow('Já existe um cidadão cadastrado com este RG ou CPF.')
+    await expect(updateCitizen('cit-1', { name: 'John', cpf: '123', rg: '456' })).rejects.toThrow(
+      'Já existe um cidadão cadastrado com este documento (RG, CPF ou Outro Estado).',
+    )
+  })
+
+  it('fetchCitizenByDocument should query other_document formatted in uppercase', async () => {
+    const maybeSingleMock = vi.fn().mockResolvedValue({
+      data: { id: 'cit-ba', other_document: '0561015112-BA' },
+      error: null,
+    })
+    supabaseFromMock.maybeSingle = maybeSingleMock
+
+    const { fetchCitizenByDocument } = useIirgdCitizens()
+    const result = await fetchCitizenByDocument('other_document', ' 0561015112-ba ')
+
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
+    expect(supabaseFromMock.eq).toHaveBeenCalledWith('other_document', '0561015112-BA')
+    expect(result).toEqual({ id: 'cit-ba', other_document: '0561015112-BA' })
+  })
+
+  it('createCitizen should save other_document uppercase', async () => {
+    supabaseFromMock.insert = vi.fn().mockReturnValue(supabaseFromMock)
+    supabaseFromMock.single = vi.fn().mockResolvedValue({
+      data: { id: 'cit-ba-2', name: 'MARIA BA', other_document: '0561015112-BA' },
+      error: null,
+    })
+
+    const { createCitizen } = useIirgdCitizens()
+    const result = await createCitizen({
+      name: 'Maria BA',
+      other_document: '0561015112-ba',
+    })
+
+    expect(supabaseFromMock.insert).toHaveBeenCalledWith([
+      {
+        name: 'MARIA BA',
+        rg: null,
+        cpf: null,
+        other_document: '0561015112-BA',
+        created_by: 'test-user-id',
+      },
+    ])
+    expect(result.id).toBe('cit-ba-2')
   })
 })

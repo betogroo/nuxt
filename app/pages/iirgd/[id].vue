@@ -160,7 +160,9 @@
 
   useHead({
     title: computed(() =>
-      demand.value ? `Demanda IIRGD: ${formatCitizenName(demand.value.iirgd_citizens?.name)}` : 'Detalhes IIRGD',
+      demand.value
+        ? `Demanda IIRGD: ${formatCitizenName(demand.value.iirgd_citizens?.name)}`
+        : 'Detalhes IIRGD',
     ),
   })
 </script>
@@ -190,7 +192,9 @@
           <div class="d-flex align-center flex-wrap ga-4 mb-8">
             <UiIcon color="primary" name="userBadge" size="40" />
             <div>
-              <div class="text-h5 font-weight-bold">{{ formatCitizenName(demand.iirgd_citizens?.name) }}</div>
+              <div class="text-h5 font-weight-bold">
+                {{ formatCitizenName(demand.iirgd_citizens?.name) }}
+              </div>
               <div class="text-subtitle-2 text-medium-emphasis">
                 Atendimento IIRGD · Posto {{ demand.station_code }}
               </div>
@@ -208,10 +212,22 @@
                 'Não informado'
               }}
             </UiChip>
-            <UiChip v-if="demand.priority === 'delay'" color="error" size="default" variant="solid" label>
+            <UiChip
+              v-if="demand.priority === 'delay'"
+              color="error"
+              label
+              size="default"
+              variant="solid"
+            >
               Atraso
             </UiChip>
-            <UiChip v-else-if="demand.priority === 'alert'" color="warning" size="default" variant="solid" label>
+            <UiChip
+              v-else-if="demand.priority === 'alert'"
+              color="warning"
+              label
+              size="default"
+              variant="solid"
+            >
               Alerta
             </UiChip>
             <UiButton
@@ -245,15 +261,24 @@
                     </NuxtLink>
                   </div>
 
-                  <div>
-                    <div class="text-overline text-medium-emphasis">RG</div>
+                  <div v-if="demand.iirgd_citizens?.rg">
+                    <div class="text-overline text-medium-emphasis">RG (SP)</div>
                     <div class="text-body-1 font-weight-medium">
-                      {{
-                        demand.iirgd_citizens?.rg
-                          ? padAndFormatRg(demand.iirgd_citizens.rg, true)
-                          : '-'
-                      }}
+                      {{ padAndFormatRg(demand.iirgd_citizens.rg, true) }}
                     </div>
+                  </div>
+
+                  <div v-if="demand.iirgd_citizens?.other_document">
+                    <div class="text-overline text-medium-emphasis">Documento de Outro Estado</div>
+                    <div class="text-body-1 font-weight-medium d-flex align-center ga-2">
+                      <span>{{ demand.iirgd_citizens.other_document }}</span>
+                      <UiChip color="orange" label size="xs" variant="soft">Outro Estado</UiChip>
+                    </div>
+                  </div>
+
+                  <div v-if="!demand.iirgd_citizens?.rg && !demand.iirgd_citizens?.other_document">
+                    <div class="text-overline text-medium-emphasis">RG</div>
+                    <div class="text-body-1 font-weight-medium">-</div>
                   </div>
 
                   <div>
@@ -322,7 +347,11 @@
                     <UiCol cols="12" sm="4">
                       <div class="text-overline text-medium-emphasis">Última atualização</div>
                       <div class="text-body-2">
-                        {{ demand.updated_at ? new Date(demand.updated_at).toLocaleString('pt-BR') : '-' }}
+                        {{
+                          demand.updated_at
+                            ? new Date(demand.updated_at).toLocaleString('pt-BR')
+                            : '-'
+                        }}
                       </div>
                     </UiCol>
                   </UiRow>
