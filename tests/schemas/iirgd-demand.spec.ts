@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { iirgdDemandFormSchema } from '../../app/schemas/forms/iirgd-demand'
+import {
+  iirgdDemandFormSchema,
+  isAntecedentesDocumentType,
+} from '../../app/schemas/forms/iirgd-demand'
 
 const VALID_RG = '72894286-0'
 const VALID_CPF = '123.456.789-09'
@@ -10,6 +13,7 @@ const base = {
   cpf: '',
   name: 'Maria da Silva',
   document_type_id: 'eb7dbbb9-f018-4a57-ab66-b5ce53d39db7',
+  document_type_name: 'Primeira Via',
   observation: '',
 }
 
@@ -19,49 +23,140 @@ const messagesFor = (input: unknown, path: string): string[] => {
   return result.error.issues.filter((i) => i.path.join('.') === path).map((i) => i.message)
 }
 
+describe('isAntecedentesDocumentType', () => {
+  it('retorna true para tipos de antecedentes com variações de caixa e acentuação', () => {
+    expect(isAntecedentesDocumentType('Antecedentes Numeral')).toBe(true)
+    expect(isAntecedentesDocumentType('Antecedentes Nominal')).toBe(true)
+    expect(isAntecedentesDocumentType('antecedentes')).toBe(true)
+    expect(isAntecedentesDocumentType('Atestado de Antecedentes')).toBe(true)
+  })
+
+  it('retorna false para tipos regulares ou nulos', () => {
+    expect(isAntecedentesDocumentType('Primeira Via')).toBe(false)
+    expect(isAntecedentesDocumentType('Segunda Via CIN')).toBe(false)
+    expect(isAntecedentesDocumentType(null)).toBe(false)
+    expect(isAntecedentesDocumentType(undefined)).toBe(false)
+    expect(isAntecedentesDocumentType('')).toBe(false)
+  })
+})
+
 describe('iirgdDemandFormSchema', () => {
-  it('aceita um formulário válido com RG e CPF vazio', () => {
-    expect(iirgdDemandFormSchema.safeParse(base).success).toBe(true)
+  describe('Documentos Padrão (Não-Antecedentes)', () => {
+    it('aceita um formulário válido com RG e CPF vazio', () => {
+      expect(iirgdDemandFormSchema.safeParse(base).success).toBe(true)
+    })
+
+    it('aceita um formulário válido com CPF e RG preenchidos', () => {
+      const result = iirgdDemandFormSchema.safeParse({ ...base, cpf: VALID_CPF })
+      expect(result.success).toBe(true)
+    })
+
+    it('exige o código do posto', () => {
+      expect(messagesFor({ ...base, station_code: undefined }, 'station_code')).toEqual([
+        'O Código do Posto é obrigatório.',
+      ])
+    })
+
+    it('rejeita código de posto fora da lista', () => {
+      expect(messagesFor({ ...base, station_code: '0000-0' }, 'station_code')).toHaveLength(1)
+    })
+
+    it('exige o nome e remove espaços nas bordas', () => {
+      expect(messagesFor({ ...base, name: '   ' }, 'name')).toEqual(['O Nome é obrigatório.'])
+
+      const result = iirgdDemandFormSchema.safeParse({ ...base, name: '  Maria  ' })
+      expect(result.success && result.data.name).toBe('Maria')
+    })
+
+    it('exige RG quando não for antecedentes (mesmo com CPF preenchido)', () => {
+      expect(messagesFor({ ...base, rg: '', cpf: VALID_CPF }, 'rg')).toEqual([
+        'O RG é obrigatório.',
+      ])
+    })
+
+    it('rejeita RG com dígito verificador inválido', () => {
+      expect(messagesFor({ ...base, rg: '72894286-1' }, 'rg')).toEqual([
+        'O RG informado é inválido ou seu dígito verificador não confere.',
+      ])
+    })
+
+    it('rejeita CPF inválido se preenchido', () => {
+      expect(messagesFor({ ...base, cpf: '123.456.789-00' }, 'cpf')).toEqual([
+        'O CPF informado é inválido.',
+      ])
+    })
   })
 
-  it('aceita um formulário válido com CPF e RG preenchidos', () => {
-    const result = iirgdDemandFormSchema.safeParse({ ...base, cpf: VALID_CPF })
-    expect(result.success).toBe(true)
-  })
+  describe('Documentos do tipo Antecedentes', () => {
+    const antecedentesBase = {
+      ...base,
+      document_type_id: 'doc-ant-1',
+      document_type_name: 'Antecedentes Numeral',
+    }
 
-  it('exige o código do posto', () => {
-    expect(messagesFor({ ...base, station_code: undefined }, 'station_code')).toEqual([
-      'O Código do Posto é obrigatório.',
-    ])
-  })
+    it('aceita antecedentes com apenas RG preenchido', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...antecedentesBase,
+        rg: VALID_RG,
+        cpf: '',
+      })
+      expect(result.success).toBe(true)
+    })
 
-  it('rejeita código de posto fora da lista', () => {
-    expect(messagesFor({ ...base, station_code: '0000-0' }, 'station_code')).toHaveLength(1)
-  })
+    it('aceita antecedentes com apenas CPF preenchido', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...antecedentesBase,
+        rg: '',
+        cpf: VALID_CPF,
+      })
+      expect(result.success).toBe(true)
+    })
 
-  it('exige o nome e remove espaços nas bordas', () => {
-    expect(messagesFor({ ...base, name: '   ' }, 'name')).toEqual(['O Nome é obrigatório.'])
+    it('aceita antecedentes com ambos RG e CPF preenchidos', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...antecedentesBase,
+        rg: VALID_RG,
+        cpf: VALID_CPF,
+      })
+      expect(result.success).toBe(true)
+    })
 
-    const result = iirgdDemandFormSchema.safeParse({ ...base, name: '  Maria  ' })
-    expect(result.success && result.data.name).toBe('Maria')
-  })
+    it('rejeita antecedentes se nem RG nem CPF forem informados', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...antecedentesBase,
+        rg: '',
+        cpf: '',
+      })
+      expect(result.success).toBe(false)
+      expect(messagesFor({ ...antecedentesBase, rg: '', cpf: '' }, 'rg')).toEqual([
+        'Para Antecedentes, informe ao menos o RG ou o CPF.',
+      ])
+      expect(messagesFor({ ...antecedentesBase, rg: '', cpf: '' }, 'cpf')).toEqual([
+        'Para Antecedentes, informe ao menos o RG ou o CPF.',
+      ])
+    })
 
-  it('exige RG', () => {
-    expect(messagesFor({ ...base, rg: '' }, 'rg')).toEqual([
-      'O RG é obrigatório.',
-      'O RG informado é inválido ou seu dígito verificador não confere.',
-    ])
-  })
+    it('rejeita antecedentes se RG for inválido (mesmo com CPF válido)', () => {
+      expect(messagesFor({ ...antecedentesBase, rg: '72894286-1', cpf: VALID_CPF }, 'rg')).toEqual([
+        'O RG informado é inválido ou seu dígito verificador não confere.',
+      ])
+    })
 
-  it('rejeita RG com dígito verificador inválido', () => {
-    expect(messagesFor({ ...base, rg: '72894286-1' }, 'rg')).toEqual([
-      'O RG informado é inválido ou seu dígito verificador não confere.',
-    ])
-  })
+    it('rejeita antecedentes se CPF for inválido (mesmo com RG válido)', () => {
+      expect(
+        messagesFor({ ...antecedentesBase, rg: VALID_RG, cpf: '123.456.789-00' }, 'cpf'),
+      ).toEqual(['O CPF informado é inválido.'])
+    })
 
-  it('rejeita CPF inválido se preenchido', () => {
-    expect(messagesFor({ ...base, cpf: '123.456.789-00' }, 'cpf')).toEqual([
-      'O CPF informado é inválido.',
-    ])
+    it('reconhece antecedentes quando o nome é informado diretamente no document_type_id', () => {
+      const result = iirgdDemandFormSchema.safeParse({
+        ...base,
+        document_type_id: 'Antecedentes Nominal',
+        document_type_name: undefined,
+        rg: '',
+        cpf: VALID_CPF,
+      })
+      expect(result.success).toBe(true)
+    })
   })
 })

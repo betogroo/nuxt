@@ -1,5 +1,3 @@
-import type { IirgdDemandStatus } from '~/constants/iirgd-status'
-
 export interface IirgdCitizen {
   id?: string
   name: string
@@ -144,6 +142,10 @@ export const useIirgdDemands = () => {
     cpf?: string | null
     observation?: string
   }) => {
+    if (!payload.rg && !payload.cpf) {
+      throw new Error('É necessário informar ao menos o RG ou o CPF.')
+    }
+
     // 1. Try to find existing citizen by RG or CPF
     let citizenId = null
     let existingCitizen = null
@@ -153,6 +155,18 @@ export const useIirgdDemands = () => {
         .from('iirgd_citizens')
         .select('*')
         .eq('rg', payload.rg)
+
+      if (!citError && citizens && citizens.length > 0) {
+        existingCitizen = citizens[0]
+        citizenId = existingCitizen.id
+      }
+    }
+
+    if (!citizenId && payload.cpf) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('cpf', payload.cpf)
 
       if (!citError && citizens && citizens.length > 0) {
         existingCitizen = citizens[0]

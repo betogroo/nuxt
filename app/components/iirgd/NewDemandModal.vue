@@ -1,12 +1,22 @@
 <script setup lang="ts">
-  import { ref, watch } from 'vue'
+  import { ref, watch, computed } from 'vue'
   import { useZodForm } from '~/composables/useZodForm'
   import { useIirgdDemands } from '~/composables/useIirgdDemands'
   import { useIirgdCitizens } from '~/composables/useIirgdCitizens'
   import { useIirgdDocumentTypes } from '~/composables/useIirgdDocumentTypes'
-  import { iirgdDemandFormSchema, type IirgdDemandFormInput } from '~/schemas/forms/iirgd-demand'
+  import {
+    iirgdDemandFormSchema,
+    isAntecedentesDocumentType,
+    type IirgdDemandFormInput,
+  } from '~/schemas/forms/iirgd-demand'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
-  import { padAndFormatRg, formatCpf, isValidRgSP, formatCitizenName } from '~/utils/formatters'
+  import {
+    padAndFormatRg,
+    formatCpf,
+    isValidRgSP,
+    isValidCpf,
+    formatCitizenName,
+  } from '~/utils/formatters'
 
   const props = defineProps<{
     modelValue: boolean
@@ -36,6 +46,7 @@
     cpf: '',
     name: '',
     document_type_id: '',
+    document_type_name: '',
     observation: '',
   })
 
@@ -49,8 +60,33 @@
   const [name] = defineField('name')
   const [observation] = defineField('observation')
 
-  const { data: documentTypes } = useAsyncData('active-document-types', fetchAllActiveDocumentTypes, {
-    default: () => [],
+  const { data: documentTypes } = useAsyncData(
+    'active-document-types',
+    fetchAllActiveDocumentTypes,
+    {
+      default: () => [],
+    },
+  )
+
+  const selectedDocType = computed(() => {
+    if (!values.document_type_id) return null
+    return documentTypes.value?.find(
+      (dt) => dt.id === values.document_type_id || dt.name === values.document_type_id,
+    )
+  })
+
+  const isAntecedentes = computed(() => {
+    return isAntecedentesDocumentType(selectedDocType.value?.name || values.document_type_id)
+  })
+
+  // Ao alterar o tipo de documento, atualiza o nome no schema e revalida RG/CPF se já preenchidos
+  watch(documentTypeId, async (newVal) => {
+    const matched = documentTypes.value?.find((dt) => dt.id === newVal || dt.name === newVal)
+    setFieldValue('document_type_name', matched?.name || newVal || '')
+    if (values.rg || values.cpf) {
+      await validateField('rg')
+      await validateField('cpf')
+    }
   })
 
   // Ao abrir o modal, reseta os dados
@@ -86,17 +122,41 @@
     }
   }
 
+  const onCpfBlur = async () => {
+    const formattedCpf = values.cpf || ''
+
+    if (!formattedCpf && !values.rg) {
+      existingCitizen.value = null
+      return
+    }
+
+    if (!formattedCpf) return
+
+    const { valid } = await validateField('cpf')
+    if (!valid || !isValidCpf(formattedCpf)) return
+
+    const citizen = await fetchCitizenByDocument('cpf', formattedCpf)
+    if (citizen) {
+      existingCitizen.value = citizen
+      setFieldValue('name', formatCitizenName(citizen.name))
+      if (citizen.rg && !values.rg) {
+        setFieldValue('rg', citizen.rg)
+      }
+    }
+  }
+
   const closeModal = () => {
     isOpen.value = false
   }
 
-  const isUUID = (str: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str)
+  const isUUID = (str: string) =>
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str)
 
   const saveDemand = handleSubmit(async (formValues) => {
     try {
       errorMessage.value = ''
       isSaving.value = true
-      
+
       let finalDocTypeId = formValues.document_type_id
       if (finalDocTypeId && !isUUID(finalDocTypeId)) {
         const newType = await createPendingDocumentType(finalDocTypeId)
@@ -107,8 +167,8 @@
         ...formValues,
         name: formatCitizenName(formValues.name),
         document_type_id: finalDocTypeId,
-        rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : formValues.rg,
-        cpf: formValues.cpf ? formatCpf(formValues.cpf) : formValues.cpf,
+        rg: formValues.rg ? padAndFormatRg(formValues.rg, true) : null,
+        cpf: formValues.cpf ? formatCpf(formValues.cpf) : null,
       })
 
       closeModal()
@@ -142,19 +202,24 @@
         <UiCombobox
           v-model="documentTypeId"
           :error-messages="errors.document_type_id"
-          :items="documentTypes"
           item-title="name"
           item-value="id"
+          :items="documentTypes"
           label="Tipo do Documento *"
           placeholder="Selecione ou digite um novo tipo..."
         />
+      </UiCol>
+      <UiCol v-if="isAntecedentes" class="mb-2" cols="12">
+        <div class="text-caption text-medium-emphasis">
+          * Para Antecedentes, informe ao menos um documento (RG ou CPF).
+        </div>
       </UiCol>
       <UiCol cols="12" sm="6">
         <UiRgInput
           v-model="rg"
           :disabled="!!existingCitizen?.rg"
           :error-messages="errors.rg"
-          label="Número do RG *"
+          :label="isAntecedentes ? 'Número do RG' : 'Número do RG *'"
           @blur="onRgBlur"
         />
       </UiCol>
@@ -163,7 +228,8 @@
           v-model="cpf"
           :disabled="!!existingCitizen?.cpf"
           :error-messages="errors.cpf"
-          label="CPF (Opcional)"
+          :label="isAntecedentes ? 'Número do CPF' : 'CPF (Opcional)'"
+          @blur="onCpfBlur"
         />
       </UiCol>
       <UiCol cols="12">

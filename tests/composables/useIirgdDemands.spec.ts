@@ -100,6 +100,82 @@ describe('useIirgdDemands', () => {
     expect(result).toEqual({ id: 'dem-123' })
   })
 
+  it('createDemand should find existing citizen by CPF when RG is not provided', async () => {
+    // Mock eq call for checking existing citizen by CPF to return existing citizen
+    supabaseFromMock.eq.mockResolvedValueOnce({
+      data: [{ id: 'cit-cpf-1', name: 'JANE DOE', cpf: '000.000.000-00', rg: null }],
+      error: null,
+    })
+    // Mock active demands check to return empty
+    supabaseFromMock.in.mockResolvedValueOnce({ data: [], error: null })
+    // Mock demand insert
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-cpf-1' }, error: null })
+
+    const { createDemand } = useIirgdDemands()
+    const payload = {
+      station_code: '1342-5',
+      rg: null,
+      cpf: '000.000.000-00',
+      name: 'Jane Doe',
+      document_type_id: 'doc-ant-1',
+    }
+
+    const result = await createDemand(payload)
+
+    // Checked if citizen exists by CPF
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_citizens')
+    expect(supabaseFromMock.eq).toHaveBeenCalledWith('cpf', '000.000.000-00')
+
+    // Demand inserted with citizen_id from existing citizen
+    expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_demands')
+    expect(supabaseFromMock.insert).toHaveBeenCalledWith([
+      {
+        citizen_id: 'cit-cpf-1',
+        document_type_id: 'doc-ant-1',
+        station_code: '1342-5',
+        observation: undefined,
+        status: 'new',
+        created_by: 'test-user-id',
+      },
+    ])
+    expect(result).toEqual({ id: 'dem-cpf-1' })
+  })
+
+  it('createDemand should throw error if citizen found by CPF has an active demand', async () => {
+    // Mock citizen found by CPF
+    supabaseFromMock.eq.mockResolvedValueOnce({
+      data: [{ id: 'cit-cpf-1', name: 'JANE DOE', cpf: '000.000.000-00', rg: null }],
+      error: null,
+    })
+    // Mock active demands query to return an active demand
+    supabaseFromMock.in.mockResolvedValueOnce({
+      data: [{ id: 'active-dem-1', status: 'new' }],
+      error: null,
+    })
+
+    const { createDemand } = useIirgdDemands()
+    await expect(
+      createDemand({
+        station_code: '1342-5',
+        rg: null,
+        cpf: '000.000.000-00',
+        name: 'Jane Doe',
+      }),
+    ).rejects.toThrow('Este cidadão já possui uma solicitação em andamento.')
+  })
+
+  it('createDemand should throw error if neither RG nor CPF is provided', async () => {
+    const { createDemand } = useIirgdDemands()
+    await expect(
+      createDemand({
+        station_code: '1342-5',
+        rg: null,
+        cpf: null,
+        name: 'No Docs',
+      }),
+    ).rejects.toThrow('É necessário informar ao menos o RG ou o CPF.')
+  })
+
   it('fetchDemandById should return a single demand', async () => {
     supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'new-id' }, error: null })
     const { fetchDemandById } = useIirgdDemands()
@@ -130,7 +206,13 @@ describe('useIirgdDemands', () => {
 
   it('fetchDemandStatusHistory should query iirgd_demand_status_history with profile name', async () => {
     const mockHistory = [
-      { id: 'hist-1', demand_id: '123', status: 'new', created_at: '2026-10-10T10:00:00Z', profiles: { name: 'Admin' } },
+      {
+        id: 'hist-1',
+        demand_id: '123',
+        status: 'new',
+        created_at: '2026-10-10T10:00:00Z',
+        profiles: { name: 'Admin' },
+      },
     ]
     supabaseFromMock.order.mockResolvedValueOnce({ data: mockHistory, error: null })
 
@@ -145,9 +227,7 @@ describe('useIirgdDemands', () => {
 
   it('fetchIssuedDemandsTrend should aggregate issued demands over given days', async () => {
     const todayStr = new Date().toISOString().split('T')[0]
-    const mockIssued = [
-      { created_at: `${todayStr}T12:00:00Z` },
-    ]
+    const mockIssued = [{ created_at: `${todayStr}T12:00:00Z` }]
     supabaseFromMock.order.mockResolvedValueOnce({ data: mockIssued, error: null })
 
     const { fetchIssuedDemandsTrend } = useIirgdDemands()
