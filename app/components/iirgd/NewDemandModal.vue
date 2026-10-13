@@ -237,7 +237,7 @@
       {{ errorMessage }}
     </UiAlert>
 
-    <UiRow dense>
+    <UiRow density="compact">
       <UiCol cols="12">
         <UiSelect
           v-model="stationCode"
@@ -283,7 +283,7 @@
           label="Documento de Outro Estado *"
           placeholder="Ex: 0561015112-BA"
           @blur="onOtherDocumentBlur"
-          @update:model-value="setFieldValue('other_document', String($event || '').toUpperCase())"
+          @update:model-value="otherDocument = String($event || '').toUpperCase()"
         />
       </UiCol>
       <UiCol v-else cols="12" sm="6">
