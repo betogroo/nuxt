@@ -139,4 +139,57 @@ describe('useBackup Composable', () => {
     expect(logActionMock).toHaveBeenCalledWith('RESTORE_BACKUP', expect.any(String))
     expect(result.success).toBe(true)
   })
+
+  it('restoreBackup should send payload containing citizens with other_document to RPC', async () => {
+    const mockResult = {
+      success: true,
+      restored_at: new Date().toISOString(),
+      counts: {
+        profiles: 1,
+        demands: 0,
+        demand_products: 0,
+        demand_product_bids: 0,
+        demand_responsibles: 0,
+        iirgd_citizens: 2,
+        iirgd_document_types: 0,
+        iirgd_demands: 0,
+        iirgd_demand_status_history: 0,
+        logs: 0,
+      },
+    }
+
+    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
+
+    const { restoreBackup } = useBackup()
+    const payload = {
+      system: 'Test',
+      version: '1.0',
+      timestamp: '2026-10-14T12:00:00Z',
+      generated_by: { id: 'admin-id', name: 'Admin' },
+      summary: mockResult.counts,
+      data: {
+        iirgd_citizens: [
+          {
+            id: '77759679-7108-4400-97c8-154ba1ece5a8',
+            name: 'GILSON SOUZA DE OLIVEIRA',
+            rg: null,
+            cpf: null,
+            other_document: '0561015112-BA',
+          },
+          {
+            id: '88888888-7108-4400-97c8-154ba1ece5a8',
+            name: 'MARIA APARECIDA',
+            rg: '12.345.678-9',
+            cpf: null,
+            other_document: null,
+          },
+        ],
+      },
+    }
+
+    const result = await restoreBackup(payload as unknown as BackupFileStructure)
+    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
+    expect(result.success).toBe(true)
+    expect(result.counts.iirgd_citizens).toBe(2)
+  })
 })
