@@ -117,7 +117,7 @@ const stubs = {
   UiButton: {
     name: 'UiButton',
     template:
-      '<button class="ui-button" :data-icon="icon" @click="$emit(\'click\')"><slot /></button>',
+      '<button class="ui-button" :data-icon="icon" :data-prepend-icon="$attrs[\'prepend-icon\']" @click="$emit(\'click\')"><slot /></button>',
     props: ['icon', 'color', 'variant', 'size', 'loading', 'disabled'],
   },
   UiChip: { template: '<span class="ui-chip"><slot /></span>' },
@@ -241,6 +241,19 @@ describe('SupplierDetailPage (/suppliers/[id])', () => {
     await toggleBtn!.trigger('click')
 
     expect(mockToggleSupplierStatus).toHaveBeenCalledWith(mockSupplierData.value)
+  })
+
+  it('renders edit button with prepend-icon="edit"', () => {
+    const wrapper = mount(SupplierDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const buttons = wrapper.findAll('button.ui-button')
+    const editBtn = buttons.find((b) => b.text().includes('Editar Fornecedor'))
+    expect(editBtn).toBeDefined()
+    expect(editBtn!.attributes('data-prepend-icon')).toBe('edit')
   })
 
   it('shows empty message when supplier has no won demands', () => {

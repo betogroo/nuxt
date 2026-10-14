@@ -209,7 +209,13 @@
       </div>
 
       <div class="d-flex align-center ga-2">
-        <UiButton color="primary" icon="edit" size="sm" variant="outline" @click="openEditModal">
+        <UiButton
+          color="primary"
+          prepend-icon="edit"
+          size="sm"
+          variant="outline"
+          @click="openEditModal"
+        >
           Editar Fornecedor
         </UiButton>
         <UiButton
