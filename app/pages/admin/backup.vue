@@ -141,6 +141,25 @@
                 <div
                   class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
                 >
+                  <span>Fornecedores Cadastrados:</span>
+                  <UiChip color="indigo" size="xs" variant="solid"
+                    >{{ currentCounts.suppliers }} fornecedores</UiChip
+                  >
+                </div>
+                <div
+                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
+                >
+                  <span>Catálogo de Produtos & Unidades:</span>
+                  <UiChip color="teal" size="xs" variant="solid"
+                    >{{ currentCounts.products }} produtos ({{
+                      currentCounts.measurement_units
+                    }}
+                    unidades)</UiChip
+                  >
+                </div>
+                <div
+                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
+                >
                   <span>Demandas Gerais (e itens vinculados):</span>
                   <UiChip color="primary" size="xs" variant="solid"
                     >{{ currentCounts.demands }} demandas ({{
@@ -277,11 +296,23 @@
                 Registros a serem restaurados
               </div>
               <div class="d-flex flex-wrap ga-2">
+                <UiChip color="indigo" label size="sm" variant="soft">
+                  Fornecedores: {{ inspection.counts.suppliers || 0 }}
+                </UiChip>
+                <UiChip color="teal" label size="sm" variant="soft">
+                  Produtos: {{ inspection.counts.products || 0 }}
+                </UiChip>
+                <UiChip color="teal" label size="sm" variant="soft">
+                  Unidades: {{ inspection.counts.measurement_units || 0 }}
+                </UiChip>
                 <UiChip color="primary" label size="sm" variant="soft">
                   Demandas: {{ inspection.counts.demands || 0 }}
                 </UiChip>
                 <UiChip color="primary" label size="sm" variant="soft">
                   Itens Demanda: {{ inspection.counts.demand_products || 0 }}
+                </UiChip>
+                <UiChip color="primary" label size="sm" variant="soft">
+                  Propostas: {{ inspection.counts.demand_product_bids || 0 }}
                 </UiChip>
                 <UiChip color="info" label size="sm" variant="soft">
                   Demandas IIRGD: {{ inspection.counts.iirgd_demands || 0 }}
@@ -317,10 +348,11 @@
             <UiAlert v-if="restoreResult" class="mt-4" color="success" size="sm" variant="soft">
               <div class="font-weight-bold mb-1">Restauração concluída com sucesso!</div>
               <div class="text-caption">
+                {{ restoreResult.counts.suppliers || 0 }} fornecedores,
+                {{ restoreResult.counts.products || 0 }} produtos,
                 {{ restoreResult.counts.demands }} demandas,
-                {{ restoreResult.counts.iirgd_demands }} demandas IIRGD,
-                {{ restoreResult.counts.iirgd_citizens }} cidadãos e
-                {{ restoreResult.counts.logs }} logs foram restaurados.
+                {{ restoreResult.counts.iirgd_demands }} demandas IIRGD e
+                {{ restoreResult.counts.logs }} logs foram processados.
               </div>
             </UiAlert>
 

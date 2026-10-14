@@ -20,6 +20,13 @@ export const useBackup = () => {
     try {
       const [
         { count: profilesCount },
+        { count: suppliersCount },
+        { count: expenseNaturesCount },
+        { count: productClassesCount },
+        { count: measurementUnitsCount },
+        { count: unitAliasesCount },
+        { count: productsCount },
+        { count: productUnitsCount },
         { count: demandsCount },
         { count: demandProductsCount },
         { count: demandBidsCount },
@@ -28,9 +35,17 @@ export const useBackup = () => {
         { count: docTypesCount },
         { count: iirgdDemandsCount },
         { count: iirgdHistoryCount },
+        { count: iirgdSettingsCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('suppliers').select('id', { count: 'exact', head: true }),
+        supabase.from('expense_natures').select('id', { count: 'exact', head: true }),
+        supabase.from('product_classes').select('id', { count: 'exact', head: true }),
+        supabase.from('measurement_units').select('id', { count: 'exact', head: true }),
+        supabase.from('measurement_unit_aliases').select('id', { count: 'exact', head: true }),
+        supabase.from('products').select('id', { count: 'exact', head: true }),
+        supabase.from('product_units').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
         supabase.from('demand_products').select('id', { count: 'exact', head: true }),
         supabase.from('demand_product_bids').select('id', { count: 'exact', head: true }),
@@ -39,11 +54,19 @@ export const useBackup = () => {
         supabase.from('iirgd_document_types').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_demands').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_demand_status_history').select('id', { count: 'exact', head: true }),
+        supabase.from('iirgd_settings').select('id', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
       return {
         profiles: profilesCount || 0,
+        suppliers: suppliersCount || 0,
+        expense_natures: expenseNaturesCount || 0,
+        product_classes: productClassesCount || 0,
+        measurement_units: measurementUnitsCount || 0,
+        measurement_unit_aliases: unitAliasesCount || 0,
+        products: productsCount || 0,
+        product_units: productUnitsCount || 0,
         demands: demandsCount || 0,
         demand_products: demandProductsCount || 0,
         demand_product_bids: demandBidsCount || 0,
@@ -52,6 +75,7 @@ export const useBackup = () => {
         iirgd_document_types: docTypesCount || 0,
         iirgd_demands: iirgdDemandsCount || 0,
         iirgd_demand_status_history: iirgdHistoryCount || 0,
+        iirgd_settings: iirgdSettingsCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -106,6 +130,17 @@ export const useBackup = () => {
       const data = parsed.data as Record<string, unknown[]>
       const counts: Partial<BackupSummary> = {
         profiles: Array.isArray(data.profiles) ? data.profiles.length : 0,
+        suppliers: Array.isArray(data.suppliers) ? data.suppliers.length : 0,
+        expense_natures: Array.isArray(data.expense_natures) ? data.expense_natures.length : 0,
+        product_classes: Array.isArray(data.product_classes) ? data.product_classes.length : 0,
+        measurement_units: Array.isArray(data.measurement_units)
+          ? data.measurement_units.length
+          : 0,
+        measurement_unit_aliases: Array.isArray(data.measurement_unit_aliases)
+          ? data.measurement_unit_aliases.length
+          : 0,
+        products: Array.isArray(data.products) ? data.products.length : 0,
+        product_units: Array.isArray(data.product_units) ? data.product_units.length : 0,
         demands: Array.isArray(data.demands) ? data.demands.length : 0,
         demand_products: Array.isArray(data.demand_products) ? data.demand_products.length : 0,
         demand_product_bids: Array.isArray(data.demand_product_bids)
@@ -122,6 +157,7 @@ export const useBackup = () => {
         iirgd_demand_status_history: Array.isArray(data.iirgd_demand_status_history)
           ? data.iirgd_demand_status_history.length
           : 0,
+        iirgd_settings: Array.isArray(data.iirgd_settings) ? data.iirgd_settings.length : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 

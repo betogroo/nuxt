@@ -30,6 +30,13 @@ describe('useBackup Composable', () => {
 
     expect(counts).toEqual({
       profiles: 5,
+      suppliers: 5,
+      expense_natures: 5,
+      product_classes: 5,
+      measurement_units: 5,
+      measurement_unit_aliases: 5,
+      products: 5,
+      product_units: 5,
       demands: 5,
       demand_products: 5,
       demand_product_bids: 5,
@@ -38,6 +45,7 @@ describe('useBackup Composable', () => {
       iirgd_document_types: 5,
       iirgd_demands: 5,
       iirgd_demand_status_history: 5,
+      iirgd_settings: 5,
       logs: 5,
     })
   })
@@ -72,6 +80,13 @@ describe('useBackup Composable', () => {
       generated_by: { id: 'admin-id', name: 'Admin Test' },
       summary: {
         profiles: 2,
+        suppliers: 1,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        products: 1,
+        product_units: 0,
         demands: 1,
         demand_products: 0,
         demand_product_bids: 0,
@@ -80,10 +95,13 @@ describe('useBackup Composable', () => {
         iirgd_document_types: 1,
         iirgd_demands: 2,
         iirgd_demand_status_history: 4,
+        iirgd_settings: 0,
         logs: 10,
       },
       data: {
         profiles: [{ id: '1' }, { id: '2' }],
+        suppliers: [{ id: 'sup-1', name: 'Fornecedor A' }],
+        products: [{ id: 'prod-1', name: 'Item 1' }],
         demands: [{ id: 'dem-1' }],
         iirgd_citizens: [{ id: 'c-1' }, { id: 'c-2' }, { id: 'c-3' }],
         iirgd_demands: [{ id: 'id-1' }, { id: 'id-2' }],
@@ -98,6 +116,8 @@ describe('useBackup Composable', () => {
     const inspection = await inspectBackupFile(file)
     expect(inspection.isValid).toBe(true)
     expect(inspection.counts.profiles).toBe(2)
+    expect(inspection.counts.suppliers).toBe(1)
+    expect(inspection.counts.products).toBe(1)
     expect(inspection.counts.demands).toBe(1)
     expect(inspection.counts.iirgd_citizens).toBe(3)
     expect(inspection.counts.iirgd_demands).toBe(2)
@@ -110,6 +130,13 @@ describe('useBackup Composable', () => {
       restored_at: new Date().toISOString(),
       counts: {
         profiles: 2,
+        suppliers: 1,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        products: 1,
+        product_units: 0,
         demands: 1,
         demand_products: 0,
         demand_product_bids: 0,
@@ -118,6 +145,7 @@ describe('useBackup Composable', () => {
         iirgd_document_types: 0,
         iirgd_demands: 2,
         iirgd_demand_status_history: 0,
+        iirgd_settings: 0,
         logs: 0,
       },
     }
@@ -146,6 +174,13 @@ describe('useBackup Composable', () => {
       restored_at: new Date().toISOString(),
       counts: {
         profiles: 1,
+        suppliers: 0,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        products: 0,
+        product_units: 0,
         demands: 0,
         demand_products: 0,
         demand_product_bids: 0,
@@ -154,6 +189,7 @@ describe('useBackup Composable', () => {
         iirgd_document_types: 0,
         iirgd_demands: 0,
         iirgd_demand_status_history: 0,
+        iirgd_settings: 0,
         logs: 0,
       },
     }

@@ -14,6 +14,13 @@ mockNuxtImport('useToast', () => () => ({
 
 const mockCounts = {
   profiles: 10,
+  suppliers: 12,
+  expense_natures: 6,
+  product_classes: 8,
+  measurement_units: 5,
+  measurement_unit_aliases: 3,
+  products: 45,
+  product_units: 50,
   demands: 25,
   demand_products: 50,
   demand_product_bids: 15,
@@ -22,6 +29,7 @@ const mockCounts = {
   iirgd_document_types: 4,
   iirgd_demands: 35,
   iirgd_demand_status_history: 70,
+  iirgd_settings: 2,
   logs: 120,
 }
 
