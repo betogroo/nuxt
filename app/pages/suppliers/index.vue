@@ -174,6 +174,10 @@
               </NuxtLink>
             </template>
 
+            <template #item-email="{ item }">
+              <span :class="{ 'text-grey': !item.email }">{{ item.email || '-' }}</span>
+            </template>
+
             <template #item-is_simples_optant="{ item }">
               <div class="d-flex flex-column">
                 <span
@@ -279,6 +283,10 @@
               >
                 {{ item.company_name }}
               </NuxtLink>
+            </template>
+
+            <template #item-email="{ item }">
+              <span :class="{ 'text-grey': !item.email }">{{ item.email || '-' }}</span>
             </template>
 
             <template #item-is_simples_optant="{ item }">

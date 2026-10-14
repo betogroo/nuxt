@@ -105,7 +105,7 @@
         cnpj: values.cnpj,
         company_name: values.company_name,
         responsible_name: values.responsible_name || null,
-        email: values.email,
+        email: values.email?.trim() || null,
         cell_phone: values.cell_phone || null,
         landline: values.landline || null,
         address: values.address || null,
@@ -183,8 +183,7 @@
               v-model="email"
               v-bind="emailProps"
               :error-messages="errors.email"
-              label="E-mail *"
-              required
+              label="E-mail"
               type="email"
             />
           </UiCol>

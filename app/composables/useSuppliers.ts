@@ -120,15 +120,40 @@ export const useSuppliers = () => {
     )
   }
 
-  const createSupplierFast = async (cnpj: string, company_name: string, email: string) => {
-    const payload: SupplierInsert = { cnpj, company_name, email }
+  const createSupplierFast = async (
+    paramOrCnpj:
+      | string
+      | {
+          cnpj: string
+          name?: string
+          company_name?: string
+          email?: string | null
+        },
+    company_name?: string,
+    email?: string | null,
+  ): Promise<SupplierRow> => {
+    let cnpj: string
+    let name: string
+    let mail: string | null
+
+    if (typeof paramOrCnpj === 'object') {
+      cnpj = paramOrCnpj.cnpj
+      name = paramOrCnpj.company_name || paramOrCnpj.name || ''
+      mail = paramOrCnpj.email || null
+    } else {
+      cnpj = paramOrCnpj
+      name = company_name || ''
+      mail = email || null
+    }
+
+    const payload: SupplierInsert = { cnpj, company_name: name, email: mail }
     const { data, error } = await supabase.from('suppliers').insert(payload).select().single()
 
     if (error) throw error
 
     await logAction(
       'CREATE_SUPPLIER_FAST',
-      `Fornecedor cadastrado rapidamente na cotação: ${company_name} (${cnpj})`,
+      `Fornecedor cadastrado rapidamente na cotação: ${name} (${cnpj})`,
       user.value?.id,
     )
 

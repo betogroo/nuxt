@@ -18,7 +18,7 @@ const mockSuppliersList = ref([
     id: 'sup-2',
     company_name: 'Beta Serviços LTDA',
     cnpj: '33000167000101',
-    email: 'beta@servicos.com',
+    email: null,
     is_simples_optant: false,
     simples_optant_verified_at: null,
     is_active: false,
@@ -89,6 +89,7 @@ const stubs = {
         <div v-for="item in items" :key="item.id" class="table-row">
           <slot name="item-cnpj" :item="item">{{ item.cnpj }}</slot>
           <slot name="item-company_name" :item="item">{{ item.company_name }}</slot>
+          <slot name="item-email" :item="item">{{ item.email }}</slot>
           <slot name="item-is_simples_optant" :item="item">{{ item.is_simples_optant }}</slot>
           <slot name="item-is_active" :item="item">{{ item.is_active }}</slot>
           <slot name="item-actions" :item="item" />
@@ -155,5 +156,17 @@ describe('SuppliersIndexPage (/suppliers)', () => {
 
     expect(mockCopy).toHaveBeenCalledTimes(1)
     expect(mockCopy).toHaveBeenCalledWith('00000000000191', 'CNPJ copiado!')
+  })
+
+  it('renders "-" fallback when supplier has no email', () => {
+    const wrapper = mount(SuppliersIndexPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('alpha@materiais.com')
+    expect(text).toContain('-')
   })
 })

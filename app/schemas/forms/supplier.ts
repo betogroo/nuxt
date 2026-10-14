@@ -6,7 +6,14 @@ export const supplierFormSchema = z.object({
   cnpj: cnpjValidator,
   company_name: z.string().trim().min(1, 'O Nome da Empresa é obrigatório.'),
   responsible_name: z.string().trim().nullable().default(null),
-  email: z.email('Formato de e-mail inválido.').trim().min(1, 'O e-mail é obrigatório.'),
+  email: z
+    .string()
+    .trim()
+    .email('Formato de e-mail inválido.')
+    .or(z.literal(''))
+    .nullable()
+    .optional()
+    .default(null),
   cell_phone: z.string().trim().nullable().default(null),
   landline: z.string().trim().nullable().default(null),
   address: z.string().trim().nullable().default(null),

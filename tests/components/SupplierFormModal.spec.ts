@@ -26,7 +26,7 @@ const stubs = {
   UiCol: { template: '<div class="ui-col"><slot /></div>' },
   UiInput: {
     template:
-      '<input class="ui-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+      '<input class="ui-input" :data-label="label" :data-required="$attrs.required" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
     props: ['modelValue', 'label', 'errorMessages'],
   },
   UiSwitch: {
@@ -71,5 +71,23 @@ describe('components/suppliers/SupplierFormModal.vue', () => {
 
     expect(wrapper.emitted('update:modelValue')).toBeTruthy()
     expect(wrapper.emitted('update:modelValue')![0]).toEqual([false])
+  })
+
+  it('renders email input as optional without asterisk or required attribute', () => {
+    const wrapper = mount(SupplierFormModal, {
+      props: {
+        modelValue: true,
+        supplier: null,
+      },
+      global: { stubs },
+    })
+
+    const inputs = wrapper.findAll('input.ui-input')
+    const emailInput = inputs.find((i) => i.attributes('data-label') === 'E-mail')
+    expect(emailInput).toBeDefined()
+    expect(emailInput?.attributes('data-required')).toBeUndefined()
+
+    const cnpjInput = inputs.find((i) => i.attributes('data-label') === 'CNPJ *')
+    expect(cnpjInput?.attributes('data-required')).toBeDefined()
   })
 })

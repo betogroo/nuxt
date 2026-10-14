@@ -72,4 +72,42 @@ describe('supplierFormSchema validation', () => {
       expect(cnpjError).toBeDefined()
     }
   })
+
+  it('deve aceitar fornecedor sem e-mail (vazio, null ou omitido)', () => {
+    const withoutEmail = { ...validSupplierBase, cnpj: '00.000.000/0001-91' }
+    delete (withoutEmail as Record<string, unknown>).email
+
+    expect(supplierFormSchema.safeParse(withoutEmail).success).toBe(true)
+
+    expect(
+      supplierFormSchema.safeParse({
+        ...validSupplierBase,
+        cnpj: '00.000.000/0001-91',
+        email: '',
+      }).success,
+    ).toBe(true)
+
+    expect(
+      supplierFormSchema.safeParse({
+        ...validSupplierBase,
+        cnpj: '00.000.000/0001-91',
+        email: null,
+      }).success,
+    ).toBe(true)
+  })
+
+  it('deve rejeitar fornecedor com formato de e-mail inválido', () => {
+    const result = supplierFormSchema.safeParse({
+      ...validSupplierBase,
+      cnpj: '00.000.000/0001-91',
+      email: 'email-invalido-sem-arroba',
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const emailError = result.error.issues.find((i) => i.path.includes('email'))
+      expect(emailError).toBeDefined()
+      expect(emailError?.message).toBe('Formato de e-mail inválido.')
+    }
+  })
 })

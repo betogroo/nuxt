@@ -691,7 +691,7 @@ export type Database = {
           company_name: string
           created_at: string
           created_by: string | null
-          email: string
+          email: string | null
           has_bb_account: string | null
           id: string
           is_active: boolean
@@ -708,7 +708,7 @@ export type Database = {
           company_name: string
           created_at?: string
           created_by?: string | null
-          email: string
+          email?: string | null
           has_bb_account?: string | null
           id?: string
           is_active?: boolean
@@ -725,7 +725,7 @@ export type Database = {
           company_name?: string
           created_at?: string
           created_by?: string | null
-          email?: string
+          email?: string | null
           has_bb_account?: string | null
           id?: string
           is_active?: boolean
