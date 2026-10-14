@@ -192,7 +192,7 @@ BEGIN
   IF v_data ? 'expense_natures' AND jsonb_typeof(v_data->'expense_natures') = 'array' THEN
     INSERT INTO public.expense_natures (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
-      (elem->>'id')::uuid,
+      elem->>'id',
       elem->>'name',
       COALESCE((elem->>'is_active')::boolean, true),
       COALESCE((elem->>'is_pending')::boolean, false),
@@ -342,7 +342,7 @@ BEGIN
     SELECT 
       (elem->>'id')::uuid,
       elem->>'name',
-      (elem->>'expense_nature_id')::uuid,
+      elem->>'expense_nature_id',
       elem->>'product_class_id',
       COALESCE((elem->>'is_active')::boolean, true),
       COALESCE((elem->>'created_at')::timestamptz, now()),
@@ -353,7 +353,7 @@ BEGIN
       END
     FROM jsonb_array_elements(v_data->'products') elem
     WHERE (elem->>'id') IS NOT NULL
-      AND EXISTS (SELECT 1 FROM public.expense_natures WHERE id = (elem->>'expense_nature_id')::uuid)
+      AND EXISTS (SELECT 1 FROM public.expense_natures WHERE id = elem->>'expense_nature_id')
       AND ((elem->>'product_class_id') IS NULL OR EXISTS (SELECT 1 FROM public.product_classes WHERE id = elem->>'product_class_id'))
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
