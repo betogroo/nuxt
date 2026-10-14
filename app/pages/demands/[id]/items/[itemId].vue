@@ -145,7 +145,7 @@
     newSupplierCnpj: '',
     newSupplierName: '',
     newSupplierEmail: '',
-    amount: undefined as unknown as number,
+    amount: '' as unknown as number,
   })
 
   const [bidIsNew, bidIsNewProps] = bidDefine('isNewSupplier')
@@ -163,7 +163,7 @@
         newSupplierCnpj: '',
         newSupplierName: '',
         newSupplierEmail: '',
-        amount: undefined as unknown as number,
+        amount: '' as unknown as number,
       },
     })
     bidError.value = ''
@@ -188,12 +188,7 @@
         finalSupplierId = sup.id
       }
 
-      await addBid(itemId, {
-        supplier_id: finalSupplierId!,
-        amount: values.amount!,
-        is_winner: false,
-        delivery_time_days: null,
-      })
+      await addBid(itemId, finalSupplierId!, values.amount)
       await refreshBids()
       closeBidModal()
     } catch (err: unknown) {
@@ -519,21 +514,20 @@
           v-model="bidEmail"
           v-bind="bidEmailProps"
           :error-messages="bidErrors.newSupplierEmail"
-          label="E-mail de Contato*"
+          label="E-mail de Contato"
           placeholder="email@empresa.com"
           type="email"
         />
       </template>
 
       <UiInput
-        v-model.number="bidAmount"
+        v-model="bidAmount"
         v-bind="bidAmountProps"
         class="mt-4"
         :error-messages="bidErrors.amount"
+        inputmode="decimal"
         label="Valor do Lance (R$)*"
         placeholder="0,00"
-        step="0.01"
-        type="number"
       />
 
       <template #actions>

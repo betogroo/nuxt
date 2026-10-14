@@ -9,12 +9,27 @@ export const demandBidFormSchema = z
     newSupplierCnpj: z.string().trim().optional(),
     newSupplierName: z.string().trim().optional(),
     newSupplierEmail: z.email('E-mail inválido.').trim().or(z.literal('')).optional(),
-    amount: z
-      .number({
-        required_error: 'O valor do lance é obrigatório.',
-        invalid_type_error: 'Valor inválido.',
-      })
-      .min(0.01, 'O valor deve ser maior que zero.'),
+    amount: z.preprocess(
+      (val) => {
+        if (typeof val === 'number') return val
+        if (typeof val === 'string') {
+          const trimmed = val.trim()
+          if (!trimmed) return undefined
+          const normalized = trimmed.includes(',')
+            ? trimmed.replace(/\./g, '').replace(',', '.')
+            : trimmed
+          const num = Number(normalized)
+          return isNaN(num) ? val : num
+        }
+        return val
+      },
+      z
+        .number({
+          required_error: 'O valor do lance é obrigatório.',
+          invalid_type_error: 'Valor inválido.',
+        })
+        .min(0.01, 'O valor deve ser maior que zero.'),
+    ),
   })
   .superRefine((data, ctx) => {
     if (data.isNewSupplier) {

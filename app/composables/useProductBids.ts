@@ -19,11 +19,25 @@ export const useProductBids = () => {
     return data
   }
 
-  const addBid = async (demandProductId: string, supplierId: string, amount: number) => {
+  const addBid = async (
+    demandProductId: string,
+    supplierIdOrPayload:
+      string | { supplier_id: string; amount: number | string; [key: string]: unknown },
+    amount?: number | string,
+  ) => {
+    const supplier_id =
+      typeof supplierIdOrPayload === 'string'
+        ? supplierIdOrPayload
+        : supplierIdOrPayload.supplier_id
+
+    const rawAmount = typeof supplierIdOrPayload === 'string' ? amount : supplierIdOrPayload.amount
+
+    const finalAmount = Number(rawAmount)
+
     const payload: DemandProductBidInsert = {
       demand_product_id: demandProductId,
-      supplier_id: supplierId,
-      amount,
+      supplier_id,
+      amount: finalAmount,
     }
 
     const { error } = await supabase.from('demand_product_bids').insert(payload)
@@ -32,7 +46,7 @@ export const useProductBids = () => {
 
     await logAction(
       'ADD_PRODUCT_BID',
-      `Lance de R$ ${amount} adicionado para o produto da demanda (ID: ${demandProductId})`,
+      `Lance de R$ ${finalAmount} adicionado para o produto da demanda (ID: ${demandProductId})`,
       user.value?.id,
     )
   }
