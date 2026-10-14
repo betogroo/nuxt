@@ -2,6 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import { formatCurrency, formatCnpj, formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
+  import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
 
   definePageMeta({
     middleware: ['uge'],
@@ -383,13 +384,16 @@
 
               <template #item-actions="{ item }">
                 <UiTooltip text="Ver itens arrematados">
-                  <UiButton
-                    color="primary"
-                    icon="recordsList"
-                    size="sm"
-                    variant="ghost"
-                    @click="router.push(`/demands/${item.demand_id}/suppliers/${supplierId}`)"
-                  />
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="primary"
+                      icon="recordsList"
+                      size="sm"
+                      variant="ghost"
+                      @click="router.push(`/demands/${item.demand_id}/suppliers/${supplierId}`)"
+                    />
+                  </template>
                 </UiTooltip>
               </template>
 

@@ -12,7 +12,7 @@
 
   const { fetchAllActiveProducts } = useProducts()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
-  const { resolveOrCreateUnit } = useMeasurementUnits()
+  const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
 
   const demandId = route.params.id as string
 

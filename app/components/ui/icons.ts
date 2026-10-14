@@ -22,6 +22,7 @@ export const iconMap = {
   userBadge: 'mdi-badge-account-outline',
   product: 'mdi-package-variant-outline',
   security: 'mdi-lock-outline',
+  lock: 'mdi-lock-outline',
   searchDocument: 'mdi-text-box-search-outline',
   userProfile: 'mdi-account-circle-outline',
   addUser: 'mdi-account-plus-outline',

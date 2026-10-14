@@ -30,6 +30,15 @@ describe('utils/bids', () => {
       ]
       expect(getWinningBid(bids)?.id).toBe('b1')
     })
+
+    it('correctly handles bids with string numbers', () => {
+      const bids = [
+        { id: 'b1', amount: '100.00' },
+        { id: 'b2', amount: '45.50' },
+        { id: 'b3', amount: 80 },
+      ]
+      expect(getWinningBid(bids)?.id).toBe('b2')
+    })
   })
 
   describe('getItemSubtotal', () => {

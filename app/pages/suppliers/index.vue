@@ -2,6 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import type { SupplierRow } from '~/composables/useSuppliers'
   import { formatDate } from '~/utils/formatters'
+  import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
   const toast = useToast()
   definePageMeta({
     icon: 'delivery',
@@ -175,22 +176,28 @@
             <template #item-actions="{ item }">
               <div class="d-flex justify-end ga-1">
                 <UiTooltip text="Ver Detalhes">
-                  <UiButton
-                    color="primary"
-                    icon="recordsList"
-                    size="sm"
-                    :to="`/suppliers/${item.id}`"
-                    variant="ghost"
-                  />
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="primary"
+                      icon="recordsList"
+                      size="sm"
+                      :to="`/suppliers/${item.id}`"
+                      variant="ghost"
+                    />
+                  </template>
                 </UiTooltip>
                 <UiTooltip text="Editar">
-                  <UiButton
-                    color="primary"
-                    icon="edit"
-                    size="sm"
-                    variant="ghost"
-                    @click="openEditModal(item)"
-                  />
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="primary"
+                      icon="edit"
+                      size="sm"
+                      variant="ghost"
+                      @click="openEditModal(item)"
+                    />
+                  </template>
                 </UiTooltip>
               </div>
             </template>
@@ -258,22 +265,28 @@
             <template #item-actions="{ item }">
               <div class="d-flex justify-end ga-1">
                 <UiTooltip text="Ver Detalhes">
-                  <UiButton
-                    color="primary"
-                    icon="recordsList"
-                    size="sm"
-                    :to="`/suppliers/${item.id}`"
-                    variant="ghost"
-                  />
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="primary"
+                      icon="recordsList"
+                      size="sm"
+                      :to="`/suppliers/${item.id}`"
+                      variant="ghost"
+                    />
+                  </template>
                 </UiTooltip>
                 <UiTooltip text="Editar">
-                  <UiButton
-                    color="primary"
-                    icon="edit"
-                    size="sm"
-                    variant="ghost"
-                    @click="openEditModal(item)"
-                  />
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="primary"
+                      icon="edit"
+                      size="sm"
+                      variant="ghost"
+                      @click="openEditModal(item)"
+                    />
+                  </template>
                 </UiTooltip>
               </div>
             </template>

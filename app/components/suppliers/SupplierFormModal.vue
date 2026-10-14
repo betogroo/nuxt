@@ -5,14 +5,14 @@
   import type { SupplierRow } from '~/composables/useSuppliers'
 
   const props = defineProps<{
-    modelValue: boolean
     supplier?: SupplierRow | null
   }>()
 
   const emit = defineEmits<{
-    (e: 'update:modelValue', value: boolean): void
     (e: 'saved', supplierId?: string): void
   }>()
+
+  const isOpen = defineModel<boolean>({ default: false })
 
   const toast = useToast()
   const { createSupplier, updateSupplier } = useSuppliers()
@@ -54,9 +54,9 @@
   const [isActive, isActiveProps] = defineField('is_active')
 
   watch(
-    () => [props.modelValue, props.supplier] as const,
-    ([isOpen, currentSupplier]) => {
-      if (isOpen) {
+    () => [isOpen.value, props.supplier] as const,
+    ([open, currentSupplier]) => {
+      if (open) {
         saveError.value = ''
         if (currentSupplier) {
           resetForm({
@@ -84,7 +84,7 @@
   )
 
   const closeModal = () => {
-    emit('update:modelValue', false)
+    isOpen.value = false
   }
 
   const saveSupplier = handleSubmit(async (values: SupplierFormInput) => {
@@ -138,12 +138,11 @@
 
 <template>
   <UiModal
+    v-model="isOpen"
     max-width="700px"
-    :model-value="modelValue"
     scrollable
     :title="isEditing ? 'Editar Fornecedor' : 'Novo Fornecedor'"
     transparent-header
-    @update:model-value="emit('update:modelValue', $event)"
   >
     <div class="pa-0" style="max-height: 60vh; overflow-y: auto">
       <div class="pa-4">

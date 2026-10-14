@@ -3,7 +3,7 @@
  */
 
 export interface BidItem {
-  amount: number
+  amount: number | string
   [key: string]: unknown
 }
 
@@ -18,8 +18,9 @@ export function getWinningBid<T extends BidItem>(bids: T[] | null | undefined): 
   let winningBid: T | null = null
 
   for (const bid of bids) {
-    if (typeof bid.amount === 'number' && bid.amount < minAmount) {
-      minAmount = bid.amount
+    const numericAmount = Number(bid.amount)
+    if (!Number.isNaN(numericAmount) && numericAmount < minAmount) {
+      minAmount = numericAmount
       winningBid = bid
     }
   }
@@ -30,7 +31,11 @@ export function getWinningBid<T extends BidItem>(bids: T[] | null | undefined): 
 /**
  * Calcula o subtotal de um item com base no valor unitário e quantidade.
  */
-export function getItemSubtotal(unitAmount: number, quantity: number | null | undefined): number {
+export function getItemSubtotal(
+  unitAmount: number | string,
+  quantity: number | null | undefined,
+): number {
+  const numericAmount = Number(unitAmount) || 0
   const qty = quantity && quantity > 0 ? quantity : 1
-  return unitAmount * qty
+  return numericAmount * qty
 }

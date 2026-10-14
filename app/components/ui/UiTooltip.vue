@@ -9,7 +9,9 @@
 <template>
   <v-tooltip :disabled="disabled" :location="location || 'top'" :text="text">
     <template #activator="{ props }">
-      <slot name="activator" :props="props" />
+      <slot name="activator" :props="props">
+        <slot :props="props" />
+      </slot>
     </template>
   </v-tooltip>
 </template>
