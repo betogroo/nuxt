@@ -309,4 +309,65 @@ describe('useIirgdDemands', () => {
     expect(result.labels).toContain(todayStr)
     expect(result.series[result.labels.indexOf(todayStr)]).toBe(1)
   })
+
+  describe('updateDemandsBatch', () => {
+    it('should throw an error if no ids are provided', async () => {
+      const { updateDemandsBatch } = useIirgdDemands()
+      await expect(updateDemandsBatch([], { status: 'released' })).rejects.toThrow(
+        'Nenhuma demanda selecionada para atualização.',
+      )
+    })
+
+    it('should update multiple demands in Supabase and log action', async () => {
+      const mockUpdated = [
+        { id: 'dem-1', status: 'released' },
+        { id: 'dem-2', status: 'released' },
+      ]
+      supabaseFromMock.select.mockResolvedValueOnce({ data: mockUpdated, error: null })
+
+      const { updateDemandsBatch } = useIirgdDemands()
+      const result = await updateDemandsBatch(['dem-1', 'dem-2'], { status: 'released' })
+
+      expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_demands')
+      expect(supabaseFromMock.update).toHaveBeenCalledWith({ status: 'released' })
+      expect(supabaseFromMock.in).toHaveBeenCalledWith('id', ['dem-1', 'dem-2'])
+      expect(logActionMock).toHaveBeenCalledWith(
+        'BATCH_UPDATE_IIRGD_DEMAND_STATUS',
+        "Atualização de status em lote para 'Liberado' em 2 demanda(s).",
+      )
+      expect(result).toEqual(mockUpdated)
+    })
+
+    it('should include observation if provided and not empty', async () => {
+      const mockUpdated = [{ id: 'dem-1', status: 'confronted' }]
+      supabaseFromMock.select.mockResolvedValueOnce({ data: mockUpdated, error: null })
+
+      const { updateDemandsBatch } = useIirgdDemands()
+      await updateDemandsBatch(['dem-1'], {
+        status: 'confronted',
+        observation: '  Lote processado em conjunto  ',
+      })
+
+      expect(supabaseFromMock.update).toHaveBeenCalledWith({
+        status: 'confronted',
+        observation: 'Lote processado em conjunto',
+      })
+      expect(logActionMock).toHaveBeenCalledWith(
+        'BATCH_UPDATE_IIRGD_DEMAND_STATUS',
+        "Atualização de status em lote para 'Consultado' em 1 demanda(s).",
+      )
+    })
+
+    it('should throw error when Supabase fails', async () => {
+      supabaseFromMock.select.mockResolvedValueOnce({
+        data: null,
+        error: new Error('DB error'),
+      })
+
+      const { updateDemandsBatch } = useIirgdDemands()
+      await expect(updateDemandsBatch(['dem-1'], { status: 'released' })).rejects.toThrow(
+        'Erro ao atualizar demandas do IIRGD em lote',
+      )
+    })
+  })
 })

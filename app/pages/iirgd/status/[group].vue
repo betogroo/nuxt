@@ -6,6 +6,7 @@
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
+    IIRGD_STATUS_GROUPS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
@@ -44,7 +45,7 @@
     title: `${titles[group] || 'Demandas'} - IIRGD`,
   })
 
-  const { fetchDemands, updateDemand } = useIirgdDemands()
+  const { fetchDemands, updateDemand, updateDemandsBatch } = useIirgdDemands()
   const toast = useToast()
 
   // Pagination and Filters
@@ -54,6 +55,28 @@
 
   const isUnpaginated = group === 'consulted'
   const canEditStatus = computed(() => profile.value?.role !== ROLES.IIRGD_USER)
+  const canBatchEdit = computed(() => {
+    return profile.value?.role === ROLES.ADMIN || profile.value?.role === ROLES.IIRGD_MANAGER
+  })
+
+  const tableHeaders = computed(() => {
+    const headers = [
+      { text: 'Código Posto', value: 'station_code' },
+      { text: 'Tipo Doc.', value: 'document_type_id' },
+      { text: 'Nome', value: 'name' },
+      { text: 'RG', value: 'rg' },
+      { text: 'CPF', value: 'cpf' },
+      { text: 'Status', value: 'status', align: 'center' as const },
+      { text: 'Data', value: 'created_at', align: 'right' as const },
+    ]
+    if (canBatchEdit.value) {
+      return [{ text: '', value: 'select', width: 48, align: 'center' as const }, ...headers]
+    }
+    return headers
+  })
+
+  // Selection state for batch operations
+  const selectedDemandIds = ref<string[]>([])
 
   const { fetchSettings, computePriority } = useIirgdSettings()
   const { data: slaSettings } = useAsyncData('iirgd-settings', fetchSettings)
@@ -90,7 +113,51 @@
     }))
   })
 
-  watch([searchQuery, stationCode], () => resetPage())
+  const isAllPageSelected = computed(() => {
+    if (!demands.value || demands.value.length === 0) return false
+    return demands.value.every((d) => d.id && selectedDemandIds.value.includes(d.id))
+  })
+
+  const isSomePageSelected = computed(() => {
+    if (!demands.value || demands.value.length === 0) return false
+    const selectedCount = demands.value.filter(
+      (d) => d.id && selectedDemandIds.value.includes(d.id),
+    ).length
+    return selectedCount > 0 && selectedCount < demands.value.length
+  })
+
+  const toggleSelectAllPage = (value: boolean | null) => {
+    const pageIds = demands.value.map((d) => d.id).filter((id): id is string => Boolean(id))
+    if (value) {
+      const set = new Set([...selectedDemandIds.value, ...pageIds])
+      selectedDemandIds.value = Array.from(set)
+    } else {
+      selectedDemandIds.value = selectedDemandIds.value.filter((id) => !pageIds.includes(id))
+    }
+  }
+
+  const toggleSelectRow = (id?: string) => {
+    if (!id) return
+    const idx = selectedDemandIds.value.indexOf(id)
+    if (idx > -1) {
+      selectedDemandIds.value.splice(idx, 1)
+    } else {
+      selectedDemandIds.value.push(id)
+    }
+  }
+
+  const isRowSelected = (id?: string) => {
+    return id ? selectedDemandIds.value.includes(id) : false
+  }
+
+  const clearSelection = () => {
+    selectedDemandIds.value = []
+  }
+
+  watch([searchQuery, stationCode, () => route.params.group], () => {
+    clearSelection()
+    resetPage()
+  })
 
   // Chunk logic
   const consultadosRgsChunks = computed(() => {
@@ -197,6 +264,64 @@
     }
   }
 
+  // Batch Status Modal logic
+  const batchModal = ref({
+    isOpen: false,
+    isSaving: false,
+    newStatus: '' as string,
+    observation: '',
+    error: '',
+  })
+
+  const batchStatusOptions = computed(() => {
+    return IIRGD_STATUS_GROUPS.flatMap((g) =>
+      g.options.map((opt) => ({
+        title: `${IIRGD_STATUS_LABELS[opt]} (${g.label})`,
+        value: opt,
+      })),
+    )
+  })
+
+  const selectedDemandsPreview = computed(() => {
+    const map = new Map(demands.value.map((d) => [d.id, d]))
+    return selectedDemandIds.value
+      .map((id) => map.get(id))
+      .filter((d): d is IirgdDemand => Boolean(d))
+  })
+
+  const openBatchModal = () => {
+    if (selectedDemandIds.value.length === 0) return
+    batchModal.value.newStatus = ''
+    batchModal.value.observation = ''
+    batchModal.value.error = ''
+    batchModal.value.isOpen = true
+  }
+
+  const confirmBatchStatusChange = async () => {
+    if (!batchModal.value.newStatus || selectedDemandIds.value.length === 0) return
+
+    batchModal.value.isSaving = true
+    batchModal.value.error = ''
+    try {
+      const count = selectedDemandIds.value.length
+      await updateDemandsBatch(selectedDemandIds.value, {
+        status: batchModal.value.newStatus as IirgdDemandStatus,
+        observation: batchModal.value.observation,
+      })
+      toast.success(
+        `${count} ${count === 1 ? 'demanda atualizada' : 'demandas atualizadas'} com sucesso!`,
+      )
+      batchModal.value.isOpen = false
+      clearSelection()
+      await refresh()
+    } catch (e: unknown) {
+      batchModal.value.error =
+        e instanceof Error ? e.message : 'Erro ao atualizar demandas em lote.'
+    } finally {
+      batchModal.value.isSaving = false
+    }
+  }
+
   const isNewDemandModalOpen = ref(false)
 </script>
 
@@ -234,6 +359,16 @@
 
             <div class="ml-auto d-flex align-center" style="gap: 8px">
               <UiButton
+                v-if="canBatchEdit && selectedDemandIds.length > 0"
+                color="primary"
+                prepend-icon="edit"
+                size="sm"
+                variant="solid"
+                @click="openBatchModal"
+              >
+                Alterar Status ({{ selectedDemandIds.length }})
+              </UiButton>
+              <UiButton
                 color="secondary"
                 icon="refresh"
                 :loading="pending"
@@ -261,6 +396,7 @@
                 clearable
                 hide-details
                 icon="search"
+                label="Buscar"
                 placeholder="Buscar por Nome, RG ou CPF"
               />
             </UiCol>
@@ -275,19 +411,57 @@
             </UiCol>
           </UiRow>
         </div>
-        <UiTable
-          :headers="[
-            { text: 'Código Posto', value: 'station_code' },
-            { text: 'Tipo Doc.', value: 'document_type_id' },
-            { text: 'Nome', value: 'name' },
-            { text: 'RG', value: 'rg' },
-            { text: 'CPF', value: 'cpf' },
-            { text: 'Status', value: 'status', align: 'center' },
-            { text: 'Data', value: 'created_at', align: 'right' },
-          ]"
-          :items="demands"
-          :loading="pending"
+
+        <!-- Barra de Ações em Lote -->
+        <div
+          v-if="canBatchEdit && selectedDemandIds.length > 0"
+          class="d-flex flex-wrap align-center justify-space-between ga-2 px-4 py-2 mx-4 mb-3 rounded-lg border bg-surface-variant"
         >
+          <div class="d-flex align-center ga-2">
+            <UiIcon class="text-primary" name="check" />
+            <span class="text-body-2 font-weight-medium">
+              <strong>{{ selectedDemandIds.length }}</strong>
+              {{ selectedDemandIds.length === 1 ? 'demanda selecionada' : 'demandas selecionadas' }}
+            </span>
+          </div>
+          <div class="d-flex align-center ga-2">
+            <UiButton size="sm" variant="ghost" @click="clearSelection"> Limpar seleção </UiButton>
+            <UiButton
+              color="primary"
+              prepend-icon="edit"
+              size="sm"
+              variant="solid"
+              @click="openBatchModal"
+            >
+              Alterar Status em Lote
+            </UiButton>
+          </div>
+        </div>
+
+        <UiTable :headers="tableHeaders" :items="demands" :loading="pending">
+          <template #header-select>
+            <div class="d-flex justify-center">
+              <UiCheckbox
+                :disabled="demands.length === 0"
+                hide-details
+                :indeterminate="isSomePageSelected"
+                :model-value="isAllPageSelected"
+                size="sm"
+                @update:model-value="toggleSelectAllPage"
+              />
+            </div>
+          </template>
+
+          <template #item-select="{ item }">
+            <div class="d-flex justify-center" @click.stop>
+              <UiCheckbox
+                hide-details
+                :model-value="isRowSelected(item.id)"
+                size="sm"
+                @update:model-value="toggleSelectRow(item.id)"
+              />
+            </div>
+          </template>
           <template #item-station_code="{ item }">
             <UiChip color="blue-grey" label size="sm" variant="soft">
               {{ item.station_code }}
@@ -478,6 +652,80 @@
             @click="confirmStatusChange"
           >
             Salvar
+          </UiButton>
+        </template>
+      </UiModal>
+
+      <!-- Modal de Alteração de Status em Lote -->
+      <UiModal v-model="batchModal.isOpen" max-width="520px" title="Alterar Status em Lote">
+        <UiAlert v-if="batchModal.error" class="mb-4" size="sm" type="error" variant="soft">
+          {{ batchModal.error }}
+        </UiAlert>
+
+        <p class="mb-3 text-body-2 text-medium-emphasis">
+          Você está prestes a atualizar o status de
+          <strong>
+            {{ selectedDemandIds.length }}
+            {{
+              selectedDemandIds.length === 1 ? 'demanda selecionada' : 'demandas selecionadas'
+            }} </strong
+          >.
+        </p>
+
+        <!-- Preview de selecionados -->
+        <div
+          v-if="selectedDemandsPreview.length > 0"
+          class="mb-4 pa-3 rounded-lg border bg-surface-variant text-caption"
+        >
+          <div class="font-weight-medium mb-1">Demandas selecionadas:</div>
+          <div class="text-medium-emphasis">
+            {{
+              selectedDemandsPreview
+                .slice(0, 5)
+                .map((d) => formatCitizenName(d.iirgd_citizens?.name) || 'Sem nome')
+                .join(', ')
+            }}
+            <span v-if="selectedDemandIds.length > 5">
+              e mais {{ selectedDemandIds.length - 5 }} outra(s)...
+            </span>
+          </div>
+        </div>
+
+        <UiSelect
+          v-model="batchModal.newStatus"
+          class="mb-3"
+          item-title="title"
+          item-value="value"
+          :items="batchStatusOptions"
+          label="Novo Status *"
+          placeholder="Selecione o novo status"
+        />
+
+        <UiTextarea
+          v-model="batchModal.observation"
+          hint="Opcional. Se informada, esta observação será registrada para todas as demandas selecionadas."
+          label="Observação (opcional)"
+          persistent-hint
+          placeholder="Ex: Atualização em lote autorizada pela gestão..."
+          :rows="3"
+        />
+
+        <template #actions>
+          <UiButton
+            :disabled="batchModal.isSaving"
+            variant="ghost"
+            @click="batchModal.isOpen = false"
+          >
+            Cancelar
+          </UiButton>
+          <UiButton
+            color="primary"
+            :disabled="!batchModal.newStatus"
+            :loading="batchModal.isSaving"
+            variant="solid"
+            @click="confirmBatchStatusChange"
+          >
+            Confirmar Alteração
           </UiButton>
         </template>
       </UiModal>

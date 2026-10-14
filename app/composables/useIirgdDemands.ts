@@ -1,3 +1,5 @@
+import { IIRGD_STATUS_LABELS, type IirgdDemandStatus } from '~/constants/iirgd-status'
+
 export interface IirgdCitizen {
   id?: string
   name: string
@@ -382,6 +384,45 @@ export const useIirgdDemands = () => {
     return data
   }
 
+  const updateDemandsBatch = async (
+    ids: string[],
+    updates: {
+      status: IirgdDemandStatus
+      observation?: string
+    },
+  ) => {
+    if (!ids || ids.length === 0) {
+      throw new Error('Nenhuma demanda selecionada para atualização.')
+    }
+
+    const payload: { status: IirgdDemandStatus; observation?: string } = {
+      status: updates.status,
+    }
+
+    if (updates.observation && updates.observation.trim() !== '') {
+      payload.observation = updates.observation.trim()
+    }
+
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .update(payload)
+      .in('id', ids)
+      .select('id, status')
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao atualizar demandas do IIRGD em lote')
+    }
+
+    const statusLabel = IIRGD_STATUS_LABELS[updates.status] || updates.status
+    await logAction(
+      'BATCH_UPDATE_IIRGD_DEMAND_STATUS',
+      `Atualização de status em lote para '${statusLabel}' em ${ids.length} demanda(s).`,
+    )
+
+    return data
+  }
+
   return {
     fetchDemands,
     fetchDemandCounts,
@@ -391,5 +432,6 @@ export const useIirgdDemands = () => {
     fetchDemandStatusHistory,
     createDemand,
     updateDemand,
+    updateDemandsBatch,
   }
 }

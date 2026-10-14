@@ -6,6 +6,7 @@
       align?: 'left' | 'center' | 'right'
       sortable?: boolean
       nowrap?: boolean
+      width?: string | number
     }>
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     items: Array<any>
@@ -25,8 +26,15 @@
             header.align ? `text-${header.align}` : 'text-left',
             { 'text-no-wrap': header.nowrap },
           ]"
+          :style="
+            header.width
+              ? { width: typeof header.width === 'number' ? `${header.width}px` : header.width }
+              : undefined
+          "
         >
-          {{ header.text }}
+          <slot :header="header" :name="`header-${header.value}`">
+            {{ header.text }}
+          </slot>
         </th>
       </tr>
     </thead>
