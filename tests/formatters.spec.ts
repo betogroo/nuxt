@@ -11,6 +11,7 @@ import {
   padAndFormatRg,
   isValidRgSP,
   formatCitizenName,
+  isValidCnpj,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
@@ -89,6 +90,39 @@ describe('Formatadores (utils/formatters.ts)', () => {
 
     it('deve retornar o valor original se tamanho for diferente de 14', () => {
       expect(formatCnpj('123')).toBe('123')
+    })
+  })
+
+  describe('isValidCnpj', () => {
+    it('deve validar CNPJs matematicamente corretos com ou sem pontuação', () => {
+      expect(isValidCnpj('00.000.000/0001-91')).toBe(true)
+      expect(isValidCnpj('00000000000191')).toBe(true)
+      expect(isValidCnpj('33.000.167/0001-01')).toBe(true)
+      expect(isValidCnpj('33000167000101')).toBe(true)
+      expect(isValidCnpj('12.345.678/0001-95')).toBe(true)
+      expect(isValidCnpj('12345678000195')).toBe(true)
+    })
+
+    it('deve rejeitar CNPJs com dígitos verificadores matematicamente incorretos', () => {
+      expect(isValidCnpj('12.345.678/0001-99')).toBe(false)
+      expect(isValidCnpj('12345678000199')).toBe(false)
+      expect(isValidCnpj('33.000.167/0001-02')).toBe(false)
+    })
+
+    it('deve rejeitar sequências de dígitos repetidos', () => {
+      expect(isValidCnpj('00000000000000')).toBe(false)
+      expect(isValidCnpj('11111111111111')).toBe(false)
+      expect(isValidCnpj('11.111.111/1111-11')).toBe(false)
+      expect(isValidCnpj('99999999999999')).toBe(false)
+    })
+
+    it('deve rejeitar valores nulos, vazios ou com tamanho incorreto', () => {
+      expect(isValidCnpj(null)).toBe(false)
+      expect(isValidCnpj(undefined)).toBe(false)
+      expect(isValidCnpj('')).toBe(false)
+      expect(isValidCnpj('123')).toBe(false)
+      expect(isValidCnpj('1234567800019')).toBe(false)
+      expect(isValidCnpj('123456780001950')).toBe(false)
     })
   })
 

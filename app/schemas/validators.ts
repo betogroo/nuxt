@@ -35,6 +35,19 @@ export const cpfValidator = z
     message: 'O CPF informado é inválido.',
   })
 
-export const cnpjValidator = z.string().refine((value) => !value || isValidCnpj(value), {
-  message: 'O CNPJ informado é inválido.',
-})
+/** CNPJ obrigatório com dígitos verificadores válidos. */
+export const cnpjValidator = z
+  .string({ required_error: 'O CNPJ é obrigatório.' })
+  .trim()
+  .min(1, 'O CNPJ é obrigatório.')
+  .refine(isValidCnpj, {
+    message: 'O CNPJ informado é inválido.',
+  })
+
+/** CNPJ opcional com dígitos verificadores válidos. */
+export const optionalCnpj = z
+  .string()
+  .optional()
+  .refine((value) => !value || isValidCnpj(value), {
+    message: 'O CNPJ informado é inválido.',
+  })

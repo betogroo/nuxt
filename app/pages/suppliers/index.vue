@@ -1,9 +1,17 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
+  import { useCopyToClipboard } from '~/composables/useCopyToClipboard'
   import type { SupplierRow } from '~/composables/useSuppliers'
-  import { formatDate } from '~/utils/formatters'
+  import { formatDate, formatCnpj } from '~/utils/formatters'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
   const toast = useToast()
+  const { copy } = useCopyToClipboard()
+
+  const copyCnpj = (cnpj: string | null | undefined) => {
+    if (!cnpj) return
+    const cleanCnpj = cnpj.replace(/\D/g, '')
+    copy(cleanCnpj, 'CNPJ copiado!')
+  }
   definePageMeta({
     icon: 'delivery',
     middleware: ['uge'],
@@ -139,6 +147,24 @@
               Nenhum fornecedor encontrado.
             </template>
 
+            <template #item-cnpj="{ item }">
+              <div class="d-flex align-center ga-1 text-no-wrap">
+                <span>{{ formatCnpj(item.cnpj) }}</span>
+                <UiTooltip text="Copiar CNPJ (apenas números)">
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="secondary"
+                      icon="copy"
+                      size="xs"
+                      variant="ghost"
+                      @click="copyCnpj(item.cnpj)"
+                    />
+                  </template>
+                </UiTooltip>
+              </div>
+            </template>
+
             <template #item-company_name="{ item }">
               <NuxtLink
                 class="text-primary font-weight-medium text-decoration-none"
@@ -228,6 +254,24 @@
             :items="inactiveSuppliers"
             :loading="pending"
           >
+            <template #item-cnpj="{ item }">
+              <div class="d-flex align-center ga-1 text-no-wrap">
+                <span>{{ formatCnpj(item.cnpj) }}</span>
+                <UiTooltip text="Copiar CNPJ (apenas números)">
+                  <template #activator="{ props }">
+                    <UiButton
+                      v-bind="props"
+                      color="secondary"
+                      icon="copy"
+                      size="xs"
+                      variant="ghost"
+                      @click="copyCnpj(item.cnpj)"
+                    />
+                  </template>
+                </UiTooltip>
+              </div>
+            </template>
+
             <template #item-company_name="{ item }">
               <NuxtLink
                 class="text-primary font-weight-medium text-decoration-none"
