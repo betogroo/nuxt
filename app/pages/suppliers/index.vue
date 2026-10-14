@@ -237,6 +237,15 @@
               Nenhum fornecedor encontrado.
             </template>
 
+            <template #item-company_name="{ item }">
+              <NuxtLink
+                class="text-primary font-weight-medium text-decoration-none"
+                :to="`/suppliers/${item.id}`"
+              >
+                {{ item.company_name }}
+              </NuxtLink>
+            </template>
+
             <template #item-is_simples_optant="{ item }">
               <div class="d-flex flex-column">
                 <span
@@ -263,13 +272,26 @@
             </template>
 
             <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="edit"
-                size="sm"
-                variant="ghost"
-                @click="openEditModal(item)"
-              />
+              <div class="d-flex justify-end ga-1">
+                <UiTooltip text="Ver Detalhes">
+                  <UiButton
+                    color="primary"
+                    icon="recordsList"
+                    size="sm"
+                    :to="`/suppliers/${item.id}`"
+                    variant="ghost"
+                  />
+                </UiTooltip>
+                <UiTooltip text="Editar">
+                  <UiButton
+                    color="primary"
+                    icon="edit"
+                    size="sm"
+                    variant="ghost"
+                    @click="openEditModal(item)"
+                  />
+                </UiTooltip>
+              </div>
             </template>
           </UiTable>
 
@@ -298,6 +320,15 @@
             :items="inactiveSuppliers"
             :loading="pending"
           >
+            <template #item-company_name="{ item }">
+              <NuxtLink
+                class="text-primary font-weight-medium text-decoration-none"
+                :to="`/suppliers/${item.id}`"
+              >
+                {{ item.company_name }}
+              </NuxtLink>
+            </template>
+
             <template #item-is_simples_optant="{ item }">
               <div class="d-flex flex-column">
                 <span
@@ -324,13 +355,26 @@
             </template>
 
             <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="edit"
-                size="sm"
-                variant="ghost"
-                @click="openEditModal(item)"
-              />
+              <div class="d-flex justify-end ga-1">
+                <UiTooltip text="Ver Detalhes">
+                  <UiButton
+                    color="primary"
+                    icon="recordsList"
+                    size="sm"
+                    :to="`/suppliers/${item.id}`"
+                    variant="ghost"
+                  />
+                </UiTooltip>
+                <UiTooltip text="Editar">
+                  <UiButton
+                    color="primary"
+                    icon="edit"
+                    size="sm"
+                    variant="ghost"
+                    @click="openEditModal(item)"
+                  />
+                </UiTooltip>
+              </div>
             </template>
           </UiTable>
         </UiCard>
