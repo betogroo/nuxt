@@ -80,7 +80,8 @@
     loadingOtp.value = true
     errorOtp.value = ''
     messageOtp.value = ''
-    const { error } = await sendOtp(values.email, `${window.location.origin}/confirm`)
+    const requestUrl = useRequestURL()
+    const { error } = await sendOtp(values.email, `${requestUrl.origin}/confirm`)
     if (error) {
       errorOtp.value = error.message
     } else {

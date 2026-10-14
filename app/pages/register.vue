@@ -25,10 +25,11 @@
     loading.value = true
     message.value = ''
 
+    const requestUrl = useRequestURL()
     const { data, error } = await register(
       values.email,
       values.password,
-      `${window.location.origin}/confirm`,
+      `${requestUrl.origin}/confirm`,
     )
 
     if (error) {

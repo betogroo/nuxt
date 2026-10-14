@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Database } from '~/types/database.types'
+import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { useToast } from '~/composables/useToast'
 
 export function useDemandDetail(demandId: string) {
@@ -24,7 +25,7 @@ export function useDemandDetail(demandId: string) {
     return !process_number || !internal_process_number || !id_pca || !type || !contract_number
   })
 
-  const updateDemand = async (payload: any) => {
+  const updateDemand = async (payload: Database['public']['Tables']['demands']['Update']) => {
     await updateDemandDb(demandId, payload)
     await refreshDemand()
   }
@@ -79,14 +80,14 @@ export function useDemandDetail(demandId: string) {
 
   const isReordering = ref(false)
 
-  const saveNewOrder = async (newItems: unknown[]) => {
+  const saveNewOrder = async (newItems: DemandProductRow[]) => {
     isReordering.value = true
     try {
-      const updates = newItems.map((item: Record<string, unknown>, idx) => ({
-        id: item.id as string,
+      const updates = newItems.map((item, idx) => ({
+        id: item.id,
         sort_order: idx + 1,
       }))
-      if (items.value) items.value = newItems as any
+      if (items.value) items.value = newItems
       await reorderDemandItems(updates)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err))
@@ -142,27 +143,29 @@ export function useDemandDetail(demandId: string) {
     >()
 
     items.value.forEach((product) => {
-      const bids = (product as any).demand_product_bids || []
-      bids.forEach((bid: any) => {
+      const bids = product.demand_product_bids || []
+      bids.forEach((bid) => {
         if (bid.suppliers) {
           const suppId = bid.supplier_id
           if (!supplierStats.has(suppId)) {
             supplierStats.set(suppId, {
-              supplier: bid.suppliers,
+              supplier: bid.suppliers as unknown as Record<string, unknown>,
               participated: new Set(),
               won: new Set(),
               totalAmountWon: 0,
             })
           }
-          supplierStats.get(suppId)!.participated.add((product as any).id)
+          supplierStats.get(suppId)!.participated.add(product.id)
         }
       })
 
-      const winningBid = getWinningBid(bids) as any
+      const winningBid = getWinningBid(bids)
       if (winningBid && winningBid.suppliers) {
-        const stats = supplierStats.get(winningBid.supplier_id)!
-        stats.won.add((product as any).id)
-        stats.totalAmountWon += getItemSubtotal(winningBid.amount, (product as any).quantity)
+        const stats = supplierStats.get(winningBid.supplier_id)
+        if (stats) {
+          stats.won.add(product.id)
+          stats.totalAmountWon += getItemSubtotal(winningBid.amount, product.quantity)
+        }
       }
     })
 

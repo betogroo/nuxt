@@ -8,7 +8,7 @@
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
 
   const handleSignOut = async () => {
-    await signOut('/login')
+    await signOut(APP_ROUTES.login)
   }
 
   // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
@@ -44,10 +44,10 @@
 
   // Pending badges per path (preserved as-is for badge-specific logic)
   const pathBadge = computed<Record<string, number>>(() => ({
-    '/demands': pendingReturnsCount.value,
-    '/admin/units': pendingUnitsCount.value,
-    '/admin/expense-natures': pendingExpenseNaturesCount.value,
-    '/admin/product-classes': pendingProductClassesCount.value,
+    [APP_ROUTES.demands.index]: pendingReturnsCount.value,
+    [APP_ROUTES.admin.units]: pendingUnitsCount.value,
+    [APP_ROUTES.admin.expenseNatures]: pendingExpenseNaturesCount.value,
+    [APP_ROUTES.admin.productClasses]: pendingProductClassesCount.value,
   }))
 
   const getSubgroupBadge = (subgroupLinks: { path: string }[]): number => {

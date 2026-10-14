@@ -35,6 +35,28 @@ export interface SupplierWonDemandsSummary {
   demands: SupplierWonDemand[]
 }
 
+export interface ProductWithRelations {
+  id: string
+  demand_id: string
+  product_name_snapshot: string | null
+  unit_name_snapshot: string | null
+  quantity: number
+  reference_price: number | null
+  demands: {
+    id: string
+    name: string
+    process_number: string | null
+    status: Database['public']['Enums']['demand_status']
+    type: Database['public']['Enums']['demand_type']
+    dispute_date: string | null
+  } | null
+  demand_product_bids: {
+    id: string
+    supplier_id: string
+    amount: number
+  }[]
+}
+
 export const useSuppliers = () => {
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
@@ -200,28 +222,6 @@ export const useSuppliers = () => {
 
     const wonItems: SupplierWonItem[] = []
     const demandsMap = new Map<string, SupplierWonDemand>()
-
-    interface ProductWithRelations {
-      id: string
-      demand_id: string
-      product_name_snapshot: string | null
-      unit_name_snapshot: string | null
-      quantity: number
-      reference_price: number | null
-      demands: {
-        id: string
-        name: string
-        process_number: string | null
-        status: Database['public']['Enums']['demand_status']
-        type: Database['public']['Enums']['demand_type']
-        dispute_date: string | null
-      } | null
-      demand_product_bids: {
-        id: string
-        supplier_id: string
-        amount: number
-      }[]
-    }
 
     const products = (productsData || []) as unknown as ProductWithRelations[]
 

@@ -2,6 +2,7 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
   import { demandBidFormSchema } from '~/schemas/forms/demand-bid'
+  import type { SupplierRow } from '~/composables/useSuppliers'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -118,8 +119,7 @@
     return await fetchBidsByProduct(itemId)
   })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const suppliers = ref<any[]>([])
+  const suppliers = ref<SupplierRow[]>([])
   const fetchSuppliersList = async () => {
     const list = await fetchAllActiveSuppliers()
     suppliers.value = list

@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends Record<string, unknown> = Record<string, unknown>">
   defineProps<{
     headers: Array<{
       text: string
@@ -8,8 +8,7 @@
       nowrap?: boolean
       width?: string | number
     }>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    items: Array<any>
+    items: Array<T>
     loading?: boolean
   }>()
 </script>

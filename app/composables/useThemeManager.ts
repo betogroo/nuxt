@@ -5,7 +5,6 @@ import type { Database } from '~/types/database.types'
 const STORAGE_KEY = 'app-theme-preference'
 
 export const useThemeManager = (): ThemeManager => {
-  const { $vuetify } = useNuxtApp()
   const supabase = useSupabaseClient<Database>()
 
   // We use useProfile but without causing recursive reactivity issues
@@ -52,7 +51,7 @@ export const useThemeManager = (): ThemeManager => {
 
   const setTheme = (theme: ThemeName, updateDb: boolean = true) => {
     current.value = theme
-    $vuetify.theme.change(theme)
+    applyUiTheme(theme)
     persist(theme, updateDb)
   }
 
@@ -62,7 +61,7 @@ export const useThemeManager = (): ThemeManager => {
   }
 
   const init = () => {
-    $vuetify.theme.change(current.value)
+    applyUiTheme(current.value)
   }
 
   return {

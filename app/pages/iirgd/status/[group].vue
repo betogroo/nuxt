@@ -174,24 +174,14 @@
     return chunks
   })
 
+  const { copy } = useCopyToClipboard()
+
   const copyChunk = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success('RGs copiados!')
-    } catch (e) {
-      toast.error('Falha ao copiar.')
-      console.error(e)
-    }
+    await copy(text, 'RGs copiados!')
   }
 
   const copySingleRg = async (rgFormatted: string) => {
-    try {
-      await navigator.clipboard.writeText(rgFormatted)
-      toast.success('RG copiado para a área de transferência!')
-    } catch (e) {
-      toast.error('Falha ao copiar.')
-      console.error(e)
-    }
+    await copy(rgFormatted, 'RG copiado para a área de transferência!')
   }
 
   // Release Modal

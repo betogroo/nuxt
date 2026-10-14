@@ -59,16 +59,6 @@ export const useBackup = () => {
     }
   }
 
-  const downloadJsonFile = (data: unknown, filename: string) => {
-    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`
-    const downloadAnchor = document.createElement('a')
-    downloadAnchor.setAttribute('href', jsonString)
-    downloadAnchor.setAttribute('download', filename)
-    document.body.appendChild(downloadAnchor)
-    downloadAnchor.click()
-    downloadAnchor.remove()
-  }
-
   const generateBackup = async (): Promise<BackupFileStructure> => {
     isGenerating.value = true
     try {
@@ -83,7 +73,7 @@ export const useBackup = () => {
       const timestampStr = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
       const filename = `backup_sistema_${timestampStr}.json`
 
-      downloadJsonFile(backup, filename)
+      downloadJson(backup, filename)
 
       await logAction('GENERATE_BACKUP', `Backup do sistema gerado com sucesso: ${filename}`)
       return backup
@@ -118,12 +108,20 @@ export const useBackup = () => {
         profiles: Array.isArray(data.profiles) ? data.profiles.length : 0,
         demands: Array.isArray(data.demands) ? data.demands.length : 0,
         demand_products: Array.isArray(data.demand_products) ? data.demand_products.length : 0,
-        demand_product_bids: Array.isArray(data.demand_product_bids) ? data.demand_product_bids.length : 0,
-        demand_responsibles: Array.isArray(data.demand_responsibles) ? data.demand_responsibles.length : 0,
+        demand_product_bids: Array.isArray(data.demand_product_bids)
+          ? data.demand_product_bids.length
+          : 0,
+        demand_responsibles: Array.isArray(data.demand_responsibles)
+          ? data.demand_responsibles.length
+          : 0,
         iirgd_citizens: Array.isArray(data.iirgd_citizens) ? data.iirgd_citizens.length : 0,
-        iirgd_document_types: Array.isArray(data.iirgd_document_types) ? data.iirgd_document_types.length : 0,
+        iirgd_document_types: Array.isArray(data.iirgd_document_types)
+          ? data.iirgd_document_types.length
+          : 0,
         iirgd_demands: Array.isArray(data.iirgd_demands) ? data.iirgd_demands.length : 0,
-        iirgd_demand_status_history: Array.isArray(data.iirgd_demand_status_history) ? data.iirgd_demand_status_history.length : 0,
+        iirgd_demand_status_history: Array.isArray(data.iirgd_demand_status_history)
+          ? data.iirgd_demand_status_history.length
+          : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 

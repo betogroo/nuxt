@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed } from 'vue'
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
+
   defineOptions({ inheritAttrs: false })
 
   const props = defineProps<{
@@ -10,8 +11,11 @@
     rows?: number | string
   }>()
 
-  const vuetifyVariant = computed(() => {
-    const map: Record<UiVariant, string> = {
+  type VTextareaVariant = 'solo' | 'outlined' | 'plain' | 'filled'
+  type VTextareaDensity = 'compact' | 'default' | 'comfortable'
+
+  const vuetifyVariant = computed<VTextareaVariant>(() => {
+    const map: Record<UiVariant, VTextareaVariant> = {
       solid: 'solo',
       outline: 'outlined',
       ghost: 'plain',
@@ -20,7 +24,7 @@
     return props.variant ? map[props.variant] : 'outlined'
   })
 
-  const vuetifyDensity = computed(() => {
+  const vuetifyDensity = computed<VTextareaDensity>(() => {
     if (props.size === 'sm' || props.size === 'xs') return 'compact'
     if (props.size === 'lg' || props.size === 'xl') return 'default'
     return 'comfortable'
@@ -35,10 +39,10 @@
 <template>
   <v-textarea
     v-bind="$attrs"
-    :density="vuetifyDensity as any"
+    :density="vuetifyDensity"
     :rounded="vuetifyRounded"
     :rows="props.rows || 3"
-    :variant="vuetifyVariant as any"
+    :variant="vuetifyVariant"
   >
     <template v-for="(_, name) in $slots" #[name]="slotData">
       <slot :name="name" v-bind="slotData || {}" />
