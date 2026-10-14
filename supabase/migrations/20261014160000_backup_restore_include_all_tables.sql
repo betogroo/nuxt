@@ -149,6 +149,22 @@ BEGIN
 
   -- 2. SUPPLIERS
   IF v_data ? 'suppliers' AND jsonb_typeof(v_data->'suppliers') = 'array' THEN
+    -- Reconciliar: remover fornecedores preexistentes (ex.: seeds) com mesmo CNPJ mas ID diferente
+    DELETE FROM public.suppliers s
+    WHERE s.cnpj IN (
+      SELECT elem->>'cnpj'
+      FROM jsonb_array_elements(v_data->'suppliers') elem
+      WHERE (elem->>'cnpj') IS NOT NULL
+    )
+    AND s.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'suppliers') elem
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_product_bids b WHERE b.supplier_id = s.id
+    );
+
     INSERT INTO public.suppliers (id, cnpj, company_name, responsible_name, email, cell_phone, landline, address, has_bb_account, is_simples_optant, simples_optant_verified_at, is_active, created_at, updated_at, created_by)
     SELECT 
       (elem->>'id')::uuid,
@@ -232,6 +248,25 @@ BEGIN
 
   -- 5. MEASUREMENT_UNITS
   IF v_data ? 'measurement_units' AND jsonb_typeof(v_data->'measurement_units') = 'array' THEN
+    -- Reconciliar: remover unidades com mesmo nome mas ID diferente (se não referenciadas)
+    DELETE FROM public.measurement_units u
+    WHERE u.name IN (
+      SELECT elem->>'name'
+      FROM jsonb_array_elements(v_data->'measurement_units') elem
+      WHERE (elem->>'name') IS NOT NULL
+    )
+    AND u.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'measurement_units') elem
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.product_units pu WHERE pu.unit_id = u.id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_products dp WHERE dp.unit_id = u.id
+    );
+
     INSERT INTO public.measurement_units (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
       (elem->>'id')::uuid,
@@ -316,6 +351,19 @@ BEGIN
 
   -- 8. MEASUREMENT_UNIT_ALIASES
   IF v_data ? 'measurement_unit_aliases' AND jsonb_typeof(v_data->'measurement_unit_aliases') = 'array' THEN
+    -- Reconciliar: remover aliases com mesmo code mas ID diferente (gerados por seed após reset)
+    DELETE FROM public.measurement_unit_aliases a
+    WHERE a.code IN (
+      SELECT (elem->>'code')::integer
+      FROM jsonb_array_elements(v_data->'measurement_unit_aliases') elem
+      WHERE (elem->>'code') IS NOT NULL
+    )
+    AND a.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'measurement_unit_aliases') elem
+      WHERE (elem->>'id') IS NOT NULL
+    );
+
     INSERT INTO public.measurement_unit_aliases (id, unit_id, name, code, is_pending, created_at)
     SELECT 
       (elem->>'id')::uuid,
@@ -399,6 +447,25 @@ BEGIN
 
   -- 11. DEMANDS
   IF v_data ? 'demands' AND jsonb_typeof(v_data->'demands') = 'array' THEN
+    -- Reconciliar: remover demandas com mesmo internal_process_number mas ID diferente (se vazias)
+    DELETE FROM public.demands d
+    WHERE d.internal_process_number IN (
+      SELECT elem->>'internal_process_number'
+      FROM jsonb_array_elements(v_data->'demands') elem
+      WHERE (elem->>'internal_process_number') IS NOT NULL AND (elem->>'internal_process_number') != ''
+    )
+    AND d.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'demands') elem
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_products dp WHERE dp.demand_id = d.id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_responsibles dr WHERE dr.demand_id = d.id
+    );
+
     INSERT INTO public.demands (id, name, type, dispute_date, user_id, offer_opening_date, status, bidding_notice_number, dispute_number, contract_number, is_return_requested, internal_process_number, process_number, id_pca, created_at, updated_at)
     SELECT 
       (elem->>'id')::uuid,
