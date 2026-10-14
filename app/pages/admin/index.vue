@@ -45,16 +45,6 @@
     }
   }
 
-  // Formatters
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
   interface MetricCard {
     id: string
     label: string
@@ -713,7 +703,7 @@
                         {{ log.profiles?.name || 'Sistema' }}
                       </UiChip>
                       <span class="text-caption text-medium-emphasis ml-auto">
-                        {{ formatDate(log.created_at) }}
+                        {{ formatDateTime(log.created_at) }}
                       </span>
                     </div>
                     <div class="text-body-2 text-medium-emphasis">{{ log.description }}</div>

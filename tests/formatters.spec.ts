@@ -163,4 +163,3 @@ describe('Formatadores (utils/formatters.ts)', () => {
     })
   })
 })
-

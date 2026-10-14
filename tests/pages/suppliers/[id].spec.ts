@@ -148,6 +148,7 @@ const stubs = {
   UiInput: { template: '<input class="ui-input" />' },
   UiSwitch: { template: '<input type="checkbox" class="ui-switch" />' },
   UiProgressCircular: { template: '<div class="ui-progress" />' },
+  SupplierFormModal: { template: '<div class="supplier-form-modal-stub" />' },
   NuxtLink: {
     template: '<a :href="to"><slot /></a>',
     props: ['to'],

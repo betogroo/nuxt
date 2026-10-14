@@ -17,6 +17,7 @@
   useHead({ title: 'Demandas' })
 
   const { profile } = useProfile()
+  const { canEditDemand } = usePermissions()
 
   const { fetchDemands, createDemand, updateDemand } = useDemands()
   const route = useRoute()
@@ -87,8 +88,7 @@
   }
 
   const canEdit = (demand: DemandRow) => {
-    const currentUserId = profile.value?.id
-    return profile.value?.role === 'admin' || demand.user_id === currentUserId
+    return canEditDemand(demand)
   }
 
   const saveDemand = handleSubmit(async (values) => {
@@ -124,16 +124,7 @@
     }
   })
 
-  const statusOptions = [
-    { title: 'Planejamento', value: 'planning', color: 'blue-grey' },
-    { title: 'Aviso de Contratação', value: 'bidding_notice', color: 'info' },
-    { title: 'Cotação', value: 'quotation', color: 'secondary' },
-    { title: 'Disputa', value: 'dispute', color: 'warning' },
-    { title: 'Homologação', value: 'homologation', color: 'deep-purple' },
-    { title: 'Concluído', value: 'completed', color: 'success' },
-    { title: 'Cancelado', value: 'cancelled', color: 'error' },
-    { title: 'Retorno (Admin)', value: 'returns', color: 'orange' },
-  ]
+  const statusOptions = getDemandStatusFilterOptions()
 </script>
 
 <template>

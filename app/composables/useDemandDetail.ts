@@ -143,17 +143,7 @@ export function useDemandDetail(demandId: string) {
 
     items.value.forEach((product) => {
       const bids = (product as any).demand_product_bids || []
-      if (bids.length === 0) return
-
-      let minAmount = Infinity
-      let winningBid: Record<string, unknown> | null = null
-
       bids.forEach((bid: any) => {
-        if (bid.amount < minAmount) {
-          minAmount = bid.amount
-          winningBid = bid
-        }
-
         if (bid.suppliers) {
           const suppId = bid.supplier_id
           if (!supplierStats.has(suppId)) {
@@ -168,10 +158,11 @@ export function useDemandDetail(demandId: string) {
         }
       })
 
-      if (winningBid && (winningBid as any).suppliers) {
-        const stats = supplierStats.get((winningBid as any).supplier_id)!
+      const winningBid = getWinningBid(bids) as any
+      if (winningBid && winningBid.suppliers) {
+        const stats = supplierStats.get(winningBid.supplier_id)!
         stats.won.add((product as any).id)
-        stats.totalAmountWon += minAmount * ((product as any).quantity || 1)
+        stats.totalAmountWon += getItemSubtotal(winningBid.amount, (product as any).quantity)
       }
     })
 

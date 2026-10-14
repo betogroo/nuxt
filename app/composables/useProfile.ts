@@ -4,19 +4,15 @@ type Profile = Database['public']['Tables']['profiles']['Row']
 
 export const useProfile = () => {
   const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
+  const { userId } = useCurrentUserId()
 
   const profile = useState<Profile | null>('user-profile', () => null)
   const isLoading = useState<boolean>('user-profile-loading', () => false)
   const debugError = useState<string>('user-profile-error', () => '')
 
   const fetchProfile = async () => {
-    // Em alguns ambientes/tokens, o ID vem na propriedade 'sub' do JWT
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = user.value?.id || (user.value as any)?.sub
-
     // Se não estiver logado ou o id ainda não estiver preenchido, aborta
-    if (!userId) {
+    if (!userId.value) {
       profile.value = null
       return
     }
@@ -24,7 +20,11 @@ export const useProfile = () => {
     isLoading.value = true
     debugError.value = ''
 
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId.value)
+      .single()
 
     if (!error && data) {
       profile.value = data

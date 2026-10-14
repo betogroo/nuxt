@@ -2,6 +2,7 @@
   import { ROLES, ROLE_LABELS } from '~/constants/roles'
 
   const user = useSupabaseUser()
+  const { userId } = useCurrentUserId()
   const { signOut } = useAuth()
   const { profile, fetchProfile } = useProfile()
   const drawer = ref<boolean | null>(null) // null = deixa Vuetify decidir por breakpoint
@@ -12,9 +13,7 @@
 
   // Sincroniza o perfil reativamente assim que o ID do usuário estiver pronto
   watchEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = user.value?.id || (user.value as any)?.sub
-    if (userId) {
+    if (userId.value) {
       fetchProfile()
     } else if (!user.value) {
       profile.value = null

@@ -227,21 +227,11 @@ export const useSuppliers = () => {
 
     for (const product of products) {
       const bids = product.demand_product_bids || []
-      if (bids.length === 0) continue
-
-      let minAmount = Infinity
-      let winningBid: { id: string; supplier_id: string; amount: number } | null = null
-
-      for (const bid of bids) {
-        if (bid.amount < minAmount) {
-          minAmount = bid.amount
-          winningBid = bid
-        }
-      }
+      const winningBid = getWinningBid(bids)
 
       if (winningBid && winningBid.supplier_id === supplierId) {
         const qty = product.quantity || 1
-        const subtotal = winningBid.amount * qty
+        const subtotal = getItemSubtotal(winningBid.amount, qty)
 
         const wonItem: SupplierWonItem = {
           id: product.id,

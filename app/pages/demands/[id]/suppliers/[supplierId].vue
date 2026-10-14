@@ -25,23 +25,13 @@
 
     for (const product of demandProducts.value) {
       const bids = product.demand_product_bids || []
-      if (bids.length === 0) continue
-
-      let minAmount = Infinity
-      let winningBid: unknown = null
-
-      bids.forEach((bid) => {
-        if (bid.amount < minAmount) {
-          minAmount = bid.amount
-          winningBid = bid
-        }
-      })
+      const winningBid = getWinningBid(bids)
 
       if (winningBid && winningBid.supplier_id === supplierId) {
         items.push({
           ...product,
           winning_bid_amount: winningBid.amount,
-          subtotal: winningBid.amount * (product.quantity || 1),
+          subtotal: getItemSubtotal(winningBid.amount, product.quantity),
         })
       }
     }

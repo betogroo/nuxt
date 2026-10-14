@@ -63,32 +63,6 @@ export const formatDemandType = (type: string) => {
   return type === 'consumption' ? 'Consumo' : 'Permanente'
 }
 
-export const formatDemandStatus = (status: string) => {
-  const map: Record<string, string> = {
-    planning: 'Planejamento',
-    quotation: 'Cotação',
-    bidding_notice: 'Aviso de Contratação',
-    dispute: 'Cadastro de Lances',
-    homologation: 'Documentação',
-    completed: 'Concluído',
-    cancelled: 'Cancelado',
-  }
-  return map[status] || status
-}
-
-export const getDemandStatusColor = (status: string) => {
-  const map: Record<string, string> = {
-    planning: 'grey',
-    quotation: 'deep-purple',
-    bidding_notice: 'info',
-    dispute: 'warning',
-    homologation: 'primary',
-    completed: 'success',
-    cancelled: 'error',
-  }
-  return map[status] || 'grey'
-}
-
 export function formatCpf(value: string): string {
   let v = value.replace(/\D/g, '')
   if (v.length > 11) v = v.slice(0, 11)
