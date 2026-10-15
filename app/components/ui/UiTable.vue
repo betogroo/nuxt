@@ -1,27 +1,34 @@
 <script setup lang="ts" generic="T extends Record<string, unknown> = Record<string, unknown>">
-  defineProps<{
-    headers: Array<{
-      text: string
-      value: string
-      align?: 'left' | 'center' | 'right'
-      sortable?: boolean
-      nowrap?: boolean
-      width?: string | number
-    }>
-    items: Array<T>
-    loading?: boolean
-  }>()
+  withDefaults(
+    defineProps<{
+      headers: Array<{
+        text: string
+        value: string
+        align?: 'left' | 'center' | 'right'
+        sortable?: boolean
+        nowrap?: boolean
+        width?: string | number
+      }>
+      items: Array<T>
+      loading?: boolean
+      density?: 'default' | 'comfortable' | 'compact'
+    }>(),
+    {
+      loading: false,
+      density: 'compact',
+    },
+  )
 </script>
 
 <template>
-  <v-table class="ui-table" hover>
+  <v-table class="ui-table" :density="density" hover>
     <thead>
       <tr>
         <th
           v-for="header in headers"
           :key="header.value"
           :class="[
-            'text-caption text-uppercase font-weight-bold text-medium-emphasis py-3',
+            'text-caption text-uppercase font-weight-bold text-medium-emphasis py-2',
             header.align ? `text-${header.align}` : 'text-left',
             { 'text-no-wrap': header.nowrap },
           ]"
@@ -41,7 +48,7 @@
       <!-- Loading skeleton rows -->
       <template v-if="loading">
         <tr v-for="n in 5" :key="`skel-${n}`">
-          <td v-for="header in headers" :key="header.value" class="py-3">
+          <td v-for="header in headers" :key="header.value" class="py-2">
             <v-skeleton-loader type="text" width="80%" />
           </td>
         </tr>
@@ -53,7 +60,7 @@
             v-for="header in headers"
             :key="header.value"
             :class="[
-              'py-3',
+              'py-2',
               header.align ? `text-${header.align}` : 'text-left',
               { 'text-no-wrap': header.nowrap },
             ]"
@@ -66,9 +73,9 @@
 
         <!-- Empty state -->
         <tr v-if="!items || items.length === 0">
-          <td class="py-10" :colspan="headers.length">
+          <td class="py-8" :colspan="headers.length">
             <div class="d-flex flex-column align-center text-medium-emphasis">
-              <UiIcon class="mb-3" name="databaseSearch" size="40" />
+              <UiIcon class="mb-3" name="databaseSearch" size="36" />
               <slot name="empty">Nenhum registro encontrado.</slot>
             </div>
           </td>
@@ -81,6 +88,16 @@
 <style scoped>
   .ui-table thead tr {
     border-bottom: 2px solid rgba(var(--v-border-color), 0.12);
+  }
+
+  .ui-table th {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .ui-table td {
+    font-size: 0.8125rem;
   }
 
   .ui-table__row {
