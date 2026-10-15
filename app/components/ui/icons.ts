@@ -20,7 +20,7 @@ export const iconMap = {
   edit: 'mdi-pencil',
   recordsList: 'mdi-clipboard-list-outline',
   userBadge: 'mdi-badge-account-outline',
-  product: 'mdi-package-variant-outline',
+  product: 'mdi-package-variant',
   security: 'mdi-lock-outline',
   lock: 'mdi-lock-outline',
   searchDocument: 'mdi-text-box-search-outline',
