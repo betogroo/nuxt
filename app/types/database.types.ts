@@ -426,6 +426,7 @@ export type Database = {
           alert_days: number
           delay_days: number
           id: string
+          singleton_key: boolean
           updated_at: string
           updated_by: string | null
         }
@@ -433,6 +434,7 @@ export type Database = {
           alert_days?: number
           delay_days?: number
           id?: string
+          singleton_key?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -440,6 +442,7 @@ export type Database = {
           alert_days?: number
           delay_days?: number
           id?: string
+          singleton_key?: boolean
           updated_at?: string
           updated_by?: string | null
         }
