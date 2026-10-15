@@ -5,6 +5,27 @@ export type ProductRow = Database['public']['Tables']['products']['Row'] & {
   product_classes?: { id: string; name: string } | null
 }
 
+export type ProductUnitAlias = { id: string; code: number; name: string }
+
+export type ProductUnitDetail = {
+  id: string
+  name: string
+  is_pending: boolean
+  is_active: boolean
+  aliases: ProductUnitAlias[]
+}
+
+export type ProductDemandUsage = {
+  item_id: string
+  quantity: number
+  unit_name: string | null
+  id: string
+  name: string
+  status: Database['public']['Enums']['demand_status']
+  process_number: string | null
+  dispute_date: string | null
+}
+
 export const useProducts = () => {
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
@@ -102,7 +123,9 @@ export const useProducts = () => {
 
     const { data: unitsData } = await supabase
       .from('product_units')
-      .select('id, measurement_units(*)')
+      .select(
+        'id, measurement_units(*, measurement_unit_alias_links(alias:measurement_unit_aliases(id, code, name)))',
+      )
       .eq('product_id', id)
 
     let profiles = null
@@ -115,22 +138,52 @@ export const useProducts = () => {
       profiles = p
     }
 
-    return {
-      ...data,
-      profiles,
-      units:
-        unitsData?.map(
-          (u: {
-            measurement_units: {
-              id: string
-              name: string
-              is_pending: boolean
-              is_active: boolean
-              legacy_alias: string | null
-            }
-          }) => u.measurement_units,
-        ) || [],
-    }
+    const rawUnits = (unitsData || []) as unknown as Array<{
+      measurement_units:
+        | (Omit<ProductUnitDetail, 'aliases'> & {
+            measurement_unit_alias_links?: Array<{ alias: ProductUnitAlias | null }>
+          })
+        | null
+    }>
+
+    const units: ProductUnitDetail[] = rawUnits
+      .map((u) => u.measurement_units)
+      .filter((mu): mu is NonNullable<typeof mu> => !!mu)
+      .map(({ measurement_unit_alias_links, ...unit }) => ({
+        ...unit,
+        aliases: (measurement_unit_alias_links || [])
+          .map((link) => link.alias)
+          .filter((a): a is ProductUnitAlias => !!a),
+      }))
+
+    return { ...data, profiles, units }
+  }
+
+  const fetchProductDemands = async (productId: string): Promise<ProductDemandUsage[]> => {
+    const { data, error } = await supabase
+      .from('demand_products')
+      .select(
+        'id, quantity, unit_name_snapshot, demands(id, name, status, process_number, dispute_date)',
+      )
+      .eq('product_id', productId)
+
+    if (error) throw error
+
+    return (
+      (data || []) as unknown as Array<{
+        id: string
+        quantity: number
+        unit_name_snapshot: string | null
+        demands: Omit<ProductDemandUsage, 'item_id' | 'quantity' | 'unit_name'> | null
+      }>
+    )
+      .filter((row) => !!row.demands)
+      .map((row) => ({
+        item_id: row.id,
+        quantity: row.quantity,
+        unit_name: row.unit_name_snapshot,
+        ...(row.demands as Omit<ProductDemandUsage, 'item_id' | 'quantity' | 'unit_name'>),
+      }))
   }
 
   const addProductUnit = async (productId: string, unitName: string) => {
@@ -163,7 +216,7 @@ export const useProducts = () => {
       .insert({ product_id: productId, unit_id: unitId })
 
     if (linkError) {
-      if (linkError.code === '23505') throw new Error('Esta unidade jǭ estǭ vinculada ao produto.')
+      if (linkError.code === '23505') throw new Error('Esta unidade já está vinculada ao produto.')
       throw linkError
     }
   }
@@ -181,6 +234,7 @@ export const useProducts = () => {
   return {
     fetchProducts,
     fetchProductById,
+    fetchProductDemands,
     fetchAllActiveProducts,
     createProduct,
     updateProduct,

@@ -60,7 +60,90 @@ describe('useProducts', () => {
     expect(result).toBeDefined()
     expect(result.id).toBe('prod-1')
     expect(mockSupabase.from).toHaveBeenCalledWith('products')
-    // It should also call product_units but it's hard to assert exactly without more precise mocks
+  })
+
+  it('fetchProductById should map units with their aliases', async () => {
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'prod-1', name: 'Papel', created_by: null },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [
+              {
+                id: 'pu-1',
+                measurement_units: {
+                  id: 'unit-1',
+                  name: 'Pacote 100 Unidade',
+                  is_pending: false,
+                  is_active: true,
+                  measurement_unit_alias_links: [
+                    { alias: { id: 'a1', code: 36, name: 'Cento' } },
+                    { alias: null },
+                  ],
+                },
+              },
+            ],
+            error: null,
+          }),
+        }),
+      }
+    })
+
+    const { fetchProductById } = useProducts()
+    const result = await fetchProductById('prod-1')
+
+    expect(result.units).toHaveLength(1)
+    expect(result.units[0]!.name).toBe('Pacote 100 Unidade')
+    expect(result.units[0]!.aliases).toEqual([{ id: 'a1', code: 36, name: 'Cento' }])
+  })
+
+  it('fetchProductDemands should return demands that use the product', async () => {
+    const mockEq = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'dp-1',
+          quantity: 5,
+          unit_name_snapshot: 'Caixa',
+          demands: {
+            id: 'dem-1',
+            name: 'Compra de Papel',
+            status: 'completed',
+            process_number: '042/2026',
+            dispute_date: '2026-06-15T14:00:00Z',
+          },
+        },
+        { id: 'dp-2', quantity: 1, unit_name_snapshot: null, demands: null },
+      ],
+      error: null,
+    })
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({ eq: mockEq }),
+    })
+
+    const { fetchProductDemands } = useProducts()
+    const result = await fetchProductDemands('prod-1')
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('demand_products')
+    expect(mockEq).toHaveBeenCalledWith('product_id', 'prod-1')
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      item_id: 'dp-1',
+      id: 'dem-1',
+      name: 'Compra de Papel',
+      quantity: 5,
+      unit_name: 'Caixa',
+    })
   })
 
   it('createProduct should insert product and log action', async () => {
@@ -69,7 +152,9 @@ describe('useProducts', () => {
     })
 
     const { createProduct } = useProducts()
-    await createProduct({ name: 'Prod B', is_active: true } as any)
+    await createProduct({ name: 'Prod B', is_active: true } as unknown as Parameters<
+      typeof createProduct
+    >[0])
 
     expect(mockSupabase.from).toHaveBeenCalledWith('products')
     expect(mockLogAction).toHaveBeenCalledWith(
