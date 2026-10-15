@@ -295,7 +295,7 @@
         subtitle="Métricas em tempo real e central unificada de configurações"
         title="Painel de Administração"
       />
-      <div class="d-flex align-center gap-2 flex-wrap">
+      <div class="d-flex align-center gap-3 flex-wrap">
         <UiButton
           color="default"
           :loading="isRefreshing"

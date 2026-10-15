@@ -229,18 +229,19 @@
             />
           </div>
           <UiDivider class="mx-2" vertical />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="refresh"
-            :loading="pending"
-            size="sm"
-            variant="soft"
-            @click="refresh"
-          />
-          <UiButton color="primary" prepend-icon="add" @click="openAddModal">
-            Novo Produto
-          </UiButton>
+          <div class="d-flex align-center gap-3">
+            <UiButton
+              color="secondary"
+              icon="refresh"
+              :loading="pending"
+              size="sm"
+              variant="soft"
+              @click="refresh"
+            />
+            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
+              Novo Produto
+            </UiButton>
+          </div>
         </div>
       </template>
 
@@ -291,20 +292,22 @@
           />
         </template>
         <template #item-actions="{ item }">
-          <UiButton
-            color="primary"
-            icon="next"
-            size="sm"
-            :to="`/products/${item.id}`"
-            variant="ghost"
-          />
-          <UiButton
-            color="default"
-            icon="editOutline"
-            size="sm"
-            variant="ghost"
-            @click="openEditModal(item)"
-          />
+          <div class="d-flex justify-end gap-2">
+            <UiButton
+              color="primary"
+              icon="next"
+              size="sm"
+              :to="`/products/${item.id}`"
+              variant="ghost"
+            />
+            <UiButton
+              color="default"
+              icon="editOutline"
+              size="sm"
+              variant="ghost"
+              @click="openEditModal(item)"
+            />
+          </div>
         </template>
       </UiTable>
 

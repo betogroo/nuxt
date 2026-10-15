@@ -220,18 +220,19 @@
           style="max-width: 260px"
           variant="outline"
         />
-        <UiButton
-          class="ml-4 mr-2"
-          color="secondary"
-          icon="refresh"
-          :loading="pending"
-          size="sm"
-          variant="soft"
-          @click="refresh"
-        />
-        <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
-          >Novo Usuário</UiButton
-        >
+        <div class="d-flex align-center gap-3 ml-4">
+          <UiButton
+            color="secondary"
+            icon="refresh"
+            :loading="pending"
+            size="sm"
+            variant="soft"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
+            >Novo Usuário</UiButton
+          >
+        </div>
       </template>
 
       <UiTable

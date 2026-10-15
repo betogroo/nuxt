@@ -345,16 +345,19 @@
           <UiIcon class="mr-2" color="primary" name="balance" />
           Unidades de Medida Oficiais
           <UiSpacer />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="refresh"
-            :loading="unitsPending"
-            size="sm"
-            variant="soft"
-            @click="refreshUnits"
-          />
-          <UiButton color="primary" prepend-icon="add" @click="openAddModal">Nova Unidade</UiButton>
+          <div class="d-flex align-center gap-3">
+            <UiButton
+              color="secondary"
+              icon="refresh"
+              :loading="unitsPending"
+              size="sm"
+              variant="soft"
+              @click="refreshUnits"
+            />
+            <UiButton color="primary" prepend-icon="add" @click="openAddModal"
+              >Nova Unidade</UiButton
+            >
+          </div>
         </template>
 
         <UiTable
@@ -410,18 +413,19 @@
           <UiIcon class="mr-2" color="primary" name="categories" />
           Todos os Registros Alternativos
           <UiSpacer />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="refresh"
-            :loading="aliasesPending"
-            size="sm"
-            variant="soft"
-            @click="refreshAliases"
-          />
-          <UiButton color="primary" prepend-icon="add" @click="openAddAliasModal"
-            >Novo Registro</UiButton
-          >
+          <div class="d-flex align-center gap-3">
+            <UiButton
+              color="secondary"
+              icon="refresh"
+              :loading="aliasesPending"
+              size="sm"
+              variant="soft"
+              @click="refreshAliases"
+            />
+            <UiButton color="primary" prepend-icon="add" @click="openAddAliasModal"
+              >Novo Registro</UiButton
+            >
+          </div>
         </template>
 
         <UiTable
@@ -455,20 +459,22 @@
             </UiChip>
           </template>
           <template #item-actions="{ item }">
-            <UiButton
-              color="primary"
-              icon="editOutline"
-              size="sm"
-              variant="ghost"
-              @click="openEditAliasModal(item)"
-            />
-            <UiButton
-              color="error"
-              icon="deleteOutline"
-              size="sm"
-              variant="ghost"
-              @click="removeAlias(item)"
-            />
+            <div class="d-flex justify-end gap-2">
+              <UiButton
+                color="primary"
+                icon="editOutline"
+                size="sm"
+                variant="ghost"
+                @click="openEditAliasModal(item)"
+              />
+              <UiButton
+                color="error"
+                icon="deleteOutline"
+                size="sm"
+                variant="ghost"
+                @click="removeAlias(item)"
+              />
+            </div>
           </template>
         </UiTable>
       </UiCard>

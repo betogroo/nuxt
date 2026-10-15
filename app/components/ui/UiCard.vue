@@ -70,7 +70,7 @@
     <!-- Footer/Actions -->
     <template v-if="$slots.actions">
       <UiDivider />
-      <v-card-actions class="px-5 py-3 justify-end">
+      <v-card-actions class="px-5 py-3 justify-end gap-3 ga-3">
         <slot name="actions" />
       </v-card-actions>
     </template>

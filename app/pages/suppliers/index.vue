@@ -100,18 +100,19 @@
           <template #header>
             <span class="text-subtitle-1 font-weight-bold">Lista de Fornecedores</span>
             <UiSpacer />
-            <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="refresh"
-              :loading="pending"
-              size="sm"
-              variant="soft"
-              @click="refresh"
-            />
-            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
-              Novo Fornecedor
-            </UiButton>
+            <div class="d-flex align-center gap-3">
+              <UiButton
+                color="secondary"
+                icon="refresh"
+                :loading="pending"
+                size="sm"
+                variant="soft"
+                @click="refresh"
+              />
+              <UiButton color="primary" prepend-icon="add" @click="openAddModal">
+                Novo Fornecedor
+              </UiButton>
+            </div>
           </template>
 
           <!-- Barra de Pesquisa -->
@@ -204,7 +205,7 @@
             </template>
 
             <template #item-actions="{ item }">
-              <div class="d-flex justify-end ga-1">
+              <div class="d-flex justify-end gap-2">
                 <UiTooltip text="Ver Detalhes">
                   <template #activator="{ props }">
                     <UiButton
@@ -315,7 +316,7 @@
             </template>
 
             <template #item-actions="{ item }">
-              <div class="d-flex justify-end ga-1">
+              <div class="d-flex justify-end gap-2">
                 <UiTooltip text="Ver Detalhes">
                   <template #activator="{ props }">
                     <UiButton

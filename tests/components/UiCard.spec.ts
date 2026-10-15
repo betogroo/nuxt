@@ -41,4 +41,21 @@ describe('UiCard', () => {
     expect(vCard.props('to')).toBe('/iirgd')
     expect(vCard.props('href')).toBe('https://example.com')
   })
+
+  it('renders actions slot with gap-3 for proper button spacing', () => {
+    const wrapper = mount(UiCard, {
+      slots: {
+        actions: '<button id="btn1">Cancelar</button><button id="btn2">Salvar</button>',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const actions = wrapper.findComponent({ name: 'VCardActions' })
+    expect(actions.exists()).toBe(true)
+    expect(actions.classes()).toContain('gap-3')
+    expect(wrapper.text()).toContain('Cancelar')
+    expect(wrapper.text()).toContain('Salvar')
+  })
 })

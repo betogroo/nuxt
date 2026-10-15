@@ -400,7 +400,7 @@
             formatDemandStatus(demand.status)
           }}</UiChip>
 
-          <div class="d-flex flex-wrap ga-2 ml-auto">
+          <div class="d-flex flex-wrap gap-3 ml-auto">
             <UiButton
               v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
               color="orange-darken-3"
@@ -774,7 +774,7 @@
             <span v-else class="text-grey">-</span>
           </template>
           <template #item-actions="{ item }">
-            <div class="d-flex flex-nowrap align-center justify-end">
+            <div class="d-flex flex-nowrap align-center justify-end gap-2">
               <UiButton
                 v-if="demand?.status === 'quotation'"
                 color="primary"

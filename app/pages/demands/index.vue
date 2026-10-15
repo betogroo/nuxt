@@ -166,18 +166,19 @@
             variant="outline"
           />
           <UiDivider class="mx-2" vertical />
-          <UiButton
-            class="mr-2"
-            color="secondary"
-            icon="refresh"
-            :loading="pending"
-            size="sm"
-            variant="soft"
-            @click="refresh"
-          />
-          <UiButton color="primary" prepend-icon="add" @click="modal.open()">
-            Nova Demanda
-          </UiButton>
+          <div class="d-flex align-center gap-3">
+            <UiButton
+              color="secondary"
+              icon="refresh"
+              :loading="pending"
+              size="sm"
+              variant="soft"
+              @click="refresh"
+            />
+            <UiButton color="primary" prepend-icon="add" @click="modal.open()">
+              Nova Demanda
+            </UiButton>
+          </div>
         </div>
       </template>
 
@@ -246,21 +247,23 @@
           </span>
         </template>
         <template #item-actions="{ item }">
-          <UiButton
-            color="primary"
-            icon="next"
-            size="sm"
-            :to="`/demands/${item.id}`"
-            variant="ghost"
-          />
-          <UiButton
-            v-if="canEdit(item)"
-            color="default"
-            icon="editOutline"
-            size="sm"
-            variant="ghost"
-            @click="modal.open(item)"
-          />
+          <div class="d-flex justify-end gap-2">
+            <UiButton
+              color="primary"
+              icon="next"
+              size="sm"
+              :to="`/demands/${item.id}`"
+              variant="ghost"
+            />
+            <UiButton
+              v-if="canEdit(item)"
+              color="default"
+              icon="editOutline"
+              size="sm"
+              variant="ghost"
+              @click="modal.open(item)"
+            />
+          </div>
         </template>
       </UiTable>
 
