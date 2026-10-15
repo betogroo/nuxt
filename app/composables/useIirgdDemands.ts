@@ -35,7 +35,9 @@ export const useIirgdDemands = () => {
   const { logAction } = useLogger()
 
   const fetchDemandCounts = async () => {
-    const { data, error } = await supabase.from('iirgd_demands').select('status')
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .select('status, document_type_id, iirgd_document_types(name)')
     if (error) {
       console.error(error)
       throw new Error('Erro ao buscar contagens de demandas do IIRGD')
@@ -46,6 +48,7 @@ export const useIirgdDemands = () => {
       consulted: 0,
       released: 0,
       issued: 0,
+      issuedAntecedents: 0,
       errors: 0,
     }
 
@@ -58,7 +61,12 @@ export const useIirgdDemands = () => {
         } else if (d.status === 'released') {
           counts.released++
         } else if (d.status === 'issued') {
-          counts.issued++
+          const docName = (d.iirgd_document_types as { name?: string } | null)?.name || ''
+          if (docName.toLowerCase().includes('antecedentes')) {
+            counts.issuedAntecedents++
+          } else {
+            counts.issued++
+          }
         } else if (
           ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(d.status)
         ) {
@@ -96,10 +104,30 @@ export const useIirgdDemands = () => {
         consulted: ['confronted'],
         released: ['released'],
         issued: ['issued'],
+        'issued-antecedents': ['issued'],
         errors: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
       }
       if (statusMap[statusGroup]) {
         query = query.in('status', statusMap[statusGroup])
+      }
+
+      if (statusGroup === 'issued' || statusGroup === 'issued-antecedents') {
+        const { data: antecedentTypes } = await supabase
+          .from('iirgd_document_types')
+          .select('id')
+          .ilike('name', '%antecedentes%')
+
+        const antecedentIds = (antecedentTypes || []).map((t: { id: string }) => t.id)
+
+        if (statusGroup === 'issued-antecedents') {
+          if (antecedentIds.length > 0) {
+            query = query.in('document_type_id', antecedentIds)
+          } else {
+            return { data: [], count: 0 }
+          }
+        } else if (statusGroup === 'issued' && antecedentIds.length > 0) {
+          query = query.not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
+        }
       }
     }
 

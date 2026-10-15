@@ -37,7 +37,8 @@
     'in-progress': 'Em Andamento',
     consulted: 'Consultados',
     released: 'Liberados',
-    issued: 'Emitidos',
+    issued: 'RGs Emitidos',
+    'issued-antecedents': 'Antecedentes Emitidos',
     errors: 'Erros e Pendências',
   }
 
@@ -334,7 +335,8 @@
         <UiTab value="in-progress">Em Andamento</UiTab>
         <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="consulted">Consultados</UiTab>
         <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="released">Liberados</UiTab>
-        <UiTab value="issued">Emitidos</UiTab>
+        <UiTab value="issued">RGs Emitidos</UiTab>
+        <UiTab value="issued-antecedents">Antecedentes Emitidos</UiTab>
         <UiTab value="errors">Erros</UiTab>
       </UiTabs>
 

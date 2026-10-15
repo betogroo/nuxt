@@ -36,14 +36,22 @@
       consulted: 0,
       released: 0,
       issued: 0,
+      issuedAntecedents: 0,
       errors: 0,
     }),
   })
 
   const statusChartOptions = computed(() => ({
     chart: { type: 'donut', fontFamily: 'inherit' },
-    labels: ['Em Andamento', 'Consultados', 'Liberados', 'Emitidos', 'Erros'],
-    colors: ['#2196F3', '#1976D2', '#009688', '#4CAF50', '#F44336'],
+    labels: [
+      'Em Andamento',
+      'Consultados',
+      'Liberados',
+      'RGs Emitidos',
+      'Antecedentes Emitidos',
+      'Erros',
+    ],
+    colors: ['#2196F3', '#1976D2', '#009688', '#4CAF50', '#4F46E5', '#F44336'],
     plotOptions: {
       pie: { donut: { size: '70%' } },
     },
@@ -56,6 +64,7 @@
     counts.value?.consulted ?? 0,
     counts.value?.released ?? 0,
     counts.value?.issued ?? 0,
+    counts.value?.issuedAntecedents ?? 0,
     counts.value?.errors ?? 0,
   ])
 
@@ -128,10 +137,17 @@
       },
       {
         group: 'issued',
-        label: 'Emitidos',
+        label: 'RGs Emitidos',
         count: counts.value?.issued ?? 0,
-        icon: 'success',
+        icon: 'userBadge',
         color: 'success',
+      },
+      {
+        group: 'issued-antecedents',
+        label: 'Antecedentes Emitidos',
+        count: counts.value?.issuedAntecedents ?? 0,
+        icon: 'shieldUser',
+        color: 'indigo',
       },
       {
         group: 'errors',
@@ -143,7 +159,9 @@
     ]
 
     if (profile.value?.role === ROLES.IIRGD_USER) {
-      return all.filter((c) => ['in-progress', 'issued', 'errors'].includes(c.group))
+      return all.filter((c) =>
+        ['in-progress', 'issued', 'issued-antecedents', 'errors'].includes(c.group),
+      )
     }
     return all
   })

@@ -220,4 +220,20 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
     vm.clearSelection()
     expect(vm.selectedDemandIds).toEqual([])
   })
+
+  it('should support issued-antecedents group for iirgd_user', async () => {
+    mockRoute.value = { params: { group: 'issued-antecedents' } }
+    mockProfile.value = { role: 'iirgd_user' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.titles['issued-antecedents']).toBe('Antecedentes Emitidos')
+    expect(vm.titles['issued']).toBe('RGs Emitidos')
+    expect(vm.currentTab).toBe('issued-antecedents')
+  })
 })
