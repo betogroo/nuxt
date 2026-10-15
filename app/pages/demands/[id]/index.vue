@@ -11,6 +11,7 @@
   const { addDemandItemWithDependencies, updateDemandItemWithDependencies } = useDemandProducts()
 
   const { fetchAllActiveProducts } = useProducts()
+  const { fetchAllActiveProductClasses } = useProductClasses()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
 
@@ -110,6 +111,10 @@
     return await fetchAllActiveExpenseNatures()
   })
 
+  const { data: productClasses } = useAsyncData('active-product-classes', async () => {
+    return await fetchAllActiveProductClasses()
+  })
+
   // Modal State
   const isModalOpen = ref(false)
   const isSaving = ref(false)
@@ -203,6 +208,10 @@
   const isSuggestingNature = ref(false)
   const suggestedNatureId = ref('')
   const suggestedNatureName = ref('')
+  const newProductClassId = ref<string | null>(null)
+  const isSuggestingClass = ref(false)
+  const suggestedClassId = ref('')
+  const suggestedClassName = ref('')
 
   const openAddModal = () => {
     selectedProductId.value = null
@@ -216,6 +225,10 @@
     isSuggestingNature.value = false
     suggestedNatureId.value = ''
     suggestedNatureName.value = ''
+    newProductClassId.value = null
+    isSuggestingClass.value = false
+    suggestedClassId.value = ''
+    suggestedClassName.value = ''
     saveError.value = ''
     isModalOpen.value = true
   }
@@ -251,6 +264,10 @@
         isSuggestingNature: isSuggestingNature.value,
         suggestedNatureId: suggestedNatureId.value,
         suggestedNatureName: suggestedNatureName.value,
+        newProductClassId: newProductClassId.value,
+        isSuggestingClass: isSuggestingClass.value,
+        suggestedClassId: suggestedClassId.value,
+        suggestedClassName: suggestedClassName.value,
 
         selectedProductId: selectedProductId.value,
         finalUnitId: await resolveFinalUnitId(),
@@ -987,6 +1004,34 @@
         <div v-else class="d-flex gap-4 mb-4">
           <UiInput v-model="suggestedNatureId" label="Código (Ex: 33903000)" />
           <UiInput v-model="suggestedNatureName" label="Nome da Natureza" />
+        </div>
+
+        <UiSwitch
+          v-model="isSuggestingClass"
+          class="mb-2"
+          color="primary"
+          label="Não encontrou a classe? Sugerir nova"
+        />
+
+        <UiAutocomplete
+          v-if="!isSuggestingClass"
+          v-model="newProductClassId"
+          class="mb-4"
+          clearable
+          :item-title="
+            (item: Record<string, unknown>) =>
+              typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
+          "
+          item-value="id"
+          :items="productClasses || []"
+          label="Classe de Produto"
+          size="md"
+          variant="outline"
+        />
+
+        <div v-else class="d-flex gap-4 mb-4">
+          <UiInput v-model="suggestedClassId" label="Código (Ex: 5915)" />
+          <UiInput v-model="suggestedClassName" label="Nome da Classe" />
         </div>
 
         <MeasurementUnitSelect v-model="selectedUnitSearch" class="mb-4" />

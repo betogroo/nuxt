@@ -1,4 +1,4 @@
-﻿import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?: { id: string; name: string } | null
@@ -57,6 +57,10 @@ export const useDemandProducts = () => {
     isSuggestingNature?: boolean
     suggestedNatureId?: string
     suggestedNatureName?: string
+    newProductClassId?: string | null
+    isSuggestingClass?: boolean
+    suggestedClassId?: string
+    suggestedClassName?: string
     selectedProductId?: string | null
     finalUnitId: string
     itemQuantity: number
@@ -67,6 +71,7 @@ export const useDemandProducts = () => {
 
     if (params.isNewProductMode) {
       let expenseNatureId = params.newProductExpenseNatureId
+      let productClassId = params.newProductClassId || null
 
       if (params.isSuggestingNature) {
         if (!params.suggestedNatureId || !params.suggestedNatureName) {
@@ -97,6 +102,35 @@ export const useDemandProducts = () => {
         expenseNatureId = params.suggestedNatureId
       }
 
+      if (params.isSuggestingClass) {
+        if (!params.suggestedClassId || !params.suggestedClassName) {
+          throw new Error('Código e Nome da nova classe são obrigatórios.')
+        }
+
+        // Register pending product class if it doesn't exist
+        const { data: existingClass } = await supabase
+          .from('product_classes')
+          .select('id')
+          .eq('id', params.suggestedClassId)
+          .maybeSingle()
+
+        if (!existingClass) {
+          const { error: insClassErr } = await supabase.from('product_classes').insert({
+            id: params.suggestedClassId,
+            name: params.suggestedClassName,
+            is_pending: true,
+            is_active: false,
+          })
+          if (insClassErr) throw insClassErr
+          await logAction(
+            'CREATE_PENDING_PRODUCT_CLASS',
+            `Sugerida via Demanda: ${params.suggestedClassName}`,
+            user.value?.id,
+          )
+        }
+        productClassId = params.suggestedClassId
+      }
+
       if (!params.newProductName || !expenseNatureId) {
         throw new Error('Nome e Natureza de Despesa são obrigatórios para novo produto.')
       }
@@ -106,6 +140,7 @@ export const useDemandProducts = () => {
         .insert({
           name: params.newProductName,
           expense_nature_id: expenseNatureId,
+          product_class_id: productClassId,
         })
         .select()
         .single()
@@ -121,19 +156,44 @@ export const useDemandProducts = () => {
 
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
-    // 3. Ensure unit is linked to product
-    const { data: existingLink } = await supabase
-      .from('product_units')
+    // 3. Ensure standard 'Unidade' is linked to product
+    const { data: defaultUnit } = await supabase
+      .from('measurement_units')
       .select('id')
-      .eq('product_id', finalProductId)
-      .eq('unit_id', finalUnitId)
+      .ilike('name', 'unidade')
       .maybeSingle()
 
-    if (!existingLink) {
-      const { error: linkError } = await supabase
+    if (defaultUnit) {
+      const { data: existingDefaultLink } = await supabase
         .from('product_units')
-        .insert({ product_id: finalProductId, unit_id: finalUnitId })
-      if (linkError && linkError.code !== '23505') throw linkError
+        .select('id')
+        .eq('product_id', finalProductId)
+        .eq('unit_id', defaultUnit.id)
+        .maybeSingle()
+
+      if (!existingDefaultLink) {
+        const { error: defLinkErr } = await supabase
+          .from('product_units')
+          .insert({ product_id: finalProductId, unit_id: defaultUnit.id })
+        if (defLinkErr && defLinkErr.code !== '23505') throw defLinkErr
+      }
+    }
+
+    // Ensure finalUnitId is linked to product (if different from default Unidade)
+    if (finalUnitId && (!defaultUnit || finalUnitId !== defaultUnit.id)) {
+      const { data: existingLink } = await supabase
+        .from('product_units')
+        .select('id')
+        .eq('product_id', finalProductId)
+        .eq('unit_id', finalUnitId)
+        .maybeSingle()
+
+      if (!existingLink) {
+        const { error: linkError } = await supabase
+          .from('product_units')
+          .insert({ product_id: finalProductId, unit_id: finalUnitId })
+        if (linkError && linkError.code !== '23505') throw linkError
+      }
     }
 
     // 4. Check if item already exists in demand

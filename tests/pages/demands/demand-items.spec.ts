@@ -28,9 +28,14 @@ mockNuxtImport('useSupabaseClient', () => () => ({
     }),
   }),
 }))
+const mockAddDemandItemWithDependencies = vi.fn().mockResolvedValue({})
+
+mockNuxtImport('useProductClasses', () => () => ({
+  fetchAllActiveProductClasses: vi.fn().mockResolvedValue([]),
+}))
 mockNuxtImport('useDemandProducts', () => () => ({
   fetchDemandItemDetails: vi.fn().mockResolvedValue({}),
-  addDemandItemWithDependencies: vi.fn().mockResolvedValue({}),
+  addDemandItemWithDependencies: mockAddDemandItemWithDependencies,
   updateDemandItemWithDependencies: vi.fn().mockResolvedValue({}),
   removeDemandProduct: vi.fn().mockResolvedValue({}),
 }))
@@ -93,6 +98,38 @@ describe('Demand Items Page', () => {
     expect(vm.isModalOpen).toBe(true)
     expect(vm.selectedUnitSearch).toBe('')
     expect(vm.selectedProductId).toBe(null)
+    expect(vm.newProductClassId).toBe(null)
+    expect(vm.isSuggestingClass).toBe(false)
+    expect(vm.suggestedClassId).toBe('')
+    expect(vm.suggestedClassName).toBe('')
+  })
+  it('should pass product class fields to addDemandItemWithDependencies when in new product mode', async () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.demandId = 'demand-123'
+    vm.isNewProductMode = true
+    vm.newProductName = 'Teclado Mecânico'
+    vm.newProductExpenseNatureId = '33903000'
+    vm.newProductClassId = '5915'
+    vm.isSuggestingClass = false
+    vm.selectedUnitSearch = 'un'
+    vm.itemQuantity = 2
+    vm.itemReferencePrice = 150
+
+    await vm.saveToDemand()
+
+    expect(mockAddDemandItemWithDependencies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        demandId: 'demand-123',
+        isNewProductMode: true,
+        newProductName: 'Teclado Mecânico',
+        newProductExpenseNatureId: '33903000',
+        newProductClassId: '5915',
+        isSuggestingClass: false,
+      }),
+    )
   })
   it('should extract available product units and pre-select first unit when product is selected', async () => {
     mockProductsList.value = [

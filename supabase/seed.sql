@@ -36,11 +36,22 @@ UPDATE public.profiles SET role = 'uge', name = 'Uge', is_active = true WHERE id
 UPDATE public.profiles SET role = 'iirgd_user', name = 'IIRGD user', is_active = true WHERE id = '44444444-4444-4444-4444-444444444444';
 UPDATE public.profiles SET role = 'iirgd_manager', name = 'IIRGD Admin', is_active = true WHERE id = '55555555-5555-5555-5555-555555555555';
 
--- Seed suppliers
-INSERT INTO public.suppliers (cnpj, company_name, email, responsible_name, is_simples_optant, is_active) 
-VALUES 
-('13848763000139', 'Sebastiana e Leonardo Eletrônica ME', 'ouvidoria@sebastianaeleonardoeletronicame.com.br', 'Sebastiana Silva', true, true), 
-('28611962000104', 'Pedro Henrique e Enrico Construções ME', 'presidencia@louiseeagathabuffetltda.com.br', 'Pedro Souza', false, true),
-('75145472000131', 'Edson e Lucas Telas Ltda', 'posvenda@edsonelucastelasltda.com.br', 'Edson Souza', false, true)
-ON CONFLICT DO NOTHING;
-
+insert into
+  "public"."measurement_units" (
+    "id",
+    "name",
+    "is_active",
+    "created_at",
+    "updated_at",
+    "is_pending"
+  )
+values
+  (
+    '538d5e23-244b-42a9-b1f2-beb160d96375',
+    'Unidade',
+    true,
+    '2026-09-28 18:00:02.703051+00',
+    '2026-09-28 18:00:02.703051+00',
+    false
+  )
+ON CONFLICT (name) DO UPDATE SET is_active = true;
