@@ -170,7 +170,7 @@
           <template #item-is_active="{ item }">
             <UiSwitch
               class="d-inline-flex"
-              color="primary"
+              color="success"
               hide-details
               :model-value="item.is_active"
               size="sm"
@@ -287,7 +287,7 @@
         <UiSwitch
           v-model="isActive"
           v-bind="isActiveProps"
-          color="primary"
+          color="success"
           :error-messages="saveErrors.is_active"
           hide-details
           label="Tipo Ativo"

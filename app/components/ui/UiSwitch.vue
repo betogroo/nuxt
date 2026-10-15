@@ -3,14 +3,19 @@
 
   defineOptions({ inheritAttrs: false })
 
-  const props = defineProps<{
-    label?: string
-    hint?: string
-    persistentHint?: boolean
-    color?: string
-    hideDetails?: boolean
-    size?: string
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      label?: string
+      hint?: string
+      persistentHint?: boolean
+      color?: string
+      hideDetails?: boolean
+      size?: string
+    }>(),
+    {
+      color: 'primary',
+    },
+  )
 
   const modelValue = defineModel<boolean | null>()
 
@@ -25,7 +30,7 @@
 <template>
   <v-switch
     v-model="modelValue"
-    :color="color || 'success'"
+    :color="color"
     :density="vuetifyDensity"
     :hide-details="hideDetails"
     :hint="hint"
