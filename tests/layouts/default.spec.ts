@@ -90,10 +90,14 @@ const defaultStubs = {
   UiAvatar: { template: '<div><slot /></div>' },
   UiIcon: true,
   UiDivider: true,
-  UiList: { template: '<nav><slot /></nav>' },
+  UiList: {
+    props: ['density', 'nav'],
+    template: '<nav :data-density="density"><slot /></nav>',
+  },
   UiListItem: {
+    props: ['density', 'title', 'to'],
     template:
-      '<div><span>{{ $attrs.title }}</span><slot name="prepend" /><slot /><slot name="append" /></div>',
+      '<div class="list-item" :data-density="density"><span>{{ $attrs.title || title }}</span><slot name="prepend" /><slot /><slot name="append" /></div>',
   },
   UiListGroup: {
     template: '<div><slot name="activator" :props="{}" /><slot /></div>',
@@ -146,5 +150,24 @@ describe('Default Layout Drawer', () => {
 
     // Subgroup Cadastros has units (3) + expense-natures (2) = 5
     expect(wrapper.text()).toContain('5')
+  })
+
+  it('should render drawer list and items with compact density for slimmer links', async () => {
+    const wrapper = mount(DefaultLayout, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const nav = wrapper.find('aside nav')
+    expect(nav.exists()).toBe(true)
+    expect(nav.attributes('data-density')).toBe('compact')
+
+    const items = wrapper.findAll('aside .list-item')
+    expect(items.length).toBeGreaterThan(0)
+    for (const item of items) {
+      expect(item.attributes('data-density')).toBe('compact')
+    }
   })
 })

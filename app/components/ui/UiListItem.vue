@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
   import { computed, useAttrs } from 'vue'
   import { iconMap, type IconName } from './icons'
 
@@ -12,6 +12,7 @@
     active?: boolean
     color?: string
     rounded?: string
+    density?: 'default' | 'comfortable' | 'compact'
   }>()
 
   const attrs = useAttrs()
@@ -33,6 +34,7 @@
   <v-list-item
     :active="active"
     :color="color"
+    :density="density"
     :rounded="rounded"
     :subtitle="subtitle"
     :title="title"

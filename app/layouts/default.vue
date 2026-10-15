@@ -81,27 +81,31 @@
     <!-- Menu Lateral (Drawer) -->
     <UiNavigationDrawer v-model="drawer" :elevation="0" :mobile-breakpoint="960">
       <!-- Marca do sistema -->
-      <div class="px-4 pt-5 pb-3 d-flex align-center gap-3">
-        <UiAvatar color="primary" rounded="lg" size="36">
-          <UiIcon color="white" name="inventory" size="20" />
+      <div class="px-3 pt-4 pb-2 d-flex align-center gap-2">
+        <UiAvatar color="primary" rounded="lg" size="32">
+          <UiIcon color="white" name="inventory" size="18" />
         </UiAvatar>
         <div>
-          <div class="text-subtitle-2 font-weight-bold text-high-emphasis">SistemaGov</div>
-          <div class="text-caption text-medium-emphasis">Gestão de Demandas</div>
+          <div class="text-subtitle-2 font-weight-bold text-high-emphasis leading-tight">
+            SistemaGov
+          </div>
+          <div class="text-caption text-medium-emphasis leading-none">Gestão de Demandas</div>
         </div>
       </div>
 
-      <UiDivider class="mb-2" />
+      <UiDivider class="mb-1" />
 
       <!-- Navegação principal: limpa, intuitiva e organizada -->
-      <UiList v-model:opened="openedGroups" class="px-3" nav size="sm">
+      <UiList v-model:opened="openedGroups" class="px-2" density="compact" nav>
         <template v-for="section in drawerSections" :key="section.group">
           <!-- Separador para seção informativa / rodapé -->
-          <UiDivider v-if="section.group === 'info'" class="my-2" />
+          <UiDivider v-if="section.group === 'info'" class="my-1.5" />
 
           <!-- Cabeçalho de seção (apenas para grupos com label) -->
-          <div v-if="section.label" class="mt-3 mb-1">
-            <span class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase">
+          <div v-if="section.label" class="mt-2 mb-0.5">
+            <span
+              class="text-caption text-medium-emphasis font-weight-bold px-3 text-uppercase drawer-section-label"
+            >
               {{ section.label }}
             </span>
           </div>
@@ -110,13 +114,15 @@
           <UiListItem
             v-for="link in section.directLinks"
             :key="link.path"
+            class="drawer-nav-item mb-0.5"
+            density="compact"
             :prepend-icon="link.icon"
-            rounded="lg"
+            rounded="md"
             :title="link.label"
             :to="link.path"
           >
             <template v-if="pathBadge[link.path] > 0" #append>
-              <UiBadge color="error" :content="pathBadge[link.path]" inline />
+              <UiBadge color="error" :content="pathBadge[link.path]" inline size="x-small" />
             </template>
           </UiListItem>
 
@@ -129,12 +135,19 @@
             <template #activator="{ props }">
               <UiListItem
                 v-bind="props"
+                class="drawer-nav-item mb-0.5"
+                density="compact"
                 :prepend-icon="subgroup.icon"
-                rounded="lg"
+                rounded="md"
                 :title="subgroup.label"
               >
                 <template v-if="getSubgroupBadge(subgroup.links) > 0" #append>
-                  <UiBadge color="error" :content="getSubgroupBadge(subgroup.links)" inline />
+                  <UiBadge
+                    color="error"
+                    :content="getSubgroupBadge(subgroup.links)"
+                    inline
+                    size="x-small"
+                  />
                 </template>
               </UiListItem>
             </template>
@@ -143,14 +156,15 @@
             <UiListItem
               v-for="subLink in subgroup.links"
               :key="subLink.path"
-              class="ps-6"
+              class="drawer-nav-item mb-0.5 ps-5"
+              density="compact"
               :prepend-icon="subLink.icon"
-              rounded="lg"
+              rounded="md"
               :title="subLink.label"
               :to="subLink.path"
             >
               <template v-if="pathBadge[subLink.path] > 0" #append>
-                <UiBadge color="error" :content="pathBadge[subLink.path]" inline />
+                <UiBadge color="error" :content="pathBadge[subLink.path]" inline size="x-small" />
               </template>
             </UiListItem>
           </UiListGroup>
@@ -160,16 +174,18 @@
       <!-- Rodapé do Drawer: perfil do usuário -->
       <template #append>
         <UiDivider />
-        <div v-if="user" class="pa-3">
-          <UiList nav size="sm">
+        <div v-if="user" class="pa-2">
+          <UiList density="compact" nav>
             <UiListItem
-              rounded="lg"
+              class="drawer-nav-item"
+              density="compact"
+              rounded="md"
               :subtitle="user.email"
               :title="profile?.name || 'Usuário'"
               to="/profile"
             >
               <template #prepend>
-                <UiAvatar color="primary" size="32">
+                <UiAvatar color="primary" size="28">
                   <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
                 </UiAvatar>
               </template>
@@ -180,7 +196,7 @@
                       v-bind="props"
                       color="error"
                       icon="logout"
-                      size="sm"
+                      size="xs"
                       variant="ghost"
                       @click.prevent="handleSignOut"
                     />
@@ -315,3 +331,32 @@
     </UiMain>
   </UiApp>
 </template>
+
+<style scoped>
+  .drawer-section-label {
+    font-size: 0.6875rem !important;
+    letter-spacing: 0.05em;
+  }
+
+  .drawer-nav-item {
+    min-height: 32px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .drawer-nav-item :deep(.v-list-item-title) {
+    font-size: 0.8125rem !important;
+    line-height: 1.25rem !important;
+    font-weight: 500;
+  }
+
+  .drawer-nav-item :deep(.v-list-item__prepend > .v-icon) {
+    font-size: 1.125rem !important;
+    margin-inline-end: 10px !important;
+  }
+
+  .drawer-nav-item :deep(.v-list-item__spacer) {
+    width: 10px !important;
+  }
+</style>
