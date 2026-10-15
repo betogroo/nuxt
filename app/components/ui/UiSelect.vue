@@ -1,26 +1,47 @@
-﻿<script setup lang="ts">
-  import { computed } from 'vue'
+<script setup lang="ts">
+  import { computed, useAttrs } from 'vue'
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
-  const props = defineProps<{
-    variant?: UiVariant
-    size?: UiSize
-    rounded?: UiRounded
-    modelValue: unknown
 
-    items: Array<unknown>
-    label?: string
-    itemTitle?: unknown
-    itemValue?: unknown
-    placeholder?: string
-    clearable?: boolean
-    hideDetails?: boolean
-    required?: boolean
-  }>()
+  defineOptions({ inheritAttrs: false })
+
+  const props = withDefaults(
+    defineProps<{
+      variant?: UiVariant
+      size?: UiSize
+      rounded?: UiRounded
+      modelValue: unknown
+      items: Array<unknown>
+      label?: string
+      itemTitle?: unknown
+      itemValue?: unknown
+      placeholder?: string
+      clearable?: boolean
+      hideDetails?: boolean | 'auto'
+      required?: boolean
+    }>(),
+    {
+      hideDetails: 'auto',
+    },
+  )
 
   defineEmits(['update:modelValue'])
 
+  const attrs = useAttrs()
+
+  const isDetailsHidden = computed(() => {
+    return (
+      props.hideDetails === true ||
+      (attrs['hide-details'] !== undefined && attrs['hide-details'] !== false)
+    )
+  })
+
   const vuetifyVariant = computed(() => {
-    const map: Record<UiVariant, string> = { solid: 'solo', outline: 'outlined', ghost: 'plain', soft: 'filled' }
+    const map: Record<UiVariant, string> = {
+      solid: 'solo',
+      outline: 'outlined',
+      ghost: 'plain',
+      soft: 'filled',
+    }
     return props.variant ? map[props.variant] : 'outlined'
   })
 
@@ -38,7 +59,7 @@
 
 <template>
   <v-select
-    class="mb-3"
+    :class="{ 'mb-3': !isDetailsHidden }"
     :clearable="clearable"
     :density="vuetifyDensity"
     :hide-details="hideDetails"
@@ -51,7 +72,7 @@
     :required="required"
     :rounded="vuetifyRounded"
     :variant="vuetifyVariant"
-    v-bind="$attrs"
+    v-bind="attrs"
     @update:model-value="$emit('update:modelValue', $event)"
   />
 </template>

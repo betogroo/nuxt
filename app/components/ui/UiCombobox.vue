@@ -2,30 +2,40 @@
   import { computed } from 'vue'
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
 
-  const props = defineProps<{
-    variant?: UiVariant
-    size?: UiSize
-    rounded?: UiRounded
-    label?: string
-    items?: unknown[]
-    itemTitle?: unknown
-    itemValue?: unknown
-    hint?: string
-    persistentHint?: boolean
-    multiple?: boolean
-    returnObject?: boolean
-    clearable?: boolean
-    required?: boolean
-    errorMessages?: string | string[]
-    hideDetails?: boolean
-    loading?: boolean
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      variant?: UiVariant
+      size?: UiSize
+      rounded?: UiRounded
+      label?: string
+      items?: unknown[]
+      itemTitle?: unknown
+      itemValue?: unknown
+      hint?: string
+      persistentHint?: boolean
+      multiple?: boolean
+      returnObject?: boolean
+      clearable?: boolean
+      required?: boolean
+      errorMessages?: string | string[]
+      hideDetails?: boolean | 'auto'
+      loading?: boolean
+    }>(),
+    {
+      hideDetails: 'auto',
+    },
+  )
 
   const modelValue = defineModel<unknown>({ default: undefined })
   const search = defineModel<string>('search', { default: '' })
 
   const vuetifyVariant = computed(() => {
-    const map: Record<UiVariant, string> = { solid: 'solo', outline: 'outlined', ghost: 'plain', soft: 'filled' }
+    const map: Record<UiVariant, string> = {
+      solid: 'solo',
+      outline: 'outlined',
+      ghost: 'plain',
+      soft: 'filled',
+    }
     return props.variant ? map[props.variant] : 'outlined'
   })
 

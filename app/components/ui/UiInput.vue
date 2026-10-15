@@ -5,27 +5,40 @@
 
   defineOptions({ inheritAttrs: false })
 
-  const props = defineProps<{
-    modelValue: string | number | null | undefined
-    label: string
-    type?: string
-    placeholder?: string
-    hint?: string
-    variant?: UiVariant
-    size?: UiSize
-    rounded?: UiRounded
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      modelValue: string | number | null | undefined
+      label?: string
+      type?: string
+      placeholder?: string
+      hint?: string
+      variant?: UiVariant
+      size?: UiSize
+      rounded?: UiRounded
+      hideDetails?: boolean | 'auto'
+    }>(),
+    {
+      hideDetails: 'auto',
+    },
+  )
 
   defineEmits(['update:modelValue'])
 
   const attrs = useAttrs()
+
+  const isDetailsHidden = computed(() => {
+    return (
+      props.hideDetails === true ||
+      (attrs['hide-details'] !== undefined && attrs['hide-details'] !== false)
+    )
+  })
 
   const vuetifyVariant = computed(() => {
     const map: Record<UiVariant, string> = {
       solid: 'solo',
       outline: 'outlined',
       ghost: 'plain',
-      soft: 'filled'
+      soft: 'filled',
     }
     return props.variant ? map[props.variant] : 'outlined'
   })
@@ -56,8 +69,9 @@
 
 <template>
   <v-text-field
-    class="mb-3"
+    :class="{ 'mb-3': !isDetailsHidden }"
     :density="vuetifyDensity"
+    :hide-details="hideDetails"
     :hint="hint"
     :label="label"
     :model-value="modelValue"

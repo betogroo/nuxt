@@ -197,7 +197,7 @@
         <UiSpacer />
         <!-- Filtros inline -->
         <div class="d-flex gap-2 align-center">
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 align-center">
             <UiSelect
               v-model="selectedExpenseNature"
               clearable
