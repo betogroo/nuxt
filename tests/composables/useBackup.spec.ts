@@ -35,6 +35,7 @@ describe('useBackup Composable', () => {
       product_classes: 5,
       measurement_units: 5,
       measurement_unit_aliases: 5,
+      measurement_unit_alias_links: 5,
       products: 5,
       product_units: 5,
       demands: 5,

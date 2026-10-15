@@ -537,6 +537,44 @@ export const publicLogsRelationshipsSchema = z.tuple([
   }),
 ])
 
+export const publicMeasurementUnitAliasLinksRowSchema = z.object({
+  alias_id: z.string(),
+  created_at: z.string(),
+  id: z.string(),
+  unit_id: z.string(),
+})
+
+export const publicMeasurementUnitAliasLinksInsertSchema = z.object({
+  alias_id: z.string(),
+  created_at: z.string().optional(),
+  id: z.string().optional(),
+  unit_id: z.string(),
+})
+
+export const publicMeasurementUnitAliasLinksUpdateSchema = z.object({
+  alias_id: z.string().optional(),
+  created_at: z.string().optional(),
+  id: z.string().optional(),
+  unit_id: z.string().optional(),
+})
+
+export const publicMeasurementUnitAliasLinksRelationshipsSchema = z.tuple([
+  z.object({
+    foreignKeyName: z.literal('measurement_unit_alias_links_alias_id_fkey'),
+    columns: z.tuple([z.literal('alias_id')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('measurement_unit_aliases'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
+  z.object({
+    foreignKeyName: z.literal('measurement_unit_alias_links_unit_id_fkey'),
+    columns: z.tuple([z.literal('unit_id')]),
+    isOneToOne: z.literal(false),
+    referencedRelation: z.literal('measurement_units'),
+    referencedColumns: z.tuple([z.literal('id')]),
+  }),
+])
+
 export const publicMeasurementUnitAliasesRowSchema = z.object({
   code: z.number(),
   created_at: z.string(),
@@ -756,7 +794,7 @@ export const publicSuppliersRowSchema = z.object({
   company_name: z.string(),
   created_at: z.string(),
   created_by: z.string().nullable(),
-  email: z.string(),
+  email: z.string().nullable(),
   has_bb_account: z.string().nullable(),
   id: z.string(),
   is_active: z.boolean(),
@@ -774,7 +812,7 @@ export const publicSuppliersInsertSchema = z.object({
   company_name: z.string(),
   created_at: z.string().optional(),
   created_by: z.string().optional().nullable(),
-  email: z.string(),
+  email: z.string().optional().nullable(),
   has_bb_account: z.string().optional().nullable(),
   id: z.string().optional(),
   is_active: z.boolean().optional(),
@@ -792,7 +830,7 @@ export const publicSuppliersUpdateSchema = z.object({
   company_name: z.string().optional(),
   created_at: z.string().optional(),
   created_by: z.string().optional().nullable(),
-  email: z.string().optional(),
+  email: z.string().optional().nullable(),
   has_bb_account: z.string().optional().nullable(),
   id: z.string().optional(),
   is_active: z.boolean().optional(),

@@ -5,6 +5,7 @@ export interface BackupSummary {
   product_classes: number
   measurement_units: number
   measurement_unit_aliases: number
+  measurement_unit_alias_links?: number
   products: number
   product_units: number
   demands: number
@@ -37,6 +38,7 @@ export interface BackupData {
   product_classes?: Record<string, unknown>[]
   measurement_units?: Record<string, unknown>[]
   measurement_unit_aliases?: Record<string, unknown>[]
+  measurement_unit_alias_links?: Record<string, unknown>[]
   products?: Record<string, unknown>[]
   product_units?: Record<string, unknown>[]
   demands?: Record<string, unknown>[]

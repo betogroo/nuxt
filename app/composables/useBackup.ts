@@ -25,6 +25,7 @@ export const useBackup = () => {
         { count: productClassesCount },
         { count: measurementUnitsCount },
         { count: unitAliasesCount },
+        { count: unitAliasLinksCount },
         { count: productsCount },
         { count: productUnitsCount },
         { count: demandsCount },
@@ -44,6 +45,7 @@ export const useBackup = () => {
         supabase.from('product_classes').select('id', { count: 'exact', head: true }),
         supabase.from('measurement_units').select('id', { count: 'exact', head: true }),
         supabase.from('measurement_unit_aliases').select('id', { count: 'exact', head: true }),
+        supabase.from('measurement_unit_alias_links').select('id', { count: 'exact', head: true }),
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('product_units').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
@@ -65,6 +67,7 @@ export const useBackup = () => {
         product_classes: productClassesCount || 0,
         measurement_units: measurementUnitsCount || 0,
         measurement_unit_aliases: unitAliasesCount || 0,
+        measurement_unit_alias_links: unitAliasLinksCount || 0,
         products: productsCount || 0,
         product_units: productUnitsCount || 0,
         demands: demandsCount || 0,
@@ -138,6 +141,9 @@ export const useBackup = () => {
           : 0,
         measurement_unit_aliases: Array.isArray(data.measurement_unit_aliases)
           ? data.measurement_unit_aliases.length
+          : 0,
+        measurement_unit_alias_links: Array.isArray(data.measurement_unit_alias_links)
+          ? data.measurement_unit_alias_links.length
           : 0,
         products: Array.isArray(data.products) ? data.products.length : 0,
         product_units: Array.isArray(data.product_units) ? data.product_units.length : 0,

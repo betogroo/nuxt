@@ -477,6 +477,42 @@ export type Database = {
           },
         ]
       }
+      measurement_unit_alias_links: {
+        Row: {
+          alias_id: string
+          created_at: string
+          id: string
+          unit_id: string
+        }
+        Insert: {
+          alias_id: string
+          created_at?: string
+          id?: string
+          unit_id: string
+        }
+        Update: {
+          alias_id?: string
+          created_at?: string
+          id?: string
+          unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'measurement_unit_alias_links_alias_id_fkey'
+            columns: ['alias_id']
+            isOneToOne: false
+            referencedRelation: 'measurement_unit_aliases'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'measurement_unit_alias_links_unit_id_fkey'
+            columns: ['unit_id']
+            isOneToOne: false
+            referencedRelation: 'measurement_units'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       measurement_unit_aliases: {
         Row: {
           code: number

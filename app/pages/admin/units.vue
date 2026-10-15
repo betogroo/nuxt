@@ -146,20 +146,28 @@
     defineField: defineAliasField,
     handleSubmit: handleAliasSubmit,
     resetForm: resetAliasForm,
-  } = useZodForm(adminUnitAliasFormSchema, { id: '', name: '', code: undefined })
+  } = useZodForm(adminUnitAliasFormSchema, { id: '', name: '', code: undefined, unitIds: [] })
 
   const [aliasCode, aliasCodeProps] = defineAliasField('code')
   const [aliasName, aliasNameProps] = defineAliasField('name')
+  const [aliasUnitIds, aliasUnitIdsProps] = defineAliasField('unitIds')
 
   const openAddAliasModal = () => {
-    resetAliasForm({ values: { id: '', name: '', code: undefined } })
+    resetAliasForm({ values: { id: '', name: '', code: undefined, unitIds: [] } })
     isAliasEditing.value = false
     saveError.value = ''
     isAliasModalOpen.value = true
   }
 
   const openEditAliasModal = (alias: UnitAliasRow) => {
-    resetAliasForm({ values: { id: alias.id, code: alias.code, name: alias.name } })
+    resetAliasForm({
+      values: {
+        id: alias.id,
+        code: alias.code,
+        name: alias.name,
+        unitIds: alias.measurement_units?.map((u) => u.id) || [],
+      },
+    })
     isAliasEditing.value = true
     saveError.value = ''
     isAliasModalOpen.value = true
@@ -178,15 +186,18 @@
         await updateAliasAsAdmin(values.id, {
           code: values.code,
           name: values.name,
+          unitIds: values.unitIds,
         })
       } else {
         await createAliasAsAdmin({
           code: values.code,
           name: values.name,
+          unitIds: values.unitIds,
         })
       }
 
       await refreshAliases()
+      await refreshUnits()
       closeAliasModal()
     } catch (e: unknown) {
       saveError.value = e instanceof Error ? e.message : String(e)
@@ -417,12 +428,27 @@
           :headers="[
             { text: 'Código', value: 'code' },
             { text: 'Nome / Descrição', value: 'name' },
+            { text: 'Unidades Vinculadas', value: 'units' },
             { text: 'Status', value: 'is_pending', align: 'center' },
             { text: 'Ações', value: 'actions', align: 'right' },
           ]"
           :items="allAliases || []"
           :loading="aliasesPending"
         >
+          <template #item-units="{ item }">
+            <div v-if="item.measurement_units?.length > 0" class="d-flex flex-wrap gap-1">
+              <UiChip
+                v-for="unit in item.measurement_units"
+                :key="unit.id"
+                color="primary"
+                size="sm"
+                variant="soft"
+              >
+                {{ unit.name }}
+              </UiChip>
+            </div>
+            <span v-else class="text-medium-emphasis">—</span>
+          </template>
           <template #item-is_pending="{ item }">
             <UiChip :color="item.is_pending ? 'warning' : 'success'" label size="sm" variant="soft">
               {{ item.is_pending ? 'Pendente' : 'Ativo' }}
@@ -476,7 +502,7 @@
         "
         item-value="id"
         :items="allAliases || []"
-        label="Vincular Registros Alternativos"
+        label="Registros Alternativos (Aliases) *"
         multiple
         rounded="lg"
         size="md"
@@ -523,6 +549,21 @@
         v-bind="aliasNameProps"
         :error-messages="aliasErrors.name"
         label="Nome / Descrição (ex: Pacote 500g)"
+      />
+      <UiAutocomplete
+        v-model="aliasUnitIds"
+        v-bind="aliasUnitIdsProps"
+        chips
+        closable-chips
+        :error-messages="aliasErrors.unitIds"
+        item-title="name"
+        item-value="id"
+        :items="activeUnits"
+        label="Unidades Oficiais Vinculadas"
+        multiple
+        rounded="lg"
+        size="md"
+        variant="outline"
       />
 
       <template #actions>

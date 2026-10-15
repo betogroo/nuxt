@@ -1,6 +1,11 @@
-﻿import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
 
-export type UnitAliasRow = Database['public']['Tables']['measurement_unit_aliases']['Row']
+export type UnitAliasLinkRow = Database['public']['Tables']['measurement_unit_alias_links']['Row']
+
+export type UnitAliasRow = Database['public']['Tables']['measurement_unit_aliases']['Row'] & {
+  measurement_units?: Array<{ id: string; name: string }>
+}
+
 export type UnitRow = Database['public']['Tables']['measurement_units']['Row'] & {
   measurement_unit_aliases?: UnitAliasRow[]
 }
@@ -12,26 +17,56 @@ export const useMeasurementUnits = () => {
 
   // --- Units ---
 
-  const fetchUnits = async () => {
+  const fetchUnits = async (): Promise<UnitRow[]> => {
     const { data, error } = await supabase
       .from('measurement_units')
-      .select('*, measurement_unit_aliases(*)')
+      .select('*, measurement_unit_alias_links(alias:measurement_unit_aliases(*))')
       .order('name')
     if (error) throw error
-    return data || []
+
+    return (data || []).map((u) => {
+      const row = u as unknown as UnitRow & {
+        measurement_unit_alias_links?: Array<{ alias: UnitAliasRow | null }>
+      }
+      const aliases = (row.measurement_unit_alias_links || [])
+        .map((link) => link.alias)
+        .filter((a): a is UnitAliasRow => !!a)
+      return {
+        ...row,
+        measurement_unit_aliases: aliases,
+      }
+    })
   }
 
-  const fetchAllActiveUnits = async () => {
+  const fetchAllActiveUnits = async (): Promise<UnitRow[]> => {
     const { data, error } = await supabase
       .from('measurement_units')
-      .select('*, measurement_unit_aliases(*)')
+      .select('*, measurement_unit_alias_links(alias:measurement_unit_aliases(*))')
       .eq('is_active', true)
       .order('name')
     if (error) throw error
-    return data || []
+
+    return (data || []).map((u) => {
+      const row = u as unknown as UnitRow & {
+        measurement_unit_alias_links?: Array<{ alias: UnitAliasRow | null }>
+      }
+      const aliases = (row.measurement_unit_alias_links || [])
+        .map((link) => link.alias)
+        .filter((a): a is UnitAliasRow => !!a)
+      return {
+        ...row,
+        measurement_unit_aliases: aliases,
+      }
+    })
   }
 
-  const createUnit = async (payload: { name: string; aliasIds: string[]; is_active: boolean }) => {
+  const createUnit = async (payload: {
+    name: string
+    aliasIds?: string[]
+    aliases?: string[]
+    is_active: boolean
+  }) => {
+    const targetAliasIds = payload.aliasIds || payload.aliases || []
     const { data: unit, error } = await supabase
       .from('measurement_units')
       .insert({
@@ -43,12 +78,13 @@ export const useMeasurementUnits = () => {
 
     if (error) throw error
 
-    if ((payload.aliasIds || []).length > 0 && unit) {
-      const { error: aliasErr } = await supabase
-        .from('measurement_unit_aliases')
-        .update({ unit_id: unit.id })
-        .in('id', payload.aliasIds)
-      if (aliasErr) throw aliasErr
+    if (targetAliasIds.length > 0 && unit) {
+      const links = targetAliasIds.map((aliasId) => ({
+        unit_id: unit.id,
+        alias_id: aliasId,
+      }))
+      const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert(links)
+      if (linkErr) throw linkErr
     }
 
     await logAction('CREATE_UNIT', `Nova unidade de medida criada: ${payload.name}`, user.value?.id)
@@ -56,8 +92,9 @@ export const useMeasurementUnits = () => {
 
   const updateUnit = async (
     id: string,
-    payload: { name: string; aliasIds: string[]; is_active: boolean },
+    payload: { name: string; aliasIds?: string[]; aliases?: string[]; is_active: boolean },
   ) => {
+    const targetAliasIds = payload.aliasIds || payload.aliases || []
     const { error } = await supabase
       .from('measurement_units')
       .update({
@@ -67,16 +104,17 @@ export const useMeasurementUnits = () => {
       .eq('id', id)
     if (error) throw error
 
-    // Remove all old aliases from this unit
-    await supabase.from('measurement_unit_aliases').update({ unit_id: null }).eq('unit_id', id)
+    // Remove existing links for this unit in junction table
+    await supabase.from('measurement_unit_alias_links').delete().eq('unit_id', id)
 
-    // Assign new aliases
-    if ((payload.aliasIds || []).length > 0) {
-      const { error: aliasErr } = await supabase
-        .from('measurement_unit_aliases')
-        .update({ unit_id: id })
-        .in('id', payload.aliasIds)
-      if (aliasErr) throw aliasErr
+    // Insert new links
+    if (targetAliasIds.length > 0) {
+      const links = targetAliasIds.map((aliasId) => ({
+        unit_id: id,
+        alias_id: aliasId,
+      }))
+      const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert(links)
+      if (linkErr) throw linkErr
     }
 
     await logAction('UPDATE_UNIT', `Unidade de medida atualizada: ${payload.name}`, user.value?.id)
@@ -100,32 +138,61 @@ export const useMeasurementUnits = () => {
 
   // --- Aliases ---
 
-  const fetchAliases = async () => {
+  const fetchAliases = async (): Promise<UnitAliasRow[]> => {
     const { data, error } = await supabase
       .from('measurement_unit_aliases')
-      .select('*')
+      .select('*, measurement_unit_alias_links(unit:measurement_units(id, name))')
       .order('code')
     if (error) throw error
-    return data || []
+
+    return (data || []).map((a) => {
+      const row = a as unknown as UnitAliasRow & {
+        measurement_unit_alias_links?: Array<{ unit: { id: string; name: string } | null }>
+      }
+      const units = (row.measurement_unit_alias_links || [])
+        .map((link) => link.unit)
+        .filter((u): u is { id: string; name: string } => !!u)
+      return {
+        ...row,
+        measurement_units: units,
+      }
+    })
   }
 
   const fetchAvailableAliases = async () => {
     const { data, error } = await supabase
       .from('measurement_unit_aliases')
       .select('*')
-      .is('unit_id', null)
       .order('code')
     if (error) throw error
     return data || []
   }
 
-  const createAliasAsAdmin = async (payload: { code: number; name: string }) => {
-    const { error } = await supabase.from('measurement_unit_aliases').insert({
-      code: payload.code,
-      name: payload.name,
-      is_pending: false,
-    })
+  const createAliasAsAdmin = async (payload: {
+    code: number
+    name: string
+    unitIds?: string[]
+  }) => {
+    const { data: alias, error } = await supabase
+      .from('measurement_unit_aliases')
+      .insert({
+        code: payload.code,
+        name: payload.name,
+        is_pending: false,
+      })
+      .select()
+      .single()
     if (error) throw error
+
+    if (payload.unitIds && payload.unitIds.length > 0 && alias) {
+      const links = payload.unitIds.map((unitId) => ({
+        unit_id: unitId,
+        alias_id: alias.id,
+      }))
+      const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert(links)
+      if (linkErr) throw linkErr
+    }
+
     await logAction(
       'CREATE_ALIAS',
       `Novo registro alternativo criado: ${payload.name} (Cód: ${payload.code})`,
@@ -133,7 +200,10 @@ export const useMeasurementUnits = () => {
     )
   }
 
-  const updateAliasAsAdmin = async (id: string, payload: { code: number; name: string }) => {
+  const updateAliasAsAdmin = async (
+    id: string,
+    payload: { code: number; name: string; unitIds?: string[] },
+  ) => {
     const { error } = await supabase
       .from('measurement_unit_aliases')
       .update({
@@ -142,6 +212,19 @@ export const useMeasurementUnits = () => {
       })
       .eq('id', id)
     if (error) throw error
+
+    if (payload.unitIds !== undefined) {
+      await supabase.from('measurement_unit_alias_links').delete().eq('alias_id', id)
+      if (payload.unitIds.length > 0) {
+        const links = payload.unitIds.map((unitId) => ({
+          unit_id: unitId,
+          alias_id: id,
+        }))
+        const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert(links)
+        if (linkErr) throw linkErr
+      }
+    }
+
     await logAction(
       'UPDATE_ALIAS',
       `Registro alternativo atualizado: ${payload.name} (Cód: ${payload.code})`,
@@ -153,6 +236,19 @@ export const useMeasurementUnits = () => {
     const { error } = await supabase.from('measurement_unit_aliases').delete().eq('id', id)
     if (error) throw error
     await logAction('DELETE_ALIAS', `Registro alternativo excluído: ${name}`, user.value?.id)
+  }
+
+  const getAliasesByUnitId = async (unitId: string): Promise<UnitAliasRow[]> => {
+    if (!unitId) return []
+    const { data, error } = await supabase
+      .from('measurement_unit_alias_links')
+      .select('alias:measurement_unit_aliases(*)')
+      .eq('unit_id', unitId)
+    if (error) throw error
+
+    return (data || [])
+      .map((item) => (item as unknown as { alias: UnitAliasRow | null }).alias)
+      .filter((a): a is UnitAliasRow => !!a)
   }
 
   // --- User Flow (Pending) ---
@@ -171,22 +267,32 @@ export const useMeasurementUnits = () => {
 
     if (unitErr || !unit) throw unitErr || new Error('Failed to create pending unit')
 
-    // 2. Create pending alias linked to unit
+    // 2. Create pending alias
     const { data: alias, error: aliasErr } = await supabase
       .from('measurement_unit_aliases')
       .insert({
         code: payload.code,
         name: payload.name,
-        unit_id: unit.id,
         is_pending: true,
       })
       .select()
       .single()
 
-    if (aliasErr) {
-      // rollback unit
+    if (aliasErr || !alias) {
       await supabase.from('measurement_units').delete().eq('id', unit.id)
-      throw aliasErr
+      throw aliasErr || new Error('Failed to create pending alias')
+    }
+
+    // 3. Link them in junction table
+    const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
+      unit_id: unit.id,
+      alias_id: alias.id,
+    })
+
+    if (linkErr) {
+      await supabase.from('measurement_unit_aliases').delete().eq('id', alias.id)
+      await supabase.from('measurement_units').delete().eq('id', unit.id)
+      throw linkErr
     }
 
     await logAction(
@@ -215,11 +321,19 @@ export const useMeasurementUnits = () => {
 
     if (updateError) throw updateError
 
-    // Also unpend all its aliases
-    await supabase
-      .from('measurement_unit_aliases')
-      .update({ is_pending: false })
+    // Also unpend all its linked aliases
+    const { data: links } = await supabase
+      .from('measurement_unit_alias_links')
+      .select('alias_id')
       .eq('unit_id', targetUnit.id)
+
+    if (links && links.length > 0) {
+      const aliasIds = links.map((l) => l.alias_id)
+      await supabase
+        .from('measurement_unit_aliases')
+        .update({ is_pending: false })
+        .in('id', aliasIds)
+    }
 
     await logAction('APPROVE_UNIT', `Unidade sugerida aprovada: ${targetUnit.name}`, user.value?.id)
   }
@@ -228,10 +342,29 @@ export const useMeasurementUnits = () => {
     if (!finalUnitId) throw new Error('Selecione uma unidade existente para mesclar.')
 
     // Move aliases to the official unit and unpend them
-    await supabase
-      .from('measurement_unit_aliases')
-      .update({ unit_id: finalUnitId, is_pending: false })
+    const { data: links } = await supabase
+      .from('measurement_unit_alias_links')
+      .select('alias_id')
       .eq('unit_id', targetUnit.id)
+
+    if (links && links.length > 0) {
+      const aliasIds = links.map((l) => l.alias_id)
+      await supabase
+        .from('measurement_unit_aliases')
+        .update({ is_pending: false })
+        .in('id', aliasIds)
+
+      for (const link of links) {
+        await supabase
+          .from('measurement_unit_alias_links')
+          .insert({
+            unit_id: finalUnitId,
+            alias_id: link.alias_id,
+          })
+          .select()
+          .maybeSingle()
+      }
+    }
 
     // Atualizar product_units
     const { data: productLinks } = await supabase
@@ -282,6 +415,7 @@ export const useMeasurementUnits = () => {
       user.value?.id,
     )
   }
+
   const resolveOrCreateUnit = async (searchStr: string) => {
     if (!searchStr) {
       // Fallback to "Unidade"
@@ -330,6 +464,7 @@ export const useMeasurementUnits = () => {
     createAliasAsAdmin,
     updateAliasAsAdmin,
     deleteAliasAsAdmin,
+    getAliasesByUnitId,
     registerPendingAliasAndUnit,
     approvePendingUnit,
     mergePendingUnit,

@@ -86,6 +86,18 @@ export type PublicLogsRow = z.infer<typeof generated.publicLogsRowSchema>
 export type PublicLogsInsert = z.infer<typeof generated.publicLogsInsertSchema>
 export type PublicLogsUpdate = z.infer<typeof generated.publicLogsUpdateSchema>
 export type PublicLogsRelationships = z.infer<typeof generated.publicLogsRelationshipsSchema>
+export type PublicMeasurementUnitAliasLinksRow = z.infer<
+  typeof generated.publicMeasurementUnitAliasLinksRowSchema
+>
+export type PublicMeasurementUnitAliasLinksInsert = z.infer<
+  typeof generated.publicMeasurementUnitAliasLinksInsertSchema
+>
+export type PublicMeasurementUnitAliasLinksUpdate = z.infer<
+  typeof generated.publicMeasurementUnitAliasLinksUpdateSchema
+>
+export type PublicMeasurementUnitAliasLinksRelationships = z.infer<
+  typeof generated.publicMeasurementUnitAliasLinksRelationshipsSchema
+>
 export type PublicMeasurementUnitAliasesRow = z.infer<
   typeof generated.publicMeasurementUnitAliasesRowSchema
 >

@@ -3,7 +3,9 @@ import { z } from 'zod'
 export const adminUnitFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, 'O Nome da Unidade é obrigatório.'),
-  aliasIds: z.array(z.string()).default([]),
+  aliasIds: z
+    .array(z.string())
+    .min(1, 'A unidade de medida deve possuir pelo menos um registro alternativo (alias).'),
   is_active: z.boolean().default(true),
 })
 
@@ -13,6 +15,7 @@ export const adminUnitAliasFormSchema = z.object({
   id: z.string().optional(),
   code: z.number({ message: 'Deve ser um número.' }),
   name: z.string().trim().min(1, 'O Nome/Descrição é obrigatório.'),
+  unitIds: z.array(z.string()).optional().default([]),
 })
 
 export type AdminUnitAliasFormInput = z.infer<typeof adminUnitAliasFormSchema>
