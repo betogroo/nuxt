@@ -108,8 +108,17 @@
               Simples Nacional
             </UiChip>
           </div>
-          <div class="text-caption text-medium-emphasis">
-            CNPJ: {{ formatCnpj(supplier?.cnpj) }}
+          <div class="d-flex align-center ga-1 text-caption text-medium-emphasis">
+            <span>CNPJ: {{ formatCnpj(supplier?.cnpj) }}</span>
+            <UiCopyButton
+              v-if="supplier?.cnpj"
+              clean-digits-only
+              color="secondary"
+              size="xs"
+              success-message="CNPJ copiado!"
+              tooltip="Copiar CNPJ (apenas números)"
+              :value="supplier.cnpj"
+            />
           </div>
         </div>
       </div>
@@ -162,8 +171,17 @@
                   <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">
                     CNPJ
                   </div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ formatCnpj(supplier.cnpj) }}
+                  <div class="d-flex align-center ga-1 text-body-1 font-weight-medium">
+                    <span>{{ formatCnpj(supplier.cnpj) }}</span>
+                    <UiCopyButton
+                      v-if="supplier?.cnpj"
+                      clean-digits-only
+                      color="secondary"
+                      size="xs"
+                      success-message="CNPJ copiado!"
+                      tooltip="Copiar CNPJ (apenas números)"
+                      :value="supplier.cnpj"
+                    />
                   </div>
                 </UiCol>
 

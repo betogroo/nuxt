@@ -1,4 +1,6 @@
 <script setup lang="ts">
+  import { formatCnpj } from '~/utils/formatters'
+
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -71,7 +73,20 @@
                 <UiIcon color="grey" name="contactDetails" />
               </template>
               <UiListItemTitle>CNPJ</UiListItemTitle>
-              <UiListItemSubtitle>{{ supplier.cnpj }}</UiListItemSubtitle>
+              <UiListItemSubtitle>
+                <div class="d-flex align-center ga-1">
+                  <span>{{ formatCnpj(supplier.cnpj) }}</span>
+                  <UiCopyButton
+                    v-if="supplier.cnpj"
+                    clean-digits-only
+                    color="secondary"
+                    size="xs"
+                    success-message="CNPJ copiado!"
+                    tooltip="Copiar CNPJ (apenas números)"
+                    :value="supplier.cnpj"
+                  />
+                </div>
+              </UiListItemSubtitle>
             </UiListItem>
             <UiListItem v-if="supplier.email">
               <template #prepend>
