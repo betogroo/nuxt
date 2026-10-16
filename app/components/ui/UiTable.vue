@@ -28,7 +28,7 @@
           v-for="header in headers"
           :key="header.value"
           :class="[
-            'text-caption text-uppercase font-weight-bold text-medium-emphasis py-2',
+            'text-caption text-uppercase font-weight-bold text-medium-emphasis py-1',
             header.align ? `text-${header.align}` : 'text-left',
             { 'text-no-wrap': header.nowrap },
           ]"
@@ -48,7 +48,7 @@
       <!-- Loading skeleton rows -->
       <template v-if="loading">
         <tr v-for="n in 5" :key="`skel-${n}`">
-          <td v-for="header in headers" :key="header.value" class="py-2">
+          <td v-for="header in headers" :key="header.value" class="py-1">
             <v-skeleton-loader type="text" width="80%" />
           </td>
         </tr>
@@ -60,7 +60,7 @@
             v-for="header in headers"
             :key="header.value"
             :class="[
-              'py-2',
+              'py-1',
               header.align ? `text-${header.align}` : 'text-left',
               { 'text-no-wrap': header.nowrap },
             ]"
@@ -94,10 +94,22 @@
     font-size: 0.75rem !important;
     letter-spacing: 0.04em;
     white-space: nowrap;
+    vertical-align: middle;
   }
 
   .ui-table td {
     font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  .ui-table :deep(.v-selection-control) {
+    min-height: unset !important;
+  }
+
+  .ui-table :deep(.v-switch),
+  .ui-table :deep(.v-checkbox) {
+    display: inline-flex;
+    justify-content: center;
   }
 
   .ui-table__row {

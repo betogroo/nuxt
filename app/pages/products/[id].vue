@@ -344,7 +344,7 @@
               </template>
 
               <template #item-aliases="{ item }">
-                <div v-if="item.aliases?.length > 0" class="d-flex flex-wrap ga-1 py-1">
+                <div v-if="item.aliases?.length > 0" class="d-flex flex-wrap ga-1">
                   <UiChip
                     v-for="alias in item.aliases"
                     :key="alias.id"

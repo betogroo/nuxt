@@ -198,12 +198,14 @@
           Nenhuma demanda encontrada.
         </template>
         <template #item-internal_process_number="{ item }">
-          <div v-if="item.process_number" class="font-weight-bold text-primary">
-            {{ item.process_number }}
-          </div>
-          <div v-else class="text-caption text-medium-emphasis font-italic">Sem nº oficial</div>
-          <div class="text-caption text-medium-emphasis">
-            Interno: {{ item.internal_process_number || '-' }}
+          <div class="d-flex flex-column" style="line-height: 1.25">
+            <span v-if="item.process_number" class="font-weight-bold text-primary">
+              {{ item.process_number }}
+            </span>
+            <span v-else class="text-caption text-medium-emphasis font-italic">Sem nº oficial</span>
+            <span class="text-caption text-medium-emphasis">
+              Interno: {{ item.internal_process_number || '-' }}
+            </span>
           </div>
         </template>
         <template #item-name="{ item }">

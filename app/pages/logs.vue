@@ -81,7 +81,7 @@
           </span>
         </template>
         <template #item-user="{ item }">
-          <div v-if="item.profiles" class="d-flex align-center py-2 gap-3">
+          <div v-if="item.profiles" class="d-flex align-center gap-3">
             <UiAvatar color="primary" size="30" variant="soft">
               <UiImg v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
               <span v-else class="text-caption font-weight-bold">

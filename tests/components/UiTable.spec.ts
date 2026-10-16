@@ -50,6 +50,8 @@ describe('UiTable', () => {
     const vTable = wrapper.findComponent({ name: 'VTable' })
     expect(vTable.exists()).toBe(true)
     expect(vTable.props('density')).toBe('compact')
+    expect(wrapper.find('th').classes()).toContain('py-1')
+    expect(wrapper.find('td').classes()).toContain('py-1')
   })
 
   it('allows customizing density prop', () => {

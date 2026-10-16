@@ -665,7 +665,7 @@
         >
           <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
           <template #item-order="{ index }">
-            <div class="d-flex flex-column align-center justify-center">
+            <div class="d-flex align-center justify-center ga-1">
               <UiButton
                 :disabled="index === 0 || isReordering"
                 icon="chevronUp"
