@@ -135,11 +135,10 @@
             @update:model-value="handleSearch"
           />
           <div class="d-flex align-center gap-3">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refresh"
             />
@@ -176,18 +175,14 @@
           </template>
           <template #item-actions="{ item }">
             <div class="d-flex justify-end gap-2">
-              <UiButton
-                color="primary"
-                icon="editOutline"
-                size="sm"
-                variant="ghost"
+              <UiActionButton
+                action="edit"
+                tooltip="Editar natureza de despesa"
                 @click="openEditModal(item)"
               />
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="sm"
-                variant="ghost"
+              <UiActionButton
+                action="delete"
+                tooltip="Excluir natureza de despesa"
                 @click="deleteNature(item.id)"
               />
             </div>

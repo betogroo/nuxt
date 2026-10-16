@@ -167,11 +167,10 @@
           />
           <UiDivider class="mx-2" vertical />
           <div class="d-flex align-center gap-3">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refresh"
             />
@@ -250,19 +249,16 @@
         </template>
         <template #item-actions="{ item }">
           <div class="d-flex justify-end gap-2">
-            <UiButton
-              color="primary"
-              icon="next"
-              size="sm"
+            <UiActionButton
+              action="view"
               :to="`/demands/${item.id}`"
-              variant="ghost"
+              tooltip="Ver detalhes da demanda"
             />
-            <UiButton
+            <UiActionButton
               v-if="canEdit(item)"
+              action="edit"
               color="default"
-              icon="editOutline"
-              size="sm"
-              variant="ghost"
+              tooltip="Editar demanda"
               @click="modal.open(item)"
             />
           </div>

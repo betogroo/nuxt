@@ -463,14 +463,12 @@
                 </span>
               </template>
               <template #item-actions="{ item }">
-                <UiButton
+                <UiActionButton
                   v-if="item.id !== demandId"
-                  color="primary"
+                  action="view"
                   icon="externalLink"
-                  size="sm"
-                  title="Acessar"
                   :to="`/iirgd/${item.id}`"
-                  variant="ghost"
+                  tooltip="Acessar"
                 />
                 <UiChip v-else color="primary" size="sm" variant="solid">Atual</UiChip>
               </template>

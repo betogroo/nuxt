@@ -12,6 +12,8 @@
     icon?: IconName | string | boolean
     rounded?: UiRounded
     disabled?: boolean
+    tooltip?: string
+    tooltipLocation?: 'top' | 'bottom' | 'start' | 'end' | 'left' | 'right'
   }>()
 
   const attrs = useAttrs()
@@ -64,7 +66,25 @@
 </script>
 
 <template>
+  <UiTooltip v-if="tooltip" :disabled="disabled" :location="tooltipLocation" :text="tooltip">
+    <template #activator="{ props: tooltipActivatorProps }">
+      <v-btn
+        :color="color || 'primary'"
+        :disabled="disabled"
+        :icon="mappedIcon"
+        :rounded="vuetifyRounded"
+        :size="vuetifySize"
+        :variant="vuetifyVariant"
+        v-bind="{ ...tooltipActivatorProps, ...mappedAttrs }"
+      >
+        <template v-for="(_, name) in $slots" #[name]="slotData">
+          <slot :name="name" v-bind="slotData || {}" />
+        </template>
+      </v-btn>
+    </template>
+  </UiTooltip>
   <v-btn
+    v-else
     :color="color || 'primary'"
     :disabled="disabled"
     :icon="mappedIcon"

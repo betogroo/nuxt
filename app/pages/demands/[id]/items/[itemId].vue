@@ -301,14 +301,12 @@
           <template #header>
             <div class="d-flex align-center">
               {{ item.product_name_snapshot || item.product?.name }}
-              <UiButton
+              <UiActionButton
+                action="view"
                 class="ml-1"
-                color="primary"
                 icon="externalLink"
-                size="sm"
-                title="Ver Cadastro Original do Produto"
                 :to="`/products/${item.product?.id}`"
-                variant="ghost"
+                tooltip="Ver Cadastro Original do Produto"
               />
               <UiChip class="ml-2" color="secondary" size="sm" variant="solid">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
@@ -317,11 +315,10 @@
             <UiSpacer />
             <div class="d-flex align-center">
               <UiChip class="mr-2" color="info" variant="outline">Qtd: {{ item.quantity }}</UiChip>
-              <UiButton
+              <UiActionButton
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
-                color="primary"
-                icon="edit"
-                size="sm"
+                action="edit"
+                tooltip="Editar item"
                 @click="openEditModal"
               />
             </div>
@@ -425,35 +422,26 @@
 
               <template #item-actions="{ item: bid }">
                 <div class="d-flex align-center justify-center ga-1">
-                  <UiButton
+                  <UiActionButton
                     v-if="canManageBidStatus && bid.status !== 'disqualified'"
-                    color="warning"
+                    action="disqualify"
                     :disabled="isStatusUpdating"
-                    icon="close"
-                    size="sm"
-                    title="Desclassificar Lance"
-                    variant="ghost"
+                    tooltip="Desclassificar Lance"
                     @click="openDisqualifyModal(bid)"
                   />
-                  <UiButton
+                  <UiActionButton
                     v-if="canManageBidStatus && bid.status === 'disqualified'"
-                    color="success"
+                    action="classify"
                     :disabled="isStatusUpdating"
-                    icon="check"
-                    size="sm"
-                    title="Classificar Lance"
-                    variant="ghost"
+                    tooltip="Classificar Lance"
                     @click="handleClassifyBid(bid.id)"
                   />
-                  <UiButton
+                  <UiActionButton
                     v-if="
                       item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'
                     "
-                    color="error"
-                    icon="delete"
-                    size="sm"
-                    title="Remover Lance"
-                    variant="ghost"
+                    action="delete"
+                    tooltip="Remover Lance"
                     @click="confirmRemoveBid(bid.id)"
                   />
                 </div>

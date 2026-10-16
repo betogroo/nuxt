@@ -93,11 +93,10 @@
             <span class="text-subtitle-1 font-weight-bold">Lista de Fornecedores</span>
             <UiSpacer />
             <div class="d-flex align-center gap-3">
-              <UiButton
-                color="secondary"
-                icon="refresh"
+              <UiActionButton
+                action="refresh"
                 :loading="pending"
-                size="sm"
+                tooltip="Atualizar lista"
                 variant="soft"
                 @click="refresh"
               />
@@ -195,30 +194,18 @@
 
             <template #item-actions="{ item }">
               <div class="d-flex justify-end gap-2">
-                <UiTooltip text="Ver Detalhes">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="primary"
-                      icon="recordsList"
-                      size="sm"
-                      :to="`/suppliers/${item.id}`"
-                      variant="ghost"
-                    />
-                  </template>
-                </UiTooltip>
-                <UiTooltip text="Editar">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="primary"
-                      icon="edit"
-                      size="sm"
-                      variant="ghost"
-                      @click="openEditModal(item)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiActionButton
+                  action="view"
+                  icon="recordsList"
+                  :to="`/suppliers/${item.id}`"
+                  tooltip="Ver Detalhes"
+                />
+                <UiActionButton
+                  action="edit"
+                  icon="edit"
+                  tooltip="Editar"
+                  @click="openEditModal(item)"
+                />
               </div>
             </template>
           </UiTable>
@@ -303,30 +290,18 @@
 
             <template #item-actions="{ item }">
               <div class="d-flex justify-end gap-2">
-                <UiTooltip text="Ver Detalhes">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="primary"
-                      icon="recordsList"
-                      size="sm"
-                      :to="`/suppliers/${item.id}`"
-                      variant="ghost"
-                    />
-                  </template>
-                </UiTooltip>
-                <UiTooltip text="Editar">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="primary"
-                      icon="edit"
-                      size="sm"
-                      variant="ghost"
-                      @click="openEditModal(item)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiActionButton
+                  action="view"
+                  icon="recordsList"
+                  :to="`/suppliers/${item.id}`"
+                  tooltip="Ver Detalhes"
+                />
+                <UiActionButton
+                  action="edit"
+                  icon="edit"
+                  tooltip="Editar"
+                  @click="openEditModal(item)"
+                />
               </div>
             </template>
           </UiTable>

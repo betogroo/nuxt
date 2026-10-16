@@ -138,11 +138,10 @@
             {{ totalItems }}
           </UiChip>
           <div class="ml-auto d-flex align-center" style="gap: 8px">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refresh"
             />

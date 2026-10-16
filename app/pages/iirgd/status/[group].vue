@@ -360,11 +360,10 @@
               >
                 Alterar Status ({{ selectedDemandIds.length }})
               </UiButton>
-              <UiButton
-                color="secondary"
-                icon="refresh"
+              <UiActionButton
+                action="refresh"
                 :loading="pending"
-                size="sm"
+                tooltip="Atualizar lista"
                 variant="soft"
                 @click="refresh"
               />

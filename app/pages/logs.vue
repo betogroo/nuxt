@@ -44,11 +44,10 @@
   <div>
     <PageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
       <template #actions>
-        <UiButton
-          color="secondary"
-          icon="refresh"
+        <UiActionButton
+          action="refresh"
           :loading="pending"
-          size="sm"
+          tooltip="Atualizar lista"
           variant="soft"
           @click="refresh"
         />

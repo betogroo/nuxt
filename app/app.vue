@@ -59,4 +59,26 @@
   .gap-y-4 {
     row-gap: 16px !important;
   }
+
+  /* Tooltip High-Contrast Styling */
+  .v-tooltip > .v-overlay__content {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    font-size: 0.75rem !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+    padding: 4px 8px !important;
+    border-radius: 6px !important;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.15),
+      0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+    opacity: 1 !important;
+    z-index: 99999 !important;
+  }
+
+  .v-theme--dark .v-tooltip > .v-overlay__content {
+    background-color: #334155 !important;
+    color: #f8fafc !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
 </style>

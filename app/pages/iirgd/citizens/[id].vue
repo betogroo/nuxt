@@ -253,13 +253,11 @@
                 </span>
               </template>
               <template #item-actions="{ item }">
-                <UiButton
-                  color="primary"
+                <UiActionButton
+                  action="view"
                   icon="externalLink"
-                  size="sm"
-                  title="Acessar Demanda"
                   :to="`/iirgd/${item.id}`"
-                  variant="ghost"
+                  tooltip="Acessar Demanda"
                 />
               </template>
             </UiTable>

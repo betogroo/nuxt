@@ -667,19 +667,19 @@
           <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
           <template #item-order="{ index }">
             <div class="d-flex align-center justify-center ga-1">
-              <UiButton
+              <UiActionButton
+                action="moveUp"
                 :disabled="index === 0 || isReordering"
-                icon="chevronUp"
                 size="xs"
-                variant="ghost"
-                @click.stop="moveItemUp(index)"
+                tooltip="Mover para cima"
+                @click="moveItemUp(index)"
               />
-              <UiButton
+              <UiActionButton
+                action="moveDown"
                 :disabled="index === (items?.length || 0) - 1 || isReordering"
-                icon="chevronDown"
                 size="xs"
-                variant="ghost"
-                @click.stop="moveItemDown(index)"
+                tooltip="Mover para baixo"
+                @click="moveItemDown(index)"
               />
             </div>
           </template>
@@ -700,13 +700,12 @@
               >
                 {{ item.unit_name_snapshot || item.measurement_units.name }}
               </UiChip>
-              <UiButton
+              <UiActionButton
                 color="grey"
                 icon="externalLink"
                 size="xs"
-                title="Cadastro do Produto"
                 :to="`/products/${item.product_id}`"
-                variant="ghost"
+                tooltip="Cadastro do Produto"
               />
             </div>
           </template>
@@ -765,22 +764,16 @@
           </template>
           <template #item-actions="{ item }">
             <div class="d-flex flex-nowrap align-center justify-end gap-2">
-              <UiButton
+              <UiActionButton
                 v-if="demand?.status === 'quotation'"
-                color="primary"
-                icon="edit"
-                size="sm"
-                title="Editar Item"
-                variant="ghost"
+                action="edit"
+                tooltip="Editar Item"
                 @click="openEditItemModal(item)"
               />
-              <UiButton
+              <UiActionButton
                 v-if="demand?.status === 'quotation'"
-                color="error"
-                icon="delete"
-                size="sm"
-                title="Remover"
-                variant="ghost"
+                action="delete"
+                tooltip="Remover item"
                 @click="removeItem(item.id, item.product?.name || '')"
               />
             </div>

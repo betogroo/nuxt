@@ -346,11 +346,10 @@
           Unidades de Medida Oficiais
           <UiSpacer />
           <div class="d-flex align-center gap-3">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="unitsPending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refreshUnits"
             />
@@ -394,13 +393,7 @@
             />
           </template>
           <template #item-actions="{ item }">
-            <UiButton
-              color="primary"
-              icon="editOutline"
-              size="sm"
-              variant="ghost"
-              @click="openEditModal(item)"
-            />
+            <UiActionButton action="edit" tooltip="Editar unidade" @click="openEditModal(item)" />
           </template>
         </UiTable>
       </UiCard>
@@ -414,11 +407,10 @@
           Todos os Registros Alternativos
           <UiSpacer />
           <div class="d-flex align-center gap-3">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="aliasesPending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refreshAliases"
             />
@@ -460,20 +452,12 @@
           </template>
           <template #item-actions="{ item }">
             <div class="d-flex justify-end gap-2">
-              <UiButton
-                color="primary"
-                icon="editOutline"
-                size="sm"
-                variant="ghost"
+              <UiActionButton
+                action="edit"
+                tooltip="Editar alias"
                 @click="openEditAliasModal(item)"
               />
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="sm"
-                variant="ghost"
-                @click="removeAlias(item)"
-              />
+              <UiActionButton action="delete" tooltip="Excluir alias" @click="removeAlias(item)" />
             </div>
           </template>
         </UiTable>

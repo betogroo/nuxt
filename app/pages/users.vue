@@ -221,11 +221,10 @@
           variant="outline"
         />
         <div class="d-flex align-center gap-3 ml-4">
-          <UiButton
-            color="secondary"
-            icon="refresh"
+          <UiActionButton
+            action="refresh"
             :loading="pending"
-            size="sm"
+            tooltip="Atualizar lista"
             variant="soft"
             @click="refresh"
           />
@@ -291,13 +290,7 @@
           />
         </template>
         <template #item-actions="{ item }">
-          <UiButton
-            color="primary"
-            icon="editOutline"
-            size="sm"
-            variant="ghost"
-            @click="openEditModal(item)"
-          />
+          <UiActionButton action="edit" tooltip="Editar usuário" @click="openEditModal(item)" />
         </template>
       </UiTable>
     </UiCard>
@@ -366,13 +359,7 @@
             />
           </template>
           <template #item-actions="{ item }">
-            <UiButton
-              color="primary"
-              icon="editOutline"
-              size="sm"
-              variant="ghost"
-              @click="openEditModal(item)"
-            />
+            <UiActionButton action="edit" tooltip="Editar usuário" @click="openEditModal(item)" />
           </template>
         </UiTable>
       </UiCard>

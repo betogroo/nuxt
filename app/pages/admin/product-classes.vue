@@ -135,11 +135,10 @@
             @update:model-value="handleSearch"
           />
           <div class="d-flex align-center gap-3">
-            <UiButton
-              color="secondary"
-              icon="refresh"
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="sm"
+              tooltip="Atualizar lista"
               variant="soft"
               @click="refresh"
             />
@@ -179,18 +178,10 @@
 
           <template #item-actions="{ item }">
             <div class="d-flex justify-end gap-2">
-              <UiButton
-                color="secondary"
-                icon="editOutline"
-                size="xs"
-                variant="ghost"
-                @click="openEditModal(item)"
-              />
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="xs"
-                variant="ghost"
+              <UiActionButton action="edit" tooltip="Editar classe" @click="openEditModal(item)" />
+              <UiActionButton
+                action="delete"
+                tooltip="Excluir classe"
                 @click="deleteClass(item.id)"
               />
             </div>
@@ -210,10 +201,9 @@
           <UiIcon class="mr-2" color="warning" name="time" />
           Classes Sugeridas por Usuários
           <UiSpacer />
-          <UiButton
-            color="secondary"
-            icon="refresh"
-            size="sm"
+          <UiActionButton
+            action="refresh"
+            tooltip="Atualizar lista"
             variant="soft"
             @click="refreshPending"
           />
@@ -249,11 +239,9 @@
               >
                 Revisar
               </UiButton>
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="sm"
-                variant="ghost"
+              <UiActionButton
+                action="delete"
+                tooltip="Excluir classe pendente"
                 @click="deleteClass(item.id)"
               />
             </div>

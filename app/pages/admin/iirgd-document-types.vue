@@ -144,12 +144,11 @@
             variant="outline"
             @update:model-value="handleSearch"
           />
-          <UiButton
+          <UiActionButton
+            action="refresh"
             class="mr-2"
-            color="secondary"
-            icon="refresh"
             :loading="pending"
-            size="sm"
+            tooltip="Atualizar lista"
             variant="soft"
             @click="refresh"
           />
@@ -180,18 +179,14 @@
 
           <template #item-actions="{ item }">
             <div class="d-flex justify-end gap-1">
-              <UiButton
-                color="secondary"
-                icon="editOutline"
-                size="xs"
-                variant="ghost"
+              <UiActionButton
+                action="edit"
+                tooltip="Editar tipo de documento"
                 @click="openEditModal(item)"
               />
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="xs"
-                variant="ghost"
+              <UiActionButton
+                action="delete"
+                tooltip="Excluir tipo de documento"
                 @click="deleteType(item.id)"
               />
             </div>
@@ -211,10 +206,9 @@
           <UiIcon class="mr-2" color="warning" name="time" />
           Tipos Sugeridos por Usuários
           <UiSpacer />
-          <UiButton
-            color="secondary"
-            icon="refresh"
-            size="sm"
+          <UiActionButton
+            action="refresh"
+            tooltip="Atualizar lista"
             variant="soft"
             @click="refreshPending"
           />
@@ -243,11 +237,9 @@
               >
                 Revisar
               </UiButton>
-              <UiButton
-                color="error"
-                icon="deleteOutline"
-                size="sm"
-                variant="ghost"
+              <UiActionButton
+                action="delete"
+                tooltip="Excluir tipo pendente"
                 @click="deleteType(item.id)"
               />
             </div>

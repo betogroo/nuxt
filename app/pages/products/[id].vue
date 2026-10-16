@@ -359,18 +359,11 @@
               </template>
 
               <template #item-actions="{ item }">
-                <UiTooltip text="Remover apresentação">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="error"
-                      icon="deleteOutline"
-                      size="sm"
-                      variant="ghost"
-                      @click="removeUnit(item.id)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiActionButton
+                  action="delete"
+                  tooltip="Remover apresentação"
+                  @click="removeUnit(item.id)"
+                />
               </template>
 
               <template #empty>

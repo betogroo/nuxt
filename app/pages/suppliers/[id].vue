@@ -383,18 +383,12 @@
               </template>
 
               <template #item-actions="{ item }">
-                <UiTooltip text="Ver itens arrematados">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="primary"
-                      icon="recordsList"
-                      size="sm"
-                      variant="ghost"
-                      @click="router.push(`/demands/${item.demand_id}/suppliers/${supplierId}`)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiActionButton
+                  action="view"
+                  icon="recordsList"
+                  tooltip="Ver itens arrematados"
+                  @click="router.push(`/demands/${item.demand_id}/suppliers/${supplierId}`)"
+                />
               </template>
 
               <template #empty>
