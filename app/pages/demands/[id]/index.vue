@@ -300,12 +300,16 @@
     productId: '',
     quantity: 1,
     reference_price: null,
+    bid_interval: 3,
+    bid_interval_type: 'percentage',
     searchUnitText: '',
   })
 
-  const [eiProductId] = eiDefine('productId')
+  const [_eiProductId] = eiDefine('productId')
   const [eiQuantity, eiQuantityProps] = eiDefine('quantity')
   const [eiReferencePrice, eiReferencePriceProps] = eiDefine('reference_price')
+  const [eiBidInterval, eiBidIntervalProps] = eiDefine('bid_interval')
+  const [eiBidIntervalType, eiBidIntervalTypeProps] = eiDefine('bid_interval_type')
   const [eiSearchUnitText, eiSearchUnitTextProps] = eiDefine('searchUnitText')
 
   const editItemFormMeta = ref({
@@ -314,11 +318,11 @@
   })
 
   const editItemAvailableUnits = computed(() => {
-    const prod = allProducts.value?.find((p) => p.id === eiProductId.value)
     return (
-      prod?.product_units
-        ?.map((pu) => pu.measurement_units)
-        .filter((u): u is NonNullable<typeof u> => Boolean(u)) || []
+      allMeasurementUnits.value?.map((u) => ({
+        ...u,
+        displayName: u.legacy_alias ? `${u.name} (Legado: ${u.legacy_alias})` : u.name,
+      })) || []
     )
   })
 
@@ -326,18 +330,25 @@
     id: string
     quantity: number | string
     reference_price?: number | string | null
+    bid_interval?: number | string | null
+    bid_interval_type?: 'percentage' | 'monetary' | null
     product_id?: string
     product?: { id?: string; name: string }
     unit_id?: string | null
+    measurement_units?: { id?: string; name?: string } | null
   }) => {
     eiReset({
       values: {
         productId: item.product_id || item.product?.id || '',
         quantity: Number(item.quantity),
         reference_price: item.reference_price != null ? Number(item.reference_price) : null,
-        searchUnitText: item.unit_id
-          ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
-          : '',
+        bid_interval: item.bid_interval ? Number(item.bid_interval) : 3,
+        bid_interval_type: item.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
+        searchUnitText:
+          item.measurement_units?.name ||
+          (item.unit_id
+            ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
+            : ''),
       },
     })
     editItemFormMeta.value = {
@@ -358,6 +369,8 @@
         productId: values.productId,
         quantity: values.quantity,
         referencePrice: values.reference_price,
+        bidInterval: values.bid_interval,
+        bidIntervalType: values.bid_interval_type,
         finalUnitId: await resolveOrCreateUnit(values.searchUnitText),
       })
 
@@ -866,22 +879,48 @@
         type="number"
       />
 
-      <MeasurementUnitSelect
-        v-model="eiSearchUnitText"
-        v-bind="eiSearchUnitTextProps"
-        class="mt-3"
-        :error-messages="eiErrors.searchUnitText"
-        :items="editItemAvailableUnits"
-      />
-
       <UiInput
         v-model.number="eiReferencePrice"
         v-bind="eiReferencePriceProps"
-        class="mt-3"
         :error-messages="eiErrors.reference_price"
         label="Valor Referencial (R$)"
         step="0.0001"
         type="number"
+      />
+
+      <div class="d-flex align-center mt-2 mb-4">
+        <UiSelect
+          v-model="eiBidIntervalType"
+          v-bind="eiBidIntervalTypeProps"
+          class="mr-2 flex-grow-1"
+          :error-messages="eiErrors.bid_interval_type"
+          hide-details
+          :items="[
+            { title: 'Percentual (%)', value: 'percentage' },
+            { title: 'Monetário (R$)', value: 'monetary' },
+          ]"
+          label="Tipo de Intervalo"
+          size="md"
+          variant="outline"
+        />
+        <UiInput
+          v-model.number="eiBidInterval"
+          v-bind="eiBidIntervalProps"
+          class="flex-grow-1"
+          :error-messages="eiErrors.bid_interval"
+          hide-details
+          label="Valor do Intervalo"
+          step="0.01"
+          type="number"
+        />
+      </div>
+
+      <MeasurementUnitSelect
+        v-model="eiSearchUnitText"
+        v-bind="eiSearchUnitTextProps"
+        class="mb-4"
+        :error-messages="eiErrors.searchUnitText"
+        :items="editItemAvailableUnits"
       />
 
       <template #actions>

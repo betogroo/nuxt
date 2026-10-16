@@ -29,6 +29,7 @@ mockNuxtImport('useSupabaseClient', () => () => ({
   }),
 }))
 const mockAddDemandItemWithDependencies = vi.fn().mockResolvedValue({})
+const mockUpdateDemandItemWithDependencies = vi.fn().mockResolvedValue({})
 
 mockNuxtImport('useProductClasses', () => () => ({
   fetchAllActiveProductClasses: vi.fn().mockResolvedValue([]),
@@ -36,7 +37,7 @@ mockNuxtImport('useProductClasses', () => () => ({
 mockNuxtImport('useDemandProducts', () => () => ({
   fetchDemandItemDetails: vi.fn().mockResolvedValue({}),
   addDemandItemWithDependencies: mockAddDemandItemWithDependencies,
-  updateDemandItemWithDependencies: vi.fn().mockResolvedValue({}),
+  updateDemandItemWithDependencies: mockUpdateDemandItemWithDependencies,
   removeDemandProduct: vi.fn().mockResolvedValue({}),
 }))
 mockNuxtImport('useRoute', () => () => ({
@@ -168,5 +169,60 @@ describe('Demand Items Page', () => {
   it('should render successfully with shallowMount', () => {
     const wrapper = shallowMount(DemandItemsPage)
     expect(wrapper.exists()).toBe(true)
+  })
+
+  it('should populate bid interval fields when openEditItemModal is called', () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditItemModal({
+      id: 'item-1',
+      quantity: 5,
+      reference_price: 25.5,
+      bid_interval: 2.5,
+      bid_interval_type: 'monetary',
+      product_id: 'prod-1',
+      product: { id: 'prod-1', name: 'Notebook' },
+      unit_id: 'unit-1',
+      measurement_units: { id: 'unit-1', name: 'Unidade' },
+    })
+
+    expect(vm.isEditItemModalOpen).toBe(true)
+    expect(vm.editItemFormMeta.productName).toBe('Notebook')
+    expect(vm.eiBidInterval).toBe(2.5)
+    expect(vm.eiBidIntervalType).toBe('monetary')
+  })
+
+  it('should pass bid interval fields to updateDemandItemWithDependencies when saveEditItem is executed', async () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.demandId = 'demand-123'
+    vm.openEditItemModal({
+      id: 'item-10',
+      quantity: 10,
+      reference_price: 100,
+      bid_interval: 4,
+      bid_interval_type: 'percentage',
+      product_id: 'prod-10',
+      product: { id: 'prod-10', name: 'Projetor' },
+      unit_id: 'unit-10',
+      measurement_units: { id: 'unit-10', name: 'Unidade' },
+    })
+
+    await vm.saveEditItem()
+
+    expect(mockUpdateDemandItemWithDependencies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemId: 'item-10',
+        demandId: 'demand-123',
+        quantity: 10,
+        referencePrice: 100,
+        bidInterval: 4,
+        bidIntervalType: 'percentage',
+      }),
+    )
   })
 })
