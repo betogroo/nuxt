@@ -132,6 +132,8 @@
     ['quotation', 'dispute', 'homologation'].includes(item.value?.demand?.status || ''),
   )
 
+  const canRegisterBids = computed(() => item.value?.demand?.status === 'dispute')
+
   const suppliers = ref<SupplierRow[]>([])
   const fetchSuppliersList = async () => {
     const list = await fetchAllActiveSuppliers()
@@ -234,6 +236,10 @@
   const [bidAmount, bidAmountProps] = bidDefine('amount')
 
   const openBidModal = () => {
+    if (!canRegisterBids.value) {
+      bidError.value = 'O registro de lances é permitido apenas durante a fase de Disputa.'
+      return
+    }
     bidReset({
       values: {
         isNewSupplier: false,
@@ -253,6 +259,10 @@
   }
 
   const saveBid = bidSubmit(async (values) => {
+    if (!canRegisterBids.value) {
+      bidError.value = 'O registro de lances é permitido apenas durante a fase de Disputa.'
+      return
+    }
     isBidSaving.value = true
     bidError.value = ''
     try {
@@ -335,7 +345,7 @@
               <div class="d-flex justify-space-between align-center w-100">
                 <span>Lances Recebidos</span>
                 <UiButton
-                  v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
+                  v-if="canRegisterBids"
                   color="primary"
                   prepend-icon="add"
                   size="sm"
@@ -343,6 +353,14 @@
                 >
                   Registrar Lance
                 </UiButton>
+                <UiChip
+                  v-else-if="item?.demand?.status === 'quotation'"
+                  color="warning"
+                  size="sm"
+                  variant="soft"
+                >
+                  Lances permitidos apenas na Disputa
+                </UiChip>
               </div>
             </template>
 

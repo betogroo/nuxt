@@ -159,4 +159,39 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     expect(mockUpdateBidStatus).toHaveBeenCalledWith('bid-1', 'classified', null)
     expect(mockRefreshBids).toHaveBeenCalled()
   })
+
+  it('prevents bid registration when demand status is quotation but preserves existing bids', async () => {
+    mockItemData.value.demand.status = 'quotation'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.canRegisterBids).toBe(false)
+
+    // Existing bids must be preserved and accessible
+    expect(vm.bids).toHaveLength(2)
+    expect(vm.winningBid?.id).toBe('bid-1')
+
+    // Attempting to open bid modal should be blocked
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(false)
+    expect(vm.bidError).toBe('O registro de lances é permitido apenas durante a fase de Disputa.')
+
+    // Attempting to save bid should be blocked without calling addBid
+    await vm.saveBid()
+    expect(mockAddBid).not.toHaveBeenCalled()
+  })
+
+  it('allows bid registration when demand status is dispute', () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.canRegisterBids).toBe(true)
+
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+    expect(vm.bidError).toBe('')
+  })
 })
