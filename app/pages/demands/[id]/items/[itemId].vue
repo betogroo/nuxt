@@ -383,7 +383,18 @@
 
               <template #item-supplier="{ item: bid }">
                 <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
-                <div class="text-caption text-grey">{{ formatCnpj(bid.suppliers?.cnpj) }}</div>
+                <div class="d-flex align-center ga-1 text-caption text-grey">
+                  <span>{{ formatCnpj(bid.suppliers?.cnpj) }}</span>
+                  <UiCopyButton
+                    v-if="bid.suppliers?.cnpj"
+                    clean-digits-only
+                    color="secondary"
+                    size="xs"
+                    success-message="CNPJ copiado!"
+                    tooltip="Copiar CNPJ (apenas números)"
+                    :value="bid.suppliers?.cnpj"
+                  />
+                </div>
               </template>
 
               <template #item-status="{ item: bid }">

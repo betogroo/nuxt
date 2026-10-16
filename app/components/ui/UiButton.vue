@@ -11,6 +11,7 @@
     size?: UiSize
     icon?: IconName | string | boolean
     rounded?: UiRounded
+    disabled?: boolean
   }>()
 
   const attrs = useAttrs()
@@ -28,7 +29,7 @@
       sm: 'small',
       md: 'default',
       lg: 'large',
-      xl: 'x-large'
+      xl: 'x-large',
     }
     return props.size ? map[props.size] : undefined
   })
@@ -38,7 +39,7 @@
       solid: 'flat',
       outline: 'outlined',
       ghost: 'text',
-      soft: 'tonal'
+      soft: 'tonal',
     }
     const defaultVariant = props.icon ? 'ghost' : 'soft'
     return props.variant ? map[props.variant] : map[defaultVariant]
@@ -65,6 +66,7 @@
 <template>
   <v-btn
     :color="color || 'primary'"
+    :disabled="disabled"
     :icon="mappedIcon"
     :rounded="vuetifyRounded"
     :size="vuetifySize"

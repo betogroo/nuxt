@@ -1,17 +1,9 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
-  import { useCopyToClipboard } from '~/composables/useCopyToClipboard'
-  import type { SupplierRow } from '~/composables/useSuppliers'
   import { formatDate, formatCnpj } from '~/utils/formatters'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
   const toast = useToast()
-  const { copy } = useCopyToClipboard()
 
-  const copyCnpj = (cnpj: string | null | undefined) => {
-    if (!cnpj) return
-    const cleanCnpj = cnpj.replace(/\D/g, '')
-    copy(cleanCnpj, 'CNPJ copiado!')
-  }
   definePageMeta({
     icon: 'delivery',
     middleware: ['uge'],
@@ -151,18 +143,15 @@
             <template #item-cnpj="{ item }">
               <div class="d-flex align-center ga-1 text-no-wrap">
                 <span>{{ formatCnpj(item.cnpj) }}</span>
-                <UiTooltip text="Copiar CNPJ (apenas números)">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="secondary"
-                      icon="copy"
-                      size="xs"
-                      variant="ghost"
-                      @click="copyCnpj(item.cnpj)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiCopyButton
+                  v-if="item.cnpj"
+                  clean-digits-only
+                  color="secondary"
+                  size="xs"
+                  success-message="CNPJ copiado!"
+                  tooltip="Copiar CNPJ (apenas números)"
+                  :value="item.cnpj"
+                />
               </div>
             </template>
 
@@ -262,18 +251,15 @@
             <template #item-cnpj="{ item }">
               <div class="d-flex align-center ga-1 text-no-wrap">
                 <span>{{ formatCnpj(item.cnpj) }}</span>
-                <UiTooltip text="Copiar CNPJ (apenas números)">
-                  <template #activator="{ props }">
-                    <UiButton
-                      v-bind="props"
-                      color="secondary"
-                      icon="copy"
-                      size="xs"
-                      variant="ghost"
-                      @click="copyCnpj(item.cnpj)"
-                    />
-                  </template>
-                </UiTooltip>
+                <UiCopyButton
+                  v-if="item.cnpj"
+                  clean-digits-only
+                  color="secondary"
+                  size="xs"
+                  success-message="CNPJ copiado!"
+                  tooltip="Copiar CNPJ (apenas números)"
+                  :value="item.cnpj"
+                />
               </div>
             </template>
 

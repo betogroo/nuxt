@@ -3,6 +3,7 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema, demandResponsibleSchema } from '~/schemas/forms/demand'
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
+  import { formatCnpj } from '~/utils/formatters'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -819,7 +820,18 @@
           >
             {{ supplier.company_name }}
           </NuxtLink>
-          <div class="text-caption text-grey">{{ supplier.cnpj }}</div>
+          <div class="d-flex align-center ga-1 text-caption text-grey">
+            <span>{{ formatCnpj(supplier.cnpj) }}</span>
+            <UiCopyButton
+              v-if="supplier.cnpj"
+              clean-digits-only
+              color="secondary"
+              size="xs"
+              success-message="CNPJ copiado!"
+              tooltip="Copiar CNPJ (apenas números)"
+              :value="supplier.cnpj"
+            />
+          </div>
         </template>
 
         <template #item-participated="{ item: supplier }">
