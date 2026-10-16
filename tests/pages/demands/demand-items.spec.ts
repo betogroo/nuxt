@@ -3,13 +3,18 @@ import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemsPage from '~/pages/demands/[id]/index.vue'
 
-const { mockProductsList } = vi.hoisted(() => ({
+const { mockProductsList, mockDemandData, mockUpdateDemandDb } = vi.hoisted(() => ({
   mockProductsList: { value: [] as unknown[] },
+  mockDemandData: { value: null as Record<string, unknown> | null },
+  mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
 }))
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
   if (key === 'all-active-products') {
     return { data: mockProductsList, pending: { value: false }, refresh: vi.fn() }
+  }
+  if (key === 'demand-demand-123') {
+    return { data: mockDemandData, pending: { value: false }, refresh: vi.fn() }
   }
   return { data: { value: [] }, pending: { value: false }, refresh: vi.fn() }
 })
@@ -54,6 +59,8 @@ mockNuxtImport('useProfile', () => () => ({
 }))
 mockNuxtImport('useDemands', () => () => ({
   fetchDemandDetails: vi.fn().mockResolvedValue({}),
+  fetchDemandById: vi.fn().mockResolvedValue({}),
+  updateDemand: mockUpdateDemandDb,
   fetchDemandResponsibles: vi.fn().mockResolvedValue([]),
   addDemandResponsible: vi.fn(),
   removeDemandResponsible: vi.fn(),
@@ -224,5 +231,34 @@ describe('Demand Items Page', () => {
         bidIntervalType: 'percentage',
       }),
     )
+  })
+
+  it('should open edit bidding notice modal and save updated notice data', async () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      bidding_notice_number: 'AV-01',
+      dispute_number: 'DISP-01',
+      dispute_date: '2026-11-05',
+      offer_opening_date: '2026-11-05T10:00:00.000Z',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditBiddingNoticeModal()
+    expect(vm.editBiddingNoticeModal.isOpen.value).toBe(true)
+    expect(vm.editBiddingNoticeModal.payload.value.bidding_notice_number).toBe('AV-01')
+    expect(vm.editBiddingNoticeModal.payload.value.dispute_number).toBe('DISP-01')
+
+    vm.editBiddingNoticeModal.payload.value.bidding_notice_number = 'AV-02-UPDATED'
+
+    await vm.saveBiddingNoticeData()
+    expect(mockUpdateDemandDb).toHaveBeenCalledWith(
+      'demand-123',
+      expect.objectContaining({
+        bidding_notice_number: 'AV-02-UPDATED',
+      }),
+    )
+    expect(vm.editBiddingNoticeModal.isOpen.value).toBe(false)
   })
 })

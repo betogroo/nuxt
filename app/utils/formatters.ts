@@ -185,3 +185,38 @@ export function isValidCnpj(cnpj: string | null | undefined): boolean {
 
   return true
 }
+
+/**
+ * Splits an ISO string or Date into local date ('YYYY-MM-DD') and time ('HH:mm') strings
+ * for HTML5 inputs.
+ */
+export function splitDateTime(value: string | Date | null | undefined): {
+  date: string
+  time: string
+} {
+  if (!value) return { date: '', time: '' }
+  const d = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(d.getTime())) return { date: '', time: '' }
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hours}:${minutes}`,
+  }
+}
+
+/**
+ * Combines date ('YYYY-MM-DD') and optional time ('HH:mm') into an ISO string.
+ * Returns null if date is not provided or invalid.
+ */
+export function combineDateTime(dateStr?: string | null, timeStr?: string | null): string | null {
+  if (!dateStr || !dateStr.trim()) return null
+  const cleanDate = dateStr.trim()
+  const cleanTime = timeStr?.trim() || '00:00'
+  const dateObj = new Date(`${cleanDate}T${cleanTime}`)
+  if (isNaN(dateObj.getTime())) return null
+  return dateObj.toISOString()
+}

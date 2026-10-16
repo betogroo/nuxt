@@ -12,6 +12,8 @@ import {
   isValidRgSP,
   formatCitizenName,
   isValidCnpj,
+  splitDateTime,
+  combineDateTime,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
@@ -194,6 +196,39 @@ describe('Formatadores (utils/formatters.ts)', () => {
       expect(formatCitizenName(undefined)).toBe('')
       expect(formatCitizenName('')).toBe('')
       expect(formatCitizenName('   ')).toBe('')
+    })
+  })
+
+  describe('splitDateTime', () => {
+    it('deve dividir string ISO em date e time', () => {
+      const result = splitDateTime('2026-10-25T14:30:00')
+      expect(result.date).toBe('2026-10-25')
+      expect(result.time).toBe('14:30')
+    })
+
+    it('deve retornar strings vazias para valores nulos ou inválidos', () => {
+      expect(splitDateTime(null)).toEqual({ date: '', time: '' })
+      expect(splitDateTime(undefined)).toEqual({ date: '', time: '' })
+      expect(splitDateTime('invalido')).toEqual({ date: '', time: '' })
+    })
+  })
+
+  describe('combineDateTime', () => {
+    it('deve combinar data e hora em ISO string', () => {
+      const result = combineDateTime('2026-10-25', '14:30')
+      expect(result).toBeTruthy()
+      expect(new Date(result!).getFullYear()).toBe(2026)
+    })
+
+    it('deve assumir 00:00 se hora não informada', () => {
+      const result = combineDateTime('2026-10-25', '')
+      expect(result).toBeTruthy()
+    })
+
+    it('deve retornar null se data vazia ou inválida', () => {
+      expect(combineDateTime(null)).toBeNull()
+      expect(combineDateTime('')).toBeNull()
+      expect(combineDateTime('data-invalida')).toBeNull()
     })
   })
 })

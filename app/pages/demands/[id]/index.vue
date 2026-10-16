@@ -3,7 +3,7 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema, demandResponsibleSchema } from '~/schemas/forms/demand'
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
-  import { formatCnpj } from '~/utils/formatters'
+  import { formatCnpj, splitDateTime, combineDateTime } from '~/utils/formatters'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -95,6 +95,51 @@
       editPlanningModal.stopSaving()
     }
   })
+
+  // Modal de Edição dos Dados do Aviso de Contratação e Disputa
+  const editBiddingNoticeModal = useModal({
+    bidding_notice_number: '',
+    dispute_number: '',
+    dispute_date: '',
+    offer_opening_date: '',
+    offer_opening_time: '',
+  })
+
+  const openEditBiddingNoticeModal = () => {
+    if (!demand.value) return
+    const { date, time } = splitDateTime(demand.value.offer_opening_date)
+    editBiddingNoticeModal.open({
+      bidding_notice_number: demand.value.bidding_notice_number || '',
+      dispute_number: demand.value.dispute_number || '',
+      dispute_date: demand.value.dispute_date
+        ? String(demand.value.dispute_date).split('T')[0]
+        : '',
+      offer_opening_date: date,
+      offer_opening_time: time,
+    })
+  }
+
+  const saveBiddingNoticeData = async () => {
+    editBiddingNoticeModal.startSaving()
+    editBiddingNoticeModal.error.value = ''
+    try {
+      const p = editBiddingNoticeModal.payload.value
+      const offerOpening = combineDateTime(p.offer_opening_date, p.offer_opening_time)
+
+      await updateDemand({
+        bidding_notice_number: p.bidding_notice_number?.trim() || null,
+        dispute_number: p.dispute_number?.trim() || null,
+        dispute_date: p.dispute_date || null,
+        offer_opening_date: offerOpening,
+      })
+      await refreshDemand()
+      editBiddingNoticeModal.close()
+    } catch (err: unknown) {
+      editBiddingNoticeModal.error.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      editBiddingNoticeModal.stopSaving()
+    }
+  }
 
   useHead({
     title: computed(() => (demand.value ? `Demanda: ${demand.value.name}` : 'Detalhes da Demanda')),
@@ -546,9 +591,26 @@
           <!-- Dados da Disputa -->
           <UiCard
             v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
-            title="Dados da Disputa e Contratação"
+            class="mb-4"
             variant="outline"
           >
+            <template #header>
+              <div class="d-flex align-center w-100">
+                <UiIcon class="mr-2 text-primary" left name="fileText" />
+                <span>Dados do Aviso de Contratação e Disputa</span>
+                <UiSpacer />
+                <UiButton
+                  v-if="demand?.status === 'bidding_notice' || demand?.status === 'dispute'"
+                  color="primary"
+                  prepend-icon="edit"
+                  size="sm"
+                  variant="ghost"
+                  @click="openEditBiddingNoticeModal"
+                >
+                  Editar
+                </UiButton>
+              </div>
+            </template>
             <UiRow class="px-2 pb-2 mt-2">
               <UiCol cols="12" md="4" sm="6">
                 <div class="text-caption text-grey">Aviso de Contratação</div>
@@ -1136,43 +1198,81 @@
       </UiAlert>
 
       <div v-if="targetStatus === 'bidding_notice'">
+        <UiAlert class="mb-4" size="sm" type="info" variant="soft">
+          Os dados abaixo são opcionais nesta etapa e podem ser informados agora ou posteriormente
+          nos detalhes da demanda.
+        </UiAlert>
+
         <UiInput
           v-model="advanceModal.payload.value.bidding_notice_number"
-          label="Número do Aviso de Contratação"
-          required
+          label="Aviso de Contratação"
         />
-      </div>
-
-      <div v-if="targetStatus === 'dispute'">
         <UiInput
           v-model="advanceModal.payload.value.dispute_number"
-          label="Número da Disputa"
-          required
+          class="mt-3"
+          label="Nº Disputa"
         />
         <UiInput
-          v-model="advDisputeDate"
-          v-bind="advDisputeDateProps"
-          :error-messages="advErrors.dispute_date"
+          v-model="advanceModal.payload.value.dispute_date"
+          class="mt-3"
           label="Data da Disputa"
-          required
           type="date"
         />
         <UiRow class="mt-2">
           <UiCol class="py-0" cols="12" sm="6">
             <UiInput
-              v-model="advOfferOpeningDate"
-              v-bind="advOfferOpeningDateProps"
-              :error-messages="advErrors.offer_opening_date"
+              v-model="advanceModal.payload.value.offer_opening_date"
               label="Data de Abertura"
               type="date"
             />
           </UiCol>
           <UiCol class="py-0" cols="12" sm="6">
             <UiInput
-              v-model="advOfferOpeningTime"
-              v-bind="advOfferOpeningTimeProps"
-              :error-messages="advErrors.offer_opening_time"
+              v-model="advanceModal.payload.value.offer_opening_time"
               label="Hora de Abertura"
+              type="time"
+            />
+          </UiCol>
+        </UiRow>
+      </div>
+
+      <div v-if="targetStatus === 'dispute'">
+        <UiAlert class="mb-4" size="sm" type="warning" variant="soft">
+          Todos os dados abaixo são obrigatórios para avançar para a fase de Disputa.
+        </UiAlert>
+
+        <UiInput
+          v-model="advanceModal.payload.value.bidding_notice_number"
+          label="Aviso de Contratação *"
+          required
+        />
+        <UiInput
+          v-model="advanceModal.payload.value.dispute_number"
+          class="mt-3"
+          label="Nº Disputa *"
+          required
+        />
+        <UiInput
+          v-model="advanceModal.payload.value.dispute_date"
+          class="mt-3"
+          label="Data da Disputa *"
+          required
+          type="date"
+        />
+        <UiRow class="mt-2">
+          <UiCol class="py-0" cols="12" sm="6">
+            <UiInput
+              v-model="advanceModal.payload.value.offer_opening_date"
+              label="Data de Abertura *"
+              required
+              type="date"
+            />
+          </UiCol>
+          <UiCol class="py-0" cols="12" sm="6">
+            <UiInput
+              v-model="advanceModal.payload.value.offer_opening_time"
+              label="Hora de Abertura *"
+              required
               type="time"
             />
           </UiCol>
@@ -1204,6 +1304,73 @@
           @click="confirmAdvanceStatus"
           >Confirmar Avanço</UiButton
         >
+      </template>
+    </UiModal>
+
+    <!-- Modal Editar Dados do Aviso de Contratação e Disputa -->
+    <UiModal
+      v-model="editBiddingNoticeModal.isOpen.value"
+      max-width="500px"
+      title="Editar Dados do Aviso de Contratação e Disputa"
+      transparent-header
+    >
+      <UiAlert
+        v-if="editBiddingNoticeModal.error.value"
+        class="mb-4"
+        size="sm"
+        type="error"
+        variant="soft"
+      >
+        {{ editBiddingNoticeModal.error.value }}
+      </UiAlert>
+
+      <UiInput
+        v-model="editBiddingNoticeModal.payload.value.bidding_notice_number"
+        label="Aviso de Contratação"
+      />
+      <UiInput
+        v-model="editBiddingNoticeModal.payload.value.dispute_number"
+        class="mt-3"
+        label="Nº Disputa"
+      />
+      <UiInput
+        v-model="editBiddingNoticeModal.payload.value.dispute_date"
+        class="mt-3"
+        label="Data da Disputa"
+        type="date"
+      />
+      <UiRow class="mt-2">
+        <UiCol class="py-0" cols="12" sm="6">
+          <UiInput
+            v-model="editBiddingNoticeModal.payload.value.offer_opening_date"
+            label="Data de Abertura"
+            type="date"
+          />
+        </UiCol>
+        <UiCol class="py-0" cols="12" sm="6">
+          <UiInput
+            v-model="editBiddingNoticeModal.payload.value.offer_opening_time"
+            label="Hora de Abertura"
+            type="time"
+          />
+        </UiCol>
+      </UiRow>
+
+      <template #actions>
+        <UiButton
+          :disabled="editBiddingNoticeModal.isSaving.value"
+          variant="ghost"
+          @click="editBiddingNoticeModal.close()"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :loading="editBiddingNoticeModal.isSaving.value"
+          @click="saveBiddingNoticeData"
+        >
+          Salvar
+        </UiButton>
       </template>
     </UiModal>
 

@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
+import { splitDateTime, combineDateTime } from '~/utils/formatters'
 
 export function useDemandWorkflow(
   demandId: string,
@@ -102,7 +103,18 @@ export function useDemandWorkflow(
     const next = getNextStatus(demand.value.status)
     if (!next) return
     targetStatus.value = next as Database['public']['Enums']['demand_status']
-    advanceModal.open()
+
+    const { date: offerDate, time: offerTime } = splitDateTime(demand.value.offer_opening_date)
+    advanceModal.open({
+      bidding_notice_number: demand.value.bidding_notice_number || '',
+      dispute_number: demand.value.dispute_number || '',
+      dispute_date: demand.value.dispute_date
+        ? String(demand.value.dispute_date).split('T')[0]
+        : '',
+      offer_opening_date: offerDate,
+      offer_opening_time: offerTime,
+      contract_number: demand.value.contract_number ? String(demand.value.contract_number) : '',
+    })
   }
 
   const confirmAdvanceStatus = async () => {
@@ -130,29 +142,65 @@ export function useDemandWorkflow(
             'Todos os produtos devem ter quantidade, unidade de medida e valor referencial preenchidos antes de avançar.',
           )
         }
-      } else if (targetStatus.value === 'dispute') {
-        if (!advanceModal.payload.value.bidding_notice_number)
-          throw new Error('O número do aviso de contratação é obrigatório.')
-        if (!advanceModal.payload.value.dispute_number)
-          throw new Error('O número da disputa é obrigatório.')
-        if (!advanceModal.payload.value.dispute_date)
-          throw new Error('A data da disputa é obrigatória.')
 
-        let offerOpening = null
-        if (
-          !advanceModal.payload.value.offer_opening_date ||
-          !advanceModal.payload.value.offer_opening_time
-        ) {
-          throw new Error('A data e hora de abertura de ofertas são obrigatórias.')
-        } else {
-          offerOpening = new Date(
-            `${advanceModal.payload.value.offer_opening_date}T${advanceModal.payload.value.offer_opening_time}`,
-          ).toISOString()
+        // Bidding notice and dispute fields are optional when advancing to bidding_notice
+        if (advanceModal.payload.value.bidding_notice_number?.trim()) {
+          payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number.trim()
+        }
+        if (advanceModal.payload.value.dispute_number?.trim()) {
+          payload.dispute_number = advanceModal.payload.value.dispute_number.trim()
+        }
+        if (advanceModal.payload.value.dispute_date) {
+          payload.dispute_date = advanceModal.payload.value.dispute_date
+        }
+        if (advanceModal.payload.value.offer_opening_date) {
+          payload.offer_opening_date = combineDateTime(
+            advanceModal.payload.value.offer_opening_date,
+            advanceModal.payload.value.offer_opening_time,
+          )
+        }
+      } else if (targetStatus.value === 'dispute') {
+        const biddingNoticeNumber =
+          advanceModal.payload.value.bidding_notice_number?.trim() ||
+          demand.value?.bidding_notice_number?.trim() ||
+          null
+        const disputeNumber =
+          advanceModal.payload.value.dispute_number?.trim() ||
+          demand.value?.dispute_number?.trim() ||
+          null
+        const disputeDate =
+          advanceModal.payload.value.dispute_date || demand.value?.dispute_date || null
+
+        let offerOpening: string | null = null
+        if (advanceModal.payload.value.offer_opening_date) {
+          offerOpening = combineDateTime(
+            advanceModal.payload.value.offer_opening_date,
+            advanceModal.payload.value.offer_opening_time,
+          )
+        } else if (demand.value?.offer_opening_date) {
+          offerOpening = demand.value.offer_opening_date
         }
 
-        payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number
-        payload.dispute_number = advanceModal.payload.value.dispute_number
-        payload.dispute_date = advanceModal.payload.value.dispute_date
+        if (!biddingNoticeNumber) {
+          throw new Error(
+            'O número do aviso de contratação é obrigatório para avançar para a disputa.',
+          )
+        }
+        if (!disputeNumber) {
+          throw new Error('O número da disputa é obrigatório para avançar para a disputa.')
+        }
+        if (!disputeDate) {
+          throw new Error('A data da disputa é obrigatória para avançar para a disputa.')
+        }
+        if (!offerOpening) {
+          throw new Error(
+            'A data e hora de abertura de ofertas são obrigatórias para avançar para a disputa.',
+          )
+        }
+
+        payload.bidding_notice_number = biddingNoticeNumber
+        payload.dispute_number = disputeNumber
+        payload.dispute_date = disputeDate
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
         const supabase = useSupabaseClient()
