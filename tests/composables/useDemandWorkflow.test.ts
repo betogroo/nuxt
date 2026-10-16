@@ -96,7 +96,7 @@ describe('useDemandWorkflow', () => {
     workflow.advanceModal.payload.value.bidding_notice_number = '001/2026'
     workflow.advanceModal.payload.value.dispute_number = '99/2026'
     workflow.advanceModal.payload.value.dispute_date = '2026-11-10'
-    workflow.advanceModal.payload.value.offer_opening_date = '2026-11-10'
+    workflow.advanceModal.payload.value.offer_opening_date = '2026-11-05'
     workflow.advanceModal.payload.value.offer_opening_time = '09:00'
 
     await workflow.confirmAdvanceStatus()
@@ -136,7 +136,7 @@ describe('useDemandWorkflow', () => {
         bidding_notice_number: '',
         dispute_number: '123',
         dispute_date: '2026-11-10',
-        offer_opening_date: '2026-11-10',
+        offer_opening_date: '2026-11-05',
         offer_opening_time: '10:00',
         contract_number: '',
       }
@@ -154,7 +154,7 @@ describe('useDemandWorkflow', () => {
         bidding_notice_number: '01/2026',
         dispute_number: '',
         dispute_date: '2026-11-10',
-        offer_opening_date: '2026-11-10',
+        offer_opening_date: '2026-11-05',
         offer_opening_time: '10:00',
         contract_number: '',
       }
@@ -172,7 +172,7 @@ describe('useDemandWorkflow', () => {
         bidding_notice_number: '01/2026',
         dispute_number: '55/2026',
         dispute_date: '',
-        offer_opening_date: '2026-11-10',
+        offer_opening_date: '2026-11-05',
         offer_opening_time: '10:00',
         contract_number: '',
       }
@@ -201,14 +201,51 @@ describe('useDemandWorkflow', () => {
       expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
     })
 
-    it('successfully advances to dispute when all 4 fields are provided', async () => {
+    it('strictly forbids advancing to dispute if offer_opening_date violates interval rules', async () => {
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+      // Dispute on 2026-11-10, opening on 2026-11-09 (only 1 day before dispute, requires 3)
+      workflow.advanceModal.payload.value = {
+        bidding_notice_number: '01/2026',
+        dispute_number: '55/2026',
+        dispute_date: '2026-11-10',
+        offer_opening_date: '2026-11-09',
+        offer_opening_time: '10:00',
+        contract_number: '',
+      }
+
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toContain('3 dias antes da data da disputa')
+      expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+    })
+
+    it('strictly forbids advancing to dispute if offer_opening_time is outside commercial hours', async () => {
       const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
       workflow.openAdvanceModal()
       workflow.advanceModal.payload.value = {
         bidding_notice_number: '01/2026',
         dispute_number: '55/2026',
         dispute_date: '2026-11-10',
-        offer_opening_date: '2026-11-10',
+        offer_opening_date: '2026-11-05',
+        offer_opening_time: '07:30',
+        contract_number: '',
+      }
+
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toContain('entre 08:00 e 18:00')
+      expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+    })
+
+    it('successfully advances to dispute when all 4 fields are provided and valid', async () => {
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+      workflow.advanceModal.payload.value = {
+        bidding_notice_number: '01/2026',
+        dispute_number: '55/2026',
+        dispute_date: '2026-11-10',
+        offer_opening_date: '2026-11-05',
         offer_opening_time: '14:30',
         contract_number: '',
       }

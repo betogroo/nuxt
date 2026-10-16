@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
-import { splitDateTime, combineDateTime } from '~/utils/formatters'
+import { splitDateTime, combineDateTime, validateOfferOpeningRules } from '~/utils/formatters'
 
 export function useDemandWorkflow(
   demandId: string,
@@ -153,11 +153,24 @@ export function useDemandWorkflow(
         if (advanceModal.payload.value.dispute_date) {
           payload.dispute_date = advanceModal.payload.value.dispute_date
         }
-        if (advanceModal.payload.value.offer_opening_date) {
-          payload.offer_opening_date = combineDateTime(
-            advanceModal.payload.value.offer_opening_date,
-            advanceModal.payload.value.offer_opening_time,
+        if (
+          advanceModal.payload.value.offer_opening_date ||
+          advanceModal.payload.value.offer_opening_time
+        ) {
+          const offerDate = advanceModal.payload.value.offer_opening_date?.trim()
+          const offerTime = advanceModal.payload.value.offer_opening_time?.trim()
+          if (!offerDate || !offerTime) {
+            throw new Error('Informe tanto a data quanto a hora de abertura de ofertas.')
+          }
+          const dateError = validateOfferOpeningRules(
+            offerDate,
+            offerTime,
+            advanceModal.payload.value.dispute_date,
           )
+          if (dateError) {
+            throw new Error(dateError)
+          }
+          payload.offer_opening_date = combineDateTime(offerDate, offerTime)
         }
       } else if (targetStatus.value === 'dispute') {
         const biddingNoticeNumber =
@@ -171,15 +184,8 @@ export function useDemandWorkflow(
         const disputeDate =
           advanceModal.payload.value.dispute_date || demand.value?.dispute_date || null
 
-        let offerOpening: string | null = null
-        if (advanceModal.payload.value.offer_opening_date) {
-          offerOpening = combineDateTime(
-            advanceModal.payload.value.offer_opening_date,
-            advanceModal.payload.value.offer_opening_time,
-          )
-        } else if (demand.value?.offer_opening_date) {
-          offerOpening = demand.value.offer_opening_date
-        }
+        const offerDate = advanceModal.payload.value.offer_opening_date?.trim()
+        const offerTime = advanceModal.payload.value.offer_opening_time?.trim()
 
         if (!biddingNoticeNumber) {
           throw new Error(
@@ -192,11 +198,18 @@ export function useDemandWorkflow(
         if (!disputeDate) {
           throw new Error('A data da disputa é obrigatória para avançar para a disputa.')
         }
-        if (!offerOpening) {
+        if (!offerDate || !offerTime) {
           throw new Error(
             'A data e hora de abertura de ofertas são obrigatórias para avançar para a disputa.',
           )
         }
+
+        const dateError = validateOfferOpeningRules(offerDate, offerTime, disputeDate)
+        if (dateError) {
+          throw new Error(dateError)
+        }
+
+        const offerOpening = combineDateTime(offerDate, offerTime)
 
         payload.bidding_notice_number = biddingNoticeNumber
         payload.dispute_number = disputeNumber

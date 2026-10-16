@@ -220,3 +220,58 @@ export function combineDateTime(dateStr?: string | null, timeStr?: string | null
   if (isNaN(dateObj.getTime())) return null
   return dateObj.toISOString()
 }
+
+/**
+ * Validates offer opening date, time, and relationship with dispute date and today.
+ * Returns null if valid, or an error message string if invalid.
+ */
+export function validateOfferOpeningRules(
+  offerDateStr?: string | null,
+  offerTimeStr?: string | null,
+  disputeDateStr?: string | null,
+  now = new Date(),
+): string | null {
+  if (!offerDateStr || !offerDateStr.trim()) {
+    return 'A data de abertura das ofertas é obrigatória.'
+  }
+  if (!offerTimeStr || !offerTimeStr.trim()) {
+    return 'A hora de abertura das ofertas é obrigatória.'
+  }
+
+  const time = offerTimeStr.trim()
+  if (time < '08:00' || time > '18:00') {
+    return 'A hora de abertura das ofertas deve estar entre 08:00 e 18:00.'
+  }
+
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayDate = new Date(`${todayStr}T00:00:00`)
+  const offerDate = new Date(`${offerDateStr.trim()}T00:00:00`)
+
+  if (isNaN(offerDate.getTime())) {
+    return 'A data de abertura das ofertas é inválida.'
+  }
+
+  const diffDaysFromToday = Math.round(
+    (offerDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+  )
+  if (diffDaysFromToday < 5) {
+    return 'A data de abertura das ofertas deve ser pelo menos 5 dias após hoje.'
+  }
+
+  if (disputeDateStr && disputeDateStr.trim()) {
+    const disputeOnlyDate = disputeDateStr.includes('T')
+      ? disputeDateStr.split('T')[0]
+      : disputeDateStr.trim()
+    const disputeDate = new Date(`${disputeOnlyDate}T00:00:00`)
+    if (!isNaN(disputeDate.getTime())) {
+      const diffDaysBeforeDispute = Math.round(
+        (disputeDate.getTime() - offerDate.getTime()) / (1000 * 60 * 60 * 24),
+      )
+      if (diffDaysBeforeDispute < 3) {
+        return 'A data de abertura das ofertas deve ser pelo menos 3 dias antes da data da disputa.'
+      }
+    }
+  }
+
+  return null
+}

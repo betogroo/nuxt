@@ -3,7 +3,12 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema, demandResponsibleSchema } from '~/schemas/forms/demand'
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
-  import { formatCnpj, splitDateTime, combineDateTime } from '~/utils/formatters'
+  import {
+    formatCnpj,
+    splitDateTime,
+    combineDateTime,
+    validateOfferOpeningRules,
+  } from '~/utils/formatters'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -124,7 +129,37 @@
     editBiddingNoticeModal.error.value = ''
     try {
       const p = editBiddingNoticeModal.payload.value
-      const offerOpening = combineDateTime(p.offer_opening_date, p.offer_opening_time)
+      let offerOpening: string | null = null
+
+      if (p.offer_opening_date || p.offer_opening_time) {
+        const offerDate = p.offer_opening_date?.trim()
+        const offerTime = p.offer_opening_time?.trim()
+        if (!offerDate || !offerTime) {
+          throw new Error('Informe tanto a data quanto a hora de abertura de ofertas.')
+        }
+        const dateError = validateOfferOpeningRules(offerDate, offerTime, p.dispute_date)
+        if (dateError) {
+          throw new Error(dateError)
+        }
+        offerOpening = combineDateTime(offerDate, offerTime)
+      }
+
+      if (demand.value?.status === 'dispute') {
+        if (!p.bidding_notice_number?.trim()) {
+          throw new Error('O número do aviso de contratação é obrigatório na fase de disputa.')
+        }
+        if (!p.dispute_number?.trim()) {
+          throw new Error('O número da disputa é obrigatório na fase de disputa.')
+        }
+        if (!p.dispute_date) {
+          throw new Error('A data da disputa é obrigatória na fase de disputa.')
+        }
+        if (!offerOpening) {
+          throw new Error(
+            'A data e hora de abertura de ofertas são obrigatórias na fase de disputa.',
+          )
+        }
+      }
 
       await updateDemand({
         bidding_notice_number: p.bidding_notice_number?.trim() || null,

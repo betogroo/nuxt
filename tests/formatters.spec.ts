@@ -14,6 +14,7 @@ import {
   isValidCnpj,
   splitDateTime,
   combineDateTime,
+  validateOfferOpeningRules,
 } from '../app/utils/formatters'
 
 describe('Formatadores (utils/formatters.ts)', () => {
@@ -229,6 +230,48 @@ describe('Formatadores (utils/formatters.ts)', () => {
       expect(combineDateTime(null)).toBeNull()
       expect(combineDateTime('')).toBeNull()
       expect(combineDateTime('data-invalida')).toBeNull()
+    })
+  })
+
+  describe('validateOfferOpeningRules', () => {
+    const fixedNow = new Date('2026-10-16T12:00:00')
+
+    it('deve exigir data e hora', () => {
+      expect(validateOfferOpeningRules('', '10:00', '2026-11-01', fixedNow)).toBe(
+        'A data de abertura das ofertas é obrigatória.',
+      )
+      expect(validateOfferOpeningRules('2026-10-25', '', '2026-11-01', fixedNow)).toBe(
+        'A hora de abertura das ofertas é obrigatória.',
+      )
+    })
+
+    it('deve validar horário entre 08:00 e 18:00', () => {
+      expect(validateOfferOpeningRules('2026-10-25', '07:59', '2026-11-01', fixedNow)).toBe(
+        'A hora de abertura das ofertas deve estar entre 08:00 e 18:00.',
+      )
+      expect(validateOfferOpeningRules('2026-10-25', '18:01', '2026-11-01', fixedNow)).toBe(
+        'A hora de abertura das ofertas deve estar entre 08:00 e 18:00.',
+      )
+      expect(validateOfferOpeningRules('2026-10-25', '08:00', '2026-11-01', fixedNow)).toBeNull()
+      expect(validateOfferOpeningRules('2026-10-25', '18:00', '2026-11-01', fixedNow)).toBeNull()
+    })
+
+    it('deve exigir pelo menos 5 dias após hoje', () => {
+      // 16 + 4 dias = 20 (inválido)
+      expect(validateOfferOpeningRules('2026-10-20', '10:00', '2026-11-01', fixedNow)).toBe(
+        'A data de abertura das ofertas deve ser pelo menos 5 dias após hoje.',
+      )
+      // 16 + 5 dias = 21 (válido)
+      expect(validateOfferOpeningRules('2026-10-21', '10:00', '2026-11-01', fixedNow)).toBeNull()
+    })
+
+    it('deve exigir pelo menos 3 dias antes da disputa', () => {
+      // Disputa em 2026-10-25. 3 dias antes é 22. Se for 23, diferença é 2 dias (inválido).
+      expect(validateOfferOpeningRules('2026-10-23', '10:00', '2026-10-25', fixedNow)).toBe(
+        'A data de abertura das ofertas deve ser pelo menos 3 dias antes da data da disputa.',
+      )
+      // 22 é exatamente 3 dias antes (válido)
+      expect(validateOfferOpeningRules('2026-10-22', '10:00', '2026-10-25', fixedNow)).toBeNull()
     })
   })
 })

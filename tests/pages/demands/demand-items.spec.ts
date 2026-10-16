@@ -238,8 +238,8 @@ describe('Demand Items Page', () => {
       id: 'demand-123',
       bidding_notice_number: 'AV-01',
       dispute_number: 'DISP-01',
-      dispute_date: '2026-11-05',
-      offer_opening_date: '2026-11-05T10:00:00.000Z',
+      dispute_date: '2026-11-10',
+      offer_opening_date: '2026-11-05T14:00:00.000Z',
     }
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
