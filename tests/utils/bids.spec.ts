@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { getWinningBid, getItemSubtotal } from '../../app/utils/bids'
+import {
+  getWinningBid,
+  compareBids,
+  formatBidStatus,
+  getBidStatusColor,
+  getItemSubtotal,
+} from '../../app/utils/bids'
 
 describe('utils/bids', () => {
   describe('getWinningBid', () => {
@@ -23,12 +29,37 @@ describe('utils/bids', () => {
       expect(getWinningBid(bids)).toEqual({ id: 'b2', amount: 45.5 })
     })
 
-    it('returns the first encountered bid in case of a tie for lowest amount', () => {
+    it('returns the first encountered bid in case of a tie without created_at', () => {
       const bids = [
         { id: 'b1', amount: 30 },
         { id: 'b2', amount: 30 },
       ]
       expect(getWinningBid(bids)?.id).toBe('b1')
+    })
+
+    it('breaks ties by created_at (older bid wins over newer bid)', () => {
+      const bids = [
+        { id: 'b-newer', amount: 30, created_at: '2026-10-16T10:05:00Z' },
+        { id: 'b-older', amount: 30, created_at: '2026-10-16T10:00:00Z' },
+      ]
+      expect(getWinningBid(bids)?.id).toBe('b-older')
+    })
+
+    it('ignores disqualified bids and selects the next lowest classified bid', () => {
+      const bids = [
+        { id: 'b1', amount: 25, status: 'disqualified' as const },
+        { id: 'b2', amount: 40, status: 'classified' as const },
+        { id: 'b3', amount: 60, status: 'classified' as const },
+      ]
+      expect(getWinningBid(bids)?.id).toBe('b2')
+    })
+
+    it('returns null if all bids are disqualified', () => {
+      const bids = [
+        { id: 'b1', amount: 25, status: 'disqualified' as const },
+        { id: 'b2', amount: 40, status: 'disqualified' as const },
+      ]
+      expect(getWinningBid(bids)).toBeNull()
     })
 
     it('correctly handles bids with string numbers', () => {
@@ -38,6 +69,30 @@ describe('utils/bids', () => {
         { id: 'b3', amount: 80 },
       ]
       expect(getWinningBid(bids)?.id).toBe('b2')
+    })
+  })
+
+  describe('compareBids', () => {
+    it('sorts by amount ascending and breaks ties by oldest created_at', () => {
+      const bids = [
+        { id: 'b3', amount: 50, created_at: '2026-10-16T08:00:00Z' },
+        { id: 'b2', amount: 30, created_at: '2026-10-16T09:30:00Z' },
+        { id: 'b1', amount: 30, created_at: '2026-10-16T09:00:00Z' },
+      ]
+      const sorted = [...bids].sort(compareBids)
+      expect(sorted.map((b) => b.id)).toEqual(['b1', 'b2', 'b3'])
+    })
+  })
+
+  describe('formatBidStatus & getBidStatusColor', () => {
+    it('formats status labels and colors properly', () => {
+      expect(formatBidStatus('classified')).toBe('Classificado')
+      expect(formatBidStatus('disqualified')).toBe('Desclassificado')
+      expect(formatBidStatus(null)).toBe('Classificado')
+
+      expect(getBidStatusColor('classified')).toBe('success')
+      expect(getBidStatusColor('disqualified')).toBe('error')
+      expect(getBidStatusColor(undefined)).toBe('success')
     })
   })
 

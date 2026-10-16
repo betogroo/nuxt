@@ -743,30 +743,19 @@
             </span>
           </template>
           <template #item-best_bid="{ item }">
-            <template v-if="item.demand_product_bids && item.demand_product_bids.length > 0">
+            <template v-if="getWinningBid(item.demand_product_bids)">
               <span class="text-success font-weight-bold">
-                {{
-                  formatCurrency(
-                    Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)),
-                  )
-                }}
+                {{ formatCurrency(getWinningBid(item.demand_product_bids)!.amount) }}
               </span>
             </template>
             <span v-else class="text-grey">-</span>
           </template>
           <template #item-total_final="{ item }">
-            <template
-              v-if="
-                item.demand_product_bids &&
-                item.demand_product_bids.length > 0 &&
-                item.quantity != null
-              "
-            >
+            <template v-if="getWinningBid(item.demand_product_bids) && item.quantity != null">
               <span class="text-success font-weight-bold">
                 {{
                   formatCurrency(
-                    Math.min(...item.demand_product_bids.map((b: { amount: number }) => b.amount)) *
-                      Number(item.quantity),
+                    getItemSubtotal(getWinningBid(item.demand_product_bids)!.amount, item.quantity),
                   )
                 }}
               </span>

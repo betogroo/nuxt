@@ -9,7 +9,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           demand_product_id: string
+          disqualification_reason: string | null
           id: string
+          status: Database['public']['Enums']['bid_status']
           supplier_id: string
         }
         Insert: {
@@ -17,7 +19,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demand_product_id: string
+          disqualification_reason?: string | null
           id?: string
+          status?: Database['public']['Enums']['bid_status']
           supplier_id: string
         }
         Update: {
@@ -25,7 +29,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demand_product_id?: string
+          disqualification_reason?: string | null
           id?: string
+          status?: Database['public']['Enums']['bid_status']
           supplier_id?: string
         }
         Relationships: [
@@ -792,6 +798,7 @@ export type Database = {
       restore_system_backup: { Args: { p_payload: Json }; Returns: Json }
     }
     Enums: {
+      bid_status: 'classified' | 'disqualified'
       demand_status:
         | 'planning'
         | 'quotation'
@@ -935,6 +942,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      bid_status: ['classified', 'disqualified'],
       demand_status: [
         'planning',
         'quotation',

@@ -1,7 +1,9 @@
 import type { Database } from '~/types/database.types'
+import { compareBids } from '~/utils/bids'
 
 export type DemandProductBidRow = Database['public']['Tables']['demand_product_bids']['Row']
 export type DemandProductBidInsert = Database['public']['Tables']['demand_product_bids']['Insert']
+export type BidStatus = Database['public']['Enums']['bid_status']
 
 export const useProductBids = () => {
   const supabase = useSupabaseClient<Database>()
@@ -16,7 +18,7 @@ export const useProductBids = () => {
       .order('amount', { ascending: true })
 
     if (error) throw error
-    return data
+    return data ? [...data].sort(compareBids) : []
   }
 
   const addBid = async (
@@ -51,6 +53,36 @@ export const useProductBids = () => {
     )
   }
 
+  const updateBidStatus = async (
+    bidId: string,
+    status: BidStatus,
+    disqualificationReason?: string | null,
+  ) => {
+    const cleanReason =
+      status === 'disqualified' && disqualificationReason?.trim()
+        ? disqualificationReason.trim()
+        : null
+
+    const { error } = await supabase
+      .from('demand_product_bids')
+      .update({
+        status,
+        disqualification_reason: cleanReason,
+      })
+      .eq('id', bidId)
+
+    if (error) throw error
+
+    const statusLabel = status === 'disqualified' ? 'DESCLASSIFICADO' : 'CLASSIFICADO'
+    const reasonSuffix = cleanReason ? ` (Motivo: ${cleanReason})` : ''
+
+    await logAction(
+      'UPDATE_PRODUCT_BID_STATUS',
+      `Lance (ID: ${bidId}) alterado para ${statusLabel}${reasonSuffix}`,
+      user.value?.id,
+    )
+  }
+
   const removeBid = async (bidId: string) => {
     const { error } = await supabase.from('demand_product_bids').delete().eq('id', bidId)
 
@@ -62,6 +94,7 @@ export const useProductBids = () => {
   return {
     fetchBidsByProduct,
     addBid,
+    updateBidStatus,
     removeBid,
   }
 }

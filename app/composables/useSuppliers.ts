@@ -54,6 +54,8 @@ export interface ProductWithRelations {
     id: string
     supplier_id: string
     amount: number
+    status?: Database['public']['Enums']['bid_status'] | null
+    created_at?: string | null
   }[]
 }
 
@@ -234,7 +236,9 @@ export const useSuppliers = () => {
         demand_product_bids (
           id,
           supplier_id,
-          amount
+          amount,
+          status,
+          created_at
         )
       `,
       )

@@ -108,7 +108,7 @@
     }
   })
   // --- Bids Logic ---
-  const { fetchBidsByProduct, addBid, removeBid } = useProductBids()
+  const { fetchBidsByProduct, addBid, updateBidStatus, removeBid } = useProductBids()
   const { fetchAllActiveSuppliers, createSupplierFast } = useSuppliers()
 
   const {
@@ -118,6 +118,19 @@
   } = useAsyncData(`item-bids-${itemId}`, async () => {
     return await fetchBidsByProduct(itemId)
   })
+
+  const winningBid = computed(() => getWinningBid(bids.value))
+
+  const getBidPosition = (bidId: string): number | null => {
+    if (!bids.value) return null
+    const classifiedBids = bids.value.filter((b) => b.status !== 'disqualified')
+    const idx = classifiedBids.findIndex((b) => b.id === bidId)
+    return idx >= 0 ? idx + 1 : null
+  }
+
+  const canManageBidStatus = computed(() =>
+    ['quotation', 'dispute', 'homologation'].includes(item.value?.demand?.status || ''),
+  )
 
   const suppliers = ref<SupplierRow[]>([])
   const fetchSuppliersList = async () => {
@@ -132,6 +145,71 @@
   const isBidModalOpen = ref(false)
   const isBidSaving = ref(false)
   const bidError = ref('')
+
+  // Disqualification Modal State
+  const isDisqualifyModalOpen = ref(false)
+  const isStatusUpdating = ref(false)
+  const statusUpdateError = ref('')
+  const disqualificationReason = ref('')
+  const selectedBidForStatus = ref<{
+    id: string
+    amount: number
+    supplierName: string
+  } | null>(null)
+
+  const openDisqualifyModal = (bid: {
+    id: string
+    amount: number
+    disqualification_reason?: string | null
+    suppliers?: { company_name?: string } | null
+  }) => {
+    selectedBidForStatus.value = {
+      id: bid.id,
+      amount: bid.amount,
+      supplierName: bid.suppliers?.company_name || 'Fornecedor',
+    }
+    disqualificationReason.value = bid.disqualification_reason || ''
+    statusUpdateError.value = ''
+    isDisqualifyModalOpen.value = true
+  }
+
+  const closeDisqualifyModal = () => {
+    isDisqualifyModalOpen.value = false
+    selectedBidForStatus.value = null
+    disqualificationReason.value = ''
+    statusUpdateError.value = ''
+  }
+
+  const confirmDisqualifyBid = async () => {
+    if (!selectedBidForStatus.value) return
+    isStatusUpdating.value = true
+    statusUpdateError.value = ''
+    try {
+      await updateBidStatus(
+        selectedBidForStatus.value.id,
+        'disqualified',
+        disqualificationReason.value,
+      )
+      await refreshBids()
+      closeDisqualifyModal()
+    } catch (err: unknown) {
+      statusUpdateError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isStatusUpdating.value = false
+    }
+  }
+
+  const handleClassifyBid = async (bidId: string) => {
+    isStatusUpdating.value = true
+    try {
+      await updateBidStatus(bidId, 'classified', null)
+      await refreshBids()
+    } catch (err: unknown) {
+      console.error('Erro ao classificar lance', err)
+    } finally {
+      isStatusUpdating.value = false
+    }
+  }
 
   // Bid form state
   const {
@@ -280,6 +358,7 @@
               :headers="[
                 { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
                 { text: 'Fornecedor', value: 'supplier' },
+                { text: 'Status', value: 'status', align: 'center' },
                 { text: 'Valor do Lance', value: 'amount', align: 'right' },
                 { text: 'Ações', value: 'actions', align: 'center', sortable: false },
               ]"
@@ -291,10 +370,15 @@
                 </div>
               </template>
 
-              <template #item-pos="{ index }">
-                <UiChip :color="index === 0 ? 'success' : 'default'" size="sm">
-                  {{ index + 1 }}º
+              <template #item-pos="{ item: bid }">
+                <UiChip
+                  v-if="getBidPosition(bid.id) !== null"
+                  :color="getBidPosition(bid.id) === 1 ? 'success' : 'default'"
+                  size="sm"
+                >
+                  {{ getBidPosition(bid.id) }}º
                 </UiChip>
+                <span v-else class="text-grey">-</span>
               </template>
 
               <template #item-supplier="{ item: bid }">
@@ -302,25 +386,66 @@
                 <div class="text-caption text-grey">{{ formatCnpj(bid.suppliers?.cnpj) }}</div>
               </template>
 
+              <template #item-status="{ item: bid }">
+                <div class="d-flex flex-column align-center">
+                  <UiChip :color="getBidStatusColor(bid.status)" size="sm" variant="soft">
+                    {{ formatBidStatus(bid.status) }}
+                  </UiChip>
+                  <div
+                    v-if="bid.status === 'disqualified' && bid.disqualification_reason"
+                    class="text-caption text-error mt-1"
+                  >
+                    {{ bid.disqualification_reason }}
+                  </div>
+                </div>
+              </template>
+
               <template #item-amount="{ item: bid }">
                 <div
                   class="font-weight-bold"
-                  :class="{ 'text-success': bids && bids[0].id === bid.id }"
+                  :class="{
+                    'text-success': winningBid && winningBid.id === bid.id,
+                    'text-decoration-line-through text-grey': bid.status === 'disqualified',
+                  }"
                 >
                   {{ formatCurrency(bid.amount) }}
                 </div>
               </template>
 
               <template #item-actions="{ item: bid }">
-                <UiButton
-                  v-if="item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'"
-                  color="error"
-                  icon="delete"
-                  size="sm"
-                  title="Remover Lance"
-                  variant="ghost"
-                  @click="confirmRemoveBid(bid.id)"
-                />
+                <div class="d-flex align-center justify-center ga-1">
+                  <UiButton
+                    v-if="canManageBidStatus && bid.status !== 'disqualified'"
+                    color="warning"
+                    :disabled="isStatusUpdating"
+                    icon="close"
+                    size="sm"
+                    title="Desclassificar Lance"
+                    variant="ghost"
+                    @click="openDisqualifyModal(bid)"
+                  />
+                  <UiButton
+                    v-if="canManageBidStatus && bid.status === 'disqualified'"
+                    color="success"
+                    :disabled="isStatusUpdating"
+                    icon="check"
+                    size="sm"
+                    title="Classificar Lance"
+                    variant="ghost"
+                    @click="handleClassifyBid(bid.id)"
+                  />
+                  <UiButton
+                    v-if="
+                      item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'
+                    "
+                    color="error"
+                    icon="delete"
+                    size="sm"
+                    title="Remover Lance"
+                    variant="ghost"
+                    @click="confirmRemoveBid(bid.id)"
+                  />
+                </div>
               </template>
             </UiTable>
           </UiCard>
@@ -533,6 +658,43 @@
       <template #actions>
         <UiButton :disabled="isBidSaving" variant="ghost" @click="closeBidModal">Cancelar</UiButton>
         <UiButton color="primary" :loading="isBidSaving" @click="saveBid"> Salvar Lance </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Desclassificar Lance -->
+    <UiModal
+      v-model="isDisqualifyModalOpen"
+      max-width="500px"
+      title="Desclassificar Lance"
+      transparent-header
+    >
+      <UiAlert v-if="statusUpdateError" class="mb-4" size="sm" type="error" variant="soft">
+        {{ statusUpdateError }}
+      </UiAlert>
+
+      <div v-if="selectedBidForStatus" class="mb-4">
+        <div class="text-caption text-grey">Fornecedor</div>
+        <div class="text-body-1 font-weight-bold">{{ selectedBidForStatus.supplierName }}</div>
+        <div class="text-caption text-grey mt-2">Valor do Lance</div>
+        <div class="text-body-1 font-weight-bold">
+          {{ formatCurrency(selectedBidForStatus.amount) }}
+        </div>
+      </div>
+
+      <UiTextarea
+        v-model="disqualificationReason"
+        label="Motivo / Justificativa da Desclassificação"
+        placeholder="Descreva o motivo da desclassificação do lance (opcional)..."
+        rows="3"
+      />
+
+      <template #actions>
+        <UiButton :disabled="isStatusUpdating" variant="ghost" @click="closeDisqualifyModal">
+          Cancelar
+        </UiButton>
+        <UiButton color="error" :loading="isStatusUpdating" @click="confirmDisqualifyBid">
+          Desclassificar
+        </UiButton>
       </template>
     </UiModal>
   </UiContainer>

@@ -276,5 +276,53 @@ describe('useSuppliers', () => {
       expect(result.demands[1].total_amount).toBe(200)
       expect(result.demands[1].items_count).toBe(2)
     })
+
+    it('ignores disqualified bids when computing won items for a supplier', async () => {
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValueOnce({
+          eq: vi.fn().mockResolvedValueOnce({
+            data: [{ demand_product_id: 'prod-1', amount: 25 }],
+            error: null,
+          }),
+        }),
+      })
+
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValueOnce({
+          in: vi.fn().mockResolvedValueOnce({
+            data: [
+              {
+                id: 'prod-1',
+                demand_id: 'demand-1',
+                product_name_snapshot: 'Papel A4',
+                unit_name_snapshot: 'CX',
+                quantity: 2,
+                reference_price: 30,
+                demands: {
+                  id: 'demand-1',
+                  name: 'Demanda 1',
+                  process_number: '001/2026',
+                  status: 'completed',
+                  type: 'consumption',
+                  dispute_date: '2026-09-01',
+                },
+                demand_product_bids: [
+                  { id: 'b-other', supplier_id: 'sup-other', amount: 20, status: 'disqualified' },
+                  { id: 'b-1', supplier_id: 'sup-1', amount: 25, status: 'classified' },
+                ],
+              },
+            ],
+            error: null,
+          }),
+        }),
+      })
+
+      const { fetchSupplierWonDemands } = useSuppliers()
+      const result = await fetchSupplierWonDemands('sup-1')
+
+      expect(result.totalDemandsWon).toBe(1)
+      expect(result.totalItemsWon).toBe(1)
+      expect(result.totalAmountWon).toBe(50)
+    })
   })
 })
