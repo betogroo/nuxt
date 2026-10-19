@@ -19,6 +19,7 @@ export const useDemands = () => {
     let query = supabase
       .from('demands')
       .select('*, profiles!demands_user_id_fkey(name)', { count: 'exact' })
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -45,7 +46,12 @@ export const useDemands = () => {
   }
 
   const fetchDemandById = async (demandId: string) => {
-    const { data, error } = await supabase.from('demands').select('*').eq('id', demandId).single()
+    const { data, error } = await supabase
+      .from('demands')
+      .select('*')
+      .eq('id', demandId)
+      .is('deleted_at', null)
+      .single()
 
     if (error) throw error
     return data as DemandRow
@@ -70,10 +76,24 @@ export const useDemands = () => {
   }
 
   const deleteDemand = async (demandId: string) => {
-    const { error } = await supabase.from('demands').delete().eq('id', demandId)
+    const { error } = await supabase
+      .from('demands')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', demandId)
     if (error) throw error
 
-    await logAction('DELETE_DEMAND', `Demanda removida: ${demandId}`, user.value?.id)
+    await logAction(
+      'DELETE_DEMAND',
+      `Demanda enviada para a lixeira (safe delete): ${demandId}`,
+      user.value?.id,
+    )
+  }
+
+  const restoreDemand = async (demandId: string) => {
+    const { error } = await supabase.from('demands').update({ deleted_at: null }).eq('id', demandId)
+    if (error) throw error
+
+    await logAction('RESTORE_DEMAND', `Demanda restaurada: ${demandId}`, user.value?.id)
   }
 
   const addResponsible = async (demandId: string, userId: string) => {
@@ -168,6 +188,7 @@ export const useDemands = () => {
     createDemand,
     updateDemand,
     deleteDemand,
+    restoreDemand,
     addResponsible,
     removeResponsible,
     advanceDemandStatus,

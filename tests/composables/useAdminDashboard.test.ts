@@ -23,12 +23,23 @@ describe('useAdminDashboard', () => {
     const mockClient = {
       from: vi.fn((table: string) => {
         if (table === 'profiles') return { select: vi.fn().mockResolvedValue({ count: 12 }) }
-        if (table === 'products') return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ count: 45 }) }) }
+        if (table === 'products')
+          return {
+            select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ count: 45 }) }),
+          }
         if (table === 'demands') {
           return {
             select: vi.fn((_cols: string, opts?: { count?: string }) => {
-              if (opts?.count) return Promise.resolve({ count: 30 })
-              return { eq: vi.fn().mockReturnValue({ order: vi.fn().mockResolvedValue({ data: [] }) }) }
+              if (opts?.count) {
+                return { is: vi.fn().mockResolvedValue({ count: 30 }) }
+              }
+              return {
+                is: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({ data: [] }),
+                  }),
+                }),
+              }
             }),
           }
         }

@@ -58,6 +58,7 @@ export const usePendingTasks = () => {
       const { count, error } = await supabase
         .from('demands')
         .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null)
         .eq('is_return_requested', true)
 
       if (error) {

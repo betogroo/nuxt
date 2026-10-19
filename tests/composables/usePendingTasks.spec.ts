@@ -51,6 +51,7 @@ describe('usePendingTasks', () => {
       if (table === 'demands') {
         return {
           select: vi.fn().mockReturnThis(),
+          is: vi.fn().mockReturnThis(),
           eq: vi.fn().mockResolvedValue(demandsMockEq),
         }
       }

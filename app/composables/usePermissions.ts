@@ -20,7 +20,20 @@ export function usePermissions() {
     return !!currentId && demand.user_id === currentId
   }
 
+  /**
+   * Determina se o usuário logado tem permissão para excluir uma demanda.
+   * Regra: administrador ou o próprio criador da demanda.
+   */
+  const canDeleteDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean => {
+    if (!demand) return false
+    if (profile.value?.role === ROLES.ADMIN) return true
+
+    const currentId = userId.value || profile.value?.id
+    return !!currentId && demand.user_id === currentId
+  }
+
   return {
     canEditDemand,
+    canDeleteDemand,
   }
 }

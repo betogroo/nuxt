@@ -17,14 +17,47 @@
   useHead({ title: 'Demandas' })
 
   const { profile } = useProfile()
-  const { canEditDemand } = usePermissions()
+  const { canEditDemand, canDeleteDemand } = usePermissions()
+  const toast = useToast()
 
-  const { fetchDemands, createDemand, updateDemand } = useDemands()
+  const { fetchDemands, createDemand, updateDemand, deleteDemand } = useDemands()
   const route = useRoute()
 
   const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const statusFilter = ref<string | null>((route.query.filter as string) || null)
   const searchQuery = ref('')
+
+  const isDeleteModalOpen = ref(false)
+  const demandToDelete = ref<DemandRow | null>(null)
+  const isDeleting = ref(false)
+
+  const openDeleteModal = (demand: DemandRow) => {
+    demandToDelete.value = demand
+    isDeleteModalOpen.value = true
+  }
+
+  const closeDeleteModal = () => {
+    if (isDeleting.value) return
+    isDeleteModalOpen.value = false
+    demandToDelete.value = null
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!demandToDelete.value) return
+    isDeleting.value = true
+    try {
+      await deleteDemand(demandToDelete.value.id)
+      toast.success(`Demanda "${demandToDelete.value.name}" excluída com sucesso!`)
+      isDeleteModalOpen.value = false
+      demandToDelete.value = null
+      await refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao excluir demanda.'
+      toast.error(msg)
+    } finally {
+      isDeleting.value = false
+    }
+  }
 
   const {
     data: demands,
@@ -89,6 +122,10 @@
 
   const canEdit = (demand: DemandRow) => {
     return canEditDemand(demand)
+  }
+
+  const canDelete = (demand: DemandRow) => {
+    return canDeleteDemand(demand)
   }
 
   const saveDemand = handleSubmit(async (values) => {
@@ -261,6 +298,12 @@
               tooltip="Editar demanda"
               @click="modal.open(item)"
             />
+            <UiActionButton
+              v-if="canDelete(item)"
+              action="delete"
+              tooltip="Excluir demanda"
+              @click="openDeleteModal(item)"
+            />
           </div>
         </template>
       </UiTable>
@@ -348,6 +391,46 @@
           @click="saveDemand"
         >
           Salvar
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal de Confirmação de Exclusão (Safe Delete) -->
+    <UiModal v-model="isDeleteModalOpen" max-width="480px" title="Excluir Demanda">
+      <div v-if="demandToDelete" class="pa-1">
+        <UiAlert class="mb-4" color="warning" size="sm" variant="soft">
+          Esta demanda será movida para a lixeira (safe delete) e não aparecerá mais nas listagens
+          ativas.
+        </UiAlert>
+
+        <p class="text-body-2 mb-2">
+          Tem certeza de que deseja excluir a demanda <strong>{{ demandToDelete.name }}</strong
+          >?
+        </p>
+
+        <div v-if="demandToDelete.process_number" class="text-caption text-medium-emphasis mb-1">
+          <strong>Processo Oficial:</strong> {{ demandToDelete.process_number }}
+        </div>
+        <div
+          v-if="demandToDelete.internal_process_number"
+          class="text-caption text-medium-emphasis mb-1"
+        >
+          <strong>Processo Interno:</strong> {{ demandToDelete.internal_process_number }}
+        </div>
+      </div>
+
+      <template #actions>
+        <UiButton :disabled="isDeleting" variant="ghost" @click="closeDeleteModal">
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeleting"
+          prepend-icon="delete"
+          variant="solid"
+          @click="handleConfirmDelete"
+        >
+          Sim, Excluir
         </UiButton>
       </template>
     </UiModal>

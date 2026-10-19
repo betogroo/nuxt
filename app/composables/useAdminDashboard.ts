@@ -8,24 +8,32 @@ export const useAdminDashboard = () => {
   const supabase = useSupabaseClient<Database>()
 
   const fetchDashboardMetrics = async () => {
-    const [usersRes, productsRes, demandsRes, iirgdDemandsRes, suppliersRes, logsRes, returnDemandsRes] =
-      await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('demands').select('*', { count: 'exact', head: true }),
-        supabase.from('iirgd_demands').select('*', { count: 'exact', head: true }),
-        supabase.from('suppliers').select('*', { count: 'exact', head: true }),
-        supabase
-          .from('logs')
-          .select('*, profiles(name)')
-          .order('created_at', { ascending: false })
-          .limit(8),
-        supabase
-          .from('demands')
-          .select('id, name, status')
-          .eq('is_return_requested', true)
-          .order('created_at', { ascending: false }),
-      ])
+    const [
+      usersRes,
+      productsRes,
+      demandsRes,
+      iirgdDemandsRes,
+      suppliersRes,
+      logsRes,
+      returnDemandsRes,
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('products').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabase.from('demands').select('*', { count: 'exact', head: true }).is('deleted_at', null),
+      supabase.from('iirgd_demands').select('*', { count: 'exact', head: true }),
+      supabase.from('suppliers').select('*', { count: 'exact', head: true }),
+      supabase
+        .from('logs')
+        .select('*, profiles(name)')
+        .order('created_at', { ascending: false })
+        .limit(8),
+      supabase
+        .from('demands')
+        .select('id, name, status')
+        .is('deleted_at', null)
+        .eq('is_return_requested', true)
+        .order('created_at', { ascending: false }),
+    ])
 
     return {
       usersCount: usersRes.count || 0,

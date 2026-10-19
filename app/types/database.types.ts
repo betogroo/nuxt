@@ -172,6 +172,7 @@ export type Database = {
           bidding_notice_number: string | null
           contract_number: string | null
           created_at: string
+          deleted_at: string | null
           dispute_date: string | null
           dispute_number: string | null
           id: string
@@ -190,6 +191,7 @@ export type Database = {
           bidding_notice_number?: string | null
           contract_number?: string | null
           created_at?: string
+          deleted_at?: string | null
           dispute_date?: string | null
           dispute_number?: string | null
           id?: string
@@ -200,7 +202,7 @@ export type Database = {
           offer_opening_date?: string | null
           process_number?: string | null
           status?: Database['public']['Enums']['demand_status']
-          type: Database['public']['Enums']['demand_type']
+          type?: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id: string
         }
@@ -208,6 +210,7 @@ export type Database = {
           bidding_notice_number?: string | null
           contract_number?: string | null
           created_at?: string
+          deleted_at?: string | null
           dispute_date?: string | null
           dispute_number?: string | null
           id?: string
