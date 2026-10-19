@@ -19,6 +19,7 @@ const mockCounts = {
   product_classes: 8,
   measurement_units: 5,
   measurement_unit_aliases: 3,
+  measurement_unit_alias_links: 7,
   products: 45,
   product_units: 50,
   demands: 25,
@@ -39,12 +40,19 @@ mockNuxtImport('useBackup', () => () => ({
   isFetchingCounts: ref(false),
   fetchCurrentCounts: vi.fn().mockResolvedValue(mockCounts),
   generateBackup: vi.fn().mockResolvedValue({}),
-  inspectBackupFile: vi.fn().mockResolvedValue({ isValid: true, counts: {} }),
+  inspectBackupFile: vi.fn().mockResolvedValue({
+    isValid: true,
+    timestamp: '2026-10-19T10:00:00Z',
+    generatedBy: 'Admin Test',
+    version: '1.0',
+    counts: mockCounts,
+    payload: { data: {} },
+  }),
   restoreBackup: vi.fn().mockResolvedValue({ success: true, counts: mockCounts }),
 }))
 
 describe('Backup Admin Page', () => {
-  it('should render successfully with shallowMount', () => {
+  it('should render successfully and compute total records across all 19 tables', async () => {
     const wrapper = shallowMount(BackupAdminPage, {
       global: {
         stubs: {
@@ -62,6 +70,71 @@ describe('Backup Admin Page', () => {
       },
     })
     expect(wrapper.exists()).toBe(true)
+
+    const vm = wrapper.vm as unknown as {
+      totalCurrentRecords: number
+      currentCounts: typeof mockCounts | null
+      BACKUP_CATEGORIES: Array<{ title: string; tables: Array<{ key: string; label: string }> }>
+    }
+
+    // Wait for onMounted loadCounts
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(vm.currentCounts).toEqual(mockCounts)
+    const expectedSum = Object.values(mockCounts).reduce((a, b) => a + b, 0)
+    expect(vm.totalCurrentRecords).toBe(expectedSum)
+    expect(vm.totalCurrentRecords).toBe(517)
+
+    // Check that all 19 tables are represented in categories
+    const allTableKeys = vm.BACKUP_CATEGORIES.flatMap((c) => c.tables.map((t) => t.key))
+    expect(allTableKeys).toHaveLength(19)
+    expect(new Set(allTableKeys).size).toBe(19)
+    for (const key of Object.keys(mockCounts)) {
+      expect(allTableKeys).toContain(key)
+    }
+  })
+
+  it('should compute inspection and restore totals accurately', async () => {
+    const wrapper = shallowMount(BackupAdminPage, {
+      global: {
+        stubs: {
+          PageHeader: true,
+          UiContainer: true,
+          UiRow: true,
+          UiCol: true,
+          UiCard: true,
+          UiButton: true,
+          UiIcon: true,
+          UiAlert: true,
+          UiChip: true,
+          UiModal: true,
+        },
+      },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      totalInspectionRecords: number
+      totalRestoredRecords: number
+      inspection: { isValid: boolean; counts: typeof mockCounts } | null
+      restoreResult: { success: boolean; counts: typeof mockCounts } | null
+    }
+
+    expect(vm.totalInspectionRecords).toBe(0)
+    expect(vm.totalRestoredRecords).toBe(0)
+
+    vm.inspection = {
+      isValid: true,
+      counts: mockCounts,
+    }
+
+    expect(vm.totalInspectionRecords).toBe(517)
+
+    vm.restoreResult = {
+      success: true,
+      counts: mockCounts,
+    }
+
+    expect(vm.totalRestoredRecords).toBe(517)
   })
 
   it('should trigger backup generation when generate method is called', async () => {

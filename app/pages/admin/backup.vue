@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { useBackup } from '~/composables/useBackup'
   import type { BackupInspection, BackupSummary, RestoreResult } from '~/types/backup'
+  import type { IconName } from '~/components/ui/icons'
 
   definePageMeta({
     middleware: ['admin'],
@@ -19,6 +20,110 @@
 
   useHead({ title: 'Backup & Restauração - Admin' })
 
+  interface BackupTableMeta {
+    key: keyof BackupSummary
+    label: string
+    suffix: string
+    color: string
+  }
+
+  interface BackupCategoryMeta {
+    title: string
+    icon: IconName
+    tables: BackupTableMeta[]
+  }
+
+  const BACKUP_CATEGORIES: BackupCategoryMeta[] = [
+    {
+      title: 'Demandas & Compras',
+      icon: 'document',
+      tables: [
+        { key: 'demands', label: 'Demandas Gerais', suffix: 'demandas', color: 'primary' },
+        { key: 'demand_products', label: 'Itens de Demandas', suffix: 'itens', color: 'primary' },
+        {
+          key: 'demand_product_bids',
+          label: 'Propostas / Lances',
+          suffix: 'propostas',
+          color: 'primary',
+        },
+        {
+          key: 'demand_responsibles',
+          label: 'Responsáveis Vinculados',
+          suffix: 'vínculos',
+          color: 'primary',
+        },
+      ],
+    },
+    {
+      title: 'Catálogo & Cadastros',
+      icon: 'product',
+      tables: [
+        { key: 'suppliers', label: 'Fornecedores', suffix: 'fornecedores', color: 'indigo' },
+        { key: 'products', label: 'Produtos', suffix: 'produtos', color: 'teal' },
+        { key: 'product_classes', label: 'Classes de Produtos', suffix: 'classes', color: 'teal' },
+        {
+          key: 'expense_natures',
+          label: 'Naturezas de Despesa',
+          suffix: 'naturezas',
+          color: 'teal',
+        },
+        {
+          key: 'measurement_units',
+          label: 'Unidades de Medida',
+          suffix: 'unidades',
+          color: 'teal',
+        },
+        {
+          key: 'measurement_unit_aliases',
+          label: 'Sinônimos de Unidades',
+          suffix: 'sinônimos',
+          color: 'teal',
+        },
+        {
+          key: 'measurement_unit_alias_links',
+          label: 'Vínculos de Sinônimos',
+          suffix: 'vínculos',
+          color: 'teal',
+        },
+        { key: 'product_units', label: 'Unidades por Produto', suffix: 'vínculos', color: 'teal' },
+      ],
+    },
+    {
+      title: 'Módulo IIRGD',
+      icon: 'contactDetails',
+      tables: [
+        { key: 'iirgd_demands', label: 'Demandas IIRGD', suffix: 'demandas', color: 'info' },
+        { key: 'iirgd_citizens', label: 'Cidadãos Cadastrados', suffix: 'cidadãos', color: 'info' },
+        {
+          key: 'iirgd_document_types',
+          label: 'Tipos de Documento',
+          suffix: 'tipos',
+          color: 'info',
+        },
+        {
+          key: 'iirgd_demand_status_history',
+          label: 'Histórico de Status',
+          suffix: 'eventos',
+          color: 'deep-purple',
+        },
+        {
+          key: 'iirgd_settings',
+          label: 'Parâmetros do IIRGD',
+          suffix: 'registros',
+          color: 'deep-purple',
+        },
+      ],
+    },
+    {
+      title: 'Sistema & Auditoria',
+      icon: 'security',
+      tables: [
+        { key: 'profiles', label: 'Perfis de Usuários', suffix: 'usuários', color: 'secondary' },
+        { key: 'logs', label: 'Logs de Auditoria', suffix: 'logs', color: 'warning' },
+      ],
+    },
+  ]
+
   const {
     isGenerating,
     isRestoring,
@@ -35,6 +140,24 @@
   const isConfirmModalOpen = ref(false)
   const restoreResult = ref<RestoreResult | null>(null)
   const fileInputRef = ref<HTMLInputElement | null>(null)
+
+  const totalCurrentRecords = computed(() => {
+    if (!currentCounts.value) return 0
+    return Object.values(currentCounts.value).reduce((acc, val) => acc + (Number(val) || 0), 0)
+  })
+
+  const totalInspectionRecords = computed(() => {
+    if (!inspection.value?.counts) return 0
+    return Object.values(inspection.value.counts).reduce((acc, val) => acc + (Number(val) || 0), 0)
+  })
+
+  const totalRestoredRecords = computed(() => {
+    if (!restoreResult.value?.counts) return 0
+    return Object.values(restoreResult.value.counts).reduce(
+      (acc, val) => acc + (Number(val) || 0),
+      0,
+    )
+  })
 
   const loadCounts = async () => {
     try {
@@ -129,82 +252,39 @@
             </UiAlert>
 
             <div class="mb-4">
-              <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase mb-2">
-                Registros atuais no banco
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                  Registros atuais no banco
+                </div>
+                <UiChip v-if="currentCounts" color="primary" size="xs" variant="soft">
+                  19 tabelas ({{ totalCurrentRecords }} registros)
+                </UiChip>
               </div>
 
               <div v-if="isFetchingCounts && !currentCounts" class="d-flex justify-center py-4">
                 <UiProgressCircular color="primary" indeterminate size="28" width="2" />
               </div>
 
-              <div v-else-if="currentCounts" class="d-flex flex-column ga-2">
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Fornecedores Cadastrados:</span>
-                  <UiChip color="indigo" size="xs" variant="solid"
-                    >{{ currentCounts.suppliers }} fornecedores</UiChip
+              <div v-else-if="currentCounts" class="d-flex flex-column ga-3">
+                <div v-for="cat in BACKUP_CATEGORIES" :key="cat.title" class="border rounded pa-2">
+                  <div
+                    class="text-caption font-weight-bold text-medium-emphasis mb-1 d-flex align-center ga-1"
                   >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Catálogo de Produtos & Unidades:</span>
-                  <UiChip color="teal" size="xs" variant="solid"
-                    >{{ currentCounts.products }} produtos ({{
-                      currentCounts.measurement_units
-                    }}
-                    unidades)</UiChip
-                  >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Demandas Gerais (e itens vinculados):</span>
-                  <UiChip color="primary" size="xs" variant="solid"
-                    >{{ currentCounts.demands }} demandas ({{
-                      currentCounts.demand_products
-                    }}
-                    itens)</UiChip
-                  >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Demandas IIRGD:</span>
-                  <UiChip color="info" size="xs" variant="solid"
-                    >{{ currentCounts.iirgd_demands }} demandas</UiChip
-                  >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Cidadãos IIRGD:</span>
-                  <UiChip color="teal" size="xs" variant="solid"
-                    >{{ currentCounts.iirgd_citizens }} cadastrados</UiChip
-                  >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Perfis de Usuários:</span>
-                  <UiChip color="secondary" size="xs" variant="solid"
-                    >{{ currentCounts.profiles }} usuários</UiChip
-                  >
-                </div>
-                <div
-                  class="d-flex justify-space-between align-center text-body-2 py-1 border-bottom"
-                >
-                  <span>Históricos de Status IIRGD:</span>
-                  <UiChip color="deep-purple" size="xs" variant="solid"
-                    >{{ currentCounts.iirgd_demand_status_history }} eventos</UiChip
-                  >
-                </div>
-                <div class="d-flex justify-space-between align-center text-body-2 py-1">
-                  <span>Logs de Auditoria do Sistema:</span>
-                  <UiChip color="warning" size="xs" variant="solid"
-                    >{{ currentCounts.logs }} registros</UiChip
-                  >
+                    <UiIcon :name="cat.icon" size="14" />
+                    <span>{{ cat.title }}</span>
+                  </div>
+                  <div class="d-flex flex-column ga-1">
+                    <div
+                      v-for="tbl in cat.tables"
+                      :key="tbl.key"
+                      class="d-flex justify-space-between align-center text-body-2 py-1 px-1 border-bottom"
+                    >
+                      <span>{{ tbl.label }}:</span>
+                      <UiChip :color="tbl.color" size="xs" variant="solid">
+                        {{ currentCounts[tbl.key] ?? 0 }} {{ tbl.suffix }}
+                      </UiChip>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -292,43 +372,39 @@
                 </div>
               </UiCard>
 
-              <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis mb-2">
-                Registros a serem restaurados
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
+                  Registros a serem restaurados
+                </div>
+                <UiChip color="primary" label size="xs" variant="outlined">
+                  Total: {{ totalInspectionRecords }} registros
+                </UiChip>
               </div>
-              <div class="d-flex flex-wrap ga-2">
-                <UiChip color="indigo" label size="sm" variant="soft">
-                  Fornecedores: {{ inspection.counts.suppliers || 0 }}
-                </UiChip>
-                <UiChip color="teal" label size="sm" variant="soft">
-                  Produtos: {{ inspection.counts.products || 0 }}
-                </UiChip>
-                <UiChip color="teal" label size="sm" variant="soft">
-                  Unidades: {{ inspection.counts.measurement_units || 0 }}
-                </UiChip>
-                <UiChip color="primary" label size="sm" variant="soft">
-                  Demandas: {{ inspection.counts.demands || 0 }}
-                </UiChip>
-                <UiChip color="primary" label size="sm" variant="soft">
-                  Itens Demanda: {{ inspection.counts.demand_products || 0 }}
-                </UiChip>
-                <UiChip color="primary" label size="sm" variant="soft">
-                  Propostas: {{ inspection.counts.demand_product_bids || 0 }}
-                </UiChip>
-                <UiChip color="info" label size="sm" variant="soft">
-                  Demandas IIRGD: {{ inspection.counts.iirgd_demands || 0 }}
-                </UiChip>
-                <UiChip color="teal" label size="sm" variant="soft">
-                  Cidadãos: {{ inspection.counts.iirgd_citizens || 0 }}
-                </UiChip>
-                <UiChip color="secondary" label size="sm" variant="soft">
-                  Usuários: {{ inspection.counts.profiles || 0 }}
-                </UiChip>
-                <UiChip color="deep-purple" label size="sm" variant="soft">
-                  Histórico IIRGD: {{ inspection.counts.iirgd_demand_status_history || 0 }}
-                </UiChip>
-                <UiChip color="warning" label size="sm" variant="soft">
-                  Logs: {{ inspection.counts.logs || 0 }}
-                </UiChip>
+
+              <div class="d-flex flex-column ga-3">
+                <div
+                  v-for="cat in BACKUP_CATEGORIES"
+                  :key="cat.title"
+                  class="rounded pa-2 bg-surface"
+                  style="border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity))"
+                >
+                  <div class="d-flex align-center ga-1 mb-2">
+                    <UiIcon class="text-medium-emphasis" :name="cat.icon" size="16" />
+                    <span class="text-caption font-weight-bold">{{ cat.title }}</span>
+                  </div>
+                  <div class="d-flex flex-wrap ga-1">
+                    <UiChip
+                      v-for="tbl in cat.tables"
+                      :key="tbl.key"
+                      :color="tbl.color"
+                      label
+                      size="xs"
+                      variant="soft"
+                    >
+                      {{ tbl.label }}: {{ inspection.counts[tbl.key] || 0 }}
+                    </UiChip>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -348,11 +424,8 @@
             <UiAlert v-if="restoreResult" class="mt-4" color="success" size="sm" variant="soft">
               <div class="font-weight-bold mb-1">Restauração concluída com sucesso!</div>
               <div class="text-caption">
-                {{ restoreResult.counts.suppliers || 0 }} fornecedores,
-                {{ restoreResult.counts.products || 0 }} produtos,
-                {{ restoreResult.counts.demands }} demandas,
-                {{ restoreResult.counts.iirgd_demands }} demandas IIRGD e
-                {{ restoreResult.counts.logs }} logs foram processados.
+                {{ totalRestoredRecords }} registros processados com sucesso em 19 tabelas do
+                sistema.
               </div>
             </UiAlert>
 
