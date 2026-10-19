@@ -2,6 +2,8 @@ import type { Database } from '~/types/database.types'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?: { id: string; name: string } | null
+  measurement_units?: Database['public']['Tables']['measurement_units']['Row'] | null
+  measurement_unit_aliases?: Database['public']['Tables']['measurement_unit_aliases']['Row'] | null
   demand_product_bids?: (Database['public']['Tables']['demand_product_bids']['Row'] & {
     suppliers?: Database['public']['Tables']['suppliers']['Row'] | null
   })[]
@@ -16,7 +18,7 @@ export const useDemandProducts = () => {
     const { data, error } = await supabase
       .from('demand_products')
       .select(
-        '*, product:products(*, expense_natures(id, name)), measurement_units(*), demand_product_bids(*, suppliers(*))',
+        '*, product:products(*, expense_natures(id, name)), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
       )
       .eq('demand_id', demandId)
       .order('sort_order', { ascending: true })
@@ -65,6 +67,10 @@ export const useDemandProducts = () => {
     newProductCatBec?: number | null
     selectedProductId?: string | null
     finalUnitId: string
+    selectedAliasId?: string | null
+    isSuggestingAlias?: boolean
+    suggestedAliasCode?: number | null
+    suggestedAliasName?: string | null
     itemQuantity: number
     itemReferencePrice: number
   }) => {
@@ -172,6 +178,79 @@ export const useDemandProducts = () => {
 
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
+    // 2. Resolve alternative record (alias)
+    let finalAliasId: string | null = null
+
+    if (params.isSuggestingAlias) {
+      if (!params.suggestedAliasCode || !params.suggestedAliasName?.trim()) {
+        throw new Error('Código e Nome do registro alternativo (alias) são obrigatórios.')
+      }
+
+      const { data: existingAlias } = await supabase
+        .from('measurement_unit_aliases')
+        .select('id, name')
+        .eq('code', params.suggestedAliasCode)
+        .maybeSingle()
+
+      if (existingAlias) {
+        finalAliasId = existingAlias.id
+      } else {
+        const { data: newAlias, error: aliasErr } = await supabase
+          .from('measurement_unit_aliases')
+          .insert({
+            code: params.suggestedAliasCode,
+            name: params.suggestedAliasName.trim(),
+            is_pending: true,
+          })
+          .select('id')
+          .single()
+
+        if (aliasErr) throw aliasErr
+        finalAliasId = newAlias.id
+        await logAction(
+          'CREATE_PENDING_ALIAS',
+          `Registro alternativo sugerido via Demanda: ${params.suggestedAliasName} (${params.suggestedAliasCode})`,
+          user.value?.id,
+        )
+      }
+
+      if (finalAliasId && finalUnitId) {
+        const { data: existingLink } = await supabase
+          .from('measurement_unit_alias_links')
+          .select('id')
+          .eq('unit_id', finalUnitId)
+          .eq('alias_id', finalAliasId)
+          .maybeSingle()
+
+        if (!existingLink) {
+          const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
+            unit_id: finalUnitId,
+            alias_id: finalAliasId,
+          })
+          if (linkErr && linkErr.code !== '23505') throw linkErr
+        }
+      }
+    } else if (params.selectedAliasId) {
+      finalAliasId = params.selectedAliasId
+
+      if (finalAliasId && finalUnitId) {
+        const { data: existingLink } = await supabase
+          .from('measurement_unit_alias_links')
+          .select('id')
+          .eq('unit_id', finalUnitId)
+          .eq('alias_id', finalAliasId)
+          .maybeSingle()
+
+        if (!existingLink) {
+          const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
+            unit_id: finalUnitId,
+            alias_id: finalAliasId,
+          })
+          if (linkErr && linkErr.code !== '23505') throw linkErr
+        }
+      }
+    }
+
     // 3. Ensure standard 'Unidade' is linked to product
     const { data: defaultUnit } = await supabase
       .from('measurement_units')
@@ -232,6 +311,7 @@ export const useDemandProducts = () => {
         demand_id: params.demandId,
         product_id: finalProductId,
         unit_id: finalUnitId,
+        alias_id: finalAliasId,
         quantity: params.itemQuantity,
         reference_price: params.itemReferencePrice,
       })
@@ -247,7 +327,9 @@ export const useDemandProducts = () => {
   const fetchDemandItemDetails = async (itemId: string) => {
     const { data, error } = await supabase
       .from('demand_products')
-      .select('*, product:products(*), measurement_units(*), demand:demands(status)')
+      .select(
+        '*, product:products(*), measurement_units(*), measurement_unit_aliases(*), demand:demands(status)',
+      )
       .eq('id', itemId)
       .single()
 
@@ -264,6 +346,7 @@ export const useDemandProducts = () => {
     bidInterval?: number | null
     bidIntervalType?: 'percentage' | 'monetary'
     finalUnitId: string
+    finalAliasId?: string | null
   }) => {
     const finalUnitId = params.finalUnitId
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
@@ -284,10 +367,29 @@ export const useDemandProducts = () => {
       }
     }
 
+    // Link alias to unit if alias is provided
+    if (params.finalAliasId && finalUnitId) {
+      const { data: existingLink } = await supabase
+        .from('measurement_unit_alias_links')
+        .select('id')
+        .eq('unit_id', finalUnitId)
+        .eq('alias_id', params.finalAliasId)
+        .maybeSingle()
+
+      if (!existingLink) {
+        const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
+          unit_id: finalUnitId,
+          alias_id: params.finalAliasId,
+        })
+        if (linkErr && linkErr.code !== '23505') throw linkErr
+      }
+    }
+
     // Update the demand_product record
     const updatePayload: Database['public']['Tables']['demand_products']['Update'] = {
       quantity: params.quantity,
       unit_id: finalUnitId,
+      alias_id: params.finalAliasId !== undefined ? params.finalAliasId : undefined,
       reference_price: params.referencePrice,
     }
 

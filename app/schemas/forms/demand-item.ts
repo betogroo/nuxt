@@ -10,6 +10,7 @@ export const demandItemFormSchema = z.object({
     })
     .min(0.0001, 'A quantidade deve ser maior que zero.'),
   searchUnitText: z.string().trim().min(1, 'A unidade de medida é obrigatória.'),
+  aliasId: z.string().nullable().optional(),
   reference_price: z.number().nullable().optional(),
   bid_interval: z.number().optional(),
   bid_interval_type: z.enum(['percentage', 'monetary']).optional(),

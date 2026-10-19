@@ -79,7 +79,7 @@ mockNuxtImport('useExpenseNatures', () => () => ({
 }))
 
 describe('Demand Items Page', () => {
-  it('should resolve final unit and call saveToDemand', async () => {
+  it('should resolve final unit and call saveToDemand with alias', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
@@ -88,19 +88,49 @@ describe('Demand Items Page', () => {
     vm.isNewProductMode = false
     vm.selectedProductId = 'prod-1'
     vm.selectedUnitSearch = 'cx'
+    vm.selectedAliasId = 'alias-1'
     vm.itemQuantity = 10
     vm.itemReferencePrice = 5.5
 
     // Mock allMeasurementUnits
-    vm.allMeasurementUnits = [{ id: 'unit-1', name: 'CX' }]
+    vm.allMeasurementUnits = [
+      {
+        id: 'unit-1',
+        name: 'CX',
+        measurement_unit_aliases: [{ id: 'alias-1', code: 38, name: 'Caixa' }],
+      },
+    ]
 
-    // Since useDemandProducts mock returns a resolved addDemandItemWithDependencies,
-    // it should not throw 'allAliases is not defined'.
     await vm.saveToDemand()
 
     expect(vm.saveError).toBe('')
+    expect(mockAddDemandItemWithDependencies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectedAliasId: 'alias-1',
+      }),
+    )
   })
-  it('should successfully open the Add Modal without errors', async () => {
+
+  it('should fail saveToDemand if alias is not selected or suggested', async () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.demandId = '123'
+    vm.isNewProductMode = false
+    vm.selectedProductId = 'prod-1'
+    vm.selectedUnitSearch = 'cx'
+    vm.selectedAliasId = null
+    vm.isSuggestingAlias = false
+    vm.itemQuantity = 10
+    vm.itemReferencePrice = 5.5
+
+    await vm.saveToDemand()
+
+    expect(vm.saveError).toBe('Selecione ou sugira um registro alternativo (alias) para o item.')
+  })
+
+  it('should successfully open the Add Modal without errors and reset alias state', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
@@ -111,6 +141,10 @@ describe('Demand Items Page', () => {
     // Check state
     expect(vm.isModalOpen).toBe(true)
     expect(vm.selectedUnitSearch).toBe('')
+    expect(vm.selectedAliasId).toBe(null)
+    expect(vm.isSuggestingAlias).toBe(false)
+    expect(vm.suggestedAliasCode).toBe(null)
+    expect(vm.suggestedAliasName).toBe('')
     expect(vm.selectedProductId).toBe(null)
     expect(vm.newProductClassId).toBe(null)
     expect(vm.isSuggestingClass).toBe(false)
@@ -119,7 +153,8 @@ describe('Demand Items Page', () => {
     expect(vm.newProductCatMat).toBe(null)
     expect(vm.newProductCatBec).toBe(null)
   })
-  it('should pass product class, cat_mat, and cat_bec fields to addDemandItemWithDependencies when in new product mode', async () => {
+
+  it('should pass product class, cat_mat, cat_bec, and suggested alias to addDemandItemWithDependencies', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
@@ -133,6 +168,9 @@ describe('Demand Items Page', () => {
     vm.newProductCatMat = 123456
     vm.newProductCatBec = 78910
     vm.selectedUnitSearch = 'un'
+    vm.isSuggestingAlias = true
+    vm.suggestedAliasCode = 201
+    vm.suggestedAliasName = 'Pacote 100'
     vm.itemQuantity = 2
     vm.itemReferencePrice = 150
 
@@ -148,6 +186,9 @@ describe('Demand Items Page', () => {
         isSuggestingClass: false,
         newProductCatMat: 123456,
         newProductCatBec: 78910,
+        isSuggestingAlias: true,
+        suggestedAliasCode: 201,
+        suggestedAliasName: 'Pacote 100',
       }),
     )
   })

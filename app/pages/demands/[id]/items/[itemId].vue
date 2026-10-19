@@ -3,6 +3,7 @@
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
   import { demandBidFormSchema } from '~/schemas/forms/demand-bid'
   import type { SupplierRow } from '~/composables/useSuppliers'
+  import type { UnitRow } from '~/composables/useMeasurementUnits'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -40,6 +41,7 @@
   } = useZodForm(demandItemFormSchema, {
     quantity: 1,
     searchUnitText: '',
+    aliasId: null,
     reference_price: null,
     bid_interval: 3,
     bid_interval_type: 'percentage',
@@ -47,12 +49,23 @@
 
   const [eiQuantity, eiQuantityProps] = eiDefine('quantity')
   const [eiSearchUnit, eiSearchUnitProps] = eiDefine('searchUnitText')
+  const [eiAliasId, eiAliasIdProps] = eiDefine('aliasId')
   const [eiReferencePrice, eiReferencePriceProps] = eiDefine('reference_price')
   const [eiBidInterval, eiBidIntervalProps] = eiDefine('bid_interval')
   const [eiBidIntervalType, eiBidIntervalTypeProps] = eiDefine('bid_interval_type')
   const availableUnits = ref<
     Array<{ id: string; name: string; displayName?: string; legacy_alias?: string | null }>
   >([])
+  const unitsDataWithAliases = ref<UnitRow[]>([])
+
+  const availableAliases = computed(() => {
+    if (!eiSearchUnit.value) return []
+    const query = eiSearchUnit.value.trim().toLowerCase()
+    const unit = unitsDataWithAliases.value.find(
+      (u) => u.name.trim().toLowerCase() === query || u.id === eiSearchUnit.value,
+    )
+    return unit?.measurement_unit_aliases || []
+  })
 
   const openEditModal = async () => {
     if (!item.value) return
@@ -60,6 +73,7 @@
       values: {
         quantity: Number(item.value.quantity),
         searchUnitText: item.value.measurement_units?.name || '',
+        aliasId: item.value.alias_id || null,
         reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
         bid_interval: item.value.bid_interval ? Number(item.value.bid_interval) : 3,
         bid_interval_type: item.value.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
@@ -70,6 +84,7 @@
     const unitsData = await fetchUnits()
 
     if (unitsData) {
+      unitsDataWithAliases.value = unitsData
       availableUnits.value = unitsData.map((u) => ({
         ...u,
         displayName: u.legacy_alias ? `${u.name} (Legado: ${u.legacy_alias})` : u.name,
@@ -97,6 +112,7 @@
         bidInterval: values.bid_interval,
         bidIntervalType: values.bid_interval_type,
         finalUnitId: await resolveOrCreateUnit(values.searchUnitText || ''),
+        finalAliasId: values.aliasId || null,
       })
 
       await refresh()
@@ -327,6 +343,20 @@
               />
               <UiChip class="ml-2" color="secondary" size="sm" variant="solid">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
+              </UiChip>
+              <UiChip
+                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
+                class="ml-2"
+                color="info"
+                size="sm"
+                variant="soft"
+              >
+                Alias:
+                {{
+                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
+                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
+                    : ''
+                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
               </UiChip>
             </div>
             <UiSpacer />
@@ -602,6 +632,22 @@
         class="mb-4"
         :error-messages="eiErrors.searchUnitText"
         :items="availableUnits"
+      />
+
+      <UiAutocomplete
+        v-if="availableAliases.length > 0"
+        v-model="eiAliasId"
+        v-bind="eiAliasIdProps"
+        class="mb-4"
+        clearable
+        :error-messages="eiErrors.aliasId"
+        :item-title="(item: Record<string, unknown>) => `${item.code} - ${item.name}`"
+        item-value="id"
+        :items="availableAliases"
+        label="Registro Alternativo (Alias)"
+        placeholder="Selecione o registro alternativo..."
+        size="md"
+        variant="outline"
       />
 
       <template #actions>

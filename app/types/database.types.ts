@@ -60,6 +60,9 @@ export type Database = {
       }
       demand_products: {
         Row: {
+          alias_code_snapshot: number | null
+          alias_id: string | null
+          alias_name_snapshot: string | null
           bid_interval: number | null
           bid_interval_type: string | null
           created_at: string
@@ -77,6 +80,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alias_code_snapshot?: number | null
+          alias_id?: string | null
+          alias_name_snapshot?: string | null
           bid_interval?: number | null
           bid_interval_type?: string | null
           created_at?: string
@@ -94,6 +100,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alias_code_snapshot?: number | null
+          alias_id?: string | null
+          alias_name_snapshot?: string | null
           bid_interval?: number | null
           bid_interval_type?: string | null
           created_at?: string
@@ -111,6 +120,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'demand_products_alias_id_fkey'
+            columns: ['alias_id']
+            isOneToOne: false
+            referencedRelation: 'measurement_unit_aliases'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'demand_products_demand_id_fkey'
             columns: ['demand_id']

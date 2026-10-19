@@ -296,9 +296,65 @@
   const newProductCatMat = ref<number | null>(null)
   const newProductCatBec = ref<number | null>(null)
 
+  // Alias state for adding items
+  const selectedAliasId = ref<string | null>(null)
+  const isSuggestingAlias = ref(false)
+  const suggestedAliasCode = ref<number | null>(null)
+  const suggestedAliasName = ref('')
+
+  const currentSelectedUnit = computed(() => {
+    if (!selectedUnitSearch.value) return null
+    const query =
+      typeof selectedUnitSearch.value === 'string'
+        ? selectedUnitSearch.value.trim().toLowerCase()
+        : (((selectedUnitSearch.value as Record<string, unknown>)?.name as string) || '')
+            .trim()
+            .toLowerCase()
+
+    return (
+      allMeasurementUnits.value?.find(
+        (u) => u.name.trim().toLowerCase() === query || u.id === selectedUnitSearch.value,
+      ) || null
+    )
+  })
+
+  const availableAliasesForCurrentUnit = computed(() => {
+    return currentSelectedUnit.value?.measurement_unit_aliases || []
+  })
+
+  watch(
+    () => selectedUnitSearch.value,
+    () => {
+      const aliases = availableAliasesForCurrentUnit.value
+      if (aliases.length > 0) {
+        if (!aliases.some((a) => a.id === selectedAliasId.value)) {
+          selectedAliasId.value = aliases[0]?.id || null
+        }
+      } else {
+        selectedAliasId.value = null
+      }
+    },
+  )
+
+  watch(
+    () => allMeasurementUnits.value,
+    () => {
+      if (selectedUnitSearch.value && !selectedAliasId.value && !isSuggestingAlias.value) {
+        const aliases = availableAliasesForCurrentUnit.value
+        if (aliases.length > 0) {
+          selectedAliasId.value = aliases[0]?.id || null
+        }
+      }
+    },
+  )
+
   const openAddModal = () => {
     selectedProductId.value = null
     selectedUnitSearch.value = ''
+    selectedAliasId.value = null
+    isSuggestingAlias.value = false
+    suggestedAliasCode.value = null
+    suggestedAliasName.value = ''
     itemQuantity.value = 1
     itemReferencePrice.value = null
     searchProductText.value = ''
@@ -342,6 +398,18 @@
     isSaving.value = true
     saveError.value = ''
 
+    if (isSuggestingAlias.value) {
+      if (!suggestedAliasCode.value || !suggestedAliasName.value?.trim()) {
+        saveError.value = 'Código e Nome do registro alternativo (alias) são obrigatórios.'
+        isSaving.value = false
+        return
+      }
+    } else if (!selectedAliasId.value) {
+      saveError.value = 'Selecione ou sugira um registro alternativo (alias) para o item.'
+      isSaving.value = false
+      return
+    }
+
     try {
       await addDemandItemWithDependencies({
         demandId: demandId as string,
@@ -360,10 +428,15 @@
 
         selectedProductId: selectedProductId.value,
         finalUnitId: await resolveFinalUnitId(),
+        selectedAliasId: selectedAliasId.value,
+        isSuggestingAlias: isSuggestingAlias.value,
+        suggestedAliasCode: suggestedAliasCode.value ? Number(suggestedAliasCode.value) : null,
+        suggestedAliasName: suggestedAliasName.value,
         itemQuantity: Number(itemQuantity.value),
         itemReferencePrice: Number(itemReferencePrice.value),
       })
 
+      await refreshAllMeasurementUnits()
       await refreshProducts()
       await refreshItems()
       closeModal()
@@ -391,6 +464,7 @@
     bid_interval: 3,
     bid_interval_type: 'percentage',
     searchUnitText: '',
+    aliasId: null,
   })
 
   const [_eiProductId] = eiDefine('productId')
@@ -399,6 +473,7 @@
   const [eiBidInterval, eiBidIntervalProps] = eiDefine('bid_interval')
   const [eiBidIntervalType, eiBidIntervalTypeProps] = eiDefine('bid_interval_type')
   const [eiSearchUnitText, eiSearchUnitTextProps] = eiDefine('searchUnitText')
+  const [eiAliasId, eiAliasIdProps] = eiDefine('aliasId')
 
   const editItemFormMeta = ref({
     id: '',
@@ -414,6 +489,15 @@
     )
   })
 
+  const editItemAvailableAliases = computed(() => {
+    if (!eiSearchUnitText.value) return []
+    const query = eiSearchUnitText.value.trim().toLowerCase()
+    const unit = allMeasurementUnits.value?.find(
+      (u) => u.name.trim().toLowerCase() === query || u.id === eiSearchUnitText.value,
+    )
+    return unit?.measurement_unit_aliases || []
+  })
+
   const openEditItemModal = (item: {
     id: string
     quantity: number | string
@@ -423,7 +507,9 @@
     product_id?: string
     product?: { id?: string; name: string }
     unit_id?: string | null
+    alias_id?: string | null
     measurement_units?: { id?: string; name?: string } | null
+    measurement_unit_aliases?: { id?: string; code?: number; name?: string } | null
   }) => {
     eiReset({
       values: {
@@ -437,6 +523,7 @@
           (item.unit_id
             ? allMeasurementUnits.value?.find((u) => u.id === item.unit_id)?.name || ''
             : ''),
+        aliasId: item.alias_id || null,
       },
     })
     editItemFormMeta.value = {
@@ -460,6 +547,7 @@
         bidInterval: values.bid_interval,
         bidIntervalType: values.bid_interval_type,
         finalUnitId: await resolveOrCreateUnit(values.searchUnitText),
+        finalAliasId: values.aliasId || null,
       })
 
       await refreshAllMeasurementUnits()
@@ -887,6 +975,20 @@
               >
                 {{ item.unit_name_snapshot || item.measurement_units.name }}
               </UiChip>
+              <UiChip
+                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
+                class="flex-shrink-0"
+                color="info"
+                size="xs"
+                variant="soft"
+              >
+                Alias:
+                {{
+                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
+                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
+                    : ''
+                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
+              </UiChip>
               <UiActionButton
                 color="grey"
                 icon="externalLink"
@@ -1158,6 +1260,22 @@
         :items="editItemAvailableUnits"
       />
 
+      <UiAutocomplete
+        v-if="editItemAvailableAliases.length > 0"
+        v-model="eiAliasId"
+        v-bind="eiAliasIdProps"
+        class="mb-4"
+        clearable
+        :error-messages="eiErrors.aliasId"
+        :item-title="(item: Record<string, unknown>) => `${item.code} - ${item.name}`"
+        item-value="id"
+        :items="editItemAvailableAliases"
+        label="Registro Alternativo (Alias)"
+        placeholder="Selecione o registro alternativo..."
+        size="md"
+        variant="outline"
+      />
+
       <template #actions>
         <UiButton :disabled="editItemSaving" variant="ghost" @click="isEditItemModalOpen = false"
           >Cancelar</UiButton
@@ -1219,6 +1337,60 @@
           class="mt-3"
           :items="availableUnitsForSelectedProduct"
         />
+
+        <div v-if="selectedProductId" class="mt-2 mb-2">
+          <UiSwitch
+            v-model="isSuggestingAlias"
+            class="mb-2"
+            color="primary"
+            label="Não encontrou o registro alternativo? Sugerir novo"
+          />
+
+          <UiAutocomplete
+            v-if="!isSuggestingAlias"
+            v-model="selectedAliasId"
+            class="mb-2"
+            clearable
+            :item-title="(item: Record<string, unknown>) => `${item.code} - ${item.name}`"
+            item-value="id"
+            :items="availableAliasesForCurrentUnit"
+            label="Registro Alternativo (Alias) *"
+            placeholder="Selecione o registro alternativo..."
+            size="md"
+            variant="outline"
+          >
+            <template #no-data>
+              <div class="pa-3 text-center">
+                <span class="text-grey mr-2">Nenhum alias vinculado a esta unidade.</span>
+                <UiButton
+                  color="primary"
+                  size="sm"
+                  variant="soft"
+                  @click="isSuggestingAlias = true"
+                >
+                  Sugerir novo
+                </UiButton>
+              </div>
+            </template>
+          </UiAutocomplete>
+
+          <div v-else class="d-flex ga-3 mb-2">
+            <UiInput
+              v-model.number="suggestedAliasCode"
+              class="flex-grow-0"
+              label="Código do Alias *"
+              placeholder="Ex: 36"
+              style="max-width: 150px"
+              type="number"
+            />
+            <UiInput
+              v-model="suggestedAliasName"
+              class="flex-grow-1"
+              label="Nome do Registro Alternativo *"
+              placeholder="Ex: Cento"
+            />
+          </div>
+        </div>
 
         <UiInput
           v-if="selectedProductId"
@@ -1317,7 +1489,61 @@
           <UiInput v-model="suggestedClassName" label="Nome da Classe" />
         </div>
 
-        <MeasurementUnitSelect v-model="selectedUnitSearch" class="mb-4" />
+        <MeasurementUnitSelect v-model="selectedUnitSearch" class="mb-3" />
+
+        <div class="mb-4">
+          <UiSwitch
+            v-model="isSuggestingAlias"
+            class="mb-2"
+            color="primary"
+            label="Não encontrou o registro alternativo? Sugerir novo"
+          />
+
+          <UiAutocomplete
+            v-if="!isSuggestingAlias"
+            v-model="selectedAliasId"
+            class="mb-2"
+            clearable
+            :item-title="(item: Record<string, unknown>) => `${item.code} - ${item.name}`"
+            item-value="id"
+            :items="availableAliasesForCurrentUnit"
+            label="Registro Alternativo (Alias) *"
+            placeholder="Selecione o registro alternativo..."
+            size="md"
+            variant="outline"
+          >
+            <template #no-data>
+              <div class="pa-3 text-center">
+                <span class="text-grey mr-2">Nenhum alias vinculado a esta unidade.</span>
+                <UiButton
+                  color="primary"
+                  size="sm"
+                  variant="soft"
+                  @click="isSuggestingAlias = true"
+                >
+                  Sugerir novo
+                </UiButton>
+              </div>
+            </template>
+          </UiAutocomplete>
+
+          <div v-else class="d-flex ga-3 mb-2">
+            <UiInput
+              v-model.number="suggestedAliasCode"
+              class="flex-grow-0"
+              label="Código do Alias *"
+              placeholder="Ex: 36"
+              style="max-width: 150px"
+              type="number"
+            />
+            <UiInput
+              v-model="suggestedAliasName"
+              class="flex-grow-1"
+              label="Nome do Registro Alternativo *"
+              placeholder="Ex: Cento"
+            />
+          </div>
+        </div>
 
         <UiInput v-model.number="itemQuantity" label="Quantidade" min="1" type="number" />
         <UiInput

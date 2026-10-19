@@ -202,14 +202,21 @@ export const useMeasurementUnits = () => {
 
   const updateAliasAsAdmin = async (
     id: string,
-    payload: { code: number; name: string; unitIds?: string[] },
+    payload: { code: number; name: string; unitIds?: string[]; is_pending?: boolean },
   ) => {
+    const updateData: { code: number; name: string; is_pending?: boolean } = {
+      code: payload.code,
+      name: payload.name,
+    }
+    if (payload.is_pending !== undefined) {
+      updateData.is_pending = payload.is_pending
+    } else {
+      updateData.is_pending = false
+    }
+
     const { error } = await supabase
       .from('measurement_unit_aliases')
-      .update({
-        code: payload.code,
-        name: payload.name,
-      })
+      .update(updateData)
       .eq('id', id)
     if (error) throw error
 

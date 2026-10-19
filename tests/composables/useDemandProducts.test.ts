@@ -335,4 +335,254 @@ describe('useDemandProducts', () => {
       cat_bec: 778899,
     })
   })
+
+  it('addDemandItemWithDependencies should link existing selected alias to unit and demand item', async () => {
+    const { addDemandItemWithDependencies } = useDemandProducts()
+
+    const mockAliasLinkInsert = vi.fn().mockResolvedValue({ error: null })
+    const mockDemandProductsInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'measurement_unit_alias_links') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: mockAliasLinkInsert,
+        }
+      }
+      if (table === 'product_units') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        }
+      }
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+          insert: mockDemandProductsInsert,
+        }
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+          ilike: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      }
+    })
+
+    await addDemandItemWithDependencies({
+      demandId: 'demand-alias-1',
+      isNewProductMode: false,
+      selectedProductId: 'prod-alias',
+      finalUnitId: 'unit-cx-1',
+      selectedAliasId: 'alias-cento-1',
+      itemQuantity: 2,
+      itemReferencePrice: 50,
+    })
+
+    expect(mockAliasLinkInsert).toHaveBeenCalledWith({
+      unit_id: 'unit-cx-1',
+      alias_id: 'alias-cento-1',
+    })
+
+    expect(mockDemandProductsInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        demand_id: 'demand-alias-1',
+        product_id: 'prod-alias',
+        unit_id: 'unit-cx-1',
+        alias_id: 'alias-cento-1',
+        quantity: 2,
+        reference_price: 50,
+      }),
+    )
+  })
+
+  it('addDemandItemWithDependencies should register pending alias when isSuggestingAlias is true', async () => {
+    const { addDemandItemWithDependencies } = useDemandProducts()
+
+    const mockInsertAlias = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'alias-new-99', code: 99, name: 'Fardo 20' },
+          error: null,
+        }),
+      }),
+    })
+    const mockAliasLinkInsert = vi.fn().mockResolvedValue({ error: null })
+    const mockDemandProductsInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'measurement_unit_aliases') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+          insert: mockInsertAlias,
+        }
+      }
+      if (table === 'measurement_unit_alias_links') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: mockAliasLinkInsert,
+        }
+      }
+      if (table === 'product_units') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        }
+      }
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+          insert: mockDemandProductsInsert,
+        }
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+          ilike: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      }
+    })
+
+    await addDemandItemWithDependencies({
+      demandId: 'demand-alias-2',
+      isNewProductMode: false,
+      selectedProductId: 'prod-alias',
+      finalUnitId: 'unit-fardo',
+      isSuggestingAlias: true,
+      suggestedAliasCode: 99,
+      suggestedAliasName: 'Fardo 20',
+      itemQuantity: 3,
+      itemReferencePrice: 100,
+    })
+
+    expect(mockInsertAlias).toHaveBeenCalledWith({
+      code: 99,
+      name: 'Fardo 20',
+      is_pending: true,
+    })
+
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'CREATE_PENDING_ALIAS',
+      expect.stringContaining('Fardo 20 (99)'),
+      'user-1',
+    )
+
+    expect(mockAliasLinkInsert).toHaveBeenCalledWith({
+      unit_id: 'unit-fardo',
+      alias_id: 'alias-new-99',
+    })
+
+    expect(mockDemandProductsInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        alias_id: 'alias-new-99',
+        demand_id: 'demand-alias-2',
+      }),
+    )
+  })
+
+  it('updateDemandItemWithDependencies should update alias_id and link to unit', async () => {
+    const { updateDemandItemWithDependencies } = useDemandProducts()
+
+    const mockAliasLinkInsert = vi.fn().mockResolvedValue({ error: null })
+    const mockUpdate = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'measurement_unit_alias_links') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: mockAliasLinkInsert,
+        }
+      }
+      if (table === 'demand_products') {
+        return {
+          update: mockUpdate,
+        }
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+        insert: vi.fn().mockResolvedValue({ error: null }),
+      }
+    })
+
+    await updateDemandItemWithDependencies({
+      itemId: 'item-update-1',
+      demandId: 'demand-1',
+      quantity: 15,
+      referencePrice: 20,
+      finalUnitId: 'unit-box',
+      finalAliasId: 'alias-38',
+    })
+
+    expect(mockAliasLinkInsert).toHaveBeenCalledWith({
+      unit_id: 'unit-box',
+      alias_id: 'alias-38',
+    })
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        quantity: 15,
+        unit_id: 'unit-box',
+        alias_id: 'alias-38',
+        reference_price: 20,
+      }),
+    )
+  })
 })
