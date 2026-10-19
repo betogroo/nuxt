@@ -363,11 +363,18 @@ describe('Demand Items Page', () => {
     expect(vm.disputeSummary.winnersCount).toBe(1)
   })
 
-  it('calls handleGenerateReport without error', () => {
+  it('opens report modal on handleGenerateReport and triggers CSV export', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
 
-    expect(() => vm.handleGenerateReport()).not.toThrow()
+    expect(vm.isReportModalOpen).toBe(false)
+    vm.handleGenerateReport()
+    expect(vm.isReportModalOpen).toBe(true)
+
+    expect(vm.disputeReportData).toBeDefined()
+    expect(vm.isExportingCsv).toBe(false)
+    await vm.handleExportCsv()
+    expect(vm.isExportingCsv).toBe(false)
   })
 })

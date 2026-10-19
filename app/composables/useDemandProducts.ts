@@ -1,7 +1,11 @@
 import type { Database } from '~/types/database.types'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
-  product?: { id: string; name: string } | null
+  product?:
+    | (Database['public']['Tables']['products']['Row'] & {
+        expense_natures?: Database['public']['Tables']['expense_natures']['Row'] | null
+      })
+    | null
   measurement_units?: Database['public']['Tables']['measurement_units']['Row'] | null
   measurement_unit_aliases?: Database['public']['Tables']['measurement_unit_aliases']['Row'] | null
   demand_product_bids?: (Database['public']['Tables']['demand_product_bids']['Row'] & {
