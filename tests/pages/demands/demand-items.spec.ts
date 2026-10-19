@@ -3,11 +3,14 @@ import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemsPage from '~/pages/demands/[id]/index.vue'
 
-const { mockProductsList, mockDemandData, mockUpdateDemandDb } = vi.hoisted(() => ({
-  mockProductsList: { value: [] as unknown[] },
-  mockDemandData: { value: null as Record<string, unknown> | null },
-  mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
-}))
+const { mockProductsList, mockDemandData, mockDemandProducts, mockUpdateDemandDb } = vi.hoisted(
+  () => ({
+    mockProductsList: { value: [] as unknown[] },
+    mockDemandData: { value: null as Record<string, unknown> | null },
+    mockDemandProducts: { value: [] as unknown[] },
+    mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
+  }),
+)
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
   if (key === 'all-active-products') {
@@ -15,6 +18,9 @@ mockNuxtImport('useAsyncData', () => (key: string) => {
   }
   if (key === 'demand-demand-123') {
     return { data: mockDemandData, pending: { value: false }, refresh: vi.fn() }
+  }
+  if (key === 'demand-items-demand-123') {
+    return { data: mockDemandProducts, pending: { value: false }, refresh: vi.fn() }
   }
   return { data: { value: [] }, pending: { value: false }, refresh: vi.fn() }
 })
@@ -260,5 +266,61 @@ describe('Demand Items Page', () => {
       }),
     )
     expect(vm.editBiddingNoticeModal.isOpen.value).toBe(false)
+  })
+
+  it('correctly calculates disputeSummary for winners, failed, and deserted items', () => {
+    mockDemandProducts.value = [
+      // 1. Deserted item: 0 bids
+      {
+        id: 'item-deserted',
+        product: { name: 'Item Sem Lances' },
+        quantity: 5,
+        demand_product_bids: [],
+      },
+      // 2. Failed item: only disqualified bids
+      {
+        id: 'item-failed',
+        product: { name: 'Item Fracassado' },
+        quantity: 2,
+        demand_product_bids: [
+          {
+            id: 'bid-f1',
+            amount: 50,
+            status: 'disqualified',
+          },
+        ],
+      },
+      // 3. Winner item: classified bid
+      {
+        id: 'item-winner',
+        product: { name: 'Item com Vencedor' },
+        quantity: 10,
+        demand_product_bids: [
+          {
+            id: 'bid-w1',
+            amount: 15,
+            status: 'classified',
+            suppliers: { company_name: 'Fornecedor Campeão' },
+          },
+        ],
+      },
+    ]
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.disputeSummary.total).toBe(3)
+    expect(vm.disputeSummary.desertedCount).toBe(1)
+    expect(vm.disputeSummary.failedCount).toBe(1)
+    expect(vm.disputeSummary.winnersCount).toBe(1)
+  })
+
+  it('calls handleGenerateReport without error', () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(() => vm.handleGenerateReport()).not.toThrow()
   })
 })

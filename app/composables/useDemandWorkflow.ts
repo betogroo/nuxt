@@ -216,31 +216,12 @@ export function useDemandWorkflow(
         payload.dispute_date = disputeDate
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
-        const supabase = useSupabaseClient()
-        const { data: bids } = await supabase
-          .from('product_bids')
-          .select('id, amount, product_id, is_winner')
-          .in('product_id', items.value?.map((i) => i.id) || [])
-
-        if (items.value) {
-          for (const item of items.value) {
-            const itemBids = bids?.filter((b) => b.product_id === item.id) || []
-            const hasWinner = itemBids.some((b) => b.is_winner)
-            const isFailed =
-              itemBids.length === 0 ||
-              !itemBids.some((b) => b.amount <= (item.reference_price || 0))
-
-            if (!hasWinner && !isFailed) {
-              throw new Error(
-                `O produto "${item.products?.name || 'Sem nome'}" não possui um vencedor válido e nem foi declarado fracassado. Todos os produtos devem ser resolvidos para avançar para a Documentação.`,
-              )
-            }
-          }
+        if (!items.value || items.value.length === 0) {
+          throw new Error('Não é possível finalizar a disputa de uma demanda sem itens.')
         }
-
-        if (!advanceModal.payload.value.contract_number)
-          throw new Error('O número da contratação (Contrato/Ata) é obrigatório.')
-        payload.contract_number = advanceModal.payload.value.contract_number
+        if (advanceModal.payload.value.contract_number) {
+          payload.contract_number = advanceModal.payload.value.contract_number
+        }
       }
 
       await advanceDemandStatus(

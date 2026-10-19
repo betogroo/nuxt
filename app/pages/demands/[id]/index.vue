@@ -477,6 +477,33 @@
     openAdvanceModal,
     confirmAdvanceStatus,
   } = useDemandWorkflow(demandId, demand, items)
+
+  const toast = useToast()
+
+  const disputeSummary = computed(() => {
+    if (!items.value) return { winnersCount: 0, failedCount: 0, desertedCount: 0, total: 0 }
+    let winnersCount = 0
+    let failedCount = 0
+    let desertedCount = 0
+
+    for (const item of items.value) {
+      const res = getItemDisputeResult(item)
+      if (res.outcome === 'winner') winnersCount++
+      else if (res.outcome === 'failed') failedCount++
+      else if (res.outcome === 'deserted') desertedCount++
+    }
+
+    return {
+      winnersCount,
+      failedCount,
+      desertedCount,
+      total: items.value.length,
+    }
+  })
+
+  const handleGenerateReport = () => {
+    toast.info('Geração do Relatório da Disputa em elaboração.')
+  }
 </script>
 
 <template>
@@ -495,6 +522,15 @@
           }}</UiChip>
 
           <div class="d-flex flex-wrap gap-3 ml-auto">
+            <UiButton
+              v-if="['homologation', 'completed'].includes(demand.status)"
+              color="primary"
+              prepend-icon="fileText"
+              variant="outlined"
+              @click="handleGenerateReport"
+            >
+              Gerar Relatório da Disputa
+            </UiButton>
             <UiButton
               v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
               color="orange-darken-3"
@@ -521,6 +557,15 @@
               <template #activator="{ props }">
                 <span v-bind="props" class="d-inline-block">
                   <UiButton
+                    v-if="demand.status === 'dispute'"
+                    color="success"
+                    prepend-icon="checkCircle"
+                    @click="openAdvanceModal"
+                  >
+                    Finalizar Disputa
+                  </UiButton>
+                  <UiButton
+                    v-else
                     color="success"
                     :disabled="isPlanningIncomplete"
                     prepend-icon="arrowRightBold"
@@ -735,6 +780,25 @@
       <template #header>
         <div class="d-flex flex-wrap align-center w-100 ga-2">
           <span>Produtos na Demanda</span>
+          <div
+            v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
+            class="d-flex ga-1 align-center flex-wrap"
+          >
+            <UiChip v-if="disputeSummary.winnersCount > 0" color="success" size="xs" variant="soft">
+              {{ disputeSummary.winnersCount }} com vencedor
+            </UiChip>
+            <UiChip v-if="disputeSummary.failedCount > 0" color="error" size="xs" variant="soft">
+              {{ disputeSummary.failedCount }} fracassado(s)
+            </UiChip>
+            <UiChip
+              v-if="disputeSummary.desertedCount > 0"
+              color="warning"
+              size="xs"
+              variant="soft"
+            >
+              {{ disputeSummary.desertedCount }} deserto(s)
+            </UiChip>
+          </div>
           <div class="ml-auto">
             <UiButton
               v-if="demand?.status === 'quotation'"
@@ -768,6 +832,7 @@
             { text: 'Qtd.', value: 'quantity', align: 'center' },
             { text: 'Valor Ref.', value: 'reference_price', align: 'right', nowrap: true },
             { text: 'Total Ref.', value: 'total_reference', align: 'right', nowrap: true },
+            { text: 'Vencedor / Situação', value: 'winner_status', nowrap: true },
             { text: 'Melhor Lance', value: 'best_bid', align: 'right', nowrap: true },
             { text: 'Total Final', value: 'total_final', align: 'right', nowrap: true },
             { text: 'Ações', value: 'actions', align: 'right', nowrap: true },
@@ -779,14 +844,18 @@
             <div class="d-flex align-center justify-center ga-1">
               <UiActionButton
                 action="moveUp"
-                :disabled="index === 0 || isReordering"
+                :disabled="index === 0 || isReordering || demand?.status !== 'quotation'"
                 size="xs"
                 tooltip="Mover para cima"
                 @click="moveItemUp(index)"
               />
               <UiActionButton
                 action="moveDown"
-                :disabled="index === (items?.length || 0) - 1 || isReordering"
+                :disabled="
+                  index === (items?.length || 0) - 1 ||
+                  isReordering ||
+                  demand?.status !== 'quotation'
+                "
                 size="xs"
                 tooltip="Mover para baixo"
                 @click="moveItemDown(index)"
@@ -852,22 +921,83 @@
               }}
             </span>
           </template>
+          <template #item-winner_status="{ item }">
+            <template v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'">
+              <div
+                v-if="getItemDisputeResult(item).outcome === 'winner'"
+                class="d-flex flex-column"
+                style="line-height: 1.25"
+              >
+                <NuxtLink
+                  v-if="getItemDisputeResult(item).winningBid?.suppliers"
+                  class="text-decoration-none text-primary font-weight-bold text-truncate"
+                  style="max-width: 200px"
+                  :title="getItemDisputeResult(item).winnerSupplierName"
+                  :to="`/demands/${demandId}/suppliers/${getItemDisputeResult(item).winningBid.supplier_id}`"
+                >
+                  {{ getItemDisputeResult(item).winnerSupplierName }}
+                </NuxtLink>
+                <span
+                  v-else
+                  class="text-truncate font-weight-medium"
+                  style="max-width: 200px"
+                  :title="getItemDisputeResult(item).winnerSupplierName"
+                >
+                  {{ getItemDisputeResult(item).winnerSupplierName }}
+                </span>
+                <div class="mt-1">
+                  <UiChip color="success" label size="xs" variant="soft"> Vencedor </UiChip>
+                </div>
+              </div>
+              <UiChip
+                v-else-if="getItemDisputeResult(item).outcome === 'failed'"
+                color="error"
+                label
+                size="xs"
+                variant="flat"
+              >
+                <UiIcon name="close" size="12" start />
+                Fracassado
+              </UiChip>
+              <UiChip
+                v-else-if="getItemDisputeResult(item).outcome === 'deserted'"
+                color="warning"
+                label
+                size="xs"
+                variant="flat"
+              >
+                <UiIcon name="alert" size="12" start />
+                Deserto
+              </UiChip>
+            </template>
+            <span v-else class="text-grey">-</span>
+          </template>
           <template #item-best_bid="{ item }">
-            <template v-if="getWinningBid(item.demand_product_bids)">
+            <template v-if="getItemDisputeResult(item).outcome === 'winner'">
               <span class="text-success font-weight-bold">
-                {{ formatCurrency(getWinningBid(item.demand_product_bids)!.amount) }}
+                {{ formatCurrency(getItemDisputeResult(item).winningAmount) }}
+              </span>
+            </template>
+            <template v-else-if="demand?.status !== 'planning' && demand?.status !== 'quotation'">
+              <span
+                v-if="getItemDisputeResult(item).outcome === 'failed'"
+                class="text-error font-italic text-caption"
+              >
+                Sem vencedor
+              </span>
+              <span
+                v-else-if="getItemDisputeResult(item).outcome === 'deserted'"
+                class="text-warning font-italic text-caption"
+              >
+                Sem propostas
               </span>
             </template>
             <span v-else class="text-grey">-</span>
           </template>
           <template #item-total_final="{ item }">
-            <template v-if="getWinningBid(item.demand_product_bids) && item.quantity != null">
+            <template v-if="getItemDisputeResult(item).outcome === 'winner'">
               <span class="text-success font-weight-bold">
-                {{
-                  formatCurrency(
-                    getItemSubtotal(getWinningBid(item.demand_product_bids)!.amount, item.quantity),
-                  )
-                }}
+                {{ formatCurrency(getItemDisputeResult(item).totalFinal) }}
               </span>
             </template>
             <span v-else class="text-grey">-</span>
@@ -1225,7 +1355,11 @@
     <UiModal
       v-model="advanceModal.isOpen.value"
       max-width="500px"
-      :title="`Avançar para: ${formatDemandStatus(targetStatus)}`"
+      :title="
+        targetStatus === 'homologation'
+          ? 'Finalizar Fase de Disputa'
+          : `Avançar para: ${formatDemandStatus(targetStatus)}`
+      "
       transparent-header
     >
       <UiAlert v-if="advanceModal.error.value" class="mb-4" size="sm" type="error" variant="soft">
@@ -1315,10 +1449,40 @@
       </div>
 
       <div v-if="targetStatus === 'homologation'">
+        <UiAlert class="mb-4" color="info" size="sm" variant="soft">
+          Ao finalizar a disputa, os lances e desclassificações serão congelados e o processo
+          entrará na fase de Homologação.
+        </UiAlert>
+
+        <p class="text-body-2 mb-3">
+          Confira o resumo da apuração dos itens da demanda antes de confirmar:
+        </p>
+
+        <UiCard class="pa-3 mb-3 bg-surface-variant" variant="soft">
+          <div class="d-flex flex-column ga-2">
+            <div class="d-flex align-center justify-space-between text-body-2">
+              <span>Total de Itens:</span>
+              <strong>{{ disputeSummary.total }}</strong>
+            </div>
+            <div class="d-flex align-center justify-space-between text-body-2 text-success">
+              <span>Itens com Vencedor:</span>
+              <strong>{{ disputeSummary.winnersCount }}</strong>
+            </div>
+            <div class="d-flex align-center justify-space-between text-body-2 text-error">
+              <span>Itens Fracassados:</span>
+              <strong>{{ disputeSummary.failedCount }}</strong>
+            </div>
+            <div class="d-flex align-center justify-space-between text-body-2 text-warning">
+              <span>Itens Desertos:</span>
+              <strong>{{ disputeSummary.desertedCount }}</strong>
+            </div>
+          </div>
+        </UiCard>
+
         <UiInput
           v-model="advanceModal.payload.value.contract_number"
+          hint="Opcional. Se já possuir número de Contrato/Ata."
           label="Número da Contratação (Contrato/Ata)"
-          required
         />
       </div>
 
@@ -1337,8 +1501,9 @@
           color="success"
           :loading="advanceModal.isSaving.value"
           @click="confirmAdvanceStatus"
-          >Confirmar Avanço</UiButton
         >
+          {{ targetStatus === 'homologation' ? 'Sim, Finalizar Disputa' : 'Confirmar Avanço' }}
+        </UiButton>
       </template>
     </UiModal>
 

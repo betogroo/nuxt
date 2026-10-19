@@ -265,4 +265,49 @@ describe('useDemandWorkflow', () => {
       expect(workflow.advanceModal.isOpen.value).toBe(false)
     })
   })
+
+  describe('Advancing from Dispute to Homologation (Finalizing Dispute)', () => {
+    beforeEach(() => {
+      demandRef.value!.status = 'dispute'
+    })
+
+    it('sets targetStatus to homologation when opening advance modal in dispute status', () => {
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+
+      expect(workflow.targetStatus.value).toBe('homologation')
+      expect(workflow.advanceModal.isOpen.value).toBe(true)
+    })
+
+    it('fails to finalize dispute if items are missing', async () => {
+      itemsRef.value = []
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toContain(
+        'Não é possível finalizar a disputa de uma demanda sem itens.',
+      )
+      expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+    })
+
+    it('successfully finalizes dispute and advances to homologation', async () => {
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+      workflow.advanceModal.payload.value.contract_number = 'CTR-2026/01'
+
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toBe('')
+      expect(mockAdvanceDemandStatus).toHaveBeenCalledWith(
+        'demand-123',
+        'homologation',
+        expect.objectContaining({
+          contract_number: 'CTR-2026/01',
+        }),
+      )
+      expect(workflow.advanceModal.isOpen.value).toBe(false)
+    })
+  })
 })

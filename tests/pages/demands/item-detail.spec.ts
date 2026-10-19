@@ -50,6 +50,13 @@ const {
 }))
 
 mockNuxtImport('definePageMeta', () => vi.fn())
+mockNuxtImport('useToast', () => () => ({
+  warning: vi.fn(),
+  confirm: vi.fn().mockResolvedValue(true),
+  success: vi.fn(),
+  error: vi.fn(),
+  info: vi.fn(),
+}))
 mockNuxtImport('useRoute', () => () => ({
   params: { id: 'demand-1', itemId: 'item-1' },
 }))
@@ -193,5 +200,24 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     vm.openBidModal()
     expect(vm.isBidModalOpen).toBe(true)
     expect(vm.bidError).toBe('')
+  })
+
+  it('locks all bid mutations when demand status is homologation (finalized dispute)', async () => {
+    mockItemData.value.demand.status = 'homologation'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.canRegisterBids).toBe(false)
+    expect(vm.canManageBidStatus).toBe(false)
+    expect(vm.canRemoveBid).toBe(false)
+
+    // Attempting to remove bid should be blocked
+    await vm.confirmRemoveBid('bid-1')
+    expect(mockRemoveBid).not.toHaveBeenCalled()
+
+    // Attempting to open bid modal should be blocked
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(false)
   })
 })

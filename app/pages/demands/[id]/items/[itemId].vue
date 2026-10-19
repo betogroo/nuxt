@@ -128,11 +128,11 @@
     return idx >= 0 ? idx + 1 : null
   }
 
-  const canManageBidStatus = computed(() =>
-    ['quotation', 'dispute', 'homologation'].includes(item.value?.demand?.status || ''),
-  )
+  const canManageBidStatus = computed(() => item.value?.demand?.status === 'dispute')
 
   const canRegisterBids = computed(() => item.value?.demand?.status === 'dispute')
+
+  const canRemoveBid = computed(() => item.value?.demand?.status === 'dispute')
 
   const suppliers = ref<SupplierRow[]>([])
   const fetchSuppliersList = async () => {
@@ -286,14 +286,21 @@
     }
   })
 
+  const toast = useToast()
+
   const confirmRemoveBid = async (bidId: string) => {
-    if (!confirm('Deseja realmente remover este lance?')) return
+    if (!canRemoveBid.value) {
+      toast.warning('Não é possível remover lances após o encerramento da fase de disputa.')
+      return
+    }
+    if (!(await toast.confirm('Deseja realmente remover este lance?'))) return
     try {
       await removeBid(bidId)
       await refreshBids()
+      toast.success('Lance removido com sucesso.')
     } catch (err) {
       console.error('Erro ao remover lance', err)
-      alert('Erro ao remover lance.')
+      toast.error('Erro ao remover lance.')
     }
   }
 </script>
@@ -360,6 +367,14 @@
                   variant="soft"
                 >
                   Lances permitidos apenas na Disputa
+                </UiChip>
+                <UiChip
+                  v-else-if="item?.demand?.status !== 'dispute'"
+                  color="info"
+                  size="sm"
+                  variant="soft"
+                >
+                  Disputa finalizada (Somente leitura)
                 </UiChip>
               </div>
             </template>
@@ -455,9 +470,7 @@
                     @click="handleClassifyBid(bid.id)"
                   />
                   <UiActionButton
-                    v-if="
-                      item?.demand?.status === 'quotation' || item?.demand?.status === 'dispute'
-                    "
+                    v-if="canRemoveBid"
                     action="delete"
                     tooltip="Remover Lance"
                     @click="confirmRemoveBid(bid.id)"

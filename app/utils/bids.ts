@@ -86,3 +86,58 @@ export function getItemSubtotal(
   const qty = quantity && quantity > 0 ? quantity : 1
   return numericAmount * qty
 }
+
+export type ItemDisputeOutcome = 'winner' | 'failed' | 'deserted'
+
+export interface ItemDisputeResult<T extends BidItem = BidItem> {
+  outcome: ItemDisputeOutcome
+  label: string
+  color: 'success' | 'error' | 'warning'
+  winningBid: T | null
+  winnerSupplierName?: string
+  winningAmount?: number
+  totalFinal?: number
+}
+
+/**
+ * Apura o resultado do item na disputa:
+ * - 'deserted' (Deserto): nenhum lance registrado (0 lances).
+ * - 'failed' (Fracassado): lances registrados, mas todos foram desclassificados.
+ * - 'winner' (Vencedor): possui pelo menos um lance classificado (o menor valor vence).
+ */
+export function getItemDisputeResult<
+  T extends BidItem & { suppliers?: { company_name?: string; name?: string } | null },
+>(item: { quantity?: number | null; demand_product_bids?: T[] | null }): ItemDisputeResult<T> {
+  const bids = item.demand_product_bids || []
+  if (!bids.length) {
+    return {
+      outcome: 'deserted',
+      label: 'Deserto',
+      color: 'warning',
+      winningBid: null,
+    }
+  }
+
+  const winning = getWinningBid(bids)
+  if (!winning) {
+    return {
+      outcome: 'failed',
+      label: 'Fracassado',
+      color: 'error',
+      winningBid: null,
+    }
+  }
+
+  const numericAmount = Number(winning.amount) || 0
+  const qty = Number(item.quantity) || 1
+  return {
+    outcome: 'winner',
+    label: 'Vencedor',
+    color: 'success',
+    winningBid: winning,
+    winnerSupplierName:
+      winning.suppliers?.company_name || winning.suppliers?.name || 'Fornecedor Vencedor',
+    winningAmount: numericAmount,
+    totalFinal: numericAmount * qty,
+  }
+}
