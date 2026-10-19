@@ -2009,7 +2009,7 @@
           v-if="disputeReportData.groups.length === 0"
           class="py-6 text-center text-medium-emphasis"
         >
-          Nenhum item adicionado a esta demanda.
+          Nenhum item vencedor homologado nesta demanda.
         </div>
 
         <!-- Tabela Estruturada do Relatório -->
@@ -2038,45 +2038,22 @@
                 </tr>
 
                 <!-- Linhas dos Itens do Grupo -->
-                <tr
-                  v-for="item in group.items"
-                  :key="item.id"
-                  class="border-top"
-                  :style="{
-                    backgroundColor:
-                      item.outcome === 'failed'
-                        ? 'rgba(var(--v-theme-error), 0.04)'
-                        : item.outcome === 'deserted'
-                          ? 'rgba(var(--v-theme-warning), 0.04)'
-                          : undefined,
-                  }"
-                >
+                <tr v-for="item in group.items" :key="item.id" class="border-top">
                   <td class="pa-2 text-left text-medium-emphasis">{{ item.natureza }}</td>
                   <td class="pa-2 text-left font-weight-medium">{{ item.itemBec }}</td>
                   <td class="pa-2 text-left">
                     <span>{{ item.especificacao }}</span>
-                    <UiChip
-                      v-if="item.outcome !== 'winner'"
-                      class="ml-2"
-                      :color="item.outcome === 'failed' ? 'error' : 'warning'"
-                      size="x-small"
-                      variant="tonal"
-                    >
-                      {{ item.outcomeLabel }}
-                    </UiChip>
                   </td>
                   <td class="pa-2 text-left">{{ item.unidadeBec }}</td>
                   <td class="pa-2 text-right font-weight-medium">{{ item.qtd }}</td>
                   <td class="pa-2 text-right">
-                    <span v-if="item.outcome === 'winner' && item.valorOfertado != null">
+                    <span v-if="item.valorOfertado != null">
                       {{ formatCurrency(item.valorOfertado) }}
                     </span>
-                    <span v-else class="text-medium-emphasis text-caption">
-                      {{ item.outcomeLabel }}
-                    </span>
+                    <span v-else class="text-medium-emphasis text-caption"> - </span>
                   </td>
                   <td class="pa-2 text-right font-weight-medium">
-                    <span v-if="item.outcome === 'winner' && item.valorFinal != null">
+                    <span v-if="item.valorFinal != null">
                       {{ formatCurrency(item.valorFinal) }}
                     </span>
                     <span v-else class="text-medium-emphasis text-caption"> - </span>

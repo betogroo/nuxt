@@ -133,9 +133,12 @@ export function generateDisputeReportData(
     }
   })
 
+  // Filter: only winner items are displayed in the report table & exported to CSV
+  const winnerItems = processedItems.filter((item) => item.outcome === 'winner')
+
   // Group items by Natureza
   const groupsMap = new Map<string, DisputeReportItem[]>()
-  for (const item of processedItems) {
+  for (const item of winnerItems) {
     if (!groupsMap.has(item.natureza)) {
       groupsMap.set(item.natureza, [])
     }

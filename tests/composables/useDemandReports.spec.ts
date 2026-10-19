@@ -351,11 +351,12 @@ describe('useDemandReports', () => {
       expect(report.desertedCount).toBe(1)
       expect(report.failedCount).toBe(1)
 
-      // Subtotals:
+      // Subtotals & Filtering:
       // Group 1 (339030): item 1 = 10 * 25.5 = 255; item 2 = 5 * 10 = 50 => subtotal = 305
-      // Group 2 (339039): deserted + failed => subtotal = 0
-      // Grand Total: 305 + 0 = 305
-      expect(report.groups).toHaveLength(2)
+      // Natureza 339039 has only deserted & failed items, so it is NOT included in report.groups!
+      // Total groups should be 1
+      // Grand Total: 305
+      expect(report.groups).toHaveLength(1)
 
       const group30 = report.groups.find((g) => g.natureza === '339030')!
       expect(group30).toBeDefined()
@@ -363,11 +364,8 @@ describe('useDemandReports', () => {
       expect(group30.subtotalValorFinal).toBe(305.0)
       expect(group30.hasDesertedOrFailed).toBe(false)
 
-      const group39 = report.groups.find((g) => g.natureza === '339039')!
-      expect(group39).toBeDefined()
-      expect(group39.items).toHaveLength(2)
-      expect(group39.subtotalValorFinal).toBe(0)
-      expect(group39.hasDesertedOrFailed).toBe(true)
+      const group39 = report.groups.find((g) => g.natureza === '339039')
+      expect(group39).toBeUndefined()
 
       expect(report.grandTotalValorFinal).toBe(305.0)
 
