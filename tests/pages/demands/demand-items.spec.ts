@@ -116,8 +116,10 @@ describe('Demand Items Page', () => {
     expect(vm.isSuggestingClass).toBe(false)
     expect(vm.suggestedClassId).toBe('')
     expect(vm.suggestedClassName).toBe('')
+    expect(vm.newProductCatMat).toBe(null)
+    expect(vm.newProductCatBec).toBe(null)
   })
-  it('should pass product class fields to addDemandItemWithDependencies when in new product mode', async () => {
+  it('should pass product class, cat_mat, and cat_bec fields to addDemandItemWithDependencies when in new product mode', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
@@ -128,6 +130,8 @@ describe('Demand Items Page', () => {
     vm.newProductExpenseNatureId = '33903000'
     vm.newProductClassId = '5915'
     vm.isSuggestingClass = false
+    vm.newProductCatMat = 123456
+    vm.newProductCatBec = 78910
     vm.selectedUnitSearch = 'un'
     vm.itemQuantity = 2
     vm.itemReferencePrice = 150
@@ -142,6 +146,8 @@ describe('Demand Items Page', () => {
         newProductExpenseNatureId: '33903000',
         newProductClassId: '5915',
         isSuggestingClass: false,
+        newProductCatMat: 123456,
+        newProductCatBec: 78910,
       }),
     )
   })

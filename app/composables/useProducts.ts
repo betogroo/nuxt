@@ -66,9 +66,23 @@ export const useProducts = () => {
     return { data: (data as ProductRow[]) || [], count: count || 0 }
   }
 
+  const handleProductDbError = (error: { code?: string; message?: string; details?: string }) => {
+    if (error.code === '23505') {
+      const detail = `${error.message || ''} ${error.details || ''}`
+      if (detail.includes('cat_mat')) {
+        return new Error('Já existe um produto cadastrado com este código CATMAT.')
+      }
+      if (detail.includes('cat_bec')) {
+        return new Error('Já existe um produto cadastrado com este código CATBEC.')
+      }
+      return new Error('Já existe um produto cadastrado com este identificador único.')
+    }
+    return error
+  }
+
   const createProduct = async (payload: Database['public']['Tables']['products']['Insert']) => {
     const { error } = await supabase.from('products').insert(payload)
-    if (error) throw error
+    if (error) throw handleProductDbError(error)
 
     await logAction('CREATE_PRODUCT', `Novo produto criado: ${payload.name}`, user.value?.id)
   }
@@ -78,7 +92,7 @@ export const useProducts = () => {
     payload: Database['public']['Tables']['products']['Update'],
   ) => {
     const { error } = await supabase.from('products').update(payload).eq('id', id)
-    if (error) throw error
+    if (error) throw handleProductDbError(error)
 
     await logAction('UPDATE_PRODUCT', `Produto atualizado: ${payload.name}`, user.value?.id)
   }

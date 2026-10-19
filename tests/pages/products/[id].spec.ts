@@ -10,16 +10,21 @@ const mockDemandsData = ref<Array<Record<string, unknown>>>([])
 const mockProfile = ref<{ role: string } | null>({ role: ROLES.ADMIN })
 
 const mockToggleProductStatus = vi.fn()
+const mockUpdateProduct = vi.fn().mockResolvedValue({})
 const mockToast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }
 const mockRefresh = vi.fn()
 
 const buildProduct = (overrides: Record<string, unknown> = {}) => ({
   id: 'prod-1',
   name: 'Papel A4',
+  cat_mat: 123456,
+  cat_bec: 78910,
   is_active: true,
   created_at: '2026-01-15T08:00:00Z',
   updated_at: '2026-02-15T08:00:00Z',
   created_by: 'user-1',
+  expense_nature_id: '339030',
+  product_class_id: '7510',
   expense_natures: { id: '339030', name: 'Material de Consumo' },
   product_classes: { id: '7510', name: 'Material de Escritório' },
   profiles: { name: 'Maria' },
@@ -56,11 +61,24 @@ mockNuxtImport('useProducts', () => () => ({
   fetchProductById: vi.fn(),
   fetchProductDemands: vi.fn(),
   toggleProductStatus: mockToggleProductStatus,
+  updateProduct: mockUpdateProduct,
   addProductUnit: vi.fn(),
   removeProductUnit: vi.fn(),
 }))
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAllActiveUnits: vi.fn().mockResolvedValue([]),
+}))
+mockNuxtImport('useExpenseNatures', () => () => ({
+  fetchAllActiveExpenseNatures: vi
+    .fn()
+    .mockResolvedValue([{ id: '339030', name: 'Material de Consumo' }]),
+  registerPendingExpenseNature: vi.fn(),
+}))
+mockNuxtImport('useProductClasses', () => () => ({
+  fetchAllActiveProductClasses: vi
+    .fn()
+    .mockResolvedValue([{ id: '7510', name: 'Material de Escritório' }]),
+  registerPendingProductClass: vi.fn(),
 }))
 mockNuxtImport('useAsyncData', () => {
   return (key: string) => {
@@ -97,6 +115,10 @@ const stubs = {
   UiSlideYTransition: { template: '<div><slot /></div>' },
   UiProgressCircular: { template: '<div class="ui-progress" />' },
   NuxtLink: { template: '<a><slot /></a>' },
+  UiModal: { template: '<div class="ui-modal"><slot /><slot name="actions" /></div>' },
+  UiInput: true,
+  UiSwitch: true,
+  UiAutocomplete: { props: ['items'], template: '<div class="ui-autocomplete"><slot /></div>' },
   UiTable: {
     props: ['headers', 'items'],
     template: `
@@ -122,10 +144,14 @@ describe('Product Detail Page', () => {
     mockProfile.value = { role: ROLES.ADMIN }
   })
 
-  it('renders name, status, nature and class', () => {
+  it('renders name, status, nature, class, CATMAT and CATBEC', () => {
     const wrapper = mountPage()
     const text = wrapper.text()
     expect(text).toContain('Papel A4')
+    expect(text).toContain('339030')
+    expect(text).toContain('7510')
+    expect(text).toContain('123456')
+    expect(text).toContain('78910')
     expect(text).toContain('ATIVO')
     expect(text).toContain('Material de Consumo')
     expect(text).toContain('Classe do Produto')
@@ -199,5 +225,32 @@ describe('Product Detail Page', () => {
     mockProductData.value = null
     const wrapper = mountPage()
     expect(wrapper.text()).toContain('Produto não encontrado.')
+  })
+
+  it('allows admin to open edit modal and save updated CATMAT and CATBEC', async () => {
+    const wrapper = mountPage()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditModal()
+    expect(vm.editModal.isOpen.value).toBe(true)
+    expect(vm.editName).toBe('Papel A4')
+    expect(vm.editCatMat).toBe(123456)
+    expect(vm.editCatBec).toBe(78910)
+
+    vm.editCatMat = 998877
+    vm.editCatBec = 554433
+
+    await vm.saveProductEdit()
+
+    expect(mockUpdateProduct).toHaveBeenCalledWith(
+      'prod-1',
+      expect.objectContaining({
+        name: 'Papel A4',
+        cat_mat: 998877,
+        cat_bec: 554433,
+      }),
+    )
+    expect(vm.editModal.isOpen.value).toBe(false)
   })
 })

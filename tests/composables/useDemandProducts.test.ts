@@ -96,11 +96,13 @@ describe('useDemandProducts', () => {
       itemReferencePrice: 12.5,
     })
 
-    // Verify product inserted with product_class_id
+    // Verify product inserted with product_class_id and null cat_mat/cat_bec
     expect(mockInsertProduct).toHaveBeenCalledWith({
       name: 'Novo Produto Teste',
       expense_nature_id: '33903000',
       product_class_id: '5915',
+      cat_mat: null,
+      cat_bec: null,
     })
 
     // Verify logAction for product creation
@@ -226,6 +228,8 @@ describe('useDemandProducts', () => {
       name: 'Outro Produto',
       expense_nature_id: '33903000',
       product_class_id: '9999',
+      cat_mat: null,
+      cat_bec: null,
     })
   })
 
@@ -259,5 +263,76 @@ describe('useDemandProducts', () => {
         itemReferencePrice: 10,
       }),
     ).rejects.toThrow('Unidade de medida inválida.')
+  })
+
+  it('addDemandItemWithDependencies should pass cat_mat and cat_bec to product insert', async () => {
+    const { addDemandItemWithDependencies } = useDemandProducts()
+
+    const mockInsert = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'prod-cat', name: 'Notebook' },
+          error: null,
+        }),
+      }),
+    })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'products') {
+        return { insert: mockInsert }
+      }
+      if (table === 'measurement_units') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'unit-un' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'product_units' || table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        }
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      }
+    })
+
+    await addDemandItemWithDependencies({
+      demandId: 'demand-cat',
+      isNewProductMode: true,
+      newProductName: 'Notebook',
+      newProductExpenseNatureId: '44905200',
+      newProductClassId: '7020',
+      newProductCatMat: 445566,
+      newProductCatBec: 778899,
+      finalUnitId: 'unit-un',
+      itemQuantity: 10,
+      itemReferencePrice: 3500,
+    })
+
+    expect(mockInsert).toHaveBeenCalledWith({
+      name: 'Notebook',
+      expense_nature_id: '44905200',
+      product_class_id: '7020',
+      cat_mat: 445566,
+      cat_bec: 778899,
+    })
   })
 })

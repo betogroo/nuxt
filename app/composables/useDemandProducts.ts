@@ -61,6 +61,8 @@ export const useDemandProducts = () => {
     isSuggestingClass?: boolean
     suggestedClassId?: string
     suggestedClassName?: string
+    newProductCatMat?: number | null
+    newProductCatBec?: number | null
     selectedProductId?: string | null
     finalUnitId: string
     itemQuantity: number
@@ -141,11 +143,25 @@ export const useDemandProducts = () => {
           name: params.newProductName,
           expense_nature_id: expenseNatureId,
           product_class_id: productClassId,
+          cat_mat: params.newProductCatMat || null,
+          cat_bec: params.newProductCatBec || null,
         })
         .select()
         .single()
 
-      if (prodError) throw prodError
+      if (prodError) {
+        if (prodError.code === '23505') {
+          const detail = `${prodError.message || ''} ${prodError.details || ''}`
+          if (detail.includes('cat_mat')) {
+            throw new Error('Já existe um produto cadastrado com este código CATMAT.')
+          }
+          if (detail.includes('cat_bec')) {
+            throw new Error('Já existe um produto cadastrado com este código CATBEC.')
+          }
+          throw new Error('Já existe um produto cadastrado com este código identificador.')
+        }
+        throw prodError
+      }
       await logAction(
         'CREATE_PRODUCT',
         `Novo produto criado via demanda: ${newProd.name}`,

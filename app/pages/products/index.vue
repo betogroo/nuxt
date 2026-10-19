@@ -67,6 +67,8 @@
     is_suggesting_class: false,
     suggested_class_id: '',
     suggested_class_name: '',
+    cat_mat: null,
+    cat_bec: null,
     is_active: true,
   })
 
@@ -79,6 +81,8 @@
   const [isSuggestingClass, isSuggestingClassProps] = defineField('is_suggesting_class')
   const [suggestedClassId, suggestedClassIdProps] = defineField('suggested_class_id')
   const [suggestedClassName, suggestedClassNameProps] = defineField('suggested_class_name')
+  const [catMat, catMatProps] = defineField('cat_mat')
+  const [catBec, catBecProps] = defineField('cat_bec')
   const [isActive, isActiveProps] = defineField('is_active')
   const editingId = ref('')
 
@@ -97,6 +101,8 @@
         is_suggesting_class: false,
         suggested_class_id: '',
         suggested_class_name: '',
+        cat_mat: null,
+        cat_bec: null,
         is_active: true,
       },
     })
@@ -116,6 +122,8 @@
         is_suggesting_class: false,
         suggested_class_id: '',
         suggested_class_name: '',
+        cat_mat: product.cat_mat ?? null,
+        cat_bec: product.cat_bec ?? null,
         is_active: product.is_active,
       },
     })
@@ -154,6 +162,8 @@
         name: values.name,
         expense_nature_id: finalExpenseNatureId,
         product_class_id: finalProductClassId,
+        cat_mat: values.cat_mat ?? null,
+        cat_bec: values.cat_bec ?? null,
         is_active: values.is_active,
       }
 
@@ -247,6 +257,8 @@
       <UiTable
         :headers="[
           { text: 'Nome', value: 'name' },
+          { text: 'CATMAT', value: 'cat_mat', align: 'center' },
+          { text: 'CATBEC', value: 'cat_bec', align: 'center' },
           { text: 'Natureza de Despesa', value: 'expense_nature' },
           { text: 'Classe', value: 'product_class' },
           { text: 'Status', value: 'is_active', align: 'center' },
@@ -262,6 +274,18 @@
           >
             {{ item.name }}
           </NuxtLink>
+        </template>
+        <template #item-cat_mat="{ item }">
+          <UiChip v-if="item.cat_mat" color="primary" label size="xs" variant="soft">
+            {{ item.cat_mat }}
+          </UiChip>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-cat_bec="{ item }">
+          <UiChip v-if="item.cat_bec" color="secondary" label size="xs" variant="soft">
+            {{ item.cat_bec }}
+          </UiChip>
+          <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-expense_nature="{ item }">
           <div v-if="item.expense_natures" class="d-flex align-center gap-2">
@@ -331,9 +355,29 @@
       <UiInput
         v-model="name"
         v-bind="nameProps"
+        class="mb-3"
         :error-messages="errors.name"
         label="Nome do Produto *"
       />
+
+      <div class="d-flex ga-3 mb-3">
+        <UiInput
+          v-model.number="catMat"
+          v-bind="catMatProps"
+          :error-messages="errors.cat_mat"
+          label="CATMAT (opcional)"
+          placeholder="Ex: 123456"
+          type="number"
+        />
+        <UiInput
+          v-model.number="catBec"
+          v-bind="catBecProps"
+          :error-messages="errors.cat_bec"
+          label="CATBEC (opcional)"
+          placeholder="Ex: 78910"
+          type="number"
+        />
+      </div>
 
       <UiSwitch
         v-model="isSuggestingNature"

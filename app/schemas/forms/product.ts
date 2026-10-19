@@ -17,6 +17,39 @@ export const productFormSchema = z
     suggested_class_id: z.string().trim().optional(),
     suggested_class_name: z.string().trim().optional(),
 
+    // Catalog Identification Codes
+    cat_mat: z
+      .union([
+        z.number({ invalid_type_error: 'O CATMAT deve ser numérico.' }),
+        z.string().regex(/^\d+$/, 'O CATMAT deve conter apenas números.'),
+        z.literal(''),
+        z.null(),
+      ])
+      .optional()
+      .transform((val) => {
+        if (val === '' || val === null || val === undefined) return null
+        return Number(val)
+      })
+      .refine((val) => val === null || (Number.isInteger(val) && val > 0), {
+        message: 'O CATMAT deve ser um número inteiro positivo.',
+      }),
+
+    cat_bec: z
+      .union([
+        z.number({ invalid_type_error: 'O CATBEC deve ser numérico.' }),
+        z.string().regex(/^\d+$/, 'O CATBEC deve conter apenas números.'),
+        z.literal(''),
+        z.null(),
+      ])
+      .optional()
+      .transform((val) => {
+        if (val === '' || val === null || val === undefined) return null
+        return Number(val)
+      })
+      .refine((val) => val === null || (Number.isInteger(val) && val > 0), {
+        message: 'O CATBEC deve ser um número inteiro positivo.',
+      }),
+
     is_active: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {

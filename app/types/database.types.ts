@@ -652,6 +652,8 @@ export type Database = {
       }
       products: {
         Row: {
+          cat_bec: number | null
+          cat_mat: number | null
           created_at: string
           created_by: string | null
           expense_nature_id: string
@@ -662,6 +664,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cat_bec?: number | null
+          cat_mat?: number | null
           created_at?: string
           created_by?: string | null
           expense_nature_id: string
@@ -672,6 +676,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cat_bec?: number | null
+          cat_mat?: number | null
           created_at?: string
           created_by?: string | null
           expense_nature_id?: string

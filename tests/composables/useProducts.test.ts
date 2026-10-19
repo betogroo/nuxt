@@ -164,6 +164,59 @@ describe('useProducts', () => {
     )
   })
 
+  it('updateProduct should update product and log action', async () => {
+    mockSupabase.from.mockReturnValue({
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      }),
+    })
+
+    const { updateProduct } = useProducts()
+    await updateProduct('prod-1', { name: 'Prod Atualizado' } as unknown as Parameters<
+      typeof updateProduct
+    >[1])
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('products')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'UPDATE_PRODUCT',
+      'Produto atualizado: Prod Atualizado',
+      'user-123',
+    )
+  })
+
+  it('createProduct and updateProduct throw friendly error on CATMAT or CATBEC duplicates', async () => {
+    mockSupabase.from.mockReturnValue({
+      insert: vi.fn().mockResolvedValue({
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint "products_cat_mat_key"',
+        },
+      }),
+      update: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          error: {
+            code: '23505',
+            message: 'duplicate key value violates unique constraint "products_cat_bec_key"',
+          },
+        }),
+      }),
+    })
+
+    const { createProduct, updateProduct } = useProducts()
+
+    await expect(
+      createProduct({ name: 'Prod Dup', cat_mat: 123 } as unknown as Parameters<
+        typeof createProduct
+      >[0]),
+    ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
+
+    await expect(
+      updateProduct('p1', { name: 'Prod Dup', cat_bec: 456 } as unknown as Parameters<
+        typeof updateProduct
+      >[1]),
+    ).rejects.toThrow('Já existe um produto cadastrado com este código CATBEC.')
+  })
+
   it('toggleProductStatus should update is_active status', async () => {
     mockSupabase.from.mockReturnValue({
       update: vi.fn().mockReturnThis(),

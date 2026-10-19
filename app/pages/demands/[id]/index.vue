@@ -293,6 +293,8 @@
   const isSuggestingClass = ref(false)
   const suggestedClassId = ref('')
   const suggestedClassName = ref('')
+  const newProductCatMat = ref<number | null>(null)
+  const newProductCatBec = ref<number | null>(null)
 
   const openAddModal = () => {
     selectedProductId.value = null
@@ -310,6 +312,8 @@
     isSuggestingClass.value = false
     suggestedClassId.value = ''
     suggestedClassName.value = ''
+    newProductCatMat.value = null
+    newProductCatBec.value = null
     saveError.value = ''
     isModalOpen.value = true
   }
@@ -320,6 +324,8 @@
 
   const activateNewProductMode = () => {
     newProductName.value = searchProductText.value
+    newProductCatMat.value = null
+    newProductCatBec.value = null
     isNewProductMode.value = true
   }
 
@@ -349,6 +355,8 @@
         isSuggestingClass: isSuggestingClass.value,
         suggestedClassId: suggestedClassId.value,
         suggestedClassName: suggestedClassName.value,
+        newProductCatMat: newProductCatMat.value ? Number(newProductCatMat.value) : null,
+        newProductCatBec: newProductCatBec.value ? Number(newProductCatBec.value) : null,
 
         selectedProductId: selectedProductId.value,
         finalUnitId: await resolveFinalUnitId(),
@@ -1238,6 +1246,21 @@
         </UiAlert>
 
         <UiInput v-model="newProductName" label="Nome do Produto" />
+
+        <div class="d-flex ga-3 mb-4 mt-2">
+          <UiInput
+            v-model.number="newProductCatMat"
+            label="CATMAT (opcional)"
+            placeholder="Ex: 123456"
+            type="number"
+          />
+          <UiInput
+            v-model.number="newProductCatBec"
+            label="CATBEC (opcional)"
+            placeholder="Ex: 78910"
+            type="number"
+          />
+        </div>
 
         <UiSwitch
           v-model="isSuggestingNature"
