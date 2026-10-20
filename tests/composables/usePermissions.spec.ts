@@ -83,7 +83,7 @@ describe('composables/usePermissions', () => {
   })
 
   describe('canManageElections', () => {
-    it('returns true for admin, admin-election, and manager-election', () => {
+    it('returns true for admin, admin-election, manager-election, and user-election', () => {
       const { canManageElections } = usePermissions()
 
       mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
@@ -94,13 +94,13 @@ describe('composables/usePermissions', () => {
 
       mockProfile.value = { id: 'me1', role: ROLES.MANAGER_ELECTION }
       expect(canManageElections()).toBe(true)
-    })
-
-    it('returns false for user-election, uge, user, etc.', () => {
-      const { canManageElections } = usePermissions()
 
       mockProfile.value = { id: 'ue1', role: ROLES.USER_ELECTION }
-      expect(canManageElections()).toBe(false)
+      expect(canManageElections()).toBe(true)
+    })
+
+    it('returns false for uge, user, and unauthenticated', () => {
+      const { canManageElections } = usePermissions()
 
       mockProfile.value = { id: 'u1', role: ROLES.USER }
       expect(canManageElections()).toBe(false)

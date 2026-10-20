@@ -60,7 +60,10 @@ mockNuxtImport('useElections', () => () => ({
 }))
 
 mockNuxtImport('usePermissions', () => () => ({
-  canManageElections: () => profileRef.value?.role !== 'user-election',
+  canManageElections: () =>
+    ['admin', 'admin-election', 'manager-election', 'user-election'].includes(
+      profileRef.value?.role || '',
+    ),
   canDeleteElections: () =>
     profileRef.value?.role === 'admin' || profileRef.value?.role === 'admin-election',
 }))
@@ -148,7 +151,7 @@ describe('Elections Dashboard Page', () => {
     expect(vm.canDeleteElections()).toBe(true)
   })
 
-  it('restricts delete permissions for manager-election and user-election', () => {
+  it('restricts delete permissions for manager-election and user-election, but allows managing', () => {
     profileRef.value = { role: 'manager-election', name: 'Gestor' }
     let wrapper = createWrapper()
     let vm = wrapper.vm as unknown as {
@@ -166,8 +169,22 @@ describe('Elections Dashboard Page', () => {
       canDeleteElections: () => boolean
     }
 
-    expect(vm.canManageElections()).toBe(false)
+    expect(vm.canManageElections()).toBe(true)
     expect(vm.canDeleteElections()).toBe(false)
+  })
+
+  it('triggers create modal opening from toolbar action', () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openCreateModal: () => void
+      modalRef: { open: ReturnType<typeof vi.fn> } | null
+    }
+
+    const openSpy = vi.fn()
+    vm.modalRef = { open: openSpy }
+    vm.openCreateModal()
+
+    expect(openSpy).toHaveBeenCalled()
   })
 
   it('handles safe delete confirmation properly', async () => {

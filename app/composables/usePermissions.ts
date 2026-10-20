@@ -34,11 +34,16 @@ export function usePermissions() {
 
   /**
    * Determina se o usuário logado tem permissão para gerenciar (criar/editar) eleições.
-   * Regra: admin, admin-election ou manager-election.
+   * Regra: admin, admin-election, manager-election ou user-election.
    */
   const canManageElections = (): boolean => {
     const role = profile.value?.role
-    return role === ROLES.ADMIN || role === ROLES.ADMIN_ELECTION || role === ROLES.MANAGER_ELECTION
+    return (
+      role === ROLES.ADMIN ||
+      role === ROLES.ADMIN_ELECTION ||
+      role === ROLES.MANAGER_ELECTION ||
+      role === ROLES.USER_ELECTION
+    )
   }
 
   /**

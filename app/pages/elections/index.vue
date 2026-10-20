@@ -346,6 +346,16 @@
             variant="soft"
             @click="refresh"
           />
+
+          <UiButton
+            v-if="canManageElections()"
+            color="primary"
+            prepend-icon="add"
+            variant="solid"
+            @click="openCreateModal"
+          >
+            Nova Eleição
+          </UiButton>
         </div>
       </template>
 
@@ -366,13 +376,25 @@
           <div class="text-center py-6">
             <UiIcon class="mb-2 text-medium-emphasis" name="vote" size="36" />
             <div class="text-body-1 font-weight-medium">Nenhuma eleição encontrada</div>
-            <div class="text-caption text-medium-emphasis">
+            <div class="text-caption text-medium-emphasis mb-3">
               {{
                 searchQuery || statusFilter || timelineFilter !== 'all'
                   ? 'Tente alterar os filtros aplicados.'
-                  : 'Cadastre sua primeira eleição clicando no botão acima.'
+                  : 'Cadastre sua primeira eleição para começar.'
               }}
             </div>
+            <UiButton
+              v-if="
+                canManageElections() && !searchQuery && !statusFilter && timelineFilter === 'all'
+              "
+              class="mt-2"
+              color="primary"
+              prepend-icon="add"
+              variant="solid"
+              @click="openCreateModal"
+            >
+              Cadastrar Eleição
+            </UiButton>
           </div>
         </template>
 
