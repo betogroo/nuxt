@@ -81,4 +81,60 @@ describe('composables/usePermissions', () => {
       expect(canDeleteDemand({ user_id: 'other-user' })).toBe(false)
     })
   })
+
+  describe('canManageElections', () => {
+    it('returns true for admin, admin-election, and manager-election', () => {
+      const { canManageElections } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(canManageElections()).toBe(true)
+
+      mockProfile.value = { id: 'ae1', role: ROLES.ADMIN_ELECTION }
+      expect(canManageElections()).toBe(true)
+
+      mockProfile.value = { id: 'me1', role: ROLES.MANAGER_ELECTION }
+      expect(canManageElections()).toBe(true)
+    })
+
+    it('returns false for user-election, uge, user, etc.', () => {
+      const { canManageElections } = usePermissions()
+
+      mockProfile.value = { id: 'ue1', role: ROLES.USER_ELECTION }
+      expect(canManageElections()).toBe(false)
+
+      mockProfile.value = { id: 'u1', role: ROLES.USER }
+      expect(canManageElections()).toBe(false)
+
+      mockProfile.value = { id: 'uge1', role: ROLES.UGE }
+      expect(canManageElections()).toBe(false)
+
+      mockProfile.value = null
+      expect(canManageElections()).toBe(false)
+    })
+  })
+
+  describe('canDeleteElections', () => {
+    it('returns true only for admin and admin-election', () => {
+      const { canDeleteElections } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(canDeleteElections()).toBe(true)
+
+      mockProfile.value = { id: 'ae1', role: ROLES.ADMIN_ELECTION }
+      expect(canDeleteElections()).toBe(true)
+    })
+
+    it('returns false for manager-election, user-election, user, etc.', () => {
+      const { canDeleteElections } = usePermissions()
+
+      mockProfile.value = { id: 'me1', role: ROLES.MANAGER_ELECTION }
+      expect(canDeleteElections()).toBe(false)
+
+      mockProfile.value = { id: 'ue1', role: ROLES.USER_ELECTION }
+      expect(canDeleteElections()).toBe(false)
+
+      mockProfile.value = { id: 'u1', role: ROLES.USER }
+      expect(canDeleteElections()).toBe(false)
+    })
+  })
 })

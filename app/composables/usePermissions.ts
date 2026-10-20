@@ -32,8 +32,28 @@ export function usePermissions() {
     return !!currentId && demand.user_id === currentId
   }
 
+  /**
+   * Determina se o usuário logado tem permissão para gerenciar (criar/editar) eleições.
+   * Regra: admin, admin-election ou manager-election.
+   */
+  const canManageElections = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.ADMIN_ELECTION || role === ROLES.MANAGER_ELECTION
+  }
+
+  /**
+   * Determina se o usuário logado tem permissão para excluir eleições (safe delete).
+   * Regra: admin ou admin-election.
+   */
+  const canDeleteElections = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.ADMIN_ELECTION
+  }
+
   return {
     canEditDemand,
     canDeleteDemand,
+    canManageElections,
+    canDeleteElections,
   }
 }
