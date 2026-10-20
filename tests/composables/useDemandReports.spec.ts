@@ -374,10 +374,14 @@ describe('useDemandReports', () => {
       expect(item1.natureza).toBe('339030')
       expect(item1.itemBec).toBe('12345')
       expect(item1.especificacao).toBe('Papel A4')
-      expect(item1.unidadeBec).toBe('Pacote 500fls')
+      expect(item1.unidadeBec).toBe('101 - Pacote 500fls')
       expect(item1.qtd).toBe(10)
       expect(item1.valorOfertado).toBe(25.5)
       expect(item1.valorFinal).toBe(255.0)
+
+      // Item 2 has no alias code, so it falls back to unit name
+      const item2 = group30.items.find((i) => i.id === 'item-2')!
+      expect(item2.unidadeBec).toBe('Caixa')
     })
   })
 

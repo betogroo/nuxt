@@ -92,14 +92,17 @@ export function generateDisputeReportData(
     const rawName = item.product_name_snapshot || item.product?.name || '-'
     const especificacao = String(rawName).trim() || '-'
 
-    // 4. Unidade BEC: alias snapshot or alias name, fallback to unit snapshot/name
-    const rawAlias =
+    // 4. Unidade BEC: {code} - {name} from alias snapshot/record, fallback to unit snapshot/name
+    const rawAliasCode = item.alias_code_snapshot ?? item.measurement_unit_aliases?.code ?? null
+    const rawAliasName =
       item.alias_name_snapshot ||
       item.measurement_unit_aliases?.name ||
       item.unit_name_snapshot ||
       item.measurement_units?.name ||
       '-'
-    const unidadeBec = String(rawAlias).trim() || '-'
+    const aliasName = String(rawAliasName).trim() || '-'
+    const unidadeBec =
+      rawAliasCode != null && aliasName !== '-' ? `${rawAliasCode} - ${aliasName}` : aliasName
 
     // 5. QTD: quantity
     const qtd = Number(item.quantity) || 1
