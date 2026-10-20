@@ -401,9 +401,12 @@
         <!-- Nome da Eleição -->
         <template #item-name="{ item }">
           <div class="d-flex flex-column py-1">
-            <span class="font-weight-medium text-body-2 text-primary">
+            <NuxtLink
+              class="font-weight-medium text-body-2 text-primary text-decoration-none cursor-pointer"
+              :to="`/elections/${item.id}`"
+            >
               {{ item.name }}
-            </span>
+            </NuxtLink>
             <span v-if="item.description" class="text-caption text-medium-emphasis">
               {{ item.description }}
             </span>
@@ -450,6 +453,12 @@
         <!-- Ações -->
         <template #item-actions="{ item }">
           <div class="d-flex align-center justify-end ga-1">
+            <UiActionButton
+              action="view"
+              tooltip="Ver detalhes da eleição"
+              variant="ghost"
+              @click="navigateTo(`/elections/${item.id}`)"
+            />
             <UiActionButton
               v-if="canManageElections()"
               action="edit"

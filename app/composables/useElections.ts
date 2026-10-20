@@ -232,11 +232,49 @@ export function useElections() {
     }
   }
 
+  const fetchElectionById = async (id: string): Promise<ElectionRow | null> => {
+    loading.value = true
+    error.value = null
+    try {
+      const { data, error: err } = await supabase
+        .from('elections')
+        .select('*, profiles:created_by(name)')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single()
+
+      if (err) {
+        if (err.code === 'PGRST116') return null
+        console.error('Erro ao buscar eleição por id:', err)
+        throw new Error(err.message || 'Falha ao buscar detalhes da eleição.')
+      }
+
+      if (!data) return null
+
+      type RawElectionItem = ElectionRow & {
+        profiles?: { name: string } | null
+      }
+      const raw = data as unknown as RawElectionItem
+
+      return {
+        ...raw,
+        creator_name: raw.profiles?.name || null,
+      }
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Erro ao buscar detalhes da eleição.'
+      error.value = message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     loading,
     error,
     fetchElections,
     fetchElectionMetrics,
+    fetchElectionById,
     createElection,
     updateElection,
     deleteElection,

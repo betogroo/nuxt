@@ -182,4 +182,47 @@ describe('useElections Composable', () => {
       expect.stringContaining('safe delete'),
     )
   })
+
+  it('fetchElectionById returns election details with creator name', async () => {
+    const mockDetail = {
+      id: 'e-100',
+      name: 'Eleição Conselho',
+      election_date: '2026-10-30T10:00:00Z',
+      digits_count: 3,
+      is_uppercase: true,
+      status: 'awaiting_release',
+      profiles: { name: 'Maria Gestora' },
+    }
+
+    const singleMock = vi.fn().mockResolvedValue({ data: mockDetail, error: null })
+    const isMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ is: isMock })
+    selectMock.mockReturnValue({ eq: eqMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { fetchElectionById } = useElections()
+    const result = await fetchElectionById('e-100')
+
+    expect(fromMock).toHaveBeenCalledWith('elections')
+    expect(eqMock).toHaveBeenCalledWith('id', 'e-100')
+    expect(isMock).toHaveBeenCalledWith('deleted_at', null)
+    expect(result?.name).toBe('Eleição Conselho')
+    expect(result?.creator_name).toBe('Maria Gestora')
+  })
+
+  it('fetchElectionById returns null when election is not found (PGRST116)', async () => {
+    const singleMock = vi.fn().mockResolvedValue({
+      data: null,
+      error: { code: 'PGRST116', message: 'Not found' },
+    })
+    const isMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ is: isMock })
+    selectMock.mockReturnValue({ eq: eqMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { fetchElectionById } = useElections()
+    const result = await fetchElectionById('e-not-found')
+
+    expect(result).toBeNull()
+  })
 })
