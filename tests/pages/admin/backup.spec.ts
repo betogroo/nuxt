@@ -26,11 +26,13 @@ const mockCounts = {
   demand_products: 50,
   demand_product_bids: 15,
   demand_responsibles: 20,
+  demand_item_status_history: 10,
   iirgd_citizens: 30,
   iirgd_document_types: 4,
   iirgd_demands: 35,
   iirgd_demand_status_history: 70,
   iirgd_settings: 2,
+  system_settings: 3,
   logs: 120,
 }
 
@@ -52,7 +54,7 @@ mockNuxtImport('useBackup', () => () => ({
 }))
 
 describe('Backup Admin Page', () => {
-  it('should render successfully and compute total records across all 19 tables', async () => {
+  it('should render successfully and compute total records across all 21 tables', async () => {
     const wrapper = shallowMount(BackupAdminPage, {
       global: {
         stubs: {
@@ -73,6 +75,7 @@ describe('Backup Admin Page', () => {
 
     const vm = wrapper.vm as unknown as {
       totalCurrentRecords: number
+      totalTablesCount: number
       currentCounts: typeof mockCounts | null
       BACKUP_CATEGORIES: Array<{ title: string; tables: Array<{ key: string; label: string }> }>
     }
@@ -83,12 +86,13 @@ describe('Backup Admin Page', () => {
     expect(vm.currentCounts).toEqual(mockCounts)
     const expectedSum = Object.values(mockCounts).reduce((a, b) => a + b, 0)
     expect(vm.totalCurrentRecords).toBe(expectedSum)
-    expect(vm.totalCurrentRecords).toBe(517)
+    expect(vm.totalCurrentRecords).toBe(530)
+    expect(vm.totalTablesCount).toBe(21)
 
-    // Check that all 19 tables are represented in categories
+    // Check that all 21 tables are represented in categories
     const allTableKeys = vm.BACKUP_CATEGORIES.flatMap((c) => c.tables.map((t) => t.key))
-    expect(allTableKeys).toHaveLength(19)
-    expect(new Set(allTableKeys).size).toBe(19)
+    expect(allTableKeys).toHaveLength(21)
+    expect(new Set(allTableKeys).size).toBe(21)
     for (const key of Object.keys(mockCounts)) {
       expect(allTableKeys).toContain(key)
     }
@@ -127,14 +131,14 @@ describe('Backup Admin Page', () => {
       counts: mockCounts,
     }
 
-    expect(vm.totalInspectionRecords).toBe(517)
+    expect(vm.totalInspectionRecords).toBe(530)
 
     vm.restoreResult = {
       success: true,
       counts: mockCounts,
     }
 
-    expect(vm.totalRestoredRecords).toBe(517)
+    expect(vm.totalRestoredRecords).toBe(530)
   })
 
   it('should trigger backup generation when generate method is called', async () => {

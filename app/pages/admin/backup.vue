@@ -52,6 +52,12 @@
           suffix: 'vínculos',
           color: 'primary',
         },
+        {
+          key: 'demand_item_status_history',
+          label: 'Histórico de Execução de Itens',
+          suffix: 'histórico',
+          color: 'primary',
+        },
       ],
     },
     {
@@ -119,6 +125,12 @@
       icon: 'security',
       tables: [
         { key: 'profiles', label: 'Perfis de Usuários', suffix: 'usuários', color: 'secondary' },
+        {
+          key: 'system_settings',
+          label: 'Configurações do Sistema',
+          suffix: 'parâmetros',
+          color: 'secondary',
+        },
         { key: 'logs', label: 'Logs de Auditoria', suffix: 'logs', color: 'warning' },
       ],
     },
@@ -140,6 +152,10 @@
   const isConfirmModalOpen = ref(false)
   const restoreResult = ref<RestoreResult | null>(null)
   const fileInputRef = ref<HTMLInputElement | null>(null)
+
+  const totalTablesCount = computed(() =>
+    BACKUP_CATEGORIES.reduce((acc, cat) => acc + cat.tables.length, 0),
+  )
 
   const totalCurrentRecords = computed(() => {
     if (!currentCounts.value) return 0
@@ -257,7 +273,7 @@
                   Registros atuais no banco
                 </div>
                 <UiChip v-if="currentCounts" color="primary" size="xs" variant="soft">
-                  19 tabelas ({{ totalCurrentRecords }} registros)
+                  {{ totalTablesCount }} tabelas ({{ totalCurrentRecords }} registros)
                 </UiChip>
               </div>
 
@@ -424,8 +440,8 @@
             <UiAlert v-if="restoreResult" class="mt-4" color="success" size="sm" variant="soft">
               <div class="font-weight-bold mb-1">Restauração concluída com sucesso!</div>
               <div class="text-caption">
-                {{ totalRestoredRecords }} registros processados com sucesso em 19 tabelas do
-                sistema.
+                {{ totalRestoredRecords }} registros processados com sucesso em
+                {{ totalTablesCount }} tabelas do sistema.
               </div>
             </UiAlert>
 

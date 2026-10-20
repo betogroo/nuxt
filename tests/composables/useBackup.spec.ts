@@ -42,11 +42,13 @@ describe('useBackup Composable', () => {
       demand_products: 5,
       demand_product_bids: 5,
       demand_responsibles: 5,
+      demand_item_status_history: 5,
       iirgd_citizens: 5,
       iirgd_document_types: 5,
       iirgd_demands: 5,
       iirgd_demand_status_history: 5,
       iirgd_settings: 5,
+      system_settings: 5,
       logs: 5,
     })
   })
@@ -92,11 +94,13 @@ describe('useBackup Composable', () => {
         demand_products: 0,
         demand_product_bids: 0,
         demand_responsibles: 0,
+        demand_item_status_history: 0,
         iirgd_citizens: 3,
         iirgd_document_types: 1,
         iirgd_demands: 2,
         iirgd_demand_status_history: 4,
         iirgd_settings: 0,
+        system_settings: 1,
         logs: 10,
       },
       data: {
@@ -104,6 +108,8 @@ describe('useBackup Composable', () => {
         suppliers: [{ id: 'sup-1', name: 'Fornecedor A' }],
         products: [{ id: 'prod-1', name: 'Item 1' }],
         demands: [{ id: 'dem-1' }],
+        system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
+        demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
         iirgd_citizens: [{ id: 'c-1' }, { id: 'c-2' }, { id: 'c-3' }],
         iirgd_demands: [{ id: 'id-1' }, { id: 'id-2' }],
         logs: [{ id: 'log-1' }],
@@ -122,6 +128,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.demands).toBe(1)
     expect(inspection.counts.iirgd_citizens).toBe(3)
     expect(inspection.counts.iirgd_demands).toBe(2)
+    expect(inspection.counts.demand_item_status_history).toBe(1)
+    expect(inspection.counts.system_settings).toBe(1)
     expect(inspection.counts.logs).toBe(1)
   })
 

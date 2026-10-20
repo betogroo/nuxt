@@ -32,11 +32,13 @@ export const useBackup = () => {
         { count: demandProductsCount },
         { count: demandBidsCount },
         { count: demandResponsiblesCount },
+        { count: demandItemHistoryCount },
         { count: citizensCount },
         { count: docTypesCount },
         { count: iirgdDemandsCount },
         { count: iirgdHistoryCount },
         { count: iirgdSettingsCount },
+        { count: systemSettingsCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -52,11 +54,13 @@ export const useBackup = () => {
         supabase.from('demand_products').select('id', { count: 'exact', head: true }),
         supabase.from('demand_product_bids').select('id', { count: 'exact', head: true }),
         supabase.from('demand_responsibles').select('id', { count: 'exact', head: true }),
+        supabase.from('demand_item_status_history').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_citizens').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_document_types').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_demands').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_demand_status_history').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_settings').select('id', { count: 'exact', head: true }),
+        supabase.from('system_settings').select('key', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
@@ -74,11 +78,13 @@ export const useBackup = () => {
         demand_products: demandProductsCount || 0,
         demand_product_bids: demandBidsCount || 0,
         demand_responsibles: demandResponsiblesCount || 0,
+        demand_item_status_history: demandItemHistoryCount || 0,
         iirgd_citizens: citizensCount || 0,
         iirgd_document_types: docTypesCount || 0,
         iirgd_demands: iirgdDemandsCount || 0,
         iirgd_demand_status_history: iirgdHistoryCount || 0,
         iirgd_settings: iirgdSettingsCount || 0,
+        system_settings: systemSettingsCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -155,6 +161,9 @@ export const useBackup = () => {
         demand_responsibles: Array.isArray(data.demand_responsibles)
           ? data.demand_responsibles.length
           : 0,
+        demand_item_status_history: Array.isArray(data.demand_item_status_history)
+          ? data.demand_item_status_history.length
+          : 0,
         iirgd_citizens: Array.isArray(data.iirgd_citizens) ? data.iirgd_citizens.length : 0,
         iirgd_document_types: Array.isArray(data.iirgd_document_types)
           ? data.iirgd_document_types.length
@@ -164,6 +173,7 @@ export const useBackup = () => {
           ? data.iirgd_demand_status_history.length
           : 0,
         iirgd_settings: Array.isArray(data.iirgd_settings) ? data.iirgd_settings.length : 0,
+        system_settings: Array.isArray(data.system_settings) ? data.system_settings.length : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 
