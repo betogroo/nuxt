@@ -2017,7 +2017,7 @@
           <table class="w-100 text-body-2" style="border-collapse: collapse">
             <thead>
               <tr
-                class="bg-surface-variant text-caption font-weight-bold text-uppercase border-bottom"
+                class="bg-surface-variant text-caption font-weight-bold text-uppercase border-bottom text-high-emphasis"
               >
                 <th class="pa-2 text-left" style="width: 140px">NATUREZA</th>
                 <th class="pa-2 text-left" style="width: 110px">ITEM BEC</th>
@@ -2061,7 +2061,9 @@
                 </tr>
 
                 <!-- Linha de Subtotal por Natureza -->
-                <tr class="bg-surface-variant font-weight-bold border-top border-bottom">
+                <tr
+                  class="bg-surface-variant font-weight-bold border-top border-bottom text-high-emphasis"
+                >
                   <td class="pa-2 text-right" colspan="6">
                     SUBTOTAL (Natureza {{ group.natureza }}):
                   </td>

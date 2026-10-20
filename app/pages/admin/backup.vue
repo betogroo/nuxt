@@ -355,7 +355,7 @@
                 >
               </div>
 
-              <UiCard class="pa-3 mb-3 bg-surface-variant" variant="soft">
+              <UiCard class="pa-3 mb-3 bg-surface-variant text-high-emphasis" variant="soft">
                 <div class="text-caption mb-1">
                   <strong>Gerado em:</strong>
                   {{

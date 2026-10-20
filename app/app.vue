@@ -81,4 +81,18 @@
     color: #f8fafc !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
+
+  /* Salvaguarda de Alto Contraste para .bg-surface-variant */
+  .bg-surface-variant {
+    color: rgb(var(--v-theme-on-surface-variant, 30, 41, 59)) !important;
+  }
+
+  .v-theme--dark .bg-surface-variant {
+    color: rgb(var(--v-theme-on-surface-variant, 248, 250, 252)) !important;
+  }
+
+  .bg-surface-variant th,
+  .bg-surface-variant td {
+    color: inherit !important;
+  }
 </style>
