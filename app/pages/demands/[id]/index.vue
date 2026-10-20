@@ -1017,50 +1017,45 @@
             </span>
           </template>
 
-          <!-- Produto: Nome no topo e chips de unidade/alias abaixo -->
+          <!-- Produto: Nome e chips na mesma linha fluida -->
           <template #item-product="{ item }">
-            <div class="d-flex flex-column py-1 ga-1">
-              <div class="d-flex align-center flex-wrap ga-1">
-                <NuxtLink
-                  class="text-decoration-none text-primary font-weight-bold"
-                  :to="`/demands/${demandId}/items/${item.id}`"
-                >
-                  {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
-                </NuxtLink>
-                <UiActionButton
-                  color="grey"
-                  icon="externalLink"
-                  size="xs"
-                  :to="`/products/${item.product_id}`"
-                  tooltip="Cadastro do Produto"
-                />
-              </div>
-
-              <div class="d-flex align-center flex-wrap ga-1">
-                <UiChip
-                  v-if="item.measurement_units"
-                  class="flex-shrink-0"
-                  color="secondary"
-                  size="xs"
-                  variant="solid"
-                >
-                  {{ item.unit_name_snapshot || item.measurement_units.name }}
-                </UiChip>
-                <UiChip
-                  v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
-                  class="flex-shrink-0"
-                  color="info"
-                  size="xs"
-                  variant="soft"
-                >
-                  Alias:
-                  {{
-                    item.alias_code_snapshot || item.measurement_unit_aliases?.code
-                      ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
-                      : ''
-                  }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
-                </UiChip>
-              </div>
+            <div class="d-flex align-center flex-wrap ga-2 py-1">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/demands/${demandId}/items/${item.id}`"
+              >
+                {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
+              </NuxtLink>
+              <UiActionButton
+                color="grey"
+                icon="externalLink"
+                size="xs"
+                :to="`/products/${item.product_id}`"
+                tooltip="Cadastro do Produto"
+              />
+              <UiChip
+                v-if="item.measurement_units"
+                class="flex-shrink-0"
+                color="secondary"
+                size="xs"
+                variant="solid"
+              >
+                {{ item.unit_name_snapshot || item.measurement_units.name }}
+              </UiChip>
+              <UiChip
+                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
+                class="flex-shrink-0"
+                color="info"
+                size="xs"
+                variant="soft"
+              >
+                Alias:
+                {{
+                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
+                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
+                    : ''
+                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
+              </UiChip>
             </div>
           </template>
 
