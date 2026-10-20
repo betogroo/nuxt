@@ -146,4 +146,14 @@ describe('Products Admin Page', () => {
     expect(vm.modal.error.value).toBe('Já existe um produto cadastrado com este código CATMAT.')
     expect(vm.modal.isOpen.value).toBe(true)
   })
+
+  it('provides getBecProductUrl for CATBEC links', () => {
+    const wrapper = shallowMount(ProductsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.getBecProductUrl).toBeDefined()
+    expect(vm.getBecProductUrl(67890)).toContain('67890')
+    expect(vm.getBecProductUrl(null)).toBeNull()
+  })
 })

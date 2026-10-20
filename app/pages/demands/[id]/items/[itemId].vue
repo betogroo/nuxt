@@ -19,6 +19,7 @@
   const { fetchDemandItemDetails, updateDemandItemWithDependencies, fetchDemandItemStatusHistory } =
     useDemandProducts()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
+  const { getBecProductUrl } = useSystemSettings()
 
   const demandId = route.params.id as string
   const itemId = route.params.itemId as string
@@ -410,6 +411,20 @@
                     ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
                     : ''
                 }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
+              </UiChip>
+              <UiChip
+                v-if="item.product?.cat_bec"
+                append-icon="externalLink"
+                class="ml-2"
+                color="secondary"
+                :href="getBecProductUrl(item.product.cat_bec)"
+                rel="noopener noreferrer"
+                size="sm"
+                target="_blank"
+                title="Abrir no catálogo BEC"
+                variant="soft"
+              >
+                BEC: {{ item.product.cat_bec }}
               </UiChip>
             </div>
             <UiSpacer />

@@ -250,6 +250,17 @@
       ],
     },
     {
+      id: 'system-settings',
+      title: 'Configurações do Sistema',
+      description: 'URL base do catálogo BEC e integrações externas.',
+      icon: 'settings',
+      color: 'blue-grey',
+      to: APP_ROUTES.admin.settings,
+      category: 'governance',
+      categoryLabel: 'Governança & Segurança',
+      keywords: ['configurações', 'bec', 'url', 'sistema', 'catálogo', 'parâmetros'],
+    },
+    {
       id: 'logs',
       title: 'Trilha de Auditoria',
       description: 'Histórico detalhado de alterações, eventos e rastreabilidade operacional.',

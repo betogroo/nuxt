@@ -18,6 +18,7 @@
   useHead({ title: 'Gerenciar Produtos' })
 
   const { fetchProducts, createProduct, updateProduct, toggleProductStatus } = useProducts()
+  const { getBecProductUrl } = useSystemSettings()
 
   const { fetchAllActiveExpenseNatures, registerPendingExpenseNature } = useExpenseNatures()
   const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
@@ -282,7 +283,18 @@
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-cat_bec="{ item }">
-          <UiChip v-if="item.cat_bec" color="secondary" label size="xs" variant="soft">
+          <UiChip
+            v-if="item.cat_bec"
+            append-icon="externalLink"
+            color="secondary"
+            :href="getBecProductUrl(item.cat_bec)"
+            label
+            rel="noopener noreferrer"
+            size="xs"
+            target="_blank"
+            title="Abrir página do item no catálogo BEC"
+            variant="soft"
+          >
             {{ item.cat_bec }}
           </UiChip>
           <span v-else class="text-medium-emphasis">—</span>

@@ -253,4 +253,13 @@ describe('Product Detail Page', () => {
     )
     expect(vm.editModal.isOpen.value).toBe(false)
   })
+
+  it('provides getBecProductUrl for CATBEC chip link', () => {
+    const wrapper = mountPage()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.getBecProductUrl).toBeDefined()
+    expect(vm.getBecProductUrl(78910)).toContain('78910')
+  })
 })

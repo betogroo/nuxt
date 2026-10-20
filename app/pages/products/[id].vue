@@ -23,6 +23,7 @@
     removeProductUnit,
   } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
+  const { getBecProductUrl } = useSystemSettings()
   const { fetchAllActiveExpenseNatures, registerPendingExpenseNature } = useExpenseNatures()
   const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
 
@@ -366,7 +367,18 @@
                     CATBEC
                   </div>
                   <div class="mt-1">
-                    <UiChip v-if="product.cat_bec" color="secondary" label size="sm" variant="soft">
+                    <UiChip
+                      v-if="product.cat_bec"
+                      append-icon="externalLink"
+                      color="secondary"
+                      :href="getBecProductUrl(product.cat_bec)"
+                      label
+                      rel="noopener noreferrer"
+                      size="sm"
+                      target="_blank"
+                      title="Abrir página do item no catálogo BEC"
+                      variant="soft"
+                    >
                       {{ product.cat_bec }}
                     </UiChip>
                     <span v-else class="text-body-1 text-medium-emphasis">Não informado</span>

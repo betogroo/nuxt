@@ -39,6 +39,7 @@ export const APP_ROUTES = {
     backup: '/admin/backup',
     iirgdSettings: '/admin/iirgd-settings',
     iirgdDocumentTypes: '/admin/iirgd-document-types',
+    settings: '/admin/settings',
   },
 
   iirgd: {

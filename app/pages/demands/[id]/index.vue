@@ -27,6 +27,7 @@
   const { fetchAllActiveProductClasses } = useProductClasses()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
+  const { getBecProductUrl } = useSystemSettings()
 
   const demandId = route.params.id as string
 
@@ -1085,6 +1086,20 @@
                     : ''
                 }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
               </UiChip>
+              <UiChip
+                v-if="item.product?.cat_bec"
+                append-icon="externalLink"
+                class="flex-shrink-0"
+                color="secondary"
+                :href="getBecProductUrl(item.product.cat_bec)"
+                rel="noopener noreferrer"
+                size="xs"
+                target="_blank"
+                title="Abrir no catálogo BEC"
+                variant="soft"
+              >
+                BEC: {{ item.product.cat_bec }}
+              </UiChip>
             </div>
           </template>
 
@@ -2122,7 +2137,20 @@
                 <!-- Linhas dos Itens do Grupo -->
                 <tr v-for="item in group.items" :key="item.id" class="border-top">
                   <td class="pa-2 text-left text-medium-emphasis">{{ item.natureza }}</td>
-                  <td class="pa-2 text-left font-weight-medium">{{ item.itemBec }}</td>
+                  <td class="pa-2 text-left font-weight-medium">
+                    <a
+                      v-if="item.itemBec && item.itemBec !== '-'"
+                      class="text-primary text-decoration-none font-weight-bold d-inline-flex align-center ga-1"
+                      :href="getBecProductUrl(item.itemBec)"
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      title="Abrir no catálogo BEC"
+                    >
+                      {{ item.itemBec }}
+                      <UiIcon name="externalLink" size="12" />
+                    </a>
+                    <span v-else>{{ item.itemBec }}</span>
+                  </td>
                   <td class="pa-2 text-left">
                     <span>{{ item.especificacao }}</span>
                   </td>
