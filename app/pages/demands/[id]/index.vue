@@ -9,6 +9,13 @@
     combineDateTime,
     validateOfferOpeningRules,
   } from '~/utils/formatters'
+  import {
+    DEMAND_ITEM_EXECUTION_STATUS_LABELS,
+    DEMAND_ITEM_EXECUTION_STATUS_COLORS,
+    DEMAND_ITEM_EXECUTION_STATUS_ICONS,
+  } from '~/constants/demand-item-status'
+  import type { DemandProductRow } from '~/composables/useDemandProducts'
+  import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -639,6 +646,15 @@
       })
     }
 
+    if (demand.value?.status === 'homologation' || demand.value?.status === 'completed') {
+      baseHeaders.push({
+        text: 'Execução',
+        value: 'execution_status',
+        align: 'center' as const,
+        width: 170,
+      })
+    }
+
     if (isQuotation) {
       baseHeaders.push({
         text: 'Ações',
@@ -650,6 +666,19 @@
 
     return baseHeaders
   })
+
+  // --- MODAL DE STATUS DE EXECUÇÃO DO ITEM ---
+  const isExecutionStatusModalOpen = ref(false)
+  const selectedItemForExecutionStatus = ref<DemandProductRow | null>(null)
+
+  const openExecutionStatusModal = (item: DemandProductRow) => {
+    selectedItemForExecutionStatus.value = item
+    isExecutionStatusModalOpen.value = true
+  }
+
+  const handleExecutionStatusSaved = async () => {
+    await refreshItems()
+  }
 
   const handleGenerateReport = () => {
     isReportModalOpen.value = true
@@ -1152,6 +1181,41 @@
                 <span class="text-caption text-medium-emphasis mt-1">Sem lances</span>
               </template>
             </div>
+          </template>
+
+          <!-- Execução do Item (Pós-Homologação) -->
+          <template #item-execution_status="{ item }">
+            <template v-if="getItemDisputeResult(item).outcome === 'winner'">
+              <div class="d-flex flex-column align-center ga-1">
+                <UiChip
+                  :color="
+                    DEMAND_ITEM_EXECUTION_STATUS_COLORS[item.execution_status || 'homologated']
+                  "
+                  size="xs"
+                  style="cursor: pointer"
+                  variant="flat"
+                  @click="openExecutionStatusModal(item)"
+                >
+                  <UiIcon
+                    :name="
+                      DEMAND_ITEM_EXECUTION_STATUS_ICONS[item.execution_status || 'homologated']
+                    "
+                    size="12"
+                    start
+                  />
+                  {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[item.execution_status || 'homologated'] }}
+                </UiChip>
+                <div
+                  v-if="item.execution_status === 'error' && item.execution_error_details"
+                  class="text-caption text-error text-truncate"
+                  style="max-width: 150px"
+                  :title="item.execution_error_details"
+                >
+                  {{ item.execution_error_details }}
+                </div>
+              </div>
+            </template>
+            <span v-else class="text-caption text-medium-emphasis">-</span>
           </template>
 
           <!-- Ações -->
@@ -2119,5 +2183,12 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal de Atualização de Status de Execução do Item -->
+    <DemandItemExecutionStatusModal
+      v-model="isExecutionStatusModalOpen"
+      :item="selectedItemForExecutionStatus"
+      @saved="handleExecutionStatusSaved"
+    />
   </UiContainer>
 </template>

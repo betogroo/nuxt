@@ -377,4 +377,46 @@ describe('Demand Items Page', () => {
     await vm.handleExportCsv()
     expect(vm.isExportingCsv).toBe(false)
   })
+
+  it('includes execution_status column when demand status is homologation or completed', () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      status: 'homologation',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers = vm.demandProductHeaders as any[]
+    const execHeader = headers.find((h) => h.value === 'execution_status')
+    expect(execHeader).toBeDefined()
+    expect(execHeader.text).toBe('Execução')
+  })
+
+  it('does not include execution_status column when demand status is quotation', () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      status: 'quotation',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers = vm.demandProductHeaders as any[]
+    const execHeader = headers.find((h) => h.value === 'execution_status')
+    expect(execHeader).toBeUndefined()
+  })
+
+  it('opens execution status modal on openExecutionStatusModal', () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isExecutionStatusModalOpen).toBe(false)
+    vm.openExecutionStatusModal({ id: 'item-1', product_name_snapshot: 'Item Teste' })
+    expect(vm.isExecutionStatusModalOpen).toBe(true)
+    expect(vm.selectedItemForExecutionStatus.id).toBe('item-1')
+  })
 })

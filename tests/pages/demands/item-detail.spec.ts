@@ -85,6 +85,8 @@ mockNuxtImport('useAsyncData', () => (key: string) => {
 mockNuxtImport('useDemandProducts', () => () => ({
   fetchDemandItemDetails: vi.fn().mockResolvedValue(mockItemData.value),
   updateDemandItemWithDependencies: vi.fn().mockResolvedValue({}),
+  fetchDemandItemStatusHistory: vi.fn().mockResolvedValue([]),
+  updateDemandItemExecutionStatus: vi.fn().mockResolvedValue({}),
 }))
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchUnits: vi.fn().mockResolvedValue([]),
@@ -219,5 +221,38 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     // Attempting to open bid modal should be blocked
     vm.openBidModal()
     expect(vm.isBidModalOpen).toBe(false)
+  })
+
+  it('enables execution tracking when demand status is homologation and item has a winning bid', () => {
+    mockItemData.value.demand.status = 'homologation'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(mockItemData.value as any).execution_status = 'commitment_sent'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isHomologatedOrCompleted).toBe(true)
+    expect(vm.hasExecution).toBe(true)
+    expect(vm.currentExecutionStatus).toBe('commitment_sent')
+    expect(vm.getStepStatus('homologated')).toBe('completed')
+    expect(vm.getStepStatus('commitment_sent')).toBe('current')
+    expect(vm.getStepStatus('commitment_confirmed')).toBe('pending')
+
+    vm.openExecutionStatusModal()
+    expect(vm.isExecutionStatusModalOpen).toBe(true)
+  })
+
+  it('marks all steps as error when current execution status is error', () => {
+    mockItemData.value.demand.status = 'homologation'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(mockItemData.value as any).execution_status = 'error'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(mockItemData.value as any).execution_error_details = 'Empenho recusado'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.currentExecutionStatus).toBe('error')
+    expect(vm.getStepStatus('homologated')).toBe('error')
   })
 })

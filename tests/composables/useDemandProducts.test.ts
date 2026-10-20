@@ -585,4 +585,86 @@ describe('useDemandProducts', () => {
       }),
     )
   })
+
+  it('updateDemandItemExecutionStatus should update execution_status and insert history', async () => {
+    const { updateDemandItemExecutionStatus } = useDemandProducts()
+
+    const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq })
+    const mockHistoryInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return { update: mockUpdate }
+      }
+      if (table === 'demand_item_status_history') {
+        return { insert: mockHistoryInsert }
+      }
+      return {}
+    })
+
+    await updateDemandItemExecutionStatus({
+      itemId: 'dp-1',
+      status: 'commitment_sent',
+      observation: 'Empenho enviado para o fornecedor',
+      errorDetails: null,
+    })
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution_status: 'commitment_sent',
+        execution_error_details: null,
+      }),
+    )
+    expect(mockUpdateEq).toHaveBeenCalledWith('id', 'dp-1')
+
+    expect(mockHistoryInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        demand_product_id: 'dp-1',
+        status: 'commitment_sent',
+        observation: 'Empenho enviado para o fornecedor',
+        created_by: 'user-1',
+      }),
+    )
+
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'UPDATE_DEMAND_ITEM_EXECUTION_STATUS',
+      expect.stringContaining('dp-1'),
+      'user-1',
+    )
+  })
+
+  it('fetchDemandItemStatusHistory should query history ordered by created_at desc', async () => {
+    const { fetchDemandItemStatusHistory } = useDemandProducts()
+
+    const mockOrder = vi.fn().mockResolvedValue({
+      data: [
+        {
+          id: 'hist-1',
+          demand_product_id: 'dp-1',
+          status: 'commitment_sent',
+          observation: 'Empenho',
+          created_at: '2026-10-20T10:00:00Z',
+          profiles: { id: 'user-1', name: 'Admin' },
+        },
+      ],
+      error: null,
+    })
+    const mockEq = vi.fn().mockReturnValue({ order: mockOrder })
+    const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_item_status_history') {
+        return { select: mockSelect }
+      }
+      return {}
+    })
+
+    const history = await fetchDemandItemStatusHistory('dp-1')
+    expect(mockSelect).toHaveBeenCalledWith('*, profiles(id, name)')
+    expect(mockEq).toHaveBeenCalledWith('demand_product_id', 'dp-1')
+    expect(mockOrder).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(history).toHaveLength(1)
+    expect(history[0].status).toBe('commitment_sent')
+  })
 })

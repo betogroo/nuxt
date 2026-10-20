@@ -4,11 +4,20 @@
   import { demandBidFormSchema } from '~/schemas/forms/demand-bid'
   import type { SupplierRow } from '~/composables/useSuppliers'
   import type { UnitRow } from '~/composables/useMeasurementUnits'
+  import {
+    DEMAND_ITEM_EXECUTION_FLOW,
+    DEMAND_ITEM_EXECUTION_STATUS_LABELS,
+    DEMAND_ITEM_EXECUTION_STATUS_COLORS,
+    DEMAND_ITEM_EXECUTION_STATUS_ICONS,
+    type DemandItemExecutionStatus,
+  } from '~/constants/demand-item-status'
+  import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
 
-  const { fetchDemandItemDetails, updateDemandItemWithDependencies } = useDemandProducts()
+  const { fetchDemandItemDetails, updateDemandItemWithDependencies, fetchDemandItemStatusHistory } =
+    useDemandProducts()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
 
   const demandId = route.params.id as string
@@ -149,6 +158,50 @@
   const canRegisterBids = computed(() => item.value?.demand?.status === 'dispute')
 
   const canRemoveBid = computed(() => item.value?.demand?.status === 'dispute')
+
+  // --- Execution Status Logic (Post-Homologation) ---
+  const isHomologatedOrCompleted = computed(
+    () =>
+      item.value?.demand?.status === 'homologation' || item.value?.demand?.status === 'completed',
+  )
+
+  const hasExecution = computed(() => isHomologatedOrCompleted.value && !!winningBid.value)
+
+  const currentExecutionStatus = computed<DemandItemExecutionStatus>(() => {
+    return (item.value?.execution_status || 'homologated') as DemandItemExecutionStatus
+  })
+
+  const {
+    data: statusHistory,
+    refresh: refreshStatusHistory,
+    pending: statusHistoryPending,
+  } = useAsyncData(`item-status-history-${itemId}`, async () => {
+    if (!itemId) return []
+    return await fetchDemandItemStatusHistory(itemId)
+  })
+
+  const isExecutionStatusModalOpen = ref(false)
+
+  const openExecutionStatusModal = () => {
+    isExecutionStatusModalOpen.value = true
+  }
+
+  const handleExecutionStatusSaved = async () => {
+    await refresh()
+    await refreshStatusHistory()
+  }
+
+  const getStepStatus = (statusStep: DemandItemExecutionStatus) => {
+    if (currentExecutionStatus.value === 'error') {
+      return 'error'
+    }
+    const flow = DEMAND_ITEM_EXECUTION_FLOW
+    const currentIndex = flow.indexOf(currentExecutionStatus.value)
+    const stepIndex = flow.indexOf(statusStep)
+    if (stepIndex < currentIndex) return 'completed'
+    if (stepIndex === currentIndex) return 'current'
+    return 'pending'
+  }
 
   const suppliers = ref<SupplierRow[]>([])
   const fetchSuppliersList = async () => {
@@ -375,6 +428,148 @@
             Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
             documentos enviados pelos fornecedores aparecerão aqui.
           </UiAlert>
+
+          <!-- Card de Acompanhamento da Execução (Pós-Homologação) -->
+          <UiCard v-if="hasExecution" class="mb-4" variant="outline">
+            <template #header>
+              <div class="d-flex justify-space-between align-center w-100 flex-wrap ga-2">
+                <div class="d-flex align-center ga-2">
+                  <span class="font-weight-bold">Acompanhamento da Execução</span>
+                  <UiChip
+                    :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[currentExecutionStatus]"
+                    size="sm"
+                    variant="flat"
+                  >
+                    <UiIcon
+                      :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[currentExecutionStatus]"
+                      size="14"
+                      start
+                    />
+                    {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[currentExecutionStatus] }}
+                  </UiChip>
+                </div>
+                <UiButton
+                  color="primary"
+                  prepend-icon="editOutline"
+                  size="sm"
+                  @click="openExecutionStatusModal"
+                >
+                  Atualizar Status
+                </UiButton>
+              </div>
+            </template>
+
+            <!-- Alerta em caso de erro -->
+            <UiAlert
+              v-if="currentExecutionStatus === 'error'"
+              class="mb-4"
+              size="sm"
+              type="error"
+              variant="soft"
+            >
+              <div class="font-weight-bold mb-1">Pendência / Erro Registrado:</div>
+              <div>{{ item?.execution_error_details || 'Nenhum detalhe informado.' }}</div>
+            </UiAlert>
+
+            <!-- Fluxo Sequencial de Execução -->
+            <div class="mb-4 pa-3 rounded-lg bg-surface-variant">
+              <div class="text-caption font-weight-bold mb-2 text-medium-emphasis text-uppercase">
+                Fluxo de Execução
+              </div>
+              <div class="d-flex flex-wrap align-center ga-2">
+                <template v-for="(step, idx) in DEMAND_ITEM_EXECUTION_FLOW" :key="step">
+                  <div class="d-flex align-center ga-1">
+                    <UiChip
+                      :color="
+                        getStepStatus(step) === 'completed'
+                          ? 'success'
+                          : getStepStatus(step) === 'current'
+                            ? DEMAND_ITEM_EXECUTION_STATUS_COLORS[step]
+                            : 'default'
+                      "
+                      size="xs"
+                      :variant="getStepStatus(step) === 'current' ? 'solid' : 'soft'"
+                    >
+                      <UiIcon
+                        v-if="getStepStatus(step) === 'completed'"
+                        name="check"
+                        size="12"
+                        start
+                      />
+                      <span class="font-weight-medium">
+                        {{ idx + 1 }}. {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[step] }}
+                      </span>
+                    </UiChip>
+                    <UiIcon
+                      v-if="idx < DEMAND_ITEM_EXECUTION_FLOW.length - 1"
+                      class="text-medium-emphasis"
+                      name="next"
+                      size="14"
+                    />
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Histórico de Transições -->
+            <div class="mt-4">
+              <div class="text-subtitle-2 font-weight-bold mb-3">Histórico de Transições</div>
+
+              <div v-if="statusHistoryPending" class="text-center py-4">
+                <UiProgressCircular color="primary" indeterminate size="24" />
+              </div>
+
+              <div
+                v-else-if="!statusHistory || statusHistory.length === 0"
+                class="text-body-2 text-medium-emphasis text-center py-3"
+              >
+                Nenhuma alteração de status registrada no histórico ainda.
+              </div>
+
+              <UiTimeline v-else density="compact" side="end">
+                <UiTimelineItem
+                  v-for="entry in statusHistory"
+                  :key="entry.id"
+                  :dot-color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
+                  size="x-small"
+                >
+                  <div class="d-flex flex-column ga-1">
+                    <div class="d-flex align-center flex-wrap ga-2">
+                      <UiChip
+                        :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
+                        size="xs"
+                        variant="flat"
+                      >
+                        <UiIcon
+                          :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[entry.status]"
+                          size="12"
+                          start
+                        />
+                        {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[entry.status] }}
+                      </UiChip>
+                      <span class="text-caption text-medium-emphasis">
+                        {{ new Date(entry.created_at).toLocaleString('pt-BR') }}
+                      </span>
+                      <span v-if="entry.profiles?.name" class="text-caption text-medium-emphasis">
+                        • por <strong>{{ entry.profiles.name }}</strong>
+                      </span>
+                    </div>
+
+                    <div
+                      v-if="entry.status === 'error' && entry.error_details"
+                      class="text-caption text-error font-weight-medium border rounded pa-2 mt-1"
+                    >
+                      <strong>Erro especificado:</strong> {{ entry.error_details }}
+                    </div>
+
+                    <div v-if="entry.observation" class="text-caption text-high-emphasis mt-1">
+                      {{ entry.observation }}
+                    </div>
+                  </div>
+                </UiTimelineItem>
+              </UiTimeline>
+            </div>
+          </UiCard>
 
           <!-- Card de Lances -->
           <UiCard class="mb-4" variant="outline">
@@ -773,5 +968,12 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal de Atualização de Status de Execução -->
+    <DemandItemExecutionStatusModal
+      v-model="isExecutionStatusModalOpen"
+      :item="item"
+      @saved="handleExecutionStatusSaved"
+    />
   </UiContainer>
 </template>

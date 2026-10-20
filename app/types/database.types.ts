@@ -1,8 +1,76 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      demand_item_status_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          demand_product_id: string
+          error_details: string | null
+          id: string
+          observation: string | null
+          status: Database['public']['Enums']['demand_item_execution_status']
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          demand_product_id: string
+          error_details?: string | null
+          id?: string
+          observation?: string | null
+          status: Database['public']['Enums']['demand_item_execution_status']
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          demand_product_id?: string
+          error_details?: string | null
+          id?: string
+          observation?: string | null
+          status?: Database['public']['Enums']['demand_item_execution_status']
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'demand_item_status_history_created_by_fkey'
+            columns: ['created_by']
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'demand_item_status_history_demand_product_id_fkey'
+            columns: ['demand_product_id']
+            referencedRelation: 'demand_products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       demand_product_bids: {
         Row: {
           amount: number
@@ -38,21 +106,18 @@ export type Database = {
           {
             foreignKeyName: 'demand_product_bids_created_by_fkey'
             columns: ['created_by']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_demand_product_id_fkey'
             columns: ['demand_product_id']
-            isOneToOne: false
             referencedRelation: 'demand_products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_supplier_id_fkey'
             columns: ['supplier_id']
-            isOneToOne: false
             referencedRelation: 'suppliers'
             referencedColumns: ['id']
           },
@@ -68,6 +133,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           demand_id: string
+          execution_error_details: string | null
+          execution_status: Database['public']['Enums']['demand_item_execution_status'] | null
+          execution_status_updated_at: string | null
           expense_nature_name_snapshot: string | null
           id: string
           product_id: string
@@ -88,6 +156,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demand_id: string
+          execution_error_details?: string | null
+          execution_status?: Database['public']['Enums']['demand_item_execution_status'] | null
+          execution_status_updated_at?: string | null
           expense_nature_name_snapshot?: string | null
           id?: string
           product_id: string
@@ -108,6 +179,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           demand_id?: string
+          execution_error_details?: string | null
+          execution_status?: Database['public']['Enums']['demand_item_execution_status'] | null
+          execution_status_updated_at?: string | null
           expense_nature_name_snapshot?: string | null
           id?: string
           product_id?: string
@@ -123,28 +197,24 @@ export type Database = {
           {
             foreignKeyName: 'demand_products_alias_id_fkey'
             columns: ['alias_id']
-            isOneToOne: false
             referencedRelation: 'measurement_unit_aliases'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_demand_id_fkey'
             columns: ['demand_id']
-            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_product_id_fkey'
             columns: ['product_id']
-            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_unit_id_fkey'
             columns: ['unit_id']
-            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -170,14 +240,12 @@ export type Database = {
           {
             foreignKeyName: 'demand_responsibles_demand_id_fkey'
             columns: ['demand_id']
-            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_responsibles_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -218,7 +286,7 @@ export type Database = {
           offer_opening_date?: string | null
           process_number?: string | null
           status?: Database['public']['Enums']['demand_status']
-          type?: Database['public']['Enums']['demand_type']
+          type: Database['public']['Enums']['demand_type']
           updated_at?: string
           user_id: string
         }
@@ -245,7 +313,6 @@ export type Database = {
           {
             foreignKeyName: 'demands_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -313,7 +380,6 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_citizens_created_by_fkey'
             columns: ['created_by']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -348,14 +414,12 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_demand_status_history_created_by_fkey'
             columns: ['created_by']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demand_status_history_demand_id_fkey'
             columns: ['demand_id']
-            isOneToOne: false
             referencedRelation: 'iirgd_demands'
             referencedColumns: ['id']
           },
@@ -399,21 +463,18 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_demands_citizen_id_fkey'
             columns: ['citizen_id']
-            isOneToOne: false
             referencedRelation: 'iirgd_citizens'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demands_created_by_fkey'
             columns: ['created_by']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demands_document_type_id_fkey'
             columns: ['document_type_id']
-            isOneToOne: false
             referencedRelation: 'iirgd_document_types'
             referencedColumns: ['id']
           },
@@ -499,7 +560,6 @@ export type Database = {
           {
             foreignKeyName: 'logs_user_id_fkey'
             columns: ['user_id']
-            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -528,14 +588,12 @@ export type Database = {
           {
             foreignKeyName: 'measurement_unit_alias_links_alias_id_fkey'
             columns: ['alias_id']
-            isOneToOne: false
             referencedRelation: 'measurement_unit_aliases'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'measurement_unit_alias_links_unit_id_fkey'
             columns: ['unit_id']
-            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -570,7 +628,6 @@ export type Database = {
           {
             foreignKeyName: 'measurement_unit_aliases_unit_id_fkey'
             columns: ['unit_id']
-            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -653,14 +710,12 @@ export type Database = {
           {
             foreignKeyName: 'product_units_product_id_fkey'
             columns: ['product_id']
-            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'product_units_unit_id_fkey'
             columns: ['unit_id']
-            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -707,14 +762,12 @@ export type Database = {
           {
             foreignKeyName: 'products_expense_nature_id_fkey'
             columns: ['expense_nature_id']
-            isOneToOne: false
             referencedRelation: 'expense_natures'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'products_product_class_id_fkey'
             columns: ['product_class_id']
-            isOneToOne: false
             referencedRelation: 'product_classes'
             referencedColumns: ['id']
           },
@@ -824,6 +877,15 @@ export type Database = {
     }
     Enums: {
       bid_status: 'classified' | 'disqualified'
+      demand_item_execution_status:
+        | 'homologated'
+        | 'commitment_sent'
+        | 'commitment_confirmed'
+        | 'shipped'
+        | 'delivered'
+        | 'received'
+        | 'completed'
+        | 'error'
       demand_status:
         | 'planning'
         | 'quotation'
@@ -965,9 +1027,22 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       bid_status: ['classified', 'disqualified'],
+      demand_item_execution_status: [
+        'homologated',
+        'commitment_sent',
+        'commitment_confirmed',
+        'shipped',
+        'delivered',
+        'received',
+        'completed',
+        'error',
+      ],
       demand_status: [
         'planning',
         'quotation',

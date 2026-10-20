@@ -1,4 +1,5 @@
 import type { Database } from '~/types/database.types'
+import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?:
@@ -12,6 +13,11 @@ export type DemandProductRow = Database['public']['Tables']['demand_products']['
     suppliers?: Database['public']['Tables']['suppliers']['Row'] | null
   })[]
 }
+
+export type DemandItemStatusHistoryRow =
+  Database['public']['Tables']['demand_item_status_history']['Row'] & {
+    profiles?: { id: string; name: string | null } | null
+  }
 
 export const useDemandProducts = () => {
   const supabase = useSupabaseClient<Database>()
@@ -454,6 +460,63 @@ export const useDemandProducts = () => {
     const errors = results.filter((r) => r.error).map((r) => r.error)
     if (errors.length > 0) throw new Error('Erro ao reordenar os itens')
   }
+  const updateDemandItemExecutionStatus = async (params: {
+    itemId: string
+    status: DemandItemExecutionStatus
+    observation?: string | null
+    errorDetails?: string | null
+  }) => {
+    const now = new Date().toISOString()
+    const updatePayload: Database['public']['Tables']['demand_products']['Update'] = {
+      execution_status: params.status,
+      execution_error_details: params.status === 'error' ? params.errorDetails || null : null,
+      execution_status_updated_at: now,
+    }
+
+    const { error: updateErr } = await supabase
+      .from('demand_products')
+      .update(updatePayload)
+      .eq('id', params.itemId)
+
+    if (updateErr) throw updateErr
+
+    const { error: historyErr } = await supabase.from('demand_item_status_history').insert({
+      demand_product_id: params.itemId,
+      status: params.status,
+      observation: params.observation ? params.observation.trim() : null,
+      error_details:
+        params.status === 'error' && params.errorDetails ? params.errorDetails.trim() : null,
+      created_by: user.value?.id || null,
+    })
+
+    if (historyErr) {
+      console.error('Erro ao inserir histórico de execução do item:', historyErr)
+    }
+
+    await logAction(
+      'UPDATE_DEMAND_ITEM_EXECUTION_STATUS',
+      `Status de execução do item ${params.itemId} atualizado para "${params.status}"`,
+      user.value?.id,
+    )
+  }
+
+  const fetchDemandItemStatusHistory = async (
+    itemId: string,
+  ): Promise<DemandItemStatusHistoryRow[]> => {
+    const { data, error } = await supabase
+      .from('demand_item_status_history')
+      .select('*, profiles(id, name)')
+      .eq('demand_product_id', itemId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao buscar histórico de execução do item:', error)
+      throw error
+    }
+
+    return (data || []) as DemandItemStatusHistoryRow[]
+  }
+
   return {
     reorderDemandItems,
     fetchDemandProducts,
@@ -463,5 +526,7 @@ export const useDemandProducts = () => {
     updateDemandProduct,
     updateDemandItemWithDependencies,
     removeDemandProduct,
+    updateDemandItemExecutionStatus,
+    fetchDemandItemStatusHistory,
   }
 }

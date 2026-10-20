@@ -3,6 +3,7 @@ import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { splitDateTime, combineDateTime, validateOfferOpeningRules } from '~/utils/formatters'
+import { getItemDisputeResult } from '~/utils/bids'
 
 export function useDemandWorkflow(
   demandId: string,
@@ -11,6 +12,8 @@ export function useDemandWorkflow(
 ) {
   const { advanceDemandStatus, revertDemandStatus, requestDemandReturn, fetchDemandById } =
     useDemands()
+  const supabase = useSupabaseClient<Database>()
+  const user = useSupabaseUser()
 
   const statusList: Database['public']['Enums']['demand_status'][] = [
     'planning',
@@ -229,6 +232,32 @@ export function useDemandWorkflow(
         targetStatus.value as Database['public']['Enums']['demand_status'],
         payload,
       )
+
+      if (targetStatus.value === 'homologation' && items.value) {
+        for (const item of items.value) {
+          const disputeRes = getItemDisputeResult(item)
+          if (disputeRes.outcome === 'winner' && !item.execution_status) {
+            try {
+              await supabase
+                .from('demand_products')
+                .update({
+                  execution_status: 'homologated',
+                  execution_status_updated_at: new Date().toISOString(),
+                })
+                .eq('id', item.id)
+
+              await supabase.from('demand_item_status_history').insert({
+                demand_product_id: item.id,
+                status: 'homologated',
+                observation: 'Demanda homologada',
+                created_by: user.value?.id || null,
+              })
+            } catch (initErr) {
+              console.error('Erro ao inicializar status de execução do item:', initErr)
+            }
+          }
+        }
+      }
 
       advanceModal.close()
       await reloadDemand()
