@@ -15,7 +15,16 @@ VALUES (
 'user@rg.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') ,
 
 ('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
-'admin@rg.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') 
+'admin@rg.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('66666666-6666-6666-6666-666666666666', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'user@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('77777777-7777-7777-7777-777777777777', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'manager@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('88888888-8888-8888-8888-888888888888', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'admin@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') 
 
 ON CONFLICT (id) DO NOTHING;
 
@@ -26,7 +35,10 @@ VALUES
 (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', format('{"sub":"%s","email":"%s"}', '22222222-2222-2222-2222-222222222222', 'user@user.com')::jsonb, 'email', NOW(), NOW(), NOW()),
 (gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', format('{"sub":"%s","email":"%s"}', '33333333-3333-3333-3333-333333333333', 'uge@uge.com')::jsonb, 'email', NOW(), NOW(), NOW()),
 (gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', format('{"sub":"%s","email":"%s"}', '44444444-4444-4444-4444-444444444444', 'user@rg.com')::jsonb, 'email', NOW(), NOW(), NOW()),
-(gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', format('{"sub":"%s","email":"%s"}', '55555555-5555-5555-5555-555555555555', 'admin@rg.com')::jsonb, 'email', NOW(), NOW(), NOW())
+(gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', format('{"sub":"%s","email":"%s"}', '55555555-5555-5555-5555-555555555555', 'admin@rg.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '66666666-6666-6666-6666-666666666666', '66666666-6666-6666-6666-666666666666', format('{"sub":"%s","email":"%s"}', '66666666-6666-6666-6666-666666666666', 'user@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '77777777-7777-7777-7777-777777777777', '77777777-7777-7777-7777-777777777777', format('{"sub":"%s","email":"%s"}', '77777777-7777-7777-7777-777777777777', 'manager@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '88888888-8888-8888-8888-888888888888', '88888888-8888-8888-8888-888888888888', format('{"sub":"%s","email":"%s"}', '88888888-8888-8888-8888-888888888888', 'admin@election.com')::jsonb, 'email', NOW(), NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- Update created profiles
@@ -35,6 +47,9 @@ UPDATE public.profiles SET role = 'user', name = 'User', is_active = true WHERE 
 UPDATE public.profiles SET role = 'uge', name = 'Uge', is_active = true WHERE id = '33333333-3333-3333-3333-333333333333';
 UPDATE public.profiles SET role = 'iirgd_user', name = 'IIRGD user', is_active = true WHERE id = '44444444-4444-4444-4444-444444444444';
 UPDATE public.profiles SET role = 'iirgd_manager', name = 'IIRGD Admin', is_active = true WHERE id = '55555555-5555-5555-5555-555555555555';
+UPDATE public.profiles SET role = 'user-election', name = 'Election User', is_active = true WHERE id = '66666666-6666-6666-6666-666666666666';
+UPDATE public.profiles SET role = 'manager-election', name = 'Election Manager', is_active = true WHERE id = '77777777-7777-7777-7777-777777777777';
+UPDATE public.profiles SET role = 'admin-election', name = 'Election Admin', is_active = true WHERE id = '88888888-8888-8888-8888-888888888888';
 
 insert into
   "public"."measurement_units" (

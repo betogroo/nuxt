@@ -71,6 +71,7 @@ export const iconMap = {
   upload: 'mdi-upload',
   database: 'mdi-database',
   chart: 'mdi-chart-box-outline',
+  vote: 'mdi-vote-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

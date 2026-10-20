@@ -37,3 +37,27 @@ Always use and enforce UTF-8 encoding when creating or modifying files. This is 
 É **ESTRITAMENTE PROIBIDO** utilizar tags brutas do Vuetify (e.g. <v-row>, <v-btn>, <v-card>) ou strings/classes de ícones nativos (e.g. mdi-home, <v-icon>) fora da pasta pp/components/.
 Você deve SEMPRE usar os componentes wrappers desacoplados com o prefixo genérico Ui (e.g. <UiRow>, <UiButton>, <UiCard>, <UiIcon>).
 Caso sinta a necessidade de um componente do Vuetify que ainda não possua wrapper, seu dever é **criar o wrapper** na pasta pp/components/ui/ e utilizar o wrapper.
+
+# Elections Module (Eleições)
+
+The system includes a dedicated Elections module accessible via the `/elections` route.
+
+## Access Control & Roles
+
+Access to the `/elections` route and its navigation links in the drawer and home page is strictly restricted to the following roles:
+
+- `admin`: Full system administrator with unrestricted access.
+- `user-election`: Standard user/voter for the election system.
+- `manager-election`: Election manager with operational oversight on elections and processes.
+- `admin-election`: Administrator dedicated to managing the election module.
+
+Users with other roles (`user`, `uge`, `iirgd_user`, `iirgd_manager`) MUST NOT see the election navigation link and MUST be blocked by the `elections` middleware (redirected to `/`).
+
+## Standard Seed Accounts
+
+The development seed (`supabase/seed.sql`) provides dedicated test accounts with password `123456`:
+
+- `user@election.com` (role: `user-election`)
+- `manager@election.com` (role: `manager-election`)
+- `admin@election.com` (role: `admin-election`)
+- `admin@admin.com` (role: `admin`)

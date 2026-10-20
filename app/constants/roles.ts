@@ -6,6 +6,9 @@ export const ROLES = {
   IIRGD_USER: 'iirgd_user',
   IIRGD_MANAGER: 'iirgd_manager',
   USER: 'user',
+  USER_ELECTION: 'user-election',
+  MANAGER_ELECTION: 'manager-election',
+  ADMIN_ELECTION: 'admin-election',
 } as const satisfies Record<string, UserRole>
 
 export const ROLE_LABELS: Record<UserRole, string> = {
@@ -14,4 +17,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   iirgd_user: 'IIRGD',
   iirgd_manager: 'Gestor IIRGD',
   user: 'Usuário',
+  'user-election': 'Usuário Eleições',
+  'manager-election': 'Gestor Eleições',
+  'admin-election': 'Administrador Eleições',
 }

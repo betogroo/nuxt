@@ -32,6 +32,7 @@ const GROUP_LABELS: Record<NavGroup, string> = {
   public: '',
   management: 'Gestão',
   iirgd: 'IIRGD',
+  elections: 'Eleições',
   admin: 'Administração',
   info: '',
 }
@@ -40,8 +41,9 @@ const GROUP_ORDER: Record<NavGroup, number> = {
   public: 0,
   management: 1,
   iirgd: 2,
-  admin: 3,
-  info: 4,
+  elections: 3,
+  admin: 4,
+  info: 5,
 }
 
 const SUBGROUP_DEFINITIONS: Record<string, { label: string; icon: string }> = {

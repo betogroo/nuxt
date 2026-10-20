@@ -45,6 +45,19 @@ describe('useNavLinks', () => {
         },
       },
       {
+        path: '/elections',
+        meta: {
+          icon: 'vote',
+          navLabel: 'Eleições',
+          navSubtitle: 'Sistema de eleições',
+          navColor: 'indigo',
+          navGroup: 'elections',
+          navOrder: 10,
+          roles: ['admin', 'user-election', 'manager-election', 'admin-election'],
+          showIn: ['drawer', 'home'],
+        },
+      },
+      {
         path: '/users',
         meta: {
           icon: 'mdi-account-group-outline',
@@ -192,6 +205,7 @@ describe('useNavLinks', () => {
     const paths = drawerLinks.value.map((l) => l.path)
     expect(paths).toContain('/demands')
     expect(paths).toContain('/iirgd')
+    expect(paths).toContain('/elections')
     expect(paths).toContain('/users')
     expect(paths).toContain('/admin/units')
   })
@@ -201,6 +215,30 @@ describe('useNavLinks', () => {
     const { drawerLinks } = useNavLinks()
     const paths = drawerLinks.value.map((l) => l.path)
     expect(paths).toContain('/iirgd')
+    expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/elections')
+    expect(paths).not.toContain('/users')
+  })
+
+  it('election roles see only elections and permitted links', () => {
+    mockProfileRef.value = { role: 'user-election' }
+    let { drawerLinks } = useNavLinks()
+    let paths = drawerLinks.value.map((l) => l.path)
+    expect(paths).toContain('/elections')
+    expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/users')
+
+    mockProfileRef.value = { role: 'manager-election' }
+    ;({ drawerLinks } = useNavLinks())
+    paths = drawerLinks.value.map((l) => l.path)
+    expect(paths).toContain('/elections')
+    expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/users')
+
+    mockProfileRef.value = { role: 'admin-election' }
+    ;({ drawerLinks } = useNavLinks())
+    paths = drawerLinks.value.map((l) => l.path)
+    expect(paths).toContain('/elections')
     expect(paths).not.toContain('/demands')
     expect(paths).not.toContain('/users')
   })

@@ -413,6 +413,9 @@
           { title: 'Administrador', value: 'admin' },
           { title: 'Usuário IIRGD', value: 'iirgd_user' },
           { title: 'Gestor IIRGD', value: 'iirgd_manager' },
+          { title: 'Usuário Eleições', value: 'user-election' },
+          { title: 'Gestor Eleições', value: 'manager-election' },
+          { title: 'Administrador Eleições', value: 'admin-election' },
         ]"
         label="Cargo (Role)"
         persistent-hint
@@ -488,6 +491,9 @@
           { title: 'Administrador', value: 'admin' },
           { title: 'Usuário IIRGD', value: 'iirgd_user' },
           { title: 'Gestor IIRGD', value: 'iirgd_manager' },
+          { title: 'Usuário Eleições', value: 'user-election' },
+          { title: 'Gestor Eleições', value: 'manager-election' },
+          { title: 'Administrador Eleições', value: 'admin-election' },
         ]"
         label="Cargo (Role)"
         rounded="lg"

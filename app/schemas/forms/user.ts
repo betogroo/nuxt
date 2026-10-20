@@ -22,11 +22,22 @@ export const changePasswordSchema = z
   })
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 
+export const USER_ROLES_TUPLE = [
+  'admin',
+  'uge',
+  'iirgd_user',
+  'iirgd_manager',
+  'user',
+  'user-election',
+  'manager-election',
+  'admin-election',
+] as const
+
 // Admin / Gerenciamento de Usuários
 export const adminUserEditSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres.'),
-  role: z.enum(['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user'], {
+  role: z.enum(USER_ROLES_TUPLE, {
     message: 'Selecione um nível de acesso.',
   }),
   is_active: z.boolean(),
@@ -37,6 +48,6 @@ export const adminUserCreateSchema = z.object({
   name: z.string().min(3, 'Nome deve ter no mínimo 3 caracteres.'),
   email: z.string().email('E-mail inválido.'),
   password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres.'),
-  role: z.enum(['admin', 'uge', 'iirgd_user', 'iirgd_manager', 'user']).default('user'),
+  role: z.enum(USER_ROLES_TUPLE).default('user'),
 })
 export type AdminUserCreateInput = z.infer<typeof adminUserCreateSchema>
