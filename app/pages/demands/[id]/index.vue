@@ -606,6 +606,51 @@
     return generateDisputeReportData(demand.value, items.value)
   })
 
+  // --- COLUNAS DA TABELA DE PRODUTOS ---
+  const demandProductHeaders = computed(() => {
+    const isQuotation = demand.value?.status === 'quotation'
+    const isPreDispute = demand.value?.status === 'planning' || demand.value?.status === 'quotation'
+
+    const baseHeaders = [
+      {
+        text: '#',
+        value: 'order',
+        align: 'center' as const,
+        sortable: false,
+        width: isQuotation ? 64 : 44,
+      },
+      { text: 'Produto', value: 'product' },
+      { text: 'Natureza', value: 'expense_nature', width: 110 },
+      { text: 'Qtd.', value: 'quantity', align: 'center' as const, width: 70 },
+      {
+        text: 'Referência',
+        value: 'reference_values',
+        align: 'right' as const,
+        width: 140,
+      },
+    ]
+
+    if (!isPreDispute) {
+      baseHeaders.push({
+        text: 'Disputa / Vencedor',
+        value: 'dispute_result',
+        align: 'right' as const,
+        width: 220,
+      })
+    }
+
+    if (isQuotation) {
+      baseHeaders.push({
+        text: 'Ações',
+        value: 'actions',
+        align: 'right' as const,
+        width: 80,
+      })
+    }
+
+    return baseHeaders
+  })
+
   const handleGenerateReport = () => {
     isReportModalOpen.value = true
   }
@@ -943,84 +988,83 @@
       </UiAlert>
 
       <div class="overflow-x-auto">
-        <UiTable
-          :headers="[
-            { text: 'Ordem', value: 'order', align: 'center', sortable: false, nowrap: true },
-            { text: 'Produto', value: 'product' },
-            { text: 'Natureza', value: 'expense_nature', nowrap: true },
-            { text: 'Qtd.', value: 'quantity', align: 'center' },
-            { text: 'Valor Ref.', value: 'reference_price', align: 'right', nowrap: true },
-            { text: 'Total Ref.', value: 'total_reference', align: 'right', nowrap: true },
-            { text: 'Vencedor / Situação', value: 'winner_status', nowrap: true },
-            { text: 'Melhor Lance', value: 'best_bid', align: 'right', nowrap: true },
-            { text: 'Total Final', value: 'total_final', align: 'right', nowrap: true },
-            { text: 'Ações', value: 'actions', align: 'right', nowrap: true },
-          ]"
-          :items="items || []"
-        >
+        <UiTable :headers="demandProductHeaders" :items="items || []">
           <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
+
+          <!-- Ordem -->
           <template #item-order="{ index }">
-            <div class="d-flex align-center justify-center ga-1">
+            <div
+              v-if="demand?.status === 'quotation'"
+              class="d-flex align-center justify-center ga-1"
+            >
               <UiActionButton
                 action="moveUp"
-                :disabled="index === 0 || isReordering || demand?.status !== 'quotation'"
+                :disabled="index === 0 || isReordering"
                 size="xs"
                 tooltip="Mover para cima"
                 @click="moveItemUp(index)"
               />
               <UiActionButton
                 action="moveDown"
-                :disabled="
-                  index === (items?.length || 0) - 1 ||
-                  isReordering ||
-                  demand?.status !== 'quotation'
-                "
+                :disabled="index === (items?.length || 0) - 1 || isReordering"
                 size="xs"
                 tooltip="Mover para baixo"
                 @click="moveItemDown(index)"
               />
             </div>
+            <span v-else class="text-caption font-weight-bold text-medium-emphasis">
+              {{ index + 1 }}
+            </span>
           </template>
+
+          <!-- Produto: Nome no topo e chips de unidade/alias abaixo -->
           <template #item-product="{ item }">
-            <div class="d-flex align-center flex-nowrap ga-1" style="min-width: 250px">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold text-truncate"
-                :to="`/demands/${demandId}/items/${item.id}`"
-              >
-                {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
-              </NuxtLink>
-              <UiChip
-                v-if="item.measurement_units"
-                class="flex-shrink-0"
-                color="secondary"
-                size="xs"
-                variant="solid"
-              >
-                {{ item.unit_name_snapshot || item.measurement_units.name }}
-              </UiChip>
-              <UiChip
-                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
-                class="flex-shrink-0"
-                color="info"
-                size="xs"
-                variant="soft"
-              >
-                Alias:
-                {{
-                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
-                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
-                    : ''
-                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
-              </UiChip>
-              <UiActionButton
-                color="grey"
-                icon="externalLink"
-                size="xs"
-                :to="`/products/${item.product_id}`"
-                tooltip="Cadastro do Produto"
-              />
+            <div class="d-flex flex-column py-1 ga-1">
+              <div class="d-flex align-center flex-wrap ga-1">
+                <NuxtLink
+                  class="text-decoration-none text-primary font-weight-bold"
+                  :to="`/demands/${demandId}/items/${item.id}`"
+                >
+                  {{ item.product_name_snapshot || item.product?.name || 'Produto desconhecido' }}
+                </NuxtLink>
+                <UiActionButton
+                  color="grey"
+                  icon="externalLink"
+                  size="xs"
+                  :to="`/products/${item.product_id}`"
+                  tooltip="Cadastro do Produto"
+                />
+              </div>
+
+              <div class="d-flex align-center flex-wrap ga-1">
+                <UiChip
+                  v-if="item.measurement_units"
+                  class="flex-shrink-0"
+                  color="secondary"
+                  size="xs"
+                  variant="solid"
+                >
+                  {{ item.unit_name_snapshot || item.measurement_units.name }}
+                </UiChip>
+                <UiChip
+                  v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
+                  class="flex-shrink-0"
+                  color="info"
+                  size="xs"
+                  variant="soft"
+                >
+                  Alias:
+                  {{
+                    item.alias_code_snapshot || item.measurement_unit_aliases?.code
+                      ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
+                      : ''
+                  }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
+                </UiChip>
+              </div>
             </div>
           </template>
+
+          <!-- Natureza -->
           <template #item-expense_nature="{ item }">
             <span
               :title="
@@ -1037,114 +1081,93 @@
               }}
             </span>
           </template>
+
+          <!-- Quantidade -->
           <template #item-quantity="{ item }">
-            {{ item.quantity }}
+            <span class="font-weight-medium">{{ item.quantity }}</span>
           </template>
-          <template #item-reference_price="{ item }">
-            {{ formatReferencePrice(item.reference_price) }}
+
+          <!-- Referência: Total em destaque + Unitário abaixo -->
+          <template #item-reference_values="{ item }">
+            <div class="d-flex flex-column text-right" style="line-height: 1.25">
+              <span class="font-weight-bold text-high-emphasis">
+                {{
+                  formatCurrency(
+                    item.reference_price != null && item.quantity != null
+                      ? Number(item.reference_price) * Number(item.quantity)
+                      : null,
+                  )
+                }}
+              </span>
+              <span class="text-caption text-medium-emphasis">
+                {{ formatReferencePrice(item.reference_price) }} / un
+              </span>
+            </div>
           </template>
-          <template #item-total_reference="{ item }">
-            <span class="text-grey font-weight-bold">
-              {{
-                formatCurrency(
-                  item.reference_price != null && item.quantity != null
-                    ? Number(item.reference_price) * Number(item.quantity)
-                    : null,
-                )
-              }}
-            </span>
-          </template>
-          <template #item-winner_status="{ item }">
-            <template v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'">
-              <div
-                v-if="getItemDisputeResult(item).outcome === 'winner'"
-                class="d-flex flex-column"
-                style="line-height: 1.25"
-              >
-                <NuxtLink
-                  v-if="getItemDisputeResult(item).winningBid?.suppliers"
-                  class="text-decoration-none text-primary font-weight-bold text-truncate"
-                  style="max-width: 200px"
-                  :title="getItemDisputeResult(item).winnerSupplierName"
-                  :to="`/demands/${demandId}/suppliers/${getItemDisputeResult(item).winningBid.supplier_id}`"
-                >
-                  {{ getItemDisputeResult(item).winnerSupplierName }}
-                </NuxtLink>
-                <span
-                  v-else
-                  class="text-truncate font-weight-medium"
-                  style="max-width: 200px"
-                  :title="getItemDisputeResult(item).winnerSupplierName"
-                >
-                  {{ getItemDisputeResult(item).winnerSupplierName }}
-                </span>
-                <div class="mt-1">
-                  <UiChip color="success" label size="xs" variant="soft"> Vencedor </UiChip>
+
+          <!-- Disputa / Vencedor: Fornecedor, Situação e Valores condensados -->
+          <template #item-dispute_result="{ item }">
+            <div class="d-flex flex-column text-right" style="line-height: 1.25">
+              <template v-if="getItemDisputeResult(item).outcome === 'winner'">
+                <div class="d-flex align-center justify-end ga-1 mb-1">
+                  <NuxtLink
+                    v-if="getItemDisputeResult(item).winningBid?.suppliers"
+                    class="text-decoration-none text-primary font-weight-bold text-truncate"
+                    style="max-width: 140px"
+                    :title="getItemDisputeResult(item).winnerSupplierName"
+                    :to="`/demands/${demandId}/suppliers/${getItemDisputeResult(item).winningBid.supplier_id}`"
+                  >
+                    {{ getItemDisputeResult(item).winnerSupplierName }}
+                  </NuxtLink>
+                  <span
+                    v-else
+                    class="text-truncate font-weight-medium text-high-emphasis"
+                    style="max-width: 140px"
+                    :title="getItemDisputeResult(item).winnerSupplierName"
+                  >
+                    {{ getItemDisputeResult(item).winnerSupplierName }}
+                  </span>
+                  <UiChip color="success" label size="xs" variant="soft">Venceu</UiChip>
                 </div>
-              </div>
-              <UiChip
-                v-else-if="getItemDisputeResult(item).outcome === 'failed'"
-                color="error"
-                label
-                size="xs"
-                variant="flat"
-              >
-                <UiIcon name="close" size="12" start />
-                Fracassado
-              </UiChip>
-              <UiChip
-                v-else-if="getItemDisputeResult(item).outcome === 'deserted'"
-                color="warning"
-                label
-                size="xs"
-                variant="flat"
-              >
-                <UiIcon name="alert" size="12" start />
-                Deserto
-              </UiChip>
-            </template>
-            <span v-else class="text-grey">-</span>
+                <div class="text-success font-weight-bold">
+                  {{ formatCurrency(getItemDisputeResult(item).totalFinal) }}
+                </div>
+                <div class="text-caption text-medium-emphasis">
+                  Lance: {{ formatCurrency(getItemDisputeResult(item).winningAmount) }}
+                </div>
+              </template>
+
+              <template v-else-if="getItemDisputeResult(item).outcome === 'failed'">
+                <div>
+                  <UiChip color="error" label size="xs" variant="flat">
+                    <UiIcon name="close" size="12" start />
+                    Fracassado
+                  </UiChip>
+                </div>
+                <span class="text-caption text-medium-emphasis mt-1">Sem vencedor</span>
+              </template>
+
+              <template v-else-if="getItemDisputeResult(item).outcome === 'deserted'">
+                <div>
+                  <UiChip color="warning" label size="xs" variant="flat">
+                    <UiIcon name="alert" size="12" start />
+                    Deserto
+                  </UiChip>
+                </div>
+                <span class="text-caption text-medium-emphasis mt-1">Sem lances</span>
+              </template>
+            </div>
           </template>
-          <template #item-best_bid="{ item }">
-            <template v-if="getItemDisputeResult(item).outcome === 'winner'">
-              <span class="text-success font-weight-bold">
-                {{ formatCurrency(getItemDisputeResult(item).winningAmount) }}
-              </span>
-            </template>
-            <template v-else-if="demand?.status !== 'planning' && demand?.status !== 'quotation'">
-              <span
-                v-if="getItemDisputeResult(item).outcome === 'failed'"
-                class="text-error font-italic text-caption"
-              >
-                Sem vencedor
-              </span>
-              <span
-                v-else-if="getItemDisputeResult(item).outcome === 'deserted'"
-                class="text-warning font-italic text-caption"
-              >
-                Sem propostas
-              </span>
-            </template>
-            <span v-else class="text-grey">-</span>
-          </template>
-          <template #item-total_final="{ item }">
-            <template v-if="getItemDisputeResult(item).outcome === 'winner'">
-              <span class="text-success font-weight-bold">
-                {{ formatCurrency(getItemDisputeResult(item).totalFinal) }}
-              </span>
-            </template>
-            <span v-else class="text-grey">-</span>
-          </template>
+
+          <!-- Ações -->
           <template #item-actions="{ item }">
-            <div class="d-flex flex-nowrap align-center justify-end gap-2">
+            <div class="d-flex flex-nowrap align-center justify-end gap-1">
               <UiActionButton
-                v-if="demand?.status === 'quotation'"
                 action="edit"
                 tooltip="Editar Item"
                 @click="openEditItemModal(item)"
               />
               <UiActionButton
-                v-if="demand?.status === 'quotation'"
                 action="delete"
                 tooltip="Remover item"
                 @click="removeItem(item.id, item.product?.name || '')"
