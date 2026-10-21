@@ -229,7 +229,7 @@ describe('Election Detail Page (/elections/[id])', () => {
     vm.modalRef = { open: openSpy }
     vm.openEditModal()
 
-    expect(openSpy).toHaveBeenCalledWith(mockElection)
+    expect(openSpy).toHaveBeenCalledWith(mockElection, true)
   })
 
   it('renders not found card when election is null', () => {

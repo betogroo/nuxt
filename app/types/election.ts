@@ -15,6 +15,7 @@ export interface ElectionRow {
   created_by?: string | null
   creator_name?: string | null
   deleted_at?: string | null
+  candidates_count?: number
 }
 
 export interface ElectionInput {

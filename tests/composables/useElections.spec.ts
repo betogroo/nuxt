@@ -162,6 +162,59 @@ describe('useElections Composable', () => {
     expect(result.id).toBe('e-upd')
   })
 
+  it('updateElection blocks digits_count change when election has active candidates', async () => {
+    // Mock candidate count query returning 2 active candidates
+    const isMock = vi.fn().mockResolvedValue({ count: 2, error: null })
+    const eqCandidate = vi.fn().mockReturnValue({ is: isMock })
+    const selectCandidates = vi.fn().mockReturnValue({ eq: eqCandidate })
+
+    // Mock current election query returning digits_count = 2
+    const singleElection = vi.fn().mockResolvedValue({ data: { digits_count: 2 }, error: null })
+    const eqElection = vi.fn().mockReturnValue({ single: singleElection })
+    const selectElection = vi.fn().mockReturnValue({ eq: eqElection })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'candidates') return { select: selectCandidates }
+      if (table === 'elections') return { select: selectElection }
+      return {}
+    })
+
+    const { updateElection } = useElections()
+
+    await expect(
+      updateElection('e-locked', {
+        digits_count: 3,
+      }),
+    ).rejects.toThrow('Não é possível alterar a quantidade de dígitos')
+  })
+
+  it('updateElection allows digits_count change when election has no candidates', async () => {
+    // Mock candidate count query returning 0
+    const isMock = vi.fn().mockResolvedValue({ count: 0, error: null })
+    const eqCandidate = vi.fn().mockReturnValue({ is: isMock })
+    const selectCandidates = vi.fn().mockReturnValue({ eq: eqCandidate })
+
+    // Mock update query
+    const singleMock = vi.fn().mockResolvedValue({
+      data: { id: 'e-free', digits_count: 4 },
+      error: null,
+    })
+    const selectAfterUpdate = vi.fn().mockReturnValue({ single: singleMock })
+    const eqUpdate = vi.fn().mockReturnValue({ select: selectAfterUpdate })
+    updateMock.mockReturnValue({ eq: eqUpdate })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'candidates') return { select: selectCandidates }
+      if (table === 'elections') return { update: updateMock }
+      return {}
+    })
+
+    const { updateElection } = useElections()
+    const result = await updateElection('e-free', { digits_count: 4 })
+
+    expect(result.digits_count).toBe(4)
+  })
+
   it('deleteElection performs safe delete by setting deleted_at', async () => {
     const eqMock = vi.fn().mockResolvedValue({ error: null })
     updateMock.mockReturnValue({ eq: eqMock })

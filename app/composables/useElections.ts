@@ -183,7 +183,29 @@ export function useElections() {
       }
       if (payload.name !== undefined) updateData.name = payload.name.trim()
       if (payload.election_date !== undefined) updateData.election_date = payload.election_date
-      if (payload.digits_count !== undefined) updateData.digits_count = payload.digits_count
+      if (payload.digits_count !== undefined) {
+        // Validação de segurança: impede alteração se já houver candidatos ativos
+        const { count, error: countErr } = await supabase
+          .from('candidates')
+          .select('id', { count: 'exact', head: true })
+          .eq('election_id', id)
+          .is('deleted_at', null)
+
+        if (!countErr && count && count > 0) {
+          const { data: currentElection } = await supabase
+            .from('elections')
+            .select('digits_count')
+            .eq('id', id)
+            .single()
+
+          if (currentElection && currentElection.digits_count !== payload.digits_count) {
+            throw new Error(
+              'Não é possível alterar a quantidade de dígitos de uma eleição que já possui candidatos cadastrados.',
+            )
+          }
+        }
+        updateData.digits_count = payload.digits_count
+      }
       if (payload.is_uppercase !== undefined) updateData.is_uppercase = payload.is_uppercase
       if (payload.status !== undefined) updateData.status = payload.status
       if (payload.description !== undefined) {
@@ -256,9 +278,16 @@ export function useElections() {
       }
       const raw = data as unknown as RawElectionItem
 
+      const { count: candCount } = await supabase
+        .from('candidates')
+        .select('id', { count: 'exact', head: true })
+        .eq('election_id', id)
+        .is('deleted_at', null)
+
       return {
         ...raw,
         creator_name: raw.profiles?.name || null,
+        candidates_count: candCount || 0,
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Erro ao buscar detalhes da eleição.'

@@ -195,7 +195,7 @@
 
   const openEditModal = () => {
     if (election.value) {
-      modalRef.value?.open(election.value)
+      modalRef.value?.open(election.value, (candidates.value?.length || 0) > 0)
     }
   }
 

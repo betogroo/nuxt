@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
+  import { useSupabaseClient } from '#imports'
   import { useZodForm } from '~/composables/useZodForm'
   import { electionFormSchema, type ElectionFormInput } from '~/schemas/forms/election'
   import type { ElectionRow, ElectionStatus } from '~/types/election'
@@ -9,6 +10,7 @@
     (e: 'saved', election: ElectionRow): void
   }>()
 
+  const supabase = useSupabaseClient()
   const { createElection, updateElection, loading } = useElections()
   const toast = useToast()
 
@@ -16,6 +18,7 @@
   const editingId = ref<string | null>(null)
   const isEditing = computed(() => !!editingId.value)
   const errorMessage = ref('')
+  const hasCandidates = ref(false)
 
   const statusOptions = [
     { title: ELECTION_STATUS_LABELS.awaiting_release, value: 'awaiting_release' },
@@ -53,14 +56,34 @@
   const [status, statusProps] = defineField('status')
   const [description, descriptionProps] = defineField('description')
 
-  const open = (election?: ElectionRow) => {
+  const open = async (election?: ElectionRow, hasCandidatesParam?: boolean) => {
     errorMessage.value = ''
+    hasCandidates.value = false
+
     if (election) {
       editingId.value = election.id
       // Format election_date to YYYY-MM-DD for date input
       const dateStr = election.election_date
         ? new Date(election.election_date).toISOString().slice(0, 10)
         : ''
+
+      // Determina se a eleição possui candidatos cadastrados
+      if (hasCandidatesParam !== undefined) {
+        hasCandidates.value = hasCandidatesParam
+      } else if (election.candidates_count !== undefined) {
+        hasCandidates.value = election.candidates_count > 0
+      } else if (election.id) {
+        try {
+          const { count } = await supabase
+            .from('candidates')
+            .select('id', { count: 'exact', head: true })
+            .eq('election_id', election.id)
+            .is('deleted_at', null)
+          hasCandidates.value = (count || 0) > 0
+        } catch {
+          hasCandidates.value = false
+        }
+      }
 
       resetForm({
         values: {
@@ -74,6 +97,7 @@
       })
     } else {
       editingId.value = null
+      hasCandidates.value = false
       const todayStr = new Date().toISOString().slice(0, 10)
       resetForm({
         values: {
@@ -164,14 +188,25 @@
           <UiSelect
             v-model="digitsCount"
             v-bind="digitsCountProps"
+            :disabled="hasCandidates"
             :error-messages="errors.digits_count"
-            hint="Define o tamanho do número dos candidatos na urna"
+            :hint="
+              hasCandidates
+                ? 'Bloqueado: Esta eleição já possui candidatos cadastrados'
+                : 'Define o tamanho do número dos candidatos na urna'
+            "
             item-title="title"
             item-value="value"
             :items="digitsOptions"
             label="Quantidade de Dígitos *"
             persistent-hint
           />
+          <div v-if="hasCandidates" class="d-flex align-center ga-1 mt-1 text-caption text-warning">
+            <UiIcon name="lock" size="14" />
+            <span
+              >Remova os candidatos existentes se precisar alterar a quantidade de dígitos.</span
+            >
+          </div>
         </div>
 
         <!-- Situação -->
