@@ -12,13 +12,15 @@
 
   const isModalOpen = defineModel<boolean>({ default: false })
 
-  const { generateDisputeReportData, exportDisputeReportToCsv, logPdfExport } = useDemandReports()
+  const { generateDisputeReportData, exportDisputeReportToCsv, printDisputeReport } =
+    useDemandReports()
 
   const reportData = computed(() => {
     return generateDisputeReportData(props.demand, props.items)
   })
 
   const isExportingCsv = ref(false)
+  const isPrintingPdf = ref(false)
 
   const handleExportCsv = async () => {
     if (isExportingCsv.value || reportData.value.totalItemsCount === 0) return
@@ -31,9 +33,13 @@
   }
 
   const handlePrintPdf = async () => {
-    if (reportData.value.totalItemsCount === 0) return
-    await logPdfExport(reportData.value.demandName)
-    window.print()
+    if (isPrintingPdf.value || reportData.value.totalItemsCount === 0) return
+    isPrintingPdf.value = true
+    try {
+      await printDisputeReport(reportData.value)
+    } finally {
+      isPrintingPdf.value = false
+    }
   }
 
   const getBecProductUrl = (catBec: string | number) => {
@@ -379,7 +385,8 @@
         <div class="d-flex ga-2">
           <UiButton
             color="secondary"
-            :disabled="reportData.totalItemsCount === 0"
+            :disabled="reportData.totalItemsCount === 0 || isPrintingPdf"
+            :loading="isPrintingPdf"
             prepend-icon="printer"
             variant="outline"
             @click="handlePrintPdf"
@@ -405,57 +412,5 @@
 <style scoped>
   .table-responsive {
     overflow-x: auto;
-  }
-
-  @media print {
-    /* Ocultar elementos desnecessários na impressão */
-    :global(body *) {
-      visibility: hidden;
-    }
-
-    .dispute-report-container,
-    .dispute-report-container * {
-      visibility: visible;
-    }
-
-    .dispute-report-container {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100% !important;
-      padding: 0 !important;
-      margin: 0 !important;
-      background: white !important;
-      color: black !important;
-    }
-
-    .no-print,
-    :global(.v-overlay__scrim),
-    :global(.v-card-actions) {
-      display: none !important;
-    }
-
-    /* Quebra de página controlada por bloco de fornecedor */
-    .winner-supplier-block {
-      page-break-inside: avoid;
-      break-inside: avoid;
-      border: 1px solid #ccc !important;
-      margin-bottom: 20px !important;
-    }
-
-    table {
-      page-break-inside: auto;
-    }
-
-    tr {
-      page-break-inside: avoid;
-      page-break-after: auto;
-    }
-
-    th,
-    td {
-      border: 1px solid #ddd !important;
-      color: #000 !important;
-    }
   }
 </style>

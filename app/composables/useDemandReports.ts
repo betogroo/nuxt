@@ -2,7 +2,13 @@ import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { getItemDisputeResult } from '~/utils/bids'
 import { downloadBlob } from '~/utils/download'
-import { formatCnpj, formatDate, formatDateTime, formatDemandType } from '~/utils/formatters'
+import {
+  formatCnpj,
+  formatDate,
+  formatDateTime,
+  formatCurrency,
+  formatDemandType,
+} from '~/utils/formatters'
 import { formatDemandStatus } from '~/utils/demandStatus'
 
 export interface DisputeReportDemandInfo {
@@ -86,6 +92,19 @@ export function escapeCsvField(value: string | number | null | undefined): strin
 }
 
 /**
+ * Escapes special characters for safe HTML injection.
+ */
+export function escapeHtml(str: string | number | null | undefined): string {
+  if (str == null) return ''
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+/**
  * Generates structured data for the dispute homologation report.
  * Items are ordered and grouped by WINNING SUPPLIER.
  */
@@ -100,7 +119,7 @@ export function generateDisputeReportData(
     id: demandId,
     name: demandName,
     type: demand?.type || '-',
-    typeLabel: formatDemandType(demand?.type),
+    typeLabel: formatDemandType(demand?.type || ''),
     status: demand?.status || '-',
     statusLabel: demand?.status ? formatDemandStatus(demand.status) : '-',
     processNumber: demand?.process_number || '-',
@@ -422,6 +441,429 @@ export function buildDisputeReportCsv(reportData: DisputeReportData): string {
   return '\uFEFF' + lines.join('\r\n')
 }
 
+/**
+ * Builds a standalone, clean HTML document tailored for multi-page A4 PDF printing.
+ */
+export function buildDisputeReportHtml(reportData: DisputeReportData): string {
+  const demand = reportData.demand
+  const now = new Date().toLocaleString('pt-BR')
+
+  const winnerGroupsHtml =
+    reportData.winnerGroups.length === 0
+      ? `<div style="padding: 24px; text-align: center; color: #64748b; font-style: italic;">Nenhum item vencedor homologado nesta demanda.</div>`
+      : reportData.winnerGroups
+          .map((group) => {
+            const supp = group.supplier
+            const contactDetails =
+              [supp.cellPhone, supp.landline].filter(Boolean).join(' / ') || '-'
+            const badgesHtml = [
+              supp.isSimplesOptant
+                ? `<span class="badge badge-success">Simples Nacional</span>`
+                : '',
+              supp.hasBbAccount
+                ? `<span class="badge badge-info">Conta BB: ${escapeHtml(supp.hasBbAccount)}</span>`
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+
+            const rowsHtml = group.items
+              .map(
+                (item) => `
+          <tr>
+            <td>${escapeHtml(item.natureza)}</td>
+            <td style="font-weight: 600;">${escapeHtml(item.itemBec)}</td>
+            <td>${escapeHtml(item.especificacao)}</td>
+            <td>${escapeHtml(item.unidadeBec)}</td>
+            <td class="text-right" style="font-weight: 600;">${item.qtd}</td>
+            <td class="text-right">${item.valorOfertado != null ? formatCurrency(item.valorOfertado) : '-'}</td>
+            <td class="text-right" style="font-weight: 600;">${item.valorFinal != null ? formatCurrency(item.valorFinal) : '-'}</td>
+          </tr>
+        `,
+              )
+              .join('')
+
+            return `
+          <div class="supplier-block">
+            <div class="supplier-header">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="font-size: 13px; font-weight: 700; color: #1e3a8a;">
+                  ${escapeHtml(supp.companyName)}
+                </div>
+                <div>${badgesHtml}</div>
+              </div>
+              <div class="supplier-info-grid">
+                <div><span class="label">CNPJ:</span> ${escapeHtml(supp.cnpjFormatted || '-')}</div>
+                <div><span class="label">Responsável:</span> ${escapeHtml(supp.responsibleName || '-')}</div>
+                <div><span class="label">E-mail:</span> ${escapeHtml(supp.email || '-')}</div>
+                <div><span class="label">Telefone:</span> ${escapeHtml(contactDetails)}</div>
+                ${supp.address ? `<div style="grid-column: span 4;"><span class="label">Endereço:</span> ${escapeHtml(supp.address)}</div>` : ''}
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 90px;">Natureza</th>
+                  <th style="width: 80px;">Item BEC</th>
+                  <th>Especificação</th>
+                  <th style="width: 110px;">Unidade BEC</th>
+                  <th class="text-right" style="width: 60px;">Qtd</th>
+                  <th class="text-right" style="width: 100px;">Valor Ofertado</th>
+                  <th class="text-right" style="width: 110px;">Valor Final</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+              <tfoot>
+                <tr class="subtotal-row">
+                  <td colspan="6" class="text-right">SUBTOTAL (${escapeHtml(supp.companyName)}):</td>
+                  <td class="text-right text-primary">${formatCurrency(group.subtotalValorFinal)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `
+          })
+          .join('')
+
+  const nonWinnersHtml =
+    reportData.nonWinnerItems.length > 0
+      ? `
+    <div style="margin-top: 14px; page-break-inside: avoid;">
+      <div style="font-size: 10.5px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+        Itens Não Homologados (Desertos / Fracassados) - ${reportData.nonWinnerItems.length} item(ns)
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 80px;">Item BEC</th>
+            <th>Especificação</th>
+            <th style="width: 90px;">Natureza</th>
+            <th class="text-right" style="width: 60px;">Qtd</th>
+            <th class="text-center" style="width: 100px;">Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.nonWinnerItems
+            .map(
+              (item) => `
+            <tr>
+              <td>${escapeHtml(item.itemBec)}</td>
+              <td>${escapeHtml(item.especificacao)}</td>
+              <td>${escapeHtml(item.natureza)}</td>
+              <td class="text-right">${item.qtd}</td>
+              <td class="text-center" style="font-weight: 600; color: ${item.outcome === 'failed' ? '#dc2626' : '#d97706'};">
+                ${escapeHtml(item.outcomeLabel)}
+              </td>
+            </tr>
+          `,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+      : ''
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Homologação da Disputa - ${escapeHtml(demand.name)}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 10px;
+      line-height: 1.35;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+    }
+    .demand-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 4px 0;
+    }
+    .demand-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px 12px;
+      margin-top: 8px;
+    }
+    .label {
+      font-size: 9px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .value {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #0f172a;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .summary-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 8px;
+      text-align: center;
+      background: #f8fafc;
+    }
+    .summary-label {
+      font-size: 9px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .summary-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .supplier-block {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      overflow: hidden;
+    }
+    .supplier-header {
+      background: #f1f5f9;
+      padding: 8px 10px;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    .supplier-info-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px 8px;
+      font-size: 9.5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+    }
+    thead {
+      display: table-header-group;
+    }
+    th {
+      background: #f8fafc;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8.5px;
+      color: #475569;
+      padding: 5px 8px;
+      border-bottom: 1px solid #cbd5e1;
+      text-align: left;
+    }
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
+    .subtotal-row td {
+      background: #f8fafc;
+      font-weight: 700;
+      border-top: 1px solid #cbd5e1;
+      font-size: 10px;
+    }
+    .text-primary {
+      color: #1e3a8a;
+    }
+    .text-success {
+      color: #15803d;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .badge-info {
+      background: #e0f2fe;
+      color: #075985;
+      border: 1px solid #bae6fd;
+    }
+    .grand-total-card {
+      border: 2px solid #1e3a8a;
+      background: #eff6ff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 10px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .footer {
+      margin-top: 16px;
+      font-size: 8.5px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div class="label">Relatório de Homologação da Disputa</div>
+        <h1 class="demand-title">${escapeHtml(demand.name)}</h1>
+      </div>
+      <div>
+        <span class="badge badge-info">${escapeHtml(demand.typeLabel)}</span>
+        <span class="badge badge-success">${escapeHtml(demand.statusLabel)}</span>
+      </div>
+    </div>
+    <div class="demand-grid">
+      <div><div class="label">Nº Processo</div><div class="value">${escapeHtml(demand.processNumber)}</div></div>
+      <div><div class="label">Processo Interno</div><div class="value">${escapeHtml(demand.internalProcessNumber)}</div></div>
+      <div><div class="label">Aviso Contratação</div><div class="value">${escapeHtml(demand.biddingNoticeNumber)}</div></div>
+      <div><div class="label">Nº Disputa</div><div class="value">${escapeHtml(demand.disputeNumber)}</div></div>
+      <div><div class="label">Data Disputa</div><div class="value">${escapeHtml(demand.disputeDate)}</div></div>
+      <div><div class="label">Abertura Ofertas</div><div class="value">${escapeHtml(demand.offerOpeningDate)}</div></div>
+      <div><div class="label">PCA</div><div class="value">${escapeHtml(demand.idPca)}</div></div>
+      <div><div class="label">Total Homologado</div><div class="value text-success" style="font-weight: 700;">${formatCurrency(reportData.grandTotalValorFinal)}</div></div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Total de Itens</div>
+      <div class="summary-value">${reportData.totalItemsCount}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label" style="color: #15803d;">Vencedores</div>
+      <div class="summary-value" style="color: #15803d;">${reportData.winnersCount}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label" style="color: #dc2626;">Fracassados</div>
+      <div class="summary-value" style="color: #dc2626;">${reportData.failedCount}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label" style="color: #d97706;">Desertos</div>
+      <div class="summary-value" style="color: #d97706;">${reportData.desertedCount}</div>
+    </div>
+  </div>
+
+  ${winnerGroupsHtml}
+
+  <div class="grand-total-card">
+    <span>TOTAL GERAL HOMOLOGADO DA DISPUTA:</span>
+    <span style="font-size: 15px;">${formatCurrency(reportData.grandTotalValorFinal)}</span>
+  </div>
+
+  ${nonWinnersHtml}
+
+  <div class="footer">
+    <span>Sistema de Gestão de Contratações - Relatório Oficial de Homologação</span>
+    <span>Emissão: ${now}</span>
+  </div>
+</body>
+</html>`
+}
+
+/**
+ * Triggers native printing using an invisible iframe to prevent any dialog/modal scroll clipping.
+ */
+export function printHtmlViaIframe(html: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof document === 'undefined') {
+      resolve()
+      return
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+    iframe.setAttribute('aria-hidden', 'true')
+    iframe.setAttribute('tabindex', '-1')
+
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document || iframe.contentDocument
+    if (!doc) {
+      document.body.removeChild(iframe)
+      resolve()
+      return
+    }
+
+    doc.open()
+    doc.write(html)
+    doc.close()
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus?.()
+        if (typeof iframe.contentWindow?.print === 'function') {
+          iframe.contentWindow.print()
+        }
+      } catch {
+        // Safe fallback in test environments
+      } finally {
+        setTimeout(() => {
+          if (iframe.parentNode) {
+            document.body.removeChild(iframe)
+          }
+          resolve()
+        }, 500)
+      }
+    }, 150)
+  })
+}
+
 export const useDemandReports = () => {
   const { logAction } = useLogger()
 
@@ -443,6 +885,15 @@ export const useDemandReports = () => {
     )
   }
 
+  const printDisputeReport = async (reportData: DisputeReportData): Promise<void> => {
+    const html = buildDisputeReportHtml(reportData)
+    await printHtmlViaIframe(html)
+    await logAction(
+      'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
+      `Relatório de disputa da demanda "${reportData.demandName}" impresso/exportado para PDF.`,
+    )
+  }
+
   const logPdfExport = async (demandName: string): Promise<void> => {
     await logAction(
       'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
@@ -453,7 +904,9 @@ export const useDemandReports = () => {
   return {
     generateDisputeReportData,
     buildDisputeReportCsv,
+    buildDisputeReportHtml,
     exportDisputeReportToCsv,
+    printDisputeReport,
     logPdfExport,
   }
 }

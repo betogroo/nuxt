@@ -3,6 +3,7 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import {
   generateDisputeReportData,
   buildDisputeReportCsv,
+  buildDisputeReportHtml,
   formatDecimalBr,
   escapeCsvField,
   useDemandReports,
@@ -449,36 +450,110 @@ describe('useDemandReports', () => {
     })
   })
 
-  describe('useDemandReports composable methods', () => {
-    it('logs action when exporting dispute report to CSV', async () => {
-      const { exportDisputeReportToCsv } = useDemandReports()
-
+  describe('buildDisputeReportHtml', () => {
+    it('constructs a standalone HTML document with demand metadata, winner supplier and items table', () => {
       const mockData = {
         demandId: 'demand-1',
-        demandName: 'Demanda Teste',
+        demandName: 'Demanda Teste 2026',
         demand: {
           id: 'demand-1',
-          name: 'Demanda Teste',
+          name: 'Demanda Teste 2026',
           type: 'consumption',
-          typeLabel: 'Material de Consumo',
+          typeLabel: 'Consumo',
           status: 'homologation',
           statusLabel: 'Homologação',
-          processNumber: '-',
-          internalProcessNumber: '-',
-          biddingNoticeNumber: '-',
-          disputeNumber: '-',
-          disputeDate: '-',
-          offerOpeningDate: '-',
-          idPca: '-',
+          processNumber: 'PROC-100',
+          internalProcessNumber: 'INT-200',
+          biddingNoticeNumber: 'AV-300',
+          disputeNumber: 'DISP-400',
+          disputeDate: '25/10/2026',
+          offerOpeningDate: '22/10/2026 09:00',
+          idPca: 'PCA-500',
         },
-        totalItemsCount: 0,
-        winnersCount: 0,
+        totalItemsCount: 1,
+        winnersCount: 1,
         failedCount: 0,
         desertedCount: 0,
-        grandTotalValorFinal: 0,
-        winnerGroups: [],
+        grandTotalValorFinal: 250.0,
+        winnerGroups: [
+          {
+            supplier: {
+              id: 'supp-1',
+              companyName: 'Alfa Comércio',
+              cnpj: '11222333000144',
+              cnpjFormatted: '11.222.333/0001-44',
+              email: 'alfa@comercio.com',
+              cellPhone: '11999991111',
+              landline: null,
+              address: 'Av Paulista, 1000',
+              responsibleName: 'Maria Alfa',
+              isSimplesOptant: true,
+              hasBbAccount: 'Sim',
+            },
+            subtotalValorFinal: 250.0,
+            totalItemsCount: 1,
+            items: [
+              {
+                id: 'item-1',
+                natureza: '339030',
+                itemBec: '1234',
+                especificacao: 'Produto A',
+                unidadeBec: 'UN',
+                qtd: 10,
+                valorOfertado: 25.0,
+                valorFinal: 250.0,
+                outcome: 'winner' as const,
+                outcomeLabel: 'Vencedor',
+              },
+            ],
+          },
+        ],
         nonWinnerItems: [],
       }
+
+      const html = buildDisputeReportHtml(mockData)
+
+      expect(html).toContain('<!DOCTYPE html>')
+      expect(html).toContain('Demanda Teste 2026')
+      expect(html).toContain('PROC-100')
+      expect(html).toContain('Alfa Comércio')
+      expect(html).toContain('11.222.333/0001-44')
+      expect(html).toContain('Produto A')
+      expect(html).toContain('SUBTOTAL (Alfa Comércio):')
+      expect(html).toContain('TOTAL GERAL HOMOLOGADO DA DISPUTA:')
+    })
+  })
+
+  describe('useDemandReports composable methods', () => {
+    const mockData = {
+      demandId: 'demand-1',
+      demandName: 'Demanda Teste',
+      demand: {
+        id: 'demand-1',
+        name: 'Demanda Teste',
+        type: 'consumption',
+        typeLabel: 'Material de Consumo',
+        status: 'homologation',
+        statusLabel: 'Homologação',
+        processNumber: '-',
+        internalProcessNumber: '-',
+        biddingNoticeNumber: '-',
+        disputeNumber: '-',
+        disputeDate: '-',
+        offerOpeningDate: '-',
+        idPca: '-',
+      },
+      totalItemsCount: 0,
+      winnersCount: 0,
+      failedCount: 0,
+      desertedCount: 0,
+      grandTotalValorFinal: 0,
+      winnerGroups: [],
+      nonWinnerItems: [],
+    }
+
+    it('logs action when exporting dispute report to CSV', async () => {
+      const { exportDisputeReportToCsv } = useDemandReports()
 
       await exportDisputeReportToCsv(mockData)
 
@@ -489,13 +564,19 @@ describe('useDemandReports', () => {
     })
 
     it('logs action when exporting/printing dispute report to PDF', async () => {
-      const { logPdfExport } = useDemandReports()
+      const { logPdfExport, printDisputeReport } = useDemandReports()
 
       await logPdfExport('Demanda Teste PDF')
 
       expect(logActionMock).toHaveBeenCalledWith(
         'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
         expect.stringContaining('Demanda Teste PDF'),
+      )
+
+      await printDisputeReport(mockData)
+      expect(logActionMock).toHaveBeenCalledWith(
+        'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
+        expect.stringContaining('Demanda Teste'),
       )
     })
   })

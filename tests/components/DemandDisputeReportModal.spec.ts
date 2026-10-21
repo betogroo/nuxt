@@ -6,7 +6,7 @@ import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 
 const exportDisputeReportToCsvMock = vi.fn()
-const logPdfExportMock = vi.fn()
+const printDisputeReportMock = vi.fn()
 
 mockNuxtImport('useDemandReports', () => () => ({
   generateDisputeReportData: vi.fn(() => ({
@@ -68,7 +68,7 @@ mockNuxtImport('useDemandReports', () => () => ({
     desertedCount: 0,
   })),
   exportDisputeReportToCsv: exportDisputeReportToCsvMock,
-  logPdfExport: logPdfExportMock,
+  printDisputeReport: printDisputeReportMock,
 }))
 
 const stubs = {
@@ -134,10 +134,7 @@ describe('DemandDisputeReportModal', () => {
     expect(exportDisputeReportToCsvMock).toHaveBeenCalledTimes(1)
   })
 
-  it('triggers print and logs PDF export when clicking export PDF button', async () => {
-    const printMock = vi.fn()
-    window.print = printMock
-
+  it('triggers printDisputeReport when clicking export PDF button', async () => {
     const wrapper = mount(DemandDisputeReportModal, {
       props: {
         modelValue: true,
@@ -152,7 +149,6 @@ describe('DemandDisputeReportModal', () => {
     expect(pdfButton).toBeDefined()
 
     await pdfButton!.trigger('click')
-    expect(logPdfExportMock).toHaveBeenCalledWith('Pregão Presencial 01/2026')
-    expect(printMock).toHaveBeenCalledTimes(1)
+    expect(printDisputeReportMock).toHaveBeenCalledTimes(1)
   })
 })
