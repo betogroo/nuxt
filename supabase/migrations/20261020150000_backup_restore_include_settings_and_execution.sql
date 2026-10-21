@@ -374,14 +374,17 @@ BEGIN
 
   -- 8. IIRGD_SETTINGS (SINGLETON)
   IF v_data ? 'iirgd_settings' AND jsonb_typeof(v_data->'iirgd_settings') = 'array' AND jsonb_array_length(v_data->'iirgd_settings') > 0 THEN
-    INSERT INTO public.iirgd_settings (id, alert_days, delay_days, singleton_key, created_at, updated_at)
+    INSERT INTO public.iirgd_settings (id, alert_days, delay_days, updated_at, updated_by, singleton_key)
     SELECT 
       COALESCE((elem->>'id')::uuid, gen_random_uuid()),
       COALESCE((elem->>'alert_days')::integer, 10),
       COALESCE((elem->>'delay_days')::integer, 15),
-      true,
-      COALESCE((elem->>'created_at')::timestamptz, now()),
-      COALESCE((elem->>'updated_at')::timestamptz, now())
+      COALESCE((elem->>'updated_at')::timestamptz, now()),
+      CASE WHEN (elem->>'updated_by') IS NOT NULL AND EXISTS (SELECT 1 FROM auth.users u WHERE u.id = (elem->>'updated_by')::uuid)
+           THEN (elem->>'updated_by')::uuid
+           ELSE auth.uid()
+      END,
+      true
     FROM (
       SELECT jsonb_array_elements(v_data->'iirgd_settings') AS elem
       LIMIT 1
@@ -389,7 +392,8 @@ BEGIN
     ON CONFLICT (singleton_key) DO UPDATE SET
       alert_days = EXCLUDED.alert_days,
       delay_days = EXCLUDED.delay_days,
-      updated_at = EXCLUDED.updated_at;
+      updated_at = EXCLUDED.updated_at,
+      updated_by = EXCLUDED.updated_by;
 
     GET DIAGNOSTICS v_count_iirgd_settings = ROW_COUNT;
   END IF;
