@@ -16,6 +16,7 @@
   } from '~/constants/demand-item-status'
   import type { DemandProductRow } from '~/composables/useDemandProducts'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+  import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -697,7 +698,7 @@
             <UiButton
               v-if="['homologation', 'completed'].includes(demand.status)"
               color="primary"
-              prepend-icon="fileText"
+              prepend-icon="document"
               variant="outlined"
               @click="handleGenerateReport"
             >

@@ -6,19 +6,11 @@
   import { formatCurrency } from '~/utils/formatters'
 
   const props = defineProps<{
-    modelValue: boolean
     demand: DemandRow | null | undefined
     items: DemandProductRow[] | null | undefined
   }>()
 
-  const emit = defineEmits<{
-    (e: 'update:modelValue', value: boolean): void
-  }>()
-
-  const isModalOpen = computed({
-    get: () => props.modelValue,
-    set: (val: boolean) => emit('update:modelValue', val),
-  })
+  const isModalOpen = defineModel<boolean>({ default: false })
 
   const { generateDisputeReportData, exportDisputeReportToCsv, logPdfExport } = useDemandReports()
 
