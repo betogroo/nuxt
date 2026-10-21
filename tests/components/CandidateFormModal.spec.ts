@@ -33,6 +33,8 @@ mockNuxtImport('useCandidates', () => () => ({
 describe('CandidateFormModal Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/dummy-preview')
+    global.URL.revokeObjectURL = vi.fn()
   })
 
   const createWrapper = (props = {}) => {
@@ -47,10 +49,12 @@ describe('CandidateFormModal Component', () => {
         stubs: {
           UiModal: true,
           UiInput: true,
+          UiFileInput: true,
           UiButton: true,
           UiAvatar: true,
           UiIcon: true,
           UiAlert: true,
+          UiChip: true,
         },
       },
     })
@@ -115,13 +119,14 @@ describe('CandidateFormModal Component', () => {
     expect(vm.candidateNumber).toBe('58')
   })
 
-  it('validates and submits new candidate successfully, emitting saved', async () => {
+  it('validates and submits new candidate successfully with photo file', async () => {
     const wrapper = createWrapper({ digitsCount: 2, isUppercase: true })
     const vm = wrapper.vm as unknown as {
       open: () => void
       name: string
       candidateNumber: string
-      photoUrl: string
+      selectedFile: File | null
+      onFileSelected: (f: File | null) => void
       handleSubmit: () => Promise<void>
       isOpen: boolean
     }
@@ -129,18 +134,41 @@ describe('CandidateFormModal Component', () => {
     vm.open()
     vm.name = 'chapa vitória'
     vm.candidateNumber = '15'
-    vm.photoUrl = 'https://picsum.photos/300'
+
+    const testFile = new File(['content'], 'candidato.jpg', { type: 'image/jpeg' })
+    vm.onFileSelected(testFile)
 
     await vm.handleSubmit()
 
     expect(createCandidateMock).toHaveBeenCalledWith('elec-123', {
       name: 'CHAPA VITÓRIA',
       candidate_number: '15',
-      photo_url: 'https://picsum.photos/300',
+      photo_url: null,
+      photo_file: testFile,
     })
     expect(toastSuccessMock).toHaveBeenCalled()
     expect(wrapper.emitted('saved')).toBeTruthy()
     expect(vm.isOpen).toBe(false)
+  })
+
+  it('handles clearing photo and randomizing photo', () => {
+    const wrapper = createWrapper({ digitsCount: 2 })
+    const vm = wrapper.vm as unknown as {
+      open: () => void
+      clearPhoto: () => void
+      randomizePhoto: () => void
+      photoUrl: string
+      selectedFile: File | null
+      effectivePhotoUrl: string
+    }
+
+    vm.open()
+    vm.clearPhoto()
+    expect(vm.photoUrl).toBe('')
+    expect(vm.selectedFile).toBeNull()
+
+    vm.randomizePhoto()
+    expect(vm.photoUrl).toBe('https://picsum.photos/seed/test/300/300')
   })
 
   it('fails validation when candidate number does not match digitsCount', async () => {

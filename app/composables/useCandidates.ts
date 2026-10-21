@@ -15,6 +15,59 @@ export function useCandidates() {
     return `https://picsum.photos/seed/${randomKey}/300/300`
   }
 
+  const uploadCandidatePhoto = async (
+    file: File,
+    electionId: string,
+    candidateNumber: string,
+  ): Promise<string> => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const sanitizedNumber = candidateNumber.replace(/\D/g, '') || 'cand'
+      const filePath = `${electionId}/${sanitizedNumber}_${Date.now()}.${fileExt}`
+
+      const { data, error: uploadErr } = await supabase.storage
+        .from('candidate-photos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        })
+
+      if (uploadErr) {
+        console.error('Erro no upload da foto do candidato:', uploadErr)
+        throw new Error(uploadErr.message || 'Falha ao enviar foto para o armazenamento.')
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('candidate-photos')
+        .getPublicUrl(data.path)
+
+      return publicUrlData.publicUrl
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Erro ao fazer upload da foto.'
+      error.value = message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const deleteCandidatePhoto = async (photoUrl: string): Promise<void> => {
+    if (!photoUrl) return
+    const marker = '/storage/v1/object/public/candidate-photos/'
+    if (photoUrl.includes(marker)) {
+      const filePath = photoUrl.split(marker)[1]
+      if (filePath) {
+        const { error: delErr } = await supabase.storage.from('candidate-photos').remove([filePath])
+        if (delErr) {
+          console.warn('Aviso: Não foi possível remover foto antiga do storage:', delErr)
+        }
+      }
+    }
+  }
+
   const fetchCandidates = async (electionId: string): Promise<CandidateRow[]> => {
     loading.value = true
     error.value = null
@@ -50,10 +103,17 @@ export function useCandidates() {
     error.value = null
 
     try {
-      const photoUrl =
-        payload.photo_url && payload.photo_url.trim()
-          ? payload.photo_url.trim()
-          : generateRandomPhotoUrl(payload.candidate_number)
+      let photoUrl = payload.photo_url && payload.photo_url.trim() ? payload.photo_url.trim() : null
+
+      if (payload.photo_file) {
+        photoUrl = await uploadCandidatePhoto(
+          payload.photo_file,
+          electionId,
+          payload.candidate_number,
+        )
+      } else if (!photoUrl) {
+        photoUrl = generateRandomPhotoUrl(payload.candidate_number)
+      }
 
       const { data, error: err } = await supabase
         .from('candidates')
@@ -93,7 +153,7 @@ export function useCandidates() {
 
   const updateCandidate = async (
     id: string,
-    payload: Partial<CandidateInput>,
+    payload: Partial<CandidateInput> & { election_id?: string },
   ): Promise<CandidateRow> => {
     loading.value = true
     error.value = null
@@ -107,7 +167,16 @@ export function useCandidates() {
       if (payload.candidate_number !== undefined) {
         updateData.candidate_number = payload.candidate_number.trim()
       }
-      if (payload.photo_url !== undefined) {
+
+      if (payload.photo_file) {
+        const targetElectionId = payload.election_id || 'general'
+        const newPhotoUrl = await uploadCandidatePhoto(
+          payload.photo_file,
+          targetElectionId,
+          payload.candidate_number || 'cand',
+        )
+        updateData.photo_url = newPhotoUrl
+      } else if (payload.photo_url !== undefined) {
         updateData.photo_url = payload.photo_url ? payload.photo_url.trim() : null
       }
 
@@ -170,6 +239,8 @@ export function useCandidates() {
     loading,
     error,
     generateRandomPhotoUrl,
+    uploadCandidatePhoto,
+    deleteCandidatePhoto,
     fetchCandidates,
     createCandidate,
     updateCandidate,

@@ -8,8 +8,21 @@ const updateMock = vi.fn()
 const fromMock = vi.fn()
 const logActionMock = vi.fn()
 
+const uploadMock = vi.fn()
+const getPublicUrlMock = vi.fn()
+const removeMock = vi.fn()
+
+const storageFromMock = vi.fn().mockReturnValue({
+  upload: uploadMock,
+  getPublicUrl: getPublicUrlMock,
+  remove: removeMock,
+})
+
 const supabaseMock = {
   from: fromMock,
+  storage: {
+    from: storageFromMock,
+  },
 }
 
 mockNuxtImport('useSupabaseClient', () => () => supabaseMock)
@@ -18,6 +31,14 @@ mockNuxtImport('useLogger', () => () => ({ logAction: logActionMock }))
 describe('useCandidates Composable', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    uploadMock.mockResolvedValue({ data: { path: 'elec-1/10_123.png' }, error: null })
+    getPublicUrlMock.mockReturnValue({
+      data: {
+        publicUrl:
+          'https://supabase.co/storage/v1/object/public/candidate-photos/elec-1/10_123.png',
+      },
+    })
+    removeMock.mockResolvedValue({ data: [], error: null })
   })
 
   it('fetchCandidates queries active candidates for given election ordered by number', async () => {
@@ -73,6 +94,60 @@ describe('useCandidates Composable', () => {
       expect.stringContaining('Chapa 3'),
     )
     expect(result.id).toBe('c-new')
+  })
+
+  it('createCandidate uploads photo file to Supabase Storage when provided', async () => {
+    const file = new File(['image-bytes'], 'foto.png', { type: 'image/png' })
+    const singleMock = vi.fn().mockResolvedValue({
+      data: { id: 'c-uploaded', name: 'Chapa Foto', candidate_number: '12' },
+      error: null,
+    })
+    const selectAfterInsert = vi.fn().mockReturnValue({ single: singleMock })
+    insertMock.mockReturnValue({ select: selectAfterInsert })
+    fromMock.mockReturnValue({ insert: insertMock })
+
+    const { createCandidate } = useCandidates()
+    const result = await createCandidate('elec-1', {
+      name: 'Chapa Foto',
+      candidate_number: '12',
+      photo_file: file,
+    })
+
+    expect(storageFromMock).toHaveBeenCalledWith('candidate-photos')
+    expect(uploadMock).toHaveBeenCalledWith(
+      expect.stringContaining('elec-1/12_'),
+      file,
+      expect.objectContaining({ upsert: true }),
+    )
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        photo_url:
+          'https://supabase.co/storage/v1/object/public/candidate-photos/elec-1/10_123.png',
+      }),
+    )
+    expect(result.id).toBe('c-uploaded')
+  })
+
+  it('uploadCandidatePhoto uploads to bucket and returns public URL', async () => {
+    const file = new File(['dummy'], 'foto.jpg', { type: 'image/jpeg' })
+    const { uploadCandidatePhoto } = useCandidates()
+
+    const url = await uploadCandidatePhoto(file, 'elec-10', '25')
+
+    expect(storageFromMock).toHaveBeenCalledWith('candidate-photos')
+    expect(uploadMock).toHaveBeenCalled()
+    expect(getPublicUrlMock).toHaveBeenCalled()
+    expect(url).toContain('candidate-photos')
+  })
+
+  it('deleteCandidatePhoto removes file when url belongs to candidate-photos bucket', async () => {
+    const { deleteCandidatePhoto } = useCandidates()
+    await deleteCandidatePhoto(
+      'https://supabase.co/storage/v1/object/public/candidate-photos/elec-1/10_123.png',
+    )
+
+    expect(storageFromMock).toHaveBeenCalledWith('candidate-photos')
+    expect(removeMock).toHaveBeenCalledWith(['elec-1/10_123.png'])
   })
 
   it('updateCandidate updates name, number, photo and logs action', async () => {

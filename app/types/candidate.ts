@@ -13,4 +13,5 @@ export interface CandidateInput {
   name: string
   candidate_number: string
   photo_url?: string | null
+  photo_file?: File | null
 }

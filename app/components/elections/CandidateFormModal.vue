@@ -4,6 +4,7 @@
   import { useToast } from '~/composables/useToast'
   import { createCandidateSchema } from '~/schemas/forms/candidate'
   import type { CandidateRow, CandidateInput } from '~/types/candidate'
+  import UiFileInput from '~/components/ui/UiFileInput.vue'
 
   const props = withDefaults(
     defineProps<{
@@ -34,6 +35,8 @@
   const name = ref('')
   const candidateNumber = ref('')
   const photoUrl = ref('')
+  const selectedFile = ref<File | null>(null)
+  const previewUrl = ref('')
 
   // Field validation errors
   const errors = ref<{
@@ -44,13 +47,55 @@
 
   const digits = computed(() => Math.max(1, props.digitsCount))
 
+  const effectivePhotoUrl = computed(() => {
+    if (selectedFile.value && previewUrl.value) {
+      return previewUrl.value
+    }
+    return photoUrl.value
+  })
+
+  const onFileSelected = (val: File | File[] | null) => {
+    const file = Array.isArray(val) ? val[0] : val
+
+    if (file instanceof File) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        errors.value.photo_url = 'A imagem selecionada deve ter no máximo 5MB.'
+        return
+      }
+
+      selectedFile.value = file
+      previewUrl.value = URL.createObjectURL(file)
+      errors.value.photo_url = undefined
+    } else {
+      selectedFile.value = null
+      previewUrl.value = ''
+    }
+  }
+
   const randomizePhoto = () => {
+    if (previewUrl.value && selectedFile.value) {
+      URL.revokeObjectURL(previewUrl.value)
+    }
+    selectedFile.value = null
+    previewUrl.value = ''
     photoUrl.value = generateRandomPhotoUrl(candidateNumber.value || undefined)
+  }
+
+  const clearPhoto = () => {
+    if (previewUrl.value && selectedFile.value) {
+      URL.revokeObjectURL(previewUrl.value)
+    }
+    selectedFile.value = null
+    previewUrl.value = ''
+    photoUrl.value = ''
   }
 
   const open = (candidate?: CandidateRow) => {
     formError.value = null
     errors.value = {}
+    selectedFile.value = null
+    previewUrl.value = ''
 
     if (candidate) {
       isEditing.value = true
@@ -70,6 +115,9 @@
   }
 
   const close = () => {
+    if (previewUrl.value && selectedFile.value) {
+      URL.revokeObjectURL(previewUrl.value)
+    }
     isOpen.value = false
   }
 
@@ -87,7 +135,7 @@
     const result = schema.safeParse({
       name: props.isUppercase ? name.value.toUpperCase() : name.value,
       candidate_number: candidateNumber.value,
-      photo_url: photoUrl.value.trim() || undefined,
+      photo_url: selectedFile.value ? undefined : photoUrl.value.trim() || undefined,
     })
 
     if (!result.success) {
@@ -114,11 +162,15 @@
       const payload: CandidateInput = {
         name: finalName,
         candidate_number: candidateNumber.value.trim(),
-        photo_url: photoUrl.value.trim() || null,
+        photo_url: selectedFile.value ? null : photoUrl.value.trim() || null,
+        photo_file: selectedFile.value,
       }
 
       if (isEditing.value && candidateId.value) {
-        await updateCandidate(candidateId.value, payload)
+        await updateCandidate(candidateId.value, {
+          ...payload,
+          election_id: props.electionId,
+        })
         toast.success('Candidato atualizado com sucesso!')
       } else {
         await createCandidate(props.electionId, payload)
@@ -145,7 +197,7 @@
 <template>
   <UiModal
     v-model="isOpen"
-    max-width="540px"
+    max-width="560px"
     :title="isEditing ? 'Editar Candidato' : 'Cadastrar Novo Candidato'"
   >
     <UiAlert v-if="formError" class="mb-4" type="error" variant="soft">
@@ -155,14 +207,14 @@
     <div class="d-flex flex-column ga-4">
       <!-- Preview do Card do Candidato com Foto -->
       <div class="pa-4 border rounded-lg bg-surface-variant d-flex align-center ga-4">
-        <UiAvatar class="border" color="primary" rounded="lg" size="72" variant="soft">
+        <UiAvatar class="border" color="primary" rounded="lg" size="76" variant="soft">
           <img
-            v-if="photoUrl"
+            v-if="effectivePhotoUrl"
             :alt="name || 'Candidato'"
             class="w-100 h-100 object-cover"
-            :src="photoUrl"
+            :src="effectivePhotoUrl"
           />
-          <UiIcon v-else name="vote" size="32" />
+          <UiIcon v-else name="vote" size="36" />
         </UiAvatar>
 
         <div class="flex-grow-1 overflow-hidden">
@@ -178,19 +230,64 @@
           >
             {{ name || 'Nome do Candidato' }}
           </div>
-          <div class="text-caption text-medium-emphasis">
-            Exigência: {{ digits }} {{ digits === 1 ? 'dígito' : 'dígitos' }}
+          <div class="d-flex align-center ga-2 mt-1">
+            <UiChip v-if="selectedFile" color="success" size="xs" variant="soft">
+              Arquivo Local: {{ selectedFile.name }}
+            </UiChip>
+            <UiChip v-else-if="photoUrl" color="primary" size="xs" variant="soft">
+              Imagem Remota
+            </UiChip>
           </div>
         </div>
 
-        <UiButton
-          color="secondary"
-          icon="refresh"
-          size="sm"
-          tooltip="Gerar outra foto aleatória"
-          variant="ghost"
-          @click="randomizePhoto"
+        <div class="d-flex flex-column ga-1">
+          <UiButton
+            color="secondary"
+            icon="refresh"
+            size="sm"
+            tooltip="Sortear outra foto aleatória"
+            variant="ghost"
+            @click="randomizePhoto"
+          />
+          <UiButton
+            v-if="effectivePhotoUrl"
+            color="error"
+            icon="close"
+            size="sm"
+            tooltip="Remover foto"
+            variant="ghost"
+            @click="clearPhoto"
+          />
+        </div>
+      </div>
+
+      <!-- Upload da Foto (Supabase Storage) -->
+      <div>
+        <UiFileInput
+          accept="image/png, image/jpeg, image/jpg, image/webp"
+          clearable
+          :error-messages="errors.photo_url ? [errors.photo_url] : []"
+          label="Enviar Foto do Computador (Supabase Storage)"
+          :model-value="selectedFile"
+          placeholder="Selecione um arquivo de imagem..."
+          prepend-icon="upload"
+          variant="outline"
+          @update:model-value="onFileSelected"
         />
+        <div
+          class="d-flex align-center justify-space-between mt-1 text-caption text-medium-emphasis"
+        >
+          <span>Formatos aceitos: PNG, JPG, WEBP (Máx: 5MB)</span>
+          <UiButton
+            color="primary"
+            prepend-icon="refresh"
+            size="xs"
+            variant="ghost"
+            @click="randomizePhoto"
+          >
+            Sortear Foto Aleatória
+          </UiButton>
+        </div>
       </div>
 
       <!-- Nome do Candidato -->
@@ -224,31 +321,6 @@
         <div class="text-caption text-medium-emphasis mt-1">
           O número na urna deve possuir exatamente {{ digits }}
           {{ digits === 1 ? 'dígito' : 'dígitos' }}.
-        </div>
-      </div>
-
-      <!-- URL da Foto do Candidato -->
-      <div>
-        <div class="d-flex align-center justify-space-between mb-1">
-          <label class="text-body-2 font-weight-medium">URL da Foto</label>
-          <UiButton
-            color="primary"
-            prepend-icon="refresh"
-            size="xs"
-            variant="ghost"
-            @click="randomizePhoto"
-          >
-            Foto Aleatória
-          </UiButton>
-        </div>
-        <UiInput
-          v-model="photoUrl"
-          :error-messages="errors.photo_url ? [errors.photo_url] : []"
-          placeholder="https://exemplo.com/foto.jpg"
-          variant="outline"
-        />
-        <div class="text-caption text-medium-emphasis mt-1">
-          Se deixar em branco, uma imagem aleatória da web será associada automaticamente.
         </div>
       </div>
     </div>
