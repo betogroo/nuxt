@@ -51,6 +51,7 @@ BEGIN
       'system_settings', (SELECT count(*) FROM public.system_settings),
       'elections', (SELECT count(*) FROM public.elections),
       'candidates', (SELECT count(*) FROM public.candidates),
+      'ballot_boxes', (SELECT count(*) FROM public.ballot_boxes),
       'logs', (SELECT count(*) FROM public.logs)
     ),
     'data', jsonb_build_object(
@@ -76,6 +77,7 @@ BEGIN
       'system_settings', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.system_settings t), '[]'::jsonb),
       'elections', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.elections t), '[]'::jsonb),
       'candidates', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.candidates t), '[]'::jsonb),
+      'ballot_boxes', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.ballot_boxes t), '[]'::jsonb),
       'logs', COALESCE((SELECT jsonb_agg(to_jsonb(t)) FROM public.logs t), '[]'::jsonb)
     )
   ) INTO v_result;
@@ -122,6 +124,7 @@ DECLARE
   v_count_iirgd_history int := 0;
   v_count_elections int := 0;
   v_count_candidates int := 0;
+  v_count_ballot_boxes int := 0;
   v_count_logs int := 0;
 BEGIN
   IF NOT public.is_admin() THEN
@@ -170,29 +173,54 @@ BEGIN
 
   -- 2. SUPPLIERS
   IF v_data ? 'suppliers' AND jsonb_typeof(v_data->'suppliers') = 'array' THEN
-    INSERT INTO public.suppliers (id, name, trade_name, cnpj, state_registration, email, phone, address, is_active, created_at, updated_at)
+    DELETE FROM public.suppliers s
+    WHERE s.cnpj IN (
+      SELECT elem->>'cnpj'
+      FROM jsonb_array_elements(v_data->'suppliers') elem
+      WHERE (elem->>'cnpj') IS NOT NULL
+    )
+    AND s.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'suppliers') elem
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_product_bids b WHERE b.supplier_id = s.id
+    );
+
+    INSERT INTO public.suppliers (id, cnpj, company_name, responsible_name, email, cell_phone, landline, address, has_bb_account, is_simples_optant, simples_optant_verified_at, is_active, created_at, updated_at, created_by)
     SELECT 
       (elem->>'id')::uuid,
-      elem->>'name',
-      elem->>'trade_name',
       elem->>'cnpj',
-      elem->>'state_registration',
-      elem->>'email',
-      elem->>'phone',
-      elem->>'address',
+      elem->>'company_name',
+      NULLIF(TRIM(elem->>'responsible_name'), ''),
+      NULLIF(TRIM(elem->>'email'), ''),
+      NULLIF(TRIM(elem->>'cell_phone'), ''),
+      NULLIF(TRIM(elem->>'landline'), ''),
+      NULLIF(TRIM(elem->>'address'), ''),
+      NULLIF(TRIM(elem->>'has_bb_account'), ''),
+      COALESCE((elem->>'is_simples_optant')::boolean, false),
+      (elem->>'simples_optant_verified_at')::timestamptz,
       COALESCE((elem->>'is_active')::boolean, true),
       COALESCE((elem->>'created_at')::timestamptz, now()),
-      COALESCE((elem->>'updated_at')::timestamptz, now())
+      COALESCE((elem->>'updated_at')::timestamptz, now()),
+      CASE WHEN (elem->>'created_by') IS NOT NULL AND EXISTS (SELECT 1 FROM auth.users u WHERE u.id = (elem->>'created_by')::uuid)
+           THEN (elem->>'created_by')::uuid
+           ELSE auth.uid()
+      END
     FROM jsonb_array_elements(v_data->'suppliers') elem
-    WHERE (elem->>'id') IS NOT NULL
+    WHERE (elem->>'id') IS NOT NULL AND (elem->>'cnpj') IS NOT NULL
     ON CONFLICT (id) DO UPDATE SET
-      name = EXCLUDED.name,
-      trade_name = EXCLUDED.trade_name,
       cnpj = EXCLUDED.cnpj,
-      state_registration = EXCLUDED.state_registration,
+      company_name = EXCLUDED.company_name,
+      responsible_name = EXCLUDED.responsible_name,
       email = EXCLUDED.email,
-      phone = EXCLUDED.phone,
+      cell_phone = EXCLUDED.cell_phone,
+      landline = EXCLUDED.landline,
       address = EXCLUDED.address,
+      has_bb_account = EXCLUDED.has_bb_account,
+      is_simples_optant = EXCLUDED.is_simples_optant,
+      simples_optant_verified_at = EXCLUDED.simples_optant_verified_at,
       is_active = EXCLUDED.is_active,
       updated_at = EXCLUDED.updated_at;
 
@@ -201,20 +229,20 @@ BEGIN
 
   -- 3. EXPENSE_NATURES
   IF v_data ? 'expense_natures' AND jsonb_typeof(v_data->'expense_natures') = 'array' THEN
-    INSERT INTO public.expense_natures (id, name, code, is_active, created_at, updated_at)
+    INSERT INTO public.expense_natures (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
       elem->>'id',
       elem->>'name',
-      (elem->>'code')::bigint,
       COALESCE((elem->>'is_active')::boolean, true),
+      COALESCE((elem->>'is_pending')::boolean, false),
       COALESCE((elem->>'created_at')::timestamptz, now()),
       COALESCE((elem->>'updated_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'expense_natures') elem
     WHERE (elem->>'id') IS NOT NULL
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
-      code = EXCLUDED.code,
       is_active = EXCLUDED.is_active,
+      is_pending = EXCLUDED.is_pending,
       updated_at = EXCLUDED.updated_at;
 
     GET DIAGNOSTICS v_count_expense_natures = ROW_COUNT;
@@ -222,20 +250,20 @@ BEGIN
 
   -- 4. PRODUCT_CLASSES
   IF v_data ? 'product_classes' AND jsonb_typeof(v_data->'product_classes') = 'array' THEN
-    INSERT INTO public.product_classes (id, name, code, is_active, created_at, updated_at)
+    INSERT INTO public.product_classes (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
       elem->>'id',
       elem->>'name',
-      (elem->>'code')::bigint,
       COALESCE((elem->>'is_active')::boolean, true),
+      COALESCE((elem->>'is_pending')::boolean, false),
       COALESCE((elem->>'created_at')::timestamptz, now()),
       COALESCE((elem->>'updated_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'product_classes') elem
     WHERE (elem->>'id') IS NOT NULL
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
-      code = EXCLUDED.code,
       is_active = EXCLUDED.is_active,
+      is_pending = EXCLUDED.is_pending,
       updated_at = EXCLUDED.updated_at;
 
     GET DIAGNOSTICS v_count_product_classes = ROW_COUNT;
@@ -243,20 +271,38 @@ BEGIN
 
   -- 5. MEASUREMENT_UNITS
   IF v_data ? 'measurement_units' AND jsonb_typeof(v_data->'measurement_units') = 'array' THEN
-    INSERT INTO public.measurement_units (id, name, symbol, is_active, created_at, updated_at)
+    DELETE FROM public.measurement_units u
+    WHERE u.name IN (
+      SELECT elem->>'name'
+      FROM jsonb_array_elements(v_data->'measurement_units') elem
+      WHERE (elem->>'name') IS NOT NULL
+    )
+    AND u.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'measurement_units') elem
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.product_units pu WHERE pu.unit_id = u.id
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.demand_products dp WHERE dp.unit_id = u.id
+    );
+
+    INSERT INTO public.measurement_units (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
       (elem->>'id')::uuid,
       elem->>'name',
-      elem->>'symbol',
       COALESCE((elem->>'is_active')::boolean, true),
+      COALESCE((elem->>'is_pending')::boolean, false),
       COALESCE((elem->>'created_at')::timestamptz, now()),
       COALESCE((elem->>'updated_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'measurement_units') elem
     WHERE (elem->>'id') IS NOT NULL
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
-      symbol = EXCLUDED.symbol,
       is_active = EXCLUDED.is_active,
+      is_pending = EXCLUDED.is_pending,
       updated_at = EXCLUDED.updated_at;
 
     GET DIAGNOSTICS v_count_measurement_units = ROW_COUNT;
@@ -264,32 +310,61 @@ BEGIN
 
   -- 6. MEASUREMENT_UNIT_ALIASES
   IF v_data ? 'measurement_unit_aliases' AND jsonb_typeof(v_data->'measurement_unit_aliases') = 'array' THEN
-    INSERT INTO public.measurement_unit_aliases (id, name, code, is_active, created_at, updated_at)
+    DELETE FROM public.measurement_unit_aliases a
+    WHERE a.code IN (
+      SELECT (elem->>'code')::integer
+      FROM jsonb_array_elements(v_data->'measurement_unit_aliases') elem
+      WHERE (elem->>'code') IS NOT NULL
+    )
+    AND a.id NOT IN (
+      SELECT (elem->>'id')::uuid
+      FROM jsonb_array_elements(v_data->'measurement_unit_aliases') elem
+      WHERE (elem->>'id') IS NOT NULL
+    );
+
+    INSERT INTO public.measurement_unit_aliases (id, unit_id, name, code, is_pending, created_at)
     SELECT 
       (elem->>'id')::uuid,
+      (elem->>'unit_id')::uuid,
       elem->>'name',
       (elem->>'code')::integer,
-      COALESCE((elem->>'is_active')::boolean, true),
-      COALESCE((elem->>'created_at')::timestamptz, now()),
-      COALESCE((elem->>'updated_at')::timestamptz, now())
+      COALESCE((elem->>'is_pending')::boolean, false),
+      COALESCE((elem->>'created_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'measurement_unit_aliases') elem
-    WHERE (elem->>'id') IS NOT NULL
+    WHERE (elem->>'id') IS NOT NULL AND (elem->>'code') IS NOT NULL
+      AND ((elem->>'unit_id') IS NULL OR EXISTS (SELECT 1 FROM public.measurement_units WHERE id = (elem->>'unit_id')::uuid))
     ON CONFLICT (id) DO UPDATE SET
+      unit_id = EXCLUDED.unit_id,
       name = EXCLUDED.name,
       code = EXCLUDED.code,
-      is_active = EXCLUDED.is_active,
-      updated_at = EXCLUDED.updated_at;
+      is_pending = EXCLUDED.is_pending;
 
     GET DIAGNOSTICS v_count_unit_aliases = ROW_COUNT;
   END IF;
 
   -- 7. IIRGD_DOCUMENT_TYPES
   IF v_data ? 'iirgd_document_types' AND jsonb_typeof(v_data->'iirgd_document_types') = 'array' THEN
-    INSERT INTO public.iirgd_document_types (id, name, is_active, created_at, updated_at)
+    DELETE FROM public.iirgd_document_types dt
+    WHERE dt.name IN (
+      SELECT elem->>'name' 
+      FROM jsonb_array_elements(v_data->'iirgd_document_types') elem 
+      WHERE (elem->>'name') IS NOT NULL
+    )
+    AND dt.id NOT IN (
+      SELECT (elem->>'id')::uuid 
+      FROM jsonb_array_elements(v_data->'iirgd_document_types') elem 
+      WHERE (elem->>'id') IS NOT NULL
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.iirgd_demands d WHERE d.document_type_id = dt.id
+    );
+
+    INSERT INTO public.iirgd_document_types (id, name, is_active, is_pending, created_at, updated_at)
     SELECT 
       (elem->>'id')::uuid,
       elem->>'name',
       COALESCE((elem->>'is_active')::boolean, true),
+      COALESCE((elem->>'is_pending')::boolean, false),
       COALESCE((elem->>'created_at')::timestamptz, now()),
       COALESCE((elem->>'updated_at')::timestamptz, now())
     FROM jsonb_array_elements(v_data->'iirgd_document_types') elem
@@ -297,6 +372,7 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       is_active = EXCLUDED.is_active,
+      is_pending = EXCLUDED.is_pending,
       updated_at = EXCLUDED.updated_at;
 
     GET DIAGNOSTICS v_count_doc_types = ROW_COUNT;
@@ -706,6 +782,40 @@ BEGIN
     GET DIAGNOSTICS v_count_candidates = ROW_COUNT;
   END IF;
 
+  -- 20. BALLOT_BOXES
+  IF v_data ? 'ballot_boxes' AND jsonb_typeof(v_data->'ballot_boxes') = 'array' THEN
+    INSERT INTO public.ballot_boxes (
+      id, election_id, name, device_info, is_active, created_by, deleted_at, created_at, updated_at
+    )
+    SELECT 
+      (elem->>'id')::uuid,
+      (elem->>'election_id')::uuid,
+      elem->>'name',
+      elem->>'device_info',
+      COALESCE((elem->>'is_active')::boolean, false),
+      CASE WHEN (elem->>'created_by') IS NOT NULL AND EXISTS (SELECT 1 FROM public.profiles WHERE id = (elem->>'created_by')::uuid)
+           THEN (elem->>'created_by')::uuid
+           ELSE auth.uid()
+      END,
+      (elem->>'deleted_at')::timestamptz,
+      COALESCE((elem->>'created_at')::timestamptz, now()),
+      COALESCE((elem->>'updated_at')::timestamptz, now())
+    FROM jsonb_array_elements(v_data->'ballot_boxes') elem
+    WHERE (elem->>'id') IS NOT NULL
+      AND (elem->>'election_id') IS NOT NULL
+      AND EXISTS (SELECT 1 FROM public.elections WHERE id = (elem->>'election_id')::uuid)
+    ON CONFLICT (id) DO UPDATE SET
+      election_id = EXCLUDED.election_id,
+      name = EXCLUDED.name,
+      device_info = EXCLUDED.device_info,
+      is_active = EXCLUDED.is_active,
+      created_by = EXCLUDED.created_by,
+      deleted_at = EXCLUDED.deleted_at,
+      updated_at = EXCLUDED.updated_at;
+
+    GET DIAGNOSTICS v_count_ballot_boxes = ROW_COUNT;
+  END IF;
+
   -- =========================================================================
   -- NÍVEL 3: Entidades com dependências de Nível 2
   -- =========================================================================
@@ -845,6 +955,7 @@ BEGIN
       'iirgd_demand_status_history', v_count_iirgd_history,
       'elections', v_count_elections,
       'candidates', v_count_candidates,
+      'ballot_boxes', v_count_ballot_boxes,
       'logs', v_count_logs
     )
   ) INTO v_restored_counts;
