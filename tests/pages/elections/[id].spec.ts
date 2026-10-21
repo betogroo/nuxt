@@ -59,6 +59,33 @@ mockNuxtImport('useElections', () => () => ({
   deleteElection: deleteElectionMock,
 }))
 
+const mockCandidates = [
+  {
+    id: 'cand-1',
+    election_id: 'election-123',
+    name: 'Chapa Renovação',
+    candidate_number: '10',
+    photo_url: 'https://picsum.photos/300',
+  },
+  {
+    id: 'cand-2',
+    election_id: 'election-123',
+    name: 'Chapa Esperança',
+    candidate_number: '20',
+    photo_url: 'https://picsum.photos/300',
+  },
+]
+
+const fetchCandidatesMock = vi.fn().mockResolvedValue(mockCandidates)
+const deleteCandidateApiMock = vi.fn().mockResolvedValue(undefined)
+
+mockNuxtImport('useCandidates', () => () => ({
+  loading: ref(false),
+  error: ref(null),
+  fetchCandidates: fetchCandidatesMock,
+  deleteCandidate: deleteCandidateApiMock,
+}))
+
 mockNuxtImport('usePermissions', () => () => ({
   canManageElections: () => true,
   canDeleteElections: () =>
@@ -66,15 +93,27 @@ mockNuxtImport('usePermissions', () => () => ({
 }))
 
 const electionDataRef = ref<typeof mockElection | null>(mockElection)
+const candidatesDataRef = ref<typeof mockCandidates>(mockCandidates)
 const pendingRef = ref(false)
 const refreshMock = vi.fn()
+const refreshCandidatesMock = vi.fn()
 
-mockNuxtImport('useAsyncData', () => () => ({
-  data: electionDataRef,
-  pending: pendingRef,
-  error: ref(null),
-  refresh: refreshMock,
-}))
+mockNuxtImport('useAsyncData', () => (key: string) => {
+  if (key.startsWith('election-candidates')) {
+    return {
+      data: candidatesDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshCandidatesMock,
+    }
+  }
+  return {
+    data: electionDataRef,
+    pending: pendingRef,
+    error: ref(null),
+    refresh: refreshMock,
+  }
+})
 
 describe('Election Detail Page (/elections/[id])', () => {
   beforeEach(() => {
@@ -102,7 +141,9 @@ describe('Election Detail Page (/elections/[id])', () => {
           UiAlert: true,
           UiModal: true,
           UiProgressCircular: true,
+          UiActionButton: true,
           ElectionFormModal: true,
+          CandidateFormModal: true,
         },
       },
     })
@@ -197,5 +238,43 @@ describe('Election Detail Page (/elections/[id])', () => {
     const vm = wrapper.vm as unknown as { election: null }
 
     expect(vm.election).toBeNull()
+  })
+
+  it('handles candidate registration modal opening and editing', () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openCreateCandidateModal: () => void
+      openEditCandidateModal: (c: (typeof mockCandidates)[0]) => void
+      candidateModalRef: { open: ReturnType<typeof vi.fn> } | null
+    }
+
+    const openSpy = vi.fn()
+    vm.candidateModalRef = { open: openSpy }
+
+    vm.openCreateCandidateModal()
+    expect(openSpy).toHaveBeenCalledWith()
+
+    vm.openEditCandidateModal(mockCandidates[0])
+    expect(openSpy).toHaveBeenCalledWith(mockCandidates[0])
+  })
+
+  it('handles candidate safe delete confirmation and refreshes list', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openDeleteCandidateModal: (c: (typeof mockCandidates)[0]) => void
+      handleConfirmDeleteCandidate: () => Promise<void>
+      isCandidateDeleteModalOpen: boolean
+      candidateToDelete: (typeof mockCandidates)[0] | null
+    }
+
+    vm.openDeleteCandidateModal(mockCandidates[0])
+    expect(vm.isCandidateDeleteModalOpen).toBe(true)
+    expect(vm.candidateToDelete).toEqual(mockCandidates[0])
+
+    await vm.handleConfirmDeleteCandidate()
+    expect(deleteCandidateApiMock).toHaveBeenCalledWith('cand-1')
+    expect(toastSuccessMock).toHaveBeenCalledWith('Candidato removido com sucesso.')
+    expect(refreshCandidatesMock).toHaveBeenCalled()
+    expect(vm.isCandidateDeleteModalOpen).toBe(false)
   })
 })

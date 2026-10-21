@@ -5,7 +5,10 @@
   import { useToast } from '~/composables/useToast'
   import { ELECTION_STATUS_LABELS, ELECTION_STATUS_COLORS } from '~/constants/elections'
   import type { ElectionStatus } from '~/types/election'
+  import type { CandidateRow } from '~/types/candidate'
   import ElectionFormModal from '~/components/elections/ElectionFormModal.vue'
+  import CandidateFormModal from '~/components/elections/CandidateFormModal.vue'
+  import { useCandidates } from '~/composables/useCandidates'
 
   definePageMeta({
     middleware: ['elections'],
@@ -20,6 +23,7 @@
   const electionId = computed(() => route.params.id as string)
 
   const { fetchElectionById, updateElection, deleteElection } = useElections()
+  const { fetchCandidates, deleteCandidate: deleteCandidateApi } = useCandidates()
   const { canManageElections, canDeleteElections } = usePermissions()
 
   // Tab State
@@ -34,6 +38,12 @@
   const isUpdatingStatus = ref(false)
   const targetStatus = ref<ElectionStatus | null>(null)
 
+  // Candidate Modals & Actions state
+  const candidateModalRef = ref<InstanceType<typeof CandidateFormModal> | null>(null)
+  const candidateToDelete = ref<CandidateRow | null>(null)
+  const isCandidateDeleteModalOpen = ref(false)
+  const isDeletingCandidate = ref(false)
+
   // Fetch election details
   const {
     data: election,
@@ -43,6 +53,45 @@
   } = useAsyncData(`election-detail-${electionId.value}`, async () => {
     return await fetchElectionById(electionId.value)
   })
+
+  // Fetch candidates for this election
+  const {
+    data: candidates,
+    pending: candidatesPending,
+    refresh: refreshCandidates,
+  } = useAsyncData(`election-candidates-${electionId.value}`, async () => {
+    return await fetchCandidates(electionId.value)
+  })
+
+  const openCreateCandidateModal = () => {
+    candidateModalRef.value?.open()
+  }
+
+  const openEditCandidateModal = (cand: CandidateRow) => {
+    candidateModalRef.value?.open(cand)
+  }
+
+  const openDeleteCandidateModal = (cand: CandidateRow) => {
+    candidateToDelete.value = cand
+    isCandidateDeleteModalOpen.value = true
+  }
+
+  const handleConfirmDeleteCandidate = async () => {
+    if (!candidateToDelete.value) return
+    isDeletingCandidate.value = true
+    try {
+      await deleteCandidateApi(candidateToDelete.value.id)
+      toast.success('Candidato removido com sucesso.')
+      isCandidateDeleteModalOpen.value = false
+      candidateToDelete.value = null
+      await refreshCandidates()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Falha ao remover candidato.'
+      toast.error(msg)
+    } finally {
+      isDeletingCandidate.value = false
+    }
+  }
 
   useHead({
     title: computed(() =>
@@ -493,34 +542,124 @@
 
           <!-- ABA 2: CANDIDATOS E CHAPAS -->
           <div v-else-if="activeTab === 'candidates'">
-            <div class="d-flex align-center justify-space-between mb-4">
+            <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
               <div>
                 <h3 class="text-subtitle-1 font-weight-bold">Cargos e Candidatos Registrados</h3>
                 <p class="text-caption text-medium-emphasis mb-0">
-                  Gerenciamento de candidatos concorrentes no pleito.
+                  {{ candidates?.length || 0 }}
+                  {{
+                    (candidates?.length || 0) === 1
+                      ? 'candidato registrado'
+                      : 'candidatos registrados'
+                  }}
+                  nesta eleição.
                 </p>
               </div>
               <UiButton
                 v-if="canManageElections() && election.status !== 'finished'"
                 color="primary"
-                disabled
                 prepend-icon="add"
                 size="sm"
-                tooltip="Módulo de candidatos em desenvolvimento"
                 variant="solid"
+                @click="openCreateCandidateModal"
               >
                 Adicionar Candidato
               </UiButton>
             </div>
 
-            <UiCard class="text-center py-8" variant="outline">
+            <!-- Loading de Candidatos -->
+            <div v-if="candidatesPending" class="text-center py-8">
+              <UiProgressCircular color="primary" indeterminate size="32" />
+              <div class="text-caption text-medium-emphasis mt-2">Carregando candidatos...</div>
+            </div>
+
+            <!-- Empty State de Candidatos -->
+            <UiCard v-else-if="!candidates?.length" class="text-center py-8" variant="outline">
               <UiIcon class="text-medium-emphasis mb-2" name="vote" size="40" />
               <div class="text-body-1 font-weight-medium">Nenhum candidato registrado ainda</div>
-              <p class="text-caption text-medium-emphasis mt-1 mb-0">
+              <p class="text-caption text-medium-emphasis mt-1 mb-4">
                 Os números de urna de cada candidato devem ser configurados com exatamente
-                {{ election.digits_count }} dígitos.
+                {{ election.digits_count }}
+                {{ election.digits_count === 1 ? 'dígito' : 'dígitos' }}.
               </p>
+              <UiButton
+                v-if="canManageElections() && election.status !== 'finished'"
+                color="primary"
+                prepend-icon="add"
+                size="sm"
+                variant="solid"
+                @click="openCreateCandidateModal"
+              >
+                Cadastrar Primeiro Candidato
+              </UiButton>
             </UiCard>
+
+            <!-- Grid de Candidatos -->
+            <UiRow v-else class="g-4">
+              <UiCol v-for="cand in candidates" :key="cand.id" cols="12" lg="3" md="4" sm="6">
+                <UiCard class="h-100 d-flex flex-column overflow-hidden" hover variant="outline">
+                  <div
+                    class="position-relative bg-surface-variant text-center"
+                    style="height: 180px"
+                  >
+                    <img
+                      :alt="cand.name"
+                      class="w-100 h-100 object-cover"
+                      :src="
+                        cand.photo_url ||
+                        'https://picsum.photos/seed/' + cand.candidate_number + '/300/300'
+                      "
+                    />
+                    <div class="position-absolute" style="top: 8px; right: 8px">
+                      <UiChip
+                        class="font-weight-bold font-mono"
+                        color="primary"
+                        size="sm"
+                        variant="solid"
+                      >
+                        Nº {{ cand.candidate_number }}
+                      </UiChip>
+                    </div>
+                  </div>
+
+                  <div class="pa-4 flex-grow-1 d-flex flex-column justify-space-between">
+                    <div>
+                      <div
+                        class="text-subtitle-1 font-weight-bold line-clamp-2"
+                        :class="{ 'text-uppercase': election.is_uppercase }"
+                      >
+                        {{ election.is_uppercase ? cand.name.toUpperCase() : cand.name }}
+                      </div>
+                      <div class="text-caption text-medium-emphasis mt-1">
+                        Número:
+                        <span class="font-mono font-weight-bold text-primary">{{
+                          cand.candidate_number
+                        }}</span>
+                      </div>
+                    </div>
+
+                    <div
+                      v-if="canManageElections() && election.status !== 'finished'"
+                      class="d-flex align-center justify-end ga-1 mt-4 pt-2 border-top"
+                    >
+                      <UiActionButton
+                        action="edit"
+                        tooltip="Editar candidato"
+                        variant="ghost"
+                        @click="openEditCandidateModal(cand)"
+                      />
+                      <UiActionButton
+                        v-if="canDeleteElections()"
+                        action="delete"
+                        tooltip="Excluir candidato"
+                        variant="ghost"
+                        @click="openDeleteCandidateModal(cand)"
+                      />
+                    </div>
+                  </div>
+                </UiCard>
+              </UiCol>
+            </UiRow>
           </div>
 
           <!-- ABA 3: URNA ELETRÔNICA -->
@@ -712,5 +851,63 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal de Formulário de Candidato -->
+    <CandidateFormModal
+      v-if="election"
+      ref="candidateModalRef"
+      :digits-count="election.digits_count"
+      :election-id="election.id"
+      :is-uppercase="election.is_uppercase"
+      @saved="refreshCandidates"
+    />
+
+    <!-- Modal de Confirmação de Exclusão de Candidato (Safe Delete) -->
+    <UiModal
+      v-model="isCandidateDeleteModalOpen"
+      max-width="480px"
+      title="Confirmar Exclusão do Candidato"
+    >
+      <p class="text-body-1">
+        Tem certeza que deseja excluir o candidato
+        <strong>{{ candidateToDelete?.name }}</strong> (Nº
+        {{ candidateToDelete?.candidate_number }})?
+      </p>
+      <p class="text-caption text-medium-emphasis">
+        Esta ação realizará uma exclusão segura (safe delete). O candidato será desativado e não
+        participará da apuração e votação.
+      </p>
+
+      <template #actions>
+        <UiButton
+          color="default"
+          :disabled="isDeletingCandidate"
+          variant="outline"
+          @click="isCandidateDeleteModalOpen = false"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeletingCandidate"
+          variant="solid"
+          @click="handleConfirmDeleteCandidate"
+        >
+          Excluir Candidato
+        </UiButton>
+      </template>
+    </UiModal>
   </UiContainer>
 </template>
+
+<style scoped>
+  .object-cover {
+    object-fit: cover;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
