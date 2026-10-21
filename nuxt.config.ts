@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   },
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  routeRules: {
+    '/elections/**/ballot-box/**': { ssr: false },
+  },
   modules: ['@nuxt/eslint', 'vuetify-nuxt-module', '@nuxtjs/supabase'],
   supabase: {
     redirectOptions: {

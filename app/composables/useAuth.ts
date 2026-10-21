@@ -42,6 +42,13 @@ export const useAuth = () => {
   }
 
   const getRedirectUrl = () => {
+    try {
+      const redirectInfo = useSupabaseCookieRedirect()
+      const path = redirectInfo?.pluck?.()
+      if (path) return path
+    } catch {
+      // Ignora erro caso useSupabaseCookieRedirect não esteja disponível
+    }
     const redirectCookie = useCookie('sb-redirect-path')
     const path = redirectCookie.value || '/'
     // Limpa o cookie

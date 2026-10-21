@@ -10,6 +10,7 @@
   import type { RealtimeChannel } from '@supabase/supabase-js'
 
   definePageMeta({
+    middleware: ['elections'],
     layout: false,
     roles: ['admin', 'manager-election', 'admin-election', 'user-election'],
   })

@@ -158,11 +158,14 @@
   const handleOpenBallotBoxTerminal = (box: BallotBoxRow) => {
     const terminalUrl = `/elections/${electionId.value}/ballot-box/${box.id}`
     if (typeof window !== 'undefined') {
-      window.open(
+      const win = window.open(
         terminalUrl,
         `BallotBoxKiosk_${box.id}`,
         'popup=yes,fullscreen=yes,menubar=no,toolbar=no',
       )
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        router.push(terminalUrl)
+      }
     }
   }
 

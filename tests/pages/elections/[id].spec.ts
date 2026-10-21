@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref } from 'vue'
-import ElectionDetailPage from '~/pages/elections/[id].vue'
+import ElectionDetailPage from '~/pages/elections/[id]/index.vue'
 
 const routerPushMock = vi.fn()
 mockNuxtImport('useRouter', () => () => ({
@@ -386,8 +386,9 @@ describe('Election Detail Page (/elections/[id])', () => {
     expect(vm.isBallotBoxDeleteModalOpen).toBe(false)
   })
 
-  it('handles open terminal in new window', () => {
-    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+  it('handles open terminal in new window and falls back to router push if popup blocked', () => {
+    const fakeWindow = { closed: false } as Window
+    const windowOpenSpy = vi.spyOn(window, 'open').mockReturnValue(fakeWindow)
     const wrapper = createWrapper()
     const vm = wrapper.vm as unknown as {
       handleOpenBallotBoxTerminal: (b: (typeof mockBallotBoxes)[0]) => void
@@ -399,6 +400,12 @@ describe('Election Detail Page (/elections/[id])', () => {
       'BallotBoxKiosk_box-1',
       expect.stringContaining('popup=yes'),
     )
+
+    // Test fallback when popup is blocked
+    windowOpenSpy.mockReturnValue(null)
+    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0])
+    expect(routerPushMock).toHaveBeenCalledWith('/elections/election-123/ballot-box/box-1')
+
     windowOpenSpy.mockRestore()
   })
 })
