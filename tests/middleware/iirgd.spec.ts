@@ -3,7 +3,9 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import iirgdMiddleware from '~/middleware/iirgd'
 
 // Nuxt module mocks
-const navigateToMock = vi.fn()
+const { navigateToMock } = vi.hoisted(() => ({
+  navigateToMock: vi.fn(),
+}))
 mockNuxtImport('navigateTo', () => navigateToMock)
 
 mockNuxtImport('useSupabaseUser', () => {

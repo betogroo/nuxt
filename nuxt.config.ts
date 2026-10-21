@@ -20,7 +20,7 @@ export default defineNuxtConfig({
       exclude: ['/about', '/register'],
       saveRedirectToCookie: true,
     },
-    cookiePrefix: 'sb',
+    cookieName: 'sb',
     cookieOptions: {
       maxAge: 60 * 60 * 8,
       sameSite: 'lax',

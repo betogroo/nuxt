@@ -14,9 +14,13 @@
   const inactiveError = computed(() => route.query.error === 'inactive')
 
   // Redireciona se já estiver logado e não for erro de usuário inativo
+  let isRedirecting = false
   watchEffect(() => {
-    if (user.value && !inactiveError.value) {
+    if (user.value && !inactiveError.value && !isRedirecting) {
+      isRedirecting = true
       navigateTo(getRedirectUrl(), { replace: true })
+    } else if (!user.value) {
+      isRedirecting = false
     }
   })
 

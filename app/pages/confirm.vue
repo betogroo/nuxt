@@ -7,12 +7,16 @@
   // Vigia o estado do usuário. Assim que ele for preenchido (login concluído),
   // redireciona para a Home. O `immediate: true` faz a checagem rodar
   // assim que a página carrega, caso o usuário já esteja logado.
+  let isRedirecting = false
   watch(
     user,
     async () => {
-      if (user.value) {
+      if (user.value && !isRedirecting) {
+        isRedirecting = true
         await logAction('LOGIN', 'Acesso via link mágico ou confirmação', user.value.id)
         return navigateTo(getRedirectUrl(), { replace: true })
+      } else if (!user.value) {
+        isRedirecting = false
       }
     },
     { immediate: true },
