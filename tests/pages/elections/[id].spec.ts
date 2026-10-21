@@ -86,6 +86,52 @@ mockNuxtImport('useCandidates', () => () => ({
   deleteCandidate: deleteCandidateApiMock,
 }))
 
+const mockBallotBoxes = [
+  {
+    id: 'box-1',
+    election_id: 'election-123',
+    name: 'Urna 01 - Tablet Hall',
+    device_info: 'Samsung Galaxy Tab A9',
+    is_active: false,
+    created_by: 'user-1',
+    deleted_at: null,
+    created_at: '2026-10-21T10:00:00Z',
+    updated_at: '2026-10-21T10:00:00Z',
+  },
+  {
+    id: 'box-2',
+    election_id: 'election-123',
+    name: 'Urna 02 - PC Principal',
+    device_info: 'PC Dell',
+    is_active: true,
+    created_by: 'user-1',
+    deleted_at: null,
+    created_at: '2026-10-21T10:00:00Z',
+    updated_at: '2026-10-21T10:00:00Z',
+  },
+]
+
+const fetchBallotBoxesMock = vi.fn().mockResolvedValue(mockBallotBoxes)
+const toggleBallotBoxStatusApiMock = vi
+  .fn()
+  .mockResolvedValue({ ...mockBallotBoxes[0], is_active: true })
+const deleteBallotBoxApiMock = vi.fn().mockResolvedValue(undefined)
+const subscribeToBallotBoxesMock = vi.fn().mockReturnValue('mock-channel')
+
+mockNuxtImport('useBallotBoxes', () => () => ({
+  loading: ref(false),
+  error: ref(null),
+  fetchBallotBoxes: fetchBallotBoxesMock,
+  toggleBallotBoxStatus: toggleBallotBoxStatusApiMock,
+  deleteBallotBox: deleteBallotBoxApiMock,
+  subscribeToBallotBoxes: subscribeToBallotBoxesMock,
+}))
+
+const removeChannelMock = vi.fn()
+mockNuxtImport('useSupabaseClient', () => () => ({
+  removeChannel: removeChannelMock,
+}))
+
 mockNuxtImport('usePermissions', () => () => ({
   canManageElections: () => true,
   canDeleteElections: () =>
@@ -94,9 +140,11 @@ mockNuxtImport('usePermissions', () => () => ({
 
 const electionDataRef = ref<typeof mockElection | null>(mockElection)
 const candidatesDataRef = ref<typeof mockCandidates>(mockCandidates)
+const ballotBoxesDataRef = ref<typeof mockBallotBoxes>(mockBallotBoxes)
 const pendingRef = ref(false)
 const refreshMock = vi.fn()
 const refreshCandidatesMock = vi.fn()
+const refreshBallotBoxesMock = vi.fn()
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
   if (key.startsWith('election-candidates')) {
@@ -105,6 +153,14 @@ mockNuxtImport('useAsyncData', () => (key: string) => {
       pending: pendingRef,
       error: ref(null),
       refresh: refreshCandidatesMock,
+    }
+  }
+  if (key.startsWith('election-ballot-boxes')) {
+    return {
+      data: ballotBoxesDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshBallotBoxesMock,
     }
   }
   return {
@@ -144,6 +200,8 @@ describe('Election Detail Page (/elections/[id])', () => {
           UiActionButton: true,
           ElectionFormModal: true,
           CandidateFormModal: true,
+          BallotBoxFormModal: true,
+          BallotBoxCard: true,
         },
       },
     })
@@ -276,5 +334,71 @@ describe('Election Detail Page (/elections/[id])', () => {
     expect(toastSuccessMock).toHaveBeenCalledWith('Candidato removido com sucesso.')
     expect(refreshCandidatesMock).toHaveBeenCalled()
     expect(vm.isCandidateDeleteModalOpen).toBe(false)
+  })
+
+  it('handles ballot box registration modal opening and editing', () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openCreateBallotBoxModal: () => void
+      openEditBallotBoxModal: (b: (typeof mockBallotBoxes)[0]) => void
+      ballotBoxModalRef: { open: ReturnType<typeof vi.fn> } | null
+    }
+
+    const openSpy = vi.fn()
+    vm.ballotBoxModalRef = { open: openSpy }
+
+    vm.openCreateBallotBoxModal()
+    expect(openSpy).toHaveBeenCalledWith()
+
+    vm.openEditBallotBoxModal(mockBallotBoxes[0])
+    expect(openSpy).toHaveBeenCalledWith(mockBallotBoxes[0])
+  })
+
+  it('handles ballot box status toggle and refreshes list', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      handleToggleBallotBox: (b: (typeof mockBallotBoxes)[0], active: boolean) => Promise<void>
+    }
+
+    await vm.handleToggleBallotBox(mockBallotBoxes[0], true)
+    expect(toggleBallotBoxStatusApiMock).toHaveBeenCalledWith('box-1', true)
+    expect(toastSuccessMock).toHaveBeenCalledWith(expect.stringContaining('ativada'))
+    expect(refreshBallotBoxesMock).toHaveBeenCalled()
+  })
+
+  it('handles ballot box safe delete confirmation and refreshes list', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openDeleteBallotBoxModal: (b: (typeof mockBallotBoxes)[0]) => void
+      handleConfirmDeleteBallotBox: () => Promise<void>
+      isBallotBoxDeleteModalOpen: boolean
+      ballotBoxToDelete: (typeof mockBallotBoxes)[0] | null
+    }
+
+    vm.openDeleteBallotBoxModal(mockBallotBoxes[0])
+    expect(vm.isBallotBoxDeleteModalOpen).toBe(true)
+    expect(vm.ballotBoxToDelete).toEqual(mockBallotBoxes[0])
+
+    await vm.handleConfirmDeleteBallotBox()
+    expect(deleteBallotBoxApiMock).toHaveBeenCalledWith('box-1')
+    expect(toastSuccessMock).toHaveBeenCalledWith('Urna virtual removida com sucesso.')
+    expect(refreshBallotBoxesMock).toHaveBeenCalled()
+    expect(vm.isBallotBoxDeleteModalOpen).toBe(false)
+  })
+
+  it('handles open terminal in new window', () => {
+    const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      handleOpenBallotBoxTerminal: (b: (typeof mockBallotBoxes)[0]) => void
+    }
+
+    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0])
+    expect(windowOpenSpy).toHaveBeenCalledWith(
+      '/elections/election-123/ballot-box/box-1',
+      'BallotBoxKiosk_box-1',
+      expect.stringContaining('popup=yes'),
+    )
+    windowOpenSpy.mockRestore()
   })
 })

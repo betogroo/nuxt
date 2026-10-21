@@ -1,14 +1,19 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { useElections } from '~/composables/useElections'
   import { usePermissions } from '~/composables/usePermissions'
   import { useToast } from '~/composables/useToast'
   import { ELECTION_STATUS_LABELS, ELECTION_STATUS_COLORS } from '~/constants/elections'
   import type { ElectionStatus } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
+  import type { BallotBoxRow } from '~/types/ballot-box'
   import ElectionFormModal from '~/components/elections/ElectionFormModal.vue'
   import CandidateFormModal from '~/components/elections/CandidateFormModal.vue'
+  import BallotBoxFormModal from '~/components/elections/BallotBoxFormModal.vue'
+  import BallotBoxCard from '~/components/elections/BallotBoxCard.vue'
   import { useCandidates } from '~/composables/useCandidates'
+  import { useBallotBoxes } from '~/composables/useBallotBoxes'
+  import { useSupabaseClient } from '#imports'
 
   definePageMeta({
     middleware: ['elections'],
@@ -92,6 +97,103 @@
       isDeletingCandidate.value = false
     }
   }
+
+  // Ballot Boxes State & Actions
+  const {
+    fetchBallotBoxes,
+    toggleBallotBoxStatus: toggleBallotBoxStatusApi,
+    deleteBallotBox: deleteBallotBoxApi,
+    subscribeToBallotBoxes,
+  } = useBallotBoxes()
+
+  const {
+    data: ballotBoxes,
+    pending: ballotBoxesPending,
+    refresh: refreshBallotBoxes,
+  } = useAsyncData(`election-ballot-boxes-${electionId.value}`, async () => {
+    return await fetchBallotBoxes(electionId.value)
+  })
+
+  const ballotBoxModalRef = ref<InstanceType<typeof BallotBoxFormModal> | null>(null)
+  const ballotBoxToDelete = ref<BallotBoxRow | null>(null)
+  const isBallotBoxDeleteModalOpen = ref(false)
+  const isDeletingBallotBox = ref(false)
+  const togglingBoxId = ref<string | null>(null)
+  let ballotBoxesChannel: ReturnType<typeof subscribeToBallotBoxes> | null = null
+
+  const activeBallotBoxesCount = computed(
+    () => ballotBoxes.value?.filter((b) => b.is_active).length || 0,
+  )
+  const inactiveBallotBoxesCount = computed(
+    () => ballotBoxes.value?.filter((b) => !b.is_active).length || 0,
+  )
+
+  const openCreateBallotBoxModal = () => {
+    ballotBoxModalRef.value?.open()
+  }
+
+  const openEditBallotBoxModal = (box: BallotBoxRow) => {
+    ballotBoxModalRef.value?.open(box)
+  }
+
+  const openDeleteBallotBoxModal = (box: BallotBoxRow) => {
+    ballotBoxToDelete.value = box
+    isBallotBoxDeleteModalOpen.value = true
+  }
+
+  const handleToggleBallotBox = async (box: BallotBoxRow, active: boolean) => {
+    togglingBoxId.value = box.id
+    try {
+      await toggleBallotBoxStatusApi(box.id, active)
+      toast.success(`Urna "${box.name}" ${active ? 'ativada' : 'desativada'} com sucesso.`)
+      await refreshBallotBoxes()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Falha ao alterar status da urna.'
+      toast.error(msg)
+    } finally {
+      togglingBoxId.value = null
+    }
+  }
+
+  const handleOpenBallotBoxTerminal = (box: BallotBoxRow) => {
+    const terminalUrl = `/elections/${electionId.value}/ballot-box/${box.id}`
+    if (typeof window !== 'undefined') {
+      window.open(
+        terminalUrl,
+        `BallotBoxKiosk_${box.id}`,
+        'popup=yes,fullscreen=yes,menubar=no,toolbar=no',
+      )
+    }
+  }
+
+  const handleConfirmDeleteBallotBox = async () => {
+    if (!ballotBoxToDelete.value) return
+    isDeletingBallotBox.value = true
+    try {
+      await deleteBallotBoxApi(ballotBoxToDelete.value.id)
+      toast.success('Urna virtual removida com sucesso.')
+      isBallotBoxDeleteModalOpen.value = false
+      ballotBoxToDelete.value = null
+      await refreshBallotBoxes()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Falha ao remover urna virtual.'
+      toast.error(msg)
+    } finally {
+      isDeletingBallotBox.value = false
+    }
+  }
+
+  onMounted(() => {
+    ballotBoxesChannel = subscribeToBallotBoxes(electionId.value, () => {
+      refreshBallotBoxes()
+    })
+  })
+
+  onUnmounted(() => {
+    if (ballotBoxesChannel) {
+      useSupabaseClient().removeChannel(ballotBoxesChannel)
+    }
+  })
 
   useHead({
     title: computed(() =>
@@ -455,7 +557,7 @@
         <UiTabs v-model="activeTab" color="primary">
           <UiTab value="overview">Visão Geral & Diretrizes</UiTab>
           <UiTab value="candidates">Candidatos & Chapas</UiTab>
-          <UiTab value="voting">Urna Eletrônica</UiTab>
+          <UiTab value="voting">Urnas Virtuais & Votação</UiTab>
           <UiTab value="results">Apuração & Resultados</UiTab>
         </UiTabs>
 
@@ -662,62 +764,129 @@
             </UiRow>
           </div>
 
-          <!-- ABA 3: URNA ELETRÔNICA -->
+          <!-- ABA 3: URNAS VIRTUAIS & TERMINAL DE VOTAÇÃO -->
           <div v-else-if="activeTab === 'voting'">
-            <h3 class="text-subtitle-1 font-weight-bold mb-2">
-              Terminal de Votação (Urna Eletrônica)
-            </h3>
-            <p class="text-caption text-medium-emphasis mb-4">
-              Acesso ao terminal interativo de votação para recepção de votos dos eleitores.
-            </p>
+            <div class="d-flex flex-wrap align-center justify-space-between mb-4 ga-3">
+              <div>
+                <h3 class="text-subtitle-1 font-weight-bold mb-1">
+                  Urnas Virtuais & Cabines de Votação
+                </h3>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Gerencie os pontos físicos (computadores, tablets ou celulares) dedicados à
+                  recepção de votos.
+                </p>
+              </div>
 
-            <UiAlert
-              v-if="election.status === 'released'"
-              class="mb-4"
-              title="Urna Pronta para Votação"
-              type="success"
-              variant="soft"
-            >
-              A eleição está liberada e os eleitores já podem votar através da cabine de votação.
-            </UiAlert>
-
-            <UiAlert
-              v-else-if="election.status === 'awaiting_release'"
-              class="mb-4"
-              title="Urna Bloqueada"
-              type="warning"
-              variant="soft"
-            >
-              Esta eleição ainda está "Aguardando Liberação". A urna eletrônica somente poderá
-              receber votos após o gestor liberar o pleito.
-            </UiAlert>
-
-            <UiAlert v-else class="mb-4" title="Votação Encerrada" type="info" variant="soft">
-              A votação desta eleição foi finalizada e a urna não aceita mais novos votos.
-            </UiAlert>
-
-            <div class="d-flex ga-3 mt-4">
               <UiButton
-                :color="election.status === 'released' ? 'success' : 'default'"
-                :disabled="election.status !== 'released'"
-                prepend-icon="vote"
-                size="lg"
+                v-if="canManageElections()"
+                color="primary"
+                prepend-icon="add"
                 variant="solid"
+                @click="openCreateBallotBoxModal"
               >
-                Abrir Urna de Votação
-              </UiButton>
-
-              <UiButton
-                v-if="canManageElections() && election.status === 'awaiting_release'"
-                color="success"
-                prepend-icon="checkCircle"
-                size="lg"
-                variant="outline"
-                @click="openStatusModal('released')"
-              >
-                Liberar Urna Agora
+                Adicionar Urna Virtual
               </UiButton>
             </div>
+
+            <!-- Alerta Informativo da Fase de Planejamento -->
+            <UiAlert
+              v-if="election.status === 'awaiting_release'"
+              class="mb-4"
+              text="Fase de Planejamento: As urnas virtuais podem ser cadastradas previamente e permanecem desativadas. No dia da eleição, cada mesário ativa e abre o terminal no respectivo equipamento físico."
+              type="info"
+              variant="soft"
+            />
+            <UiAlert
+              v-else-if="election.status === 'released'"
+              class="mb-4"
+              text="Eleição Liberada: Ative as urnas nos equipamentos físicos para liberar a cabine interativa de votação aos eleitores."
+              type="success"
+              variant="soft"
+            />
+            <UiAlert
+              v-else
+              class="mb-4"
+              text="Votação Encerrada: As urnas não recebem novos votos. Prossiga para a aba de Apuração para conferir os resultados."
+              type="warning"
+              variant="soft"
+            />
+
+            <!-- Cards de Métricas das Urnas -->
+            <UiRow class="g-3 mb-4">
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center" variant="tonal">
+                  <span class="text-caption text-medium-emphasis d-block mb-1">Total de Urnas</span>
+                  <span class="text-h6 font-weight-bold">{{ ballotBoxes?.length || 0 }}</span>
+                </UiCard>
+              </UiCol>
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center border-success" variant="tonal">
+                  <span class="text-caption text-success font-weight-medium d-block mb-1">
+                    Urnas Ativas (Disponíveis)
+                  </span>
+                  <span class="text-h6 font-weight-bold text-success">{{
+                    activeBallotBoxesCount
+                  }}</span>
+                </UiCard>
+              </UiCol>
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center border-error" variant="tonal">
+                  <span class="text-caption text-error font-weight-medium d-block mb-1">
+                    Urnas Desativadas (Pausadas)
+                  </span>
+                  <span class="text-h6 font-weight-bold text-error">{{
+                    inactiveBallotBoxesCount
+                  }}</span>
+                </UiCard>
+              </UiCol>
+            </UiRow>
+
+            <!-- Loading de Urnas -->
+            <div v-if="ballotBoxesPending" class="text-center py-8">
+              <UiProgressCircular color="primary" indeterminate size="36" />
+              <div class="text-caption text-medium-emphasis mt-2">Carregando urnas virtuais...</div>
+            </div>
+
+            <!-- Estado Vazio -->
+            <UiCard
+              v-else-if="!ballotBoxes || ballotBoxes.length === 0"
+              class="text-center py-8 px-4"
+              variant="outline"
+            >
+              <UiAvatar class="mb-3" color="primary" rounded="lg" size="48">
+                <UiIcon color="white" name="vote" size="24" />
+              </UiAvatar>
+              <h4 class="text-subtitle-1 font-weight-bold mb-1">Nenhuma urna virtual cadastrada</h4>
+              <p class="text-caption text-medium-emphasis mb-4">
+                Cadastre os dispositivos físicos que atuarão como terminais de votação para esta
+                eleição.
+              </p>
+              <UiButton
+                v-if="canManageElections()"
+                color="primary"
+                prepend-icon="add"
+                variant="solid"
+                @click="openCreateBallotBoxModal"
+              >
+                Cadastrar Primeira Urna
+              </UiButton>
+            </UiCard>
+
+            <!-- Grid de Urnas Virtuais -->
+            <UiRow v-else class="g-4">
+              <UiCol v-for="box in ballotBoxes" :key="box.id" cols="12" lg="4" md="6">
+                <BallotBoxCard
+                  :ballot-box="box"
+                  :can-manage="canManageElections()"
+                  :election-status="election.status"
+                  :is-toggling="togglingBoxId === box.id"
+                  @delete="openDeleteBallotBoxModal"
+                  @edit="openEditBallotBoxModal"
+                  @open-terminal="handleOpenBallotBoxTerminal"
+                  @toggle="handleToggleBallotBox"
+                />
+              </UiCol>
+            </UiRow>
           </div>
 
           <!-- ABA 4: APURAÇÃO & RESULTADOS -->
@@ -894,6 +1063,50 @@
           @click="handleConfirmDeleteCandidate"
         >
           Excluir Candidato
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal de Formulário de Urna Virtual -->
+    <BallotBoxFormModal
+      v-if="election"
+      ref="ballotBoxModalRef"
+      :election-id="election.id"
+      @saved="refreshBallotBoxes"
+    />
+
+    <!-- Modal de Confirmação de Exclusão de Urna Virtual (Safe Delete) -->
+    <UiModal
+      v-model="isBallotBoxDeleteModalOpen"
+      max-width="480px"
+      title="Confirmar Exclusão da Urna Virtual"
+    >
+      <p class="text-body-1">
+        Tem certeza que deseja excluir a urna virtual
+        <strong>{{ ballotBoxToDelete?.name }}</strong
+        >?
+      </p>
+      <p class="text-caption text-medium-emphasis">
+        Esta ação realizará uma exclusão segura (safe delete). A urna não aparecerá mais na lista
+        operacional de votação.
+      </p>
+
+      <template #actions>
+        <UiButton
+          color="default"
+          :disabled="isDeletingBallotBox"
+          variant="outline"
+          @click="isBallotBoxDeleteModalOpen = false"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeletingBallotBox"
+          variant="solid"
+          @click="handleConfirmDeleteBallotBox"
+        >
+          Excluir Urna
         </UiButton>
       </template>
     </UiModal>

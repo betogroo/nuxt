@@ -102,7 +102,8 @@ const defaultStubs = {
   UiCol: { template: '<div><slot /></div>' },
   UiCheckbox: {
     props: ['modelValue', 'indeterminate'],
-    template: '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+    template:
+      '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
   },
 }
 

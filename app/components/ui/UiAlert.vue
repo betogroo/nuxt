@@ -5,8 +5,6 @@
 
   defineOptions({ inheritAttrs: false })
 
-  export type UiAlertType = 'success' | 'info' | 'warning' | 'error'
-
   const props = defineProps<{
     type?: UiAlertType
     title?: string
@@ -18,6 +16,8 @@
     icon?: string | boolean
   }>()
 
+  export type UiAlertType = 'success' | 'info' | 'warning' | 'error'
+
   const attrs = useAttrs()
 
   const vuetifyVariant = computed(() => {
@@ -25,7 +25,7 @@
       solid: 'flat',
       outline: 'outlined',
       ghost: 'text',
-      soft: 'tonal'
+      soft: 'tonal',
     }
     return props.variant ? map[props.variant] : 'soft'
   })

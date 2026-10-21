@@ -87,7 +87,10 @@ export const useIirgdDocumentTypes = () => {
   const updateDocumentType = async (id: string, payload: { name: string; is_active: boolean }) => {
     const { error } = await supabase.from('iirgd_document_types').update(payload).eq('id', id)
     if (error) throw error
-    await logAction('UPDATE_IIRGD_DOCUMENT_TYPE', `Tipo de documento IIRGD atualizado: ${payload.name}`)
+    await logAction(
+      'UPDATE_IIRGD_DOCUMENT_TYPE',
+      `Tipo de documento IIRGD atualizado: ${payload.name}`,
+    )
   }
 
   const deleteDocumentType = async (id: string) => {

@@ -72,6 +72,13 @@ export const iconMap = {
   database: 'mdi-database',
   chart: 'mdi-chart-box-outline',
   vote: 'mdi-vote-outline',
+  devices: 'mdi-devices',
+  laptop: 'mdi-laptop',
+  cellphone: 'mdi-cellphone',
+  tablet: 'mdi-tablet',
+  power: 'mdi-power',
+  fullscreen: 'mdi-fullscreen',
+  fullscreenExit: 'mdi-fullscreen-exit',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

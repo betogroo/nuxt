@@ -89,4 +89,3 @@ describe('IIRGD Detail Page', () => {
     expect(vm.status).toBe('Novo')
   })
 })
-
