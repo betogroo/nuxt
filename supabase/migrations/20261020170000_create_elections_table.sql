@@ -81,37 +81,3 @@ CREATE POLICY "Allow election managers and admins to update elections"
 GRANT ALL ON TABLE public.elections TO authenticated, service_role;
 GRANT SELECT ON TABLE public.elections TO anon;
 
--- 6. Insert sample seed elections for initial testing
-INSERT INTO public.elections (id, name, election_date, digits_count, is_uppercase, status, description, created_by)
-VALUES 
-  (
-    'e1111111-1111-1111-1111-111111111111',
-    'Eleição Grêmio Estudantil 2026',
-    now() + interval '5 days',
-    2,
-    true,
-    'released',
-    'Eleição para os representantes de turma e grêmio estudantil do ano letivo de 2026.',
-    '11111111-1111-1111-1111-111111111111'
-  ),
-  (
-    'e2222222-2222-2222-2222-222222222222',
-    'Conselho Escolar - Gestão 2027/2028',
-    now() + interval '30 days',
-    2,
-    false,
-    'awaiting_release',
-    'Eleição bienal para membros do conselho escolar e representantes da comunidade.',
-    '11111111-1111-1111-1111-111111111111'
-  ),
-  (
-    'e3333333-3333-3333-3333-333333333333',
-    'Comissão Interna de Prevenção de Acidentes 2025',
-    now() - interval '60 days',
-    2,
-    false,
-    'finished',
-    'Eleição dos representantes dos servidores da CIPA realizada e homologada.',
-    '11111111-1111-1111-1111-111111111111'
-  )
-ON CONFLICT (id) DO NOTHING;

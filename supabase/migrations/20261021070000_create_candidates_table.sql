@@ -51,17 +51,3 @@ CREATE POLICY "Allow election authorized users to update candidates"
     )
   );
 
--- 5. Seed sample candidates for the initial test elections
-DO $$
-DECLARE
-  v_election_id UUID;
-BEGIN
-  SELECT id INTO v_election_id FROM public.elections WHERE name = 'Eleição Grêmio Estudantil 2026' LIMIT 1;
-  IF v_election_id IS NOT NULL THEN
-    INSERT INTO public.candidates (election_id, name, candidate_number, photo_url)
-    VALUES
-      (v_election_id, 'Chapa 1 - Renovação Estudantil', '10', 'https://picsum.photos/seed/cand10/300/300'),
-      (v_election_id, 'Chapa 2 - Voz Ativa', '20', 'https://picsum.photos/seed/cand20/300/300')
-    ON CONFLICT DO NOTHING;
-  END IF;
-END $$;
