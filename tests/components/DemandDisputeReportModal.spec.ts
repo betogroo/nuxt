@@ -6,6 +6,7 @@ import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 
 const exportDisputeReportToCsvMock = vi.fn()
+const exportDisputeReportToPdfMock = vi.fn()
 const printDisputeReportMock = vi.fn()
 
 mockNuxtImport('useDemandReports', () => () => ({
@@ -68,6 +69,7 @@ mockNuxtImport('useDemandReports', () => () => ({
     desertedCount: 0,
   })),
   exportDisputeReportToCsv: exportDisputeReportToCsvMock,
+  exportDisputeReportToPdf: exportDisputeReportToPdfMock,
   printDisputeReport: printDisputeReportMock,
 }))
 
@@ -134,7 +136,7 @@ describe('DemandDisputeReportModal', () => {
     expect(exportDisputeReportToCsvMock).toHaveBeenCalledTimes(1)
   })
 
-  it('triggers printDisputeReport when clicking export PDF button', async () => {
+  it('triggers exportDisputeReportToPdf when clicking export PDF button', async () => {
     const wrapper = mount(DemandDisputeReportModal, {
       props: {
         modelValue: true,
@@ -149,6 +151,6 @@ describe('DemandDisputeReportModal', () => {
     expect(pdfButton).toBeDefined()
 
     await pdfButton!.trigger('click')
-    expect(printDisputeReportMock).toHaveBeenCalledTimes(1)
+    expect(exportDisputeReportToPdfMock).toHaveBeenCalledTimes(1)
   })
 })

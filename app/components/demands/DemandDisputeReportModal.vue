@@ -12,7 +12,7 @@
 
   const isModalOpen = defineModel<boolean>({ default: false })
 
-  const { generateDisputeReportData, exportDisputeReportToCsv, printDisputeReport } =
+  const { generateDisputeReportData, exportDisputeReportToCsv, exportDisputeReportToPdf } =
     useDemandReports()
 
   const reportData = computed(() => {
@@ -20,7 +20,7 @@
   })
 
   const isExportingCsv = ref(false)
-  const isPrintingPdf = ref(false)
+  const isExportingPdf = ref(false)
 
   const handleExportCsv = async () => {
     if (isExportingCsv.value || reportData.value.totalItemsCount === 0) return
@@ -32,13 +32,13 @@
     }
   }
 
-  const handlePrintPdf = async () => {
-    if (isPrintingPdf.value || reportData.value.totalItemsCount === 0) return
-    isPrintingPdf.value = true
+  const handleExportPdf = async () => {
+    if (isExportingPdf.value || reportData.value.totalItemsCount === 0) return
+    isExportingPdf.value = true
     try {
-      await printDisputeReport(reportData.value)
+      await exportDisputeReportToPdf(reportData.value)
     } finally {
-      isPrintingPdf.value = false
+      isExportingPdf.value = false
     }
   }
 
@@ -385,11 +385,11 @@
         <div class="d-flex ga-2">
           <UiButton
             color="secondary"
-            :disabled="reportData.totalItemsCount === 0 || isPrintingPdf"
-            :loading="isPrintingPdf"
-            prepend-icon="printer"
+            :disabled="reportData.totalItemsCount === 0 || isExportingPdf"
+            :loading="isExportingPdf"
+            prepend-icon="download"
             variant="outline"
-            @click="handlePrintPdf"
+            @click="handleExportPdf"
           >
             Exportar PDF
           </UiButton>

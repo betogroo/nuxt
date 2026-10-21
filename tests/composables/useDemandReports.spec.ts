@@ -4,6 +4,7 @@ import {
   generateDisputeReportData,
   buildDisputeReportCsv,
   buildDisputeReportHtml,
+  buildDisputeReportPdfDoc,
   formatDecimalBr,
   escapeCsvField,
   useDemandReports,
@@ -574,6 +575,104 @@ describe('useDemandReports', () => {
       )
 
       await printDisputeReport(mockData)
+      expect(logActionMock).toHaveBeenCalledWith(
+        'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
+        expect.stringContaining('Demanda Teste'),
+      )
+    })
+
+    it('buildDisputeReportPdfDoc creates a searchable jsPDF document with winner items and demand metadata', async () => {
+      const fullMockData = {
+        demandId: 'demand-1',
+        demandName: 'Pregão Presencial 01/2026',
+        demand: {
+          id: 'demand-1',
+          name: 'Pregão Presencial 01/2026',
+          type: 'consumption',
+          typeLabel: 'Material de Consumo',
+          status: 'homologation',
+          statusLabel: 'Homologação',
+          processNumber: '123/2026',
+          internalProcessNumber: 'INT-999',
+          biddingNoticeNumber: 'AV-01',
+          disputeNumber: 'DISP-01',
+          disputeDate: '25/10/2026',
+          offerOpeningDate: '22/10/2026 09:00',
+          idPca: 'PCA-2026-001',
+        },
+        winnerGroups: [
+          {
+            supplier: {
+              id: 'supp-1',
+              companyName: 'Papelaria Central LTDA',
+              cnpj: '12345678000199',
+              cnpjFormatted: '12.345.678/0001-99',
+              email: 'contato@papelariacentral.com',
+              cellPhone: '11999998888',
+              landline: null,
+              address: 'Rua das Flores, 100',
+              responsibleName: 'Carlos Silva',
+              isSimplesOptant: true,
+              hasBbAccount: 'Ag 1234 / CC 5678-9',
+            },
+            subtotalValorFinal: 255.0,
+            totalItemsCount: 1,
+            items: [
+              {
+                id: 'item-1',
+                natureza: '339030',
+                itemBec: '12345',
+                especificacao: 'Papel A4 Sulfite',
+                unidadeBec: '101 - Pacote 500fls',
+                qtd: 10,
+                valorOfertado: 25.5,
+                valorFinal: 255.0,
+                outcome: 'winner' as const,
+                outcomeLabel: 'Vencedor',
+              },
+            ],
+          },
+        ],
+        nonWinnerItems: [
+          {
+            id: 'item-2',
+            natureza: '339030',
+            itemBec: '54321',
+            especificacao: 'Grampeador Grande',
+            unidadeBec: 'Unidade',
+            qtd: 2,
+            valorOfertado: null,
+            valorFinal: null,
+            outcome: 'deserted' as const,
+            outcomeLabel: 'Deserto',
+          },
+        ],
+        grandTotalValorFinal: 255.0,
+        totalItemsCount: 2,
+        winnersCount: 1,
+        failedCount: 0,
+        desertedCount: 1,
+      }
+
+      const doc = await buildDisputeReportPdfDoc(fullMockData)
+      expect(doc).toBeDefined()
+      expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1)
+
+      const raw = doc.output()
+      // Verify vector text content exists in the PDF document stream
+      expect(raw).toContain('Papelaria Central LTDA')
+      expect(raw).toContain('12.345.678/0001-99')
+      expect(raw).toContain('Carlos Silva')
+      expect(raw).toContain('Papel A4 Sulfite')
+      expect(raw).toContain('Grampeador Grande')
+      expect(raw).toContain('PCA-2026-001')
+    })
+
+    it('exportDisputeReportToPdf downloads the blob and logs action', async () => {
+      const { exportDisputeReportToPdf } = useDemandReports()
+
+      await exportDisputeReportToPdf(mockData)
+
       expect(logActionMock).toHaveBeenCalledWith(
         'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
         expect.stringContaining('Demanda Teste'),

@@ -1,5 +1,6 @@
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
+import type { jsPDF } from 'jspdf'
 import { getItemDisputeResult } from '~/utils/bids'
 import { downloadBlob } from '~/utils/download'
 import {
@@ -894,6 +895,23 @@ export const useDemandReports = () => {
     )
   }
 
+  const exportDisputeReportToPdf = async (
+    reportData: DisputeReportData,
+    customFilename?: string,
+  ): Promise<void> => {
+    const doc = await buildDisputeReportPdfDoc(reportData)
+    const blob = doc.output('blob')
+    const safeName = (reportData.demandName || 'demanda').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    const filename = customFilename || `relatorio_disputa_${safeName}.pdf`
+
+    downloadBlob(blob, filename)
+
+    await logAction(
+      'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
+      `Relatório de disputa da demanda "${reportData.demandName}" exportado para PDF vetorial pesquisável.`,
+    )
+  }
+
   const logPdfExport = async (demandName: string): Promise<void> => {
     await logAction(
       'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
@@ -905,8 +923,413 @@ export const useDemandReports = () => {
     generateDisputeReportData,
     buildDisputeReportCsv,
     buildDisputeReportHtml,
+    buildDisputeReportPdfDoc,
     exportDisputeReportToCsv,
+    exportDisputeReportToPdf,
     printDisputeReport,
     logPdfExport,
   }
+}
+
+/**
+ * Generates a vector PDF document using jsPDF & jspdf-autotable.
+ * Every piece of text is rendered as selectable/searchable native PDF text vectors.
+ */
+export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): Promise<jsPDF> {
+  const { jsPDF } = await import('jspdf')
+  const { default: autoTable } = await import('jspdf-autotable')
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  })
+
+  const pageWidth = 210
+  const marginX = 14
+  const usableWidth = pageWidth - marginX * 2
+
+  // 1. Accent header bar
+  doc.setFillColor(30, 58, 138)
+  doc.rect(marginX, 12, usableWidth, 2.5, 'F')
+
+  // 2. Title & demand name
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(30, 58, 138)
+  doc.text('RELATÓRIO DE HOMOLOGAÇÃO DA DISPUTA', marginX, 20)
+
+  doc.setFontSize(10)
+  doc.setTextColor(31, 41, 55)
+  doc.text(reportData.demand.name || 'Demanda', marginX, 25.5)
+
+  // Status & Type labels on right
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(100, 116, 139)
+  const metaText = `Tipo: ${reportData.demand.typeLabel}   |   Situação: ${reportData.demand.statusLabel}`
+  doc.text(metaText, pageWidth - marginX, 20, { align: 'right' })
+
+  // 3. Metadata Table
+  autoTable(doc, {
+    startY: 28,
+    margin: { left: marginX, right: marginX },
+    theme: 'grid',
+    styles: {
+      fontSize: 7.5,
+      cellPadding: 1.8,
+      textColor: [31, 41, 55],
+      lineColor: [226, 232, 240],
+      lineWidth: 0.2,
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 26, fillColor: [248, 250, 252] },
+      1: { cellWidth: 65 },
+      2: { fontStyle: 'bold', cellWidth: 26, fillColor: [248, 250, 252] },
+      3: { cellWidth: 65 },
+    },
+    body: [
+      [
+        'Nº Processo:',
+        reportData.demand.processNumber || '-',
+        'Processo Interno:',
+        reportData.demand.internalProcessNumber || '-',
+      ],
+      [
+        'Aviso Licitação:',
+        reportData.demand.biddingNoticeNumber || '-',
+        'Nº da Disputa:',
+        reportData.demand.disputeNumber || '-',
+      ],
+      [
+        'Data da Disputa:',
+        reportData.demand.disputeDate || '-',
+        'Abertura Propostas:',
+        reportData.demand.offerOpeningDate || '-',
+      ],
+      [
+        'ID PCA:',
+        reportData.demand.idPca || '-',
+        'Total de Itens:',
+        String(reportData.totalItemsCount),
+      ],
+    ],
+  })
+
+  // 4. Summary metrics strip
+  const summaryY =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 2.5
+  autoTable(doc, {
+    startY: summaryY,
+    margin: { left: marginX, right: marginX },
+    theme: 'plain',
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+    },
+    columnStyles: {
+      0: { halign: 'center', fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+      1: {
+        halign: 'center',
+        fillColor: [236, 253, 245],
+        textColor: [4, 120, 87],
+        fontStyle: 'bold',
+      },
+      2: { halign: 'center', fillColor: [254, 242, 242], textColor: [185, 28, 28] },
+      3: { halign: 'center', fillColor: [254, 242, 242], textColor: [185, 28, 28] },
+      4: {
+        halign: 'right',
+        fillColor: [240, 253, 244],
+        textColor: [21, 128, 61],
+        fontStyle: 'bold',
+      },
+    },
+    body: [
+      [
+        `Total de Itens: ${reportData.totalItemsCount}`,
+        `Homologados: ${reportData.winnersCount}`,
+        `Fracassados: ${reportData.failedCount}`,
+        `Desertos: ${reportData.desertedCount}`,
+        `Total Homologado: ${formatCurrency(reportData.grandTotalValorFinal)}`,
+      ],
+    ],
+  })
+
+  let currentY =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3.5
+
+  // 5. Winner Groups
+  if (reportData.winnerGroups.length > 0) {
+    for (let i = 0; i < reportData.winnerGroups.length; i++) {
+      const group = reportData.winnerGroups[i]
+      const supp = group.supplier
+      const telStr =
+        [
+          supp.cellPhone ? `Cel: ${supp.cellPhone}` : '',
+          supp.landline ? `Fixo: ${supp.landline}` : '',
+        ]
+          .filter(Boolean)
+          .join(' / ') || '-'
+
+      if (currentY > 235) {
+        doc.addPage()
+        currentY = 16
+      }
+
+      // Supplier Info Card
+      autoTable(doc, {
+        startY: currentY,
+        margin: { left: marginX, right: marginX },
+        theme: 'grid',
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.8,
+          textColor: [31, 41, 55],
+          lineColor: [191, 219, 254],
+          lineWidth: 0.2,
+        },
+        head: [
+          [
+            {
+              content: `FORNECEDOR VENCEDOR #${i + 1}: ${supp.companyName.toUpperCase()} — CNPJ: ${supp.cnpjFormatted}`,
+              colSpan: 4,
+              styles: {
+                fillColor: [30, 58, 138],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                fontSize: 8,
+                cellPadding: 2,
+              },
+            },
+          ],
+        ],
+        body: [
+          [
+            {
+              content: 'Responsável:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 24 },
+            },
+            { content: supp.responsibleName || '-', styles: { cellWidth: 67 } },
+            {
+              content: 'E-mail:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 20 },
+            },
+            { content: supp.email || '-', styles: { cellWidth: 71 } },
+          ],
+          [
+            {
+              content: 'Telefones:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 24 },
+            },
+            { content: telStr, styles: { cellWidth: 67 } },
+            {
+              content: 'Endereço:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 20 },
+            },
+            { content: supp.address || '-', styles: { cellWidth: 71 } },
+          ],
+          [
+            {
+              content: 'Optante Simples:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 24 },
+            },
+            { content: supp.isSimplesOptant ? 'Sim' : 'Não', styles: { cellWidth: 67 } },
+            {
+              content: 'Conta BB:',
+              styles: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 20 },
+            },
+            { content: supp.hasBbAccount || '-', styles: { cellWidth: 71 } },
+          ],
+        ],
+      })
+
+      currentY =
+        (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 1.2
+
+      // Items Won Table
+      const itemsBody = group.items.map((item) => [
+        item.itemBec || '-',
+        item.natureza || '-',
+        item.especificacao || '-',
+        item.unidadeBec || '-',
+        String(item.qtd),
+        formatCurrency(item.valorOfertado),
+        formatCurrency(item.valorFinal),
+      ])
+
+      autoTable(doc, {
+        startY: currentY,
+        margin: { left: marginX, right: marginX },
+        theme: 'striped',
+        styles: {
+          fontSize: 7.5,
+          cellPadding: 1.8,
+          textColor: [31, 41, 55],
+          lineColor: [226, 232, 240],
+          lineWidth: 0.15,
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [51, 65, 85],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 7.5,
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252],
+        },
+        columnStyles: {
+          0: { cellWidth: 16, fontStyle: 'bold' },
+          1: { cellWidth: 18 },
+          2: { cellWidth: 72 },
+          3: { cellWidth: 26 },
+          4: { cellWidth: 12, halign: 'right' },
+          5: { cellWidth: 19, halign: 'right' },
+          6: { cellWidth: 19, halign: 'right', fontStyle: 'bold' },
+        },
+        head: [
+          [
+            'Item BEC',
+            'Natureza',
+            'Especificação do Item',
+            'Unidade',
+            'Qtd',
+            'Unitário',
+            'Valor Total',
+          ],
+        ],
+        body: itemsBody,
+        foot: [
+          [
+            {
+              content: `SUBTOTAL (${supp.companyName}):`,
+              colSpan: 6,
+              styles: {
+                halign: 'right',
+                fontStyle: 'bold',
+                fillColor: [241, 245, 249],
+                textColor: [15, 23, 42],
+              },
+            },
+            {
+              content: formatCurrency(group.subtotalValorFinal),
+              styles: {
+                halign: 'right',
+                fontStyle: 'bold',
+                fillColor: [241, 245, 249],
+                textColor: [15, 23, 42],
+              },
+            },
+          ],
+        ],
+      })
+
+      currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4
+    }
+
+    // Grand Total Box
+    if (currentY > 260) {
+      doc.addPage()
+      currentY = 16
+    }
+
+    autoTable(doc, {
+      startY: currentY,
+      margin: { left: marginX, right: marginX },
+      theme: 'plain',
+      styles: {
+        cellPadding: 2.5,
+      },
+      body: [
+        [
+          {
+            content: 'TOTAL GERAL HOMOLOGADO DA DISPUTA:',
+            styles: {
+              fillColor: [240, 253, 244],
+              textColor: [21, 128, 61],
+              fontStyle: 'bold',
+              fontSize: 9,
+              halign: 'right',
+              cellWidth: 140,
+            },
+          },
+          {
+            content: formatCurrency(reportData.grandTotalValorFinal),
+            styles: {
+              fillColor: [240, 253, 244],
+              textColor: [21, 128, 61],
+              fontStyle: 'bold',
+              fontSize: 10,
+              halign: 'right',
+              cellWidth: 42,
+            },
+          },
+        ],
+      ],
+    })
+
+    currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4
+  }
+
+  // 6. Non-Winner Items
+  if (reportData.nonWinnerItems.length > 0) {
+    if (currentY > 240) {
+      doc.addPage()
+      currentY = 16
+    }
+
+    autoTable(doc, {
+      startY: currentY,
+      margin: { left: marginX, right: marginX },
+      theme: 'grid',
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.8,
+        textColor: [71, 85, 105],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.15,
+      },
+      headStyles: {
+        fillColor: [100, 116, 139],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 7.5,
+      },
+      columnStyles: {
+        0: { cellWidth: 18, fontStyle: 'bold' },
+        1: { cellWidth: 20 },
+        2: { cellWidth: 84 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 12, halign: 'right' },
+        5: { cellWidth: 18, halign: 'center', fontStyle: 'bold' },
+      },
+      head: [['Item BEC', 'Natureza', 'Especificação', 'Unidade', 'Qtd', 'Situação']],
+      body: reportData.nonWinnerItems.map((item) => [
+        item.itemBec || '-',
+        item.natureza || '-',
+        item.especificacao || '-',
+        item.unidadeBec || '-',
+        String(item.qtd),
+        item.outcomeLabel,
+      ]),
+    })
+  }
+
+  // 7. Footers on every page
+  const totalPages = doc.getNumberOfPages()
+  const nowFormatted = formatDateTime(new Date())
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7.5)
+    doc.setTextColor(148, 163, 184)
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.3)
+    doc.line(marginX, 287, pageWidth - marginX, 287)
+    doc.text('Sistema de Gestão de Contratações - Relatório Oficial de Homologação', marginX, 291)
+    doc.text(`Emissão: ${nowFormatted}`, 105, 291, { align: 'center' })
+    doc.text(`Página ${i} de ${totalPages}`, pageWidth - marginX, 291, { align: 'right' })
+  }
+
+  return doc
 }
