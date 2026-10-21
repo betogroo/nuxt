@@ -582,8 +582,6 @@
     confirmAdvanceStatus,
   } = useDemandWorkflow(demandId, demand, items)
 
-  const toast = useToast()
-
   const disputeSummary = computed(() => {
     if (!items.value) return { winnersCount: 0, failedCount: 0, desertedCount: 0, total: 0 }
     let winnersCount = 0
@@ -607,12 +605,6 @@
 
   // --- RELATÓRIO DE HOMOLOGAÇÃO DA DISPUTA ---
   const isReportModalOpen = ref(false)
-  const isExportingCsv = ref(false)
-  const { generateDisputeReportData, exportDisputeReportToCsv } = useDemandReports()
-
-  const disputeReportData = computed(() => {
-    return generateDisputeReportData(demand.value, items.value)
-  })
 
   // --- COLUNAS DA TABELA DE PRODUTOS ---
   const demandProductHeaders = computed(() => {
@@ -683,20 +675,6 @@
 
   const handleGenerateReport = () => {
     isReportModalOpen.value = true
-  }
-
-  const handleExportCsv = async () => {
-    try {
-      isExportingCsv.value = true
-      await exportDisputeReportToCsv(disputeReportData.value)
-      toast.success('Relatório exportado para CSV com sucesso!')
-    } catch (err: unknown) {
-      toast.error(
-        'Erro ao exportar relatório: ' + (err instanceof Error ? err.message : String(err)),
-      )
-    } finally {
-      isExportingCsv.value = false
-    }
   }
 </script>
 
@@ -2061,156 +2039,7 @@
     </UiModal>
 
     <!-- Modal do Relatório de Homologação da Disputa -->
-    <UiModal
-      v-model="isReportModalOpen"
-      max-width="1200px"
-      scrollable
-      title="Relatório de Homologação da Disputa"
-    >
-      <div class="pa-2">
-        <!-- Resumo Rápido -->
-        <UiRow class="mb-4" dense>
-          <UiCol cols="12" md="3" sm="6">
-            <UiCard class="pa-3 text-center bg-surface-variant" variant="flat">
-              <div class="text-caption text-medium-emphasis">Total de Itens</div>
-              <div class="text-h6 font-weight-bold">{{ disputeReportData.totalItemsCount }}</div>
-            </UiCard>
-          </UiCol>
-          <UiCol cols="12" md="3" sm="6">
-            <UiCard class="pa-3 text-center bg-surface-variant" variant="flat">
-              <div class="text-caption text-success font-weight-bold">Vencedores</div>
-              <div class="text-h6 font-weight-bold text-success">
-                {{ disputeReportData.winnersCount }}
-              </div>
-            </UiCard>
-          </UiCol>
-          <UiCol cols="12" md="3" sm="6">
-            <UiCard class="pa-3 text-center bg-surface-variant" variant="flat">
-              <div class="text-caption text-error font-weight-bold">Fracassados</div>
-              <div class="text-h6 font-weight-bold text-error">
-                {{ disputeReportData.failedCount }}
-              </div>
-            </UiCard>
-          </UiCol>
-          <UiCol cols="12" md="3" sm="6">
-            <UiCard class="pa-3 text-center bg-surface-variant" variant="flat">
-              <div class="text-caption text-warning font-weight-bold">Desertos</div>
-              <div class="text-h6 font-weight-bold text-warning">
-                {{ disputeReportData.desertedCount }}
-              </div>
-            </UiCard>
-          </UiCol>
-        </UiRow>
-
-        <div
-          v-if="disputeReportData.groups.length === 0"
-          class="py-6 text-center text-medium-emphasis"
-        >
-          Nenhum item vencedor homologado nesta demanda.
-        </div>
-
-        <!-- Tabela Estruturada do Relatório -->
-        <div v-else class="table-responsive border rounded overflow-hidden">
-          <table class="w-100 text-body-2" style="border-collapse: collapse">
-            <thead>
-              <tr
-                class="bg-surface-variant text-caption font-weight-bold text-uppercase border-bottom text-high-emphasis"
-              >
-                <th class="pa-2 text-left" style="width: 140px">NATUREZA</th>
-                <th class="pa-2 text-left" style="width: 110px">ITEM BEC</th>
-                <th class="pa-2 text-left">ESPECIFICAÇÃO</th>
-                <th class="pa-2 text-left" style="width: 140px">Unidade BEC</th>
-                <th class="pa-2 text-right" style="width: 80px">QTD</th>
-                <th class="pa-2 text-right" style="width: 130px">Valor Ofertado</th>
-                <th class="pa-2 text-right" style="width: 140px">Valor Final</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="group in disputeReportData.groups" :key="group.natureza">
-                <!-- Cabeçalho do Grupo de Natureza -->
-                <tr class="bg-primary-lighten-5 border-top">
-                  <td class="pa-2 font-weight-bold text-primary" colspan="7">
-                    Natureza de Despesa: {{ group.natureza }}
-                  </td>
-                </tr>
-
-                <!-- Linhas dos Itens do Grupo -->
-                <tr v-for="item in group.items" :key="item.id" class="border-top">
-                  <td class="pa-2 text-left text-medium-emphasis">{{ item.natureza }}</td>
-                  <td class="pa-2 text-left font-weight-medium">
-                    <a
-                      v-if="item.itemBec && item.itemBec !== '-'"
-                      class="text-primary text-decoration-none font-weight-bold d-inline-flex align-center ga-1"
-                      :href="getBecProductUrl(item.itemBec)"
-                      rel="noopener noreferrer"
-                      target="_blank"
-                      title="Abrir no catálogo BEC"
-                    >
-                      {{ item.itemBec }}
-                      <UiIcon name="externalLink" size="12" />
-                    </a>
-                    <span v-else>{{ item.itemBec }}</span>
-                  </td>
-                  <td class="pa-2 text-left">
-                    <span>{{ item.especificacao }}</span>
-                  </td>
-                  <td class="pa-2 text-left">{{ item.unidadeBec }}</td>
-                  <td class="pa-2 text-right font-weight-medium">{{ item.qtd }}</td>
-                  <td class="pa-2 text-right">
-                    <span v-if="item.valorOfertado != null">
-                      {{ formatCurrency(item.valorOfertado) }}
-                    </span>
-                    <span v-else class="text-medium-emphasis text-caption"> - </span>
-                  </td>
-                  <td class="pa-2 text-right font-weight-medium">
-                    <span v-if="item.valorFinal != null">
-                      {{ formatCurrency(item.valorFinal) }}
-                    </span>
-                    <span v-else class="text-medium-emphasis text-caption"> - </span>
-                  </td>
-                </tr>
-
-                <!-- Linha de Subtotal por Natureza -->
-                <tr
-                  class="bg-surface-variant font-weight-bold border-top border-bottom text-high-emphasis"
-                >
-                  <td class="pa-2 text-right" colspan="6">
-                    SUBTOTAL (Natureza {{ group.natureza }}):
-                  </td>
-                  <td class="pa-2 text-right text-primary font-weight-bold">
-                    {{ formatCurrency(group.subtotalValorFinal) }}
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-            <tfoot>
-              <!-- Linha de Total Geral -->
-              <tr class="bg-primary text-white font-weight-bold">
-                <td class="pa-3 text-right text-subtitle-2 font-weight-bold" colspan="6">
-                  TOTAL GERAL:
-                </td>
-                <td class="pa-3 text-right text-subtitle-2 font-weight-bold">
-                  {{ formatCurrency(disputeReportData.grandTotalValorFinal) }}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-
-      <template #actions>
-        <UiButton variant="ghost" @click="isReportModalOpen = false">Fechar</UiButton>
-        <UiButton
-          color="primary"
-          :disabled="disputeReportData.totalItemsCount === 0 || isExportingCsv"
-          :loading="isExportingCsv"
-          prepend-icon="download"
-          @click="handleExportCsv"
-        >
-          Exportar CSV
-        </UiButton>
-      </template>
-    </UiModal>
+    <DemandDisputeReportModal v-model="isReportModalOpen" :demand="demand" :items="items" />
 
     <!-- Modal de Atualização de Status de Execução do Item -->
     <DemandItemExecutionStatusModal

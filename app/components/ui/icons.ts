@@ -79,6 +79,7 @@ export const iconMap = {
   power: 'mdi-power',
   fullscreen: 'mdi-fullscreen',
   fullscreenExit: 'mdi-fullscreen-exit',
+  printer: 'mdi-printer',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

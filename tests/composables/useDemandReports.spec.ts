@@ -7,6 +7,7 @@ import {
   escapeCsvField,
   useDemandReports,
 } from '~/composables/useDemandReports'
+import { formatDemandType } from '~/utils/formatters'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 
@@ -36,6 +37,11 @@ describe('useDemandReports', () => {
       expect(escapeCsvField(null)).toBe('""')
       expect(escapeCsvField(undefined)).toBe('""')
     })
+
+    it('formatDemandType returns friendly label', () => {
+      expect(formatDemandType('consumption')).toBe('Consumo')
+      expect(formatDemandType('permanent')).toBe('Permanente')
+    })
   })
 
   describe('generateDisputeReportData', () => {
@@ -45,12 +51,13 @@ describe('useDemandReports', () => {
       type: 'consumption',
       status: 'homologation',
       process_number: '123/2026',
+      internal_process_number: 'INT-999',
       bidding_notice_number: 'AV-01',
       dispute_number: 'DISP-01',
       dispute_date: '2026-10-25',
-      offer_opening_date: null,
+      offer_opening_date: '2026-10-22T09:00:00Z',
       contract_number: null,
-      id_pca: null,
+      id_pca: 'PCA-2026-001',
       is_return_requested: false,
       return_reason: null,
       deleted_at: null,
@@ -59,21 +66,28 @@ describe('useDemandReports', () => {
       updated_at: '2026-10-19T10:00:00Z',
     }
 
-    it('returns empty data when items is empty or null', () => {
+    it('returns empty groups and populated demand info when items is empty or null', () => {
       const dataEmpty = generateDisputeReportData(mockDemand, [])
-      expect(dataEmpty.groups).toEqual([])
+      expect(dataEmpty.winnerGroups).toEqual([])
+      expect(dataEmpty.nonWinnerItems).toEqual([])
       expect(dataEmpty.grandTotalValorFinal).toBe(0)
       expect(dataEmpty.totalItemsCount).toBe(0)
+      expect(dataEmpty.demand.name).toBe('Pregão Presencial 01/2026')
+      expect(dataEmpty.demand.processNumber).toBe('123/2026')
+      expect(dataEmpty.demand.internalProcessNumber).toBe('INT-999')
+      expect(dataEmpty.demand.biddingNoticeNumber).toBe('AV-01')
+      expect(dataEmpty.demand.disputeNumber).toBe('DISP-01')
+      expect(dataEmpty.demand.idPca).toBe('PCA-2026-001')
 
       const dataNull = generateDisputeReportData(mockDemand, null)
-      expect(dataNull.groups).toEqual([])
+      expect(dataNull.winnerGroups).toEqual([])
       expect(dataNull.grandTotalValorFinal).toBe(0)
       expect(dataNull.totalItemsCount).toBe(0)
     })
 
-    it('groups items by NATUREZA (expense nature code) and calculates subtotals & grand totals', () => {
+    it('groups items by WINNING SUPPLIER with complete supplier details, subtotals and grand totals', () => {
       const mockItems: DemandProductRow[] = [
-        // Group Natureza 339030 (Material de Consumo) - 2 items
+        // Item 1: Winner - Fornecedor A (Papelaria Central)
         {
           id: 'item-1',
           demand_id: 'demand-1',
@@ -138,20 +152,25 @@ describe('useDemandReports', () => {
               updated_at: '2026-10-19T10:00:00Z',
               suppliers: {
                 id: 'supp-1',
-                company_name: 'Papelaria Central',
+                company_name: 'Papelaria Central LTDA',
                 cnpj: '12345678000199',
-                name: 'Papelaria Central',
-                fantasy_name: null,
-                state_registration: null,
-                address: null,
-                phone: null,
-                email: null,
+                address: 'Rua das Flores, 100',
+                cell_phone: '11999998888',
+                landline: '1133334444',
+                email: 'contato@papelariacentral.com',
+                responsible_name: 'Carlos Silva',
+                is_simples_optant: true,
+                has_bb_account: 'Ag 1234 / CC 5678-9',
+                is_active: true,
                 created_at: '',
                 updated_at: '',
+                created_by: null,
+                simples_optant_verified_at: null,
               },
             },
           ],
         },
+        // Item 2: Winner - Also Fornecedor A (Papelaria Central)
         {
           id: 'item-2',
           demand_id: 'demand-1',
@@ -209,21 +228,25 @@ describe('useDemandReports', () => {
               updated_at: '2026-10-19T10:00:00Z',
               suppliers: {
                 id: 'supp-1',
-                company_name: 'Papelaria Central',
+                company_name: 'Papelaria Central LTDA',
                 cnpj: '12345678000199',
-                name: 'Papelaria Central',
-                fantasy_name: null,
-                state_registration: null,
-                address: null,
-                phone: null,
-                email: null,
+                address: 'Rua das Flores, 100',
+                cell_phone: '11999998888',
+                landline: '1133334444',
+                email: 'contato@papelariacentral.com',
+                responsible_name: 'Carlos Silva',
+                is_simples_optant: true,
+                has_bb_account: 'Ag 1234 / CC 5678-9',
+                is_active: true,
                 created_at: '',
                 updated_at: '',
+                created_by: null,
+                simples_optant_verified_at: null,
               },
             },
           ],
         },
-        // Group Natureza 339039 (Outros Serviços de Terceiros) - 1 deserted item, 1 failed item
+        // Item 3: Deserted (no bids)
         {
           id: 'item-3',
           demand_id: 'demand-1',
@@ -240,37 +263,12 @@ describe('useDemandReports', () => {
           bid_interval_type: null,
           created_at: '2026-10-15T10:00:00Z',
           updated_at: '2026-10-15T10:00:00Z',
-          product: {
-            id: 'prod-3',
-            name: 'Serviço de Manutenção Preventiva',
-            cat_bec: 11223,
-            cat_mat: null,
-            expense_nature_id: '339039',
-            product_class_id: null,
-            is_active: true,
-            created_at: '2026-10-15T10:00:00Z',
-            created_by: null,
-            updated_at: '2026-10-15T10:00:00Z',
-            expense_natures: {
-              id: '339039',
-              name: 'Outros Serviços de Terceiros',
-              created_at: '',
-              updated_at: '',
-              is_active: true,
-              is_pending: false,
-            },
-          },
-          measurement_units: {
-            id: 'unit-3',
-            name: 'Unidade',
-            created_at: '',
-            updated_at: '',
-            is_active: true,
-            is_pending: false,
-          },
+          product: null,
+          measurement_units: null,
           measurement_unit_aliases: null,
           demand_product_bids: [], // Deserted
         },
+        // Item 4: Failed (all bids disqualified)
         {
           id: 'item-4',
           demand_id: 'demand-1',
@@ -287,57 +285,35 @@ describe('useDemandReports', () => {
           bid_interval_type: null,
           created_at: '2026-10-15T10:00:00Z',
           updated_at: '2026-10-15T10:00:00Z',
-          product: {
-            id: 'prod-4',
-            name: 'Serviço de Instalação Elétrica',
-            cat_bec: 44556,
-            cat_mat: null,
-            expense_nature_id: '339039',
-            product_class_id: null,
-            is_active: true,
-            created_at: '2026-10-15T10:00:00Z',
-            created_by: null,
-            updated_at: '2026-10-15T10:00:00Z',
-            expense_natures: {
-              id: '339039',
-              name: 'Outros Serviços de Terceiros',
-              created_at: '',
-              updated_at: '',
-              is_active: true,
-              is_pending: false,
-            },
-          },
-          measurement_units: {
-            id: 'unit-3',
-            name: 'Unidade',
-            created_at: '',
-            updated_at: '',
-            is_active: true,
-            is_pending: false,
-          },
+          product: null,
+          measurement_units: null,
           measurement_unit_aliases: null,
           demand_product_bids: [
             {
               id: 'bid-4',
               demand_product_id: 'item-4',
-              supplier_id: 'supp-1',
+              supplier_id: 'supp-2',
               amount: 500.0,
               status: 'disqualified',
               disqualification_reason: 'Não atendeu ao edital',
               created_at: '2026-10-19T10:00:00Z',
               updated_at: '2026-10-19T10:00:00Z',
               suppliers: {
-                id: 'supp-1',
-                company_name: 'Papelaria Central',
-                cnpj: '12345678000199',
-                name: 'Papelaria Central',
-                fantasy_name: null,
-                state_registration: null,
+                id: 'supp-2',
+                company_name: 'Eletro Tech LTDA',
+                cnpj: '98765432000188',
                 address: null,
-                phone: null,
+                cell_phone: null,
+                landline: null,
                 email: null,
+                responsible_name: null,
+                is_simples_optant: false,
+                has_bb_account: null,
+                is_active: true,
                 created_at: '',
                 updated_at: '',
+                created_by: null,
+                simples_optant_verified_at: null,
               },
             },
           ], // Failed
@@ -351,55 +327,73 @@ describe('useDemandReports', () => {
       expect(report.desertedCount).toBe(1)
       expect(report.failedCount).toBe(1)
 
-      // Subtotals & Filtering:
-      // Group 1 (339030): item 1 = 10 * 25.5 = 255; item 2 = 5 * 10 = 50 => subtotal = 305
-      // Natureza 339039 has only deserted & failed items, so it is NOT included in report.groups!
-      // Total groups should be 1
-      // Grand Total: 305
-      expect(report.groups).toHaveLength(1)
+      // Winner groups
+      expect(report.winnerGroups).toHaveLength(1)
+      const group1 = report.winnerGroups[0]
+      expect(group1.supplier.companyName).toBe('Papelaria Central LTDA')
+      expect(group1.supplier.cnpjFormatted).toBe('12.345.678/0001-99')
+      expect(group1.supplier.responsibleName).toBe('Carlos Silva')
+      expect(group1.supplier.email).toBe('contato@papelariacentral.com')
+      expect(group1.supplier.cellPhone).toBe('11999998888')
+      expect(group1.supplier.isSimplesOptant).toBe(true)
+      expect(group1.supplier.hasBbAccount).toBe('Ag 1234 / CC 5678-9')
 
-      const group30 = report.groups.find((g) => g.natureza === '339030')!
-      expect(group30).toBeDefined()
-      expect(group30.items).toHaveLength(2)
-      expect(group30.subtotalValorFinal).toBe(305.0)
-      expect(group30.hasDesertedOrFailed).toBe(false)
+      // Items inside winner group
+      expect(group1.items).toHaveLength(2)
+      expect(group1.subtotalValorFinal).toBe(305.0) // 10 * 25.5 + 5 * 10 = 255 + 50 = 305
 
-      const group39 = report.groups.find((g) => g.natureza === '339039')
-      expect(group39).toBeUndefined()
-
+      // Grand total
       expect(report.grandTotalValorFinal).toBe(305.0)
 
-      // Test Field values
-      const item1 = group30.items.find((i) => i.id === 'item-1')!
-      expect(item1.natureza).toBe('339030')
-      expect(item1.itemBec).toBe('12345')
-      expect(item1.especificacao).toBe('Papel A4')
-      expect(item1.unidadeBec).toBe('101 - Pacote 500fls')
-      expect(item1.qtd).toBe(10)
-      expect(item1.valorOfertado).toBe(25.5)
-      expect(item1.valorFinal).toBe(255.0)
-
-      // Item 2 has no alias code, so it falls back to unit name
-      const item2 = group30.items.find((i) => i.id === 'item-2')!
-      expect(item2.unidadeBec).toBe('Caixa')
+      // Non-winner items
+      expect(report.nonWinnerItems).toHaveLength(2)
+      expect(report.nonWinnerItems.some((i) => i.outcome === 'deserted')).toBe(true)
+      expect(report.nonWinnerItems.some((i) => i.outcome === 'failed')).toBe(true)
     })
   })
 
   describe('buildDisputeReportCsv', () => {
-    it('constructs CSV with UTF-8 BOM, semicolons, exact headers, and subtotal/total rows', () => {
+    it('constructs CSV with UTF-8 BOM, demand header metadata, winner supplier block, and subtotal/total rows', () => {
       const mockData = {
         demandId: 'demand-1',
-        demandName: 'Demanda Teste',
+        demandName: 'Demanda Teste 2026',
+        demand: {
+          id: 'demand-1',
+          name: 'Demanda Teste 2026',
+          type: 'consumption',
+          typeLabel: 'Material de Consumo',
+          status: 'homologation',
+          statusLabel: 'Homologação',
+          processNumber: 'PROC-100',
+          internalProcessNumber: 'INT-200',
+          biddingNoticeNumber: 'AV-300',
+          disputeNumber: 'DISP-400',
+          disputeDate: '25/10/2026',
+          offerOpeningDate: '22/10/2026 09:00',
+          idPca: 'PCA-500',
+        },
         totalItemsCount: 1,
         winnersCount: 1,
         failedCount: 0,
         desertedCount: 0,
         grandTotalValorFinal: 250.0,
-        groups: [
+        winnerGroups: [
           {
-            natureza: '339030',
+            supplier: {
+              id: 'supp-1',
+              companyName: 'Alfa Comércio',
+              cnpj: '11222333000144',
+              cnpjFormatted: '11.222.333/0001-44',
+              email: 'alfa@comercio.com',
+              cellPhone: '11999991111',
+              landline: null,
+              address: 'Av Paulista, 1000',
+              responsibleName: 'Maria Alfa',
+              isSimplesOptant: true,
+              hasBbAccount: 'Sim',
+            },
             subtotalValorFinal: 250.0,
-            hasDesertedOrFailed: false,
+            totalItemsCount: 1,
             items: [
               {
                 id: 'item-1',
@@ -416,6 +410,7 @@ describe('useDemandReports', () => {
             ],
           },
         ],
+        nonWinnerItems: [],
       }
 
       const csv = buildDisputeReportCsv(mockData)
@@ -423,7 +418,22 @@ describe('useDemandReports', () => {
       // Has UTF-8 BOM
       expect(csv.startsWith('\uFEFF')).toBe(true)
 
-      // Check header row
+      // Check demand header metadata in CSV
+      expect(csv).toContain('"RELATÓRIO DE HOMOLOGAÇÃO DA DISPUTA";"Demanda Teste 2026"')
+      expect(csv).toContain('"Nº Processo:";"PROC-100"')
+      expect(csv).toContain('"Nº Processo Interno:";"INT-200"')
+      expect(csv).toContain('"Nº Aviso de Contratação:";"AV-300"')
+      expect(csv).toContain('"Nº Disputa:";"DISP-400"')
+      expect(csv).toContain('"Data da Disputa:";"25/10/2026"')
+      expect(csv).toContain('"PCA:";"PCA-500"')
+
+      // Check supplier header in CSV
+      expect(csv).toContain('"FORNECEDOR VENCEDOR: Alfa Comércio"')
+      expect(csv).toContain('"CNPJ: 11.222.333/0001-44"')
+      expect(csv).toContain('"Responsável: Maria Alfa"')
+      expect(csv).toContain('"E-mail: alfa@comercio.com"')
+
+      // Check table header row
       expect(csv).toContain(
         '"NATUREZA";"ITEM BEC";"ESPECIFICAÇÃO";"Unidade BEC";"QTD";"Valor Ofertado";"Valor Final"',
       )
@@ -432,33 +442,60 @@ describe('useDemandReports', () => {
       expect(csv).toContain('"339030";"1234";"Produto A";"UN";"10";"25,00";"250,00"')
 
       // Check subtotal row
-      expect(csv).toContain('"SUBTOTAL (Natureza 339030)";"";"";"";"";"";"250,00"')
+      expect(csv).toContain('"SUBTOTAL (Alfa Comércio)";"";"";"";"";"";"250,00"')
 
       // Check grand total row
-      expect(csv).toContain('"TOTAL GERAL";"";"";"";"";"";"250,00"')
+      expect(csv).toContain('"TOTAL GERAL HOMOLOGADO DA DEMANDA";"";"";"";"";"";"250,00"')
     })
   })
 
-  describe('exportDisputeReportToCsv composable method', () => {
+  describe('useDemandReports composable methods', () => {
     it('logs action when exporting dispute report to CSV', async () => {
       const { exportDisputeReportToCsv } = useDemandReports()
 
       const mockData = {
         demandId: 'demand-1',
         demandName: 'Demanda Teste',
+        demand: {
+          id: 'demand-1',
+          name: 'Demanda Teste',
+          type: 'consumption',
+          typeLabel: 'Material de Consumo',
+          status: 'homologation',
+          statusLabel: 'Homologação',
+          processNumber: '-',
+          internalProcessNumber: '-',
+          biddingNoticeNumber: '-',
+          disputeNumber: '-',
+          disputeDate: '-',
+          offerOpeningDate: '-',
+          idPca: '-',
+        },
         totalItemsCount: 0,
         winnersCount: 0,
         failedCount: 0,
         desertedCount: 0,
         grandTotalValorFinal: 0,
-        groups: [],
+        winnerGroups: [],
+        nonWinnerItems: [],
       }
 
       await exportDisputeReportToCsv(mockData)
 
       expect(logActionMock).toHaveBeenCalledWith(
-        'EXPORT_DEMAND_DISPUTE_REPORT',
+        'EXPORT_DEMAND_DISPUTE_REPORT_CSV',
         expect.stringContaining('Demanda Teste'),
+      )
+    })
+
+    it('logs action when exporting/printing dispute report to PDF', async () => {
+      const { logPdfExport } = useDemandReports()
+
+      await logPdfExport('Demanda Teste PDF')
+
+      expect(logActionMock).toHaveBeenCalledWith(
+        'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
+        expect.stringContaining('Demanda Teste PDF'),
       )
     })
   })
