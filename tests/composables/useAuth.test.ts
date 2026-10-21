@@ -2,14 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { useAuth } from '../../app/composables/useAuth'
 
-const { navigateToMock, signOutMock, logActionMock, pluckMock, cookieRef } = vi.hoisted(() => ({
-  navigateToMock: vi.fn(),
-  signOutMock: vi.fn(),
-  logActionMock: vi.fn(),
-  pluckMock: vi.fn(),
-  cookieRef: { value: null as string | null },
-}))
+const { navigateToMock, signOutMock, logActionMock, pluckMock, cookieRef, routeRef } = vi.hoisted(
+  () => ({
+    navigateToMock: vi.fn(),
+    signOutMock: vi.fn(),
+    logActionMock: vi.fn(),
+    pluckMock: vi.fn(),
+    cookieRef: { value: null as string | null },
+    routeRef: { query: {} as Record<string, string> },
+  }),
+)
 
+mockNuxtImport('useRoute', () => () => routeRef)
 mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useSupabaseCookieRedirect', () => () => ({
   pluck: pluckMock,
@@ -66,6 +70,16 @@ describe('useAuth', () => {
   })
 
   describe('getRedirectUrl', () => {
+    it('returns path from route.query.redirect when present', () => {
+      routeRef.query = { redirect: '/elections/abc/ballot-box/def' }
+      pluckMock.mockReturnValue('/other')
+      cookieRef.value = null
+
+      const { getRedirectUrl } = useAuth()
+      expect(getRedirectUrl()).toBe('/elections/abc/ballot-box/def')
+      routeRef.query = {}
+    })
+
     it('returns path from useSupabaseCookieRedirect when available', () => {
       pluckMock.mockReturnValue('/elections/123/ballot-box/456')
       cookieRef.value = null

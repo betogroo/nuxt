@@ -11,6 +11,11 @@ mockNuxtImport('navigateTo', () => navigateToMock)
 const userRef = { value: { id: '123' } as { id: string } | null }
 mockNuxtImport('useSupabaseUser', () => () => userRef)
 
+const ensureUserMock = vi.fn().mockImplementation(async () => userRef.value)
+mockNuxtImport('useAuthSession', () => () => ({
+  ensureUser: ensureUserMock,
+}))
+
 const profileRef = { value: { role: 'user' } as { role: string } | null }
 const fetchProfileMock = vi.fn()
 mockNuxtImport('useProfile', () => () => ({
@@ -29,8 +34,11 @@ describe('Elections Middleware', () => {
 
   it('should redirect to /login if user is not authenticated', async () => {
     userRef.value = null
-    await electionsMiddleware({} as never, {} as never)
-    expect(navigateToMock).toHaveBeenCalledWith('/login')
+    await electionsMiddleware({ fullPath: '/elections' } as never, {} as never)
+    expect(navigateToMock).toHaveBeenCalledWith({
+      path: '/login',
+      query: { redirect: '/elections' },
+    })
   })
 
   it('should fetch profile if profile is not loaded', async () => {

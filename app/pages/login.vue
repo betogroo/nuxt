@@ -10,18 +10,18 @@
     getRedirectUrl,
   } = useAuth()
 
-  // Redireciona se já estiver logado
+  const route = useRoute()
+  const inactiveError = computed(() => route.query.error === 'inactive')
+
+  // Redireciona se já estiver logado e não for erro de usuário inativo
   watchEffect(() => {
-    if (user.value) {
+    if (user.value && !inactiveError.value) {
       navigateTo(getRedirectUrl(), { replace: true })
     }
   })
 
   const tab = ref<'password' | 'magic'>('password')
   useHead({ title: 'Entrar' })
-
-  const route = useRoute()
-  const inactiveError = computed(() => route.query.error === 'inactive')
 
   // Login com senha
   const loadingPassword = ref(false)

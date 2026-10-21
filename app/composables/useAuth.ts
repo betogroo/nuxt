@@ -42,13 +42,27 @@ export const useAuth = () => {
   }
 
   const getRedirectUrl = () => {
+    // 1. Prioriza query param ?redirect=...
+    try {
+      const route = useRoute()
+      const queryRedirect = route?.query?.redirect
+      if (typeof queryRedirect === 'string' && queryRedirect.startsWith('/')) {
+        return queryRedirect
+      }
+    } catch {
+      // Ignora erro fora de contexto de rota
+    }
+
+    // 2. Verifica helper de cookie do Supabase
     try {
       const redirectInfo = useSupabaseCookieRedirect()
       const path = redirectInfo?.pluck?.()
-      if (path) return path
+      if (path && typeof path === 'string' && path.startsWith('/')) return path
     } catch {
       // Ignora erro caso useSupabaseCookieRedirect não esteja disponível
     }
+
+    // 3. Fallback para cookie manual
     const redirectCookie = useCookie('sb-redirect-path')
     const path = redirectCookie.value || '/'
     // Limpa o cookie

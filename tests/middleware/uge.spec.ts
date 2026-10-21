@@ -11,6 +11,9 @@ mockNuxtImport('navigateTo', () => navigateToMock)
 mockNuxtImport('useSupabaseUser', () => {
   return () => ({ value: { id: '123' } })
 })
+mockNuxtImport('useAuthSession', () => () => ({
+  ensureUser: vi.fn().mockResolvedValue({ id: '123' }),
+}))
 
 const profileRef = { value: { role: 'user' } } as never
 mockNuxtImport('useProfile', () => {

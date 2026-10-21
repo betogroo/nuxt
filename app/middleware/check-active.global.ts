@@ -1,3 +1,5 @@
+import { useAuthSession } from '~/composables/useAuthSession'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // Ignora rotas públicas
   const publicRoutes = ['/login', '/register', '/about']
@@ -5,8 +7,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const user = useSupabaseUser()
-  if (!user.value) return
+  const { ensureUser } = useAuthSession()
+  const user = await ensureUser()
+  if (!user) return
 
   const { profile, fetchProfile } = useProfile()
 

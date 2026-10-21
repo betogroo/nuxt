@@ -1,9 +1,23 @@
 import { ROLES } from '~/constants/roles'
-export default defineNuxtRouteMiddleware(async () => {
-  const user = useSupabaseUser()
+import { useAuthSession } from '~/composables/useAuthSession'
 
-  if (!user.value) {
-    return navigateTo('/login')
+export default defineNuxtRouteMiddleware(async (to) => {
+  const { ensureUser } = useAuthSession()
+  const user = await ensureUser()
+
+  if (!user) {
+    try {
+      const redirectInfo = useSupabaseCookieRedirect()
+      if (redirectInfo?.path) {
+        redirectInfo.path.value = to.fullPath
+      }
+    } catch {
+      // Ignora erro fora de contexto
+    }
+    return navigateTo({
+      path: '/login',
+      query: { redirect: to.fullPath },
+    })
   }
 
   const { profile, fetchProfile } = useProfile()
