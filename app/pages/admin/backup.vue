@@ -121,6 +121,24 @@
       ],
     },
     {
+      title: 'Módulo de Eleições',
+      icon: 'vote',
+      tables: [
+        {
+          key: 'elections',
+          label: 'Eleições Cadastradas',
+          suffix: 'eleições',
+          color: 'deep-purple',
+        },
+        {
+          key: 'candidates',
+          label: 'Candidatos',
+          suffix: 'candidatos',
+          color: 'purple',
+        },
+      ],
+    },
+    {
       title: 'Sistema & Auditoria',
       icon: 'security',
       tables: [

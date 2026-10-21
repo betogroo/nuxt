@@ -19,6 +19,8 @@ export interface BackupSummary {
   iirgd_demand_status_history: number
   iirgd_settings: number
   system_settings?: number
+  elections?: number
+  candidates?: number
   logs: number
 }
 
@@ -54,6 +56,8 @@ export interface BackupData {
   iirgd_demand_status_history?: Record<string, unknown>[]
   iirgd_settings?: Record<string, unknown>[]
   system_settings?: Record<string, unknown>[]
+  elections?: Record<string, unknown>[]
+  candidates?: Record<string, unknown>[]
   logs?: Record<string, unknown>[]
 }
 

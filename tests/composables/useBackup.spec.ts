@@ -49,6 +49,8 @@ describe('useBackup Composable', () => {
       iirgd_demand_status_history: 5,
       iirgd_settings: 5,
       system_settings: 5,
+      elections: 5,
+      candidates: 5,
       logs: 5,
     })
   })
@@ -101,6 +103,8 @@ describe('useBackup Composable', () => {
         iirgd_demand_status_history: 4,
         iirgd_settings: 0,
         system_settings: 1,
+        elections: 2,
+        candidates: 3,
         logs: 10,
       },
       data: {
@@ -110,6 +114,8 @@ describe('useBackup Composable', () => {
         demands: [{ id: 'dem-1' }],
         system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
+        elections: [{ id: 'el-1' }, { id: 'el-2' }],
+        candidates: [{ id: 'cnd-1' }, { id: 'cnd-2' }, { id: 'cnd-3' }],
         iirgd_citizens: [{ id: 'c-1' }, { id: 'c-2' }, { id: 'c-3' }],
         iirgd_demands: [{ id: 'id-1' }, { id: 'id-2' }],
         logs: [{ id: 'log-1' }],
@@ -130,6 +136,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.iirgd_demands).toBe(2)
     expect(inspection.counts.demand_item_status_history).toBe(1)
     expect(inspection.counts.system_settings).toBe(1)
+    expect(inspection.counts.elections).toBe(2)
+    expect(inspection.counts.candidates).toBe(3)
     expect(inspection.counts.logs).toBe(1)
   })
 

@@ -39,6 +39,8 @@ export const useBackup = () => {
         { count: iirgdHistoryCount },
         { count: iirgdSettingsCount },
         { count: systemSettingsCount },
+        { count: electionsCount },
+        { count: candidatesCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -61,6 +63,8 @@ export const useBackup = () => {
         supabase.from('iirgd_demand_status_history').select('id', { count: 'exact', head: true }),
         supabase.from('iirgd_settings').select('id', { count: 'exact', head: true }),
         supabase.from('system_settings').select('key', { count: 'exact', head: true }),
+        supabase.from('elections').select('id', { count: 'exact', head: true }),
+        supabase.from('candidates').select('id', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
@@ -85,6 +89,8 @@ export const useBackup = () => {
         iirgd_demand_status_history: iirgdHistoryCount || 0,
         iirgd_settings: iirgdSettingsCount || 0,
         system_settings: systemSettingsCount || 0,
+        elections: electionsCount || 0,
+        candidates: candidatesCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -174,6 +180,8 @@ export const useBackup = () => {
           : 0,
         iirgd_settings: Array.isArray(data.iirgd_settings) ? data.iirgd_settings.length : 0,
         system_settings: Array.isArray(data.system_settings) ? data.system_settings.length : 0,
+        elections: Array.isArray(data.elections) ? data.elections.length : 0,
+        candidates: Array.isArray(data.candidates) ? data.candidates.length : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 
