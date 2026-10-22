@@ -1019,7 +1019,6 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
         'Nº SIAFEM:',
         reportData.demand.siafemNumber || '-',
       ],
-      ['Total de Itens:', String(reportData.totalItemsCount), '', ''],
     ],
   })
 

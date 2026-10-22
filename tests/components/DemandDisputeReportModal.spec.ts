@@ -27,6 +27,7 @@ mockNuxtImport('useDemandReports', () => () => ({
       disputeDate: '25/10/2026',
       offerOpeningDate: '22/10/2026 09:00',
       idPca: 'PCA-2026-001',
+      siafemNumber: '2026NE000999',
     },
     winnerGroups: [
       {
@@ -109,6 +110,8 @@ describe('DemandDisputeReportModal', () => {
     expect(text).toContain('AV-01')
     expect(text).toContain('DISP-01')
     expect(text).toContain('PCA-2026-001')
+    expect(text).toContain('Nº SIAFEM')
+    expect(text).toContain('2026NE000999')
     expect(text).toContain('Papelaria Central LTDA')
     expect(text).toContain('12.345.678/0001-99')
     expect(text).toContain('Carlos Silva')

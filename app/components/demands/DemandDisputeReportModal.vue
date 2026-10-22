@@ -125,6 +125,12 @@
             </div>
           </UiCol>
           <UiCol cols="12" md="3" sm="6">
+            <div class="text-caption text-medium-emphasis">Nº SIAFEM</div>
+            <div class="text-body-2 font-weight-medium">
+              {{ reportData.demand.siafemNumber }}
+            </div>
+          </UiCol>
+          <UiCol cols="12" md="3" sm="6">
             <div class="text-caption text-medium-emphasis">Total Homologado</div>
             <div class="text-body-2 font-weight-bold text-success">
               {{ formatCurrency(reportData.grandTotalValorFinal) }}
