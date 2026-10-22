@@ -126,7 +126,20 @@ export function useDemandWorkflow(
     try {
       const payload: Partial<Database['public']['Tables']['demands']['Update']> = {}
 
-      if (targetStatus.value === 'bidding_notice') {
+      if (targetStatus.value === 'quotation') {
+        if (
+          !demand.value?.process_number ||
+          !demand.value?.internal_process_number ||
+          !demand.value?.id_pca ||
+          !demand.value?.type ||
+          !demand.value?.contract_number ||
+          !demand.value?.siafem_number
+        ) {
+          throw new Error(
+            'Preencha todos os dados do planejamento (Processo Oficial, Processo Interno, ID PCA, Tipo, Nº Contratação e Nº SIAFEM) antes de avançar para a cotação.',
+          )
+        }
+      } else if (targetStatus.value === 'bidding_notice') {
         if (!items.value || items.value.length === 0) {
           throw new Error(
             'Você precisa adicionar pelo menos um produto antes de avançar para o aviso de contratação.',

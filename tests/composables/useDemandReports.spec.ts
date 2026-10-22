@@ -60,6 +60,7 @@ describe('useDemandReports', () => {
       offer_opening_date: '2026-10-22T09:00:00Z',
       contract_number: null,
       id_pca: 'PCA-2026-001',
+      siafem_number: 'SIAFEM-888',
       is_return_requested: false,
       return_reason: null,
       deleted_at: null,
@@ -78,6 +79,7 @@ describe('useDemandReports', () => {
       expect(dataEmpty.demand.processNumber).toBe('123/2026')
       expect(dataEmpty.demand.internalProcessNumber).toBe('INT-999')
       expect(dataEmpty.demand.biddingNoticeNumber).toBe('AV-01')
+      expect(dataEmpty.demand.siafemNumber).toBe('SIAFEM-888')
       expect(dataEmpty.demand.disputeNumber).toBe('DISP-01')
       expect(dataEmpty.demand.idPca).toBe('PCA-2026-001')
 
@@ -373,6 +375,7 @@ describe('useDemandReports', () => {
           disputeDate: '25/10/2026',
           offerOpeningDate: '22/10/2026 09:00',
           idPca: 'PCA-500',
+          siafemNumber: 'SIAFEM-600',
         },
         totalItemsCount: 1,
         winnersCount: 1,
@@ -428,6 +431,7 @@ describe('useDemandReports', () => {
       expect(csv).toContain('"Nº Disputa:";"DISP-400"')
       expect(csv).toContain('"Data da Disputa:";"25/10/2026"')
       expect(csv).toContain('"PCA:";"PCA-500"')
+      expect(csv).toContain('"Nº SIAFEM:";"SIAFEM-600"')
 
       // Check supplier header in CSV
       expect(csv).toContain('"FORNECEDOR VENCEDOR: Alfa Comércio"')
@@ -470,6 +474,7 @@ describe('useDemandReports', () => {
           disputeDate: '25/10/2026',
           offerOpeningDate: '22/10/2026 09:00',
           idPca: 'PCA-500',
+          siafemNumber: 'SIAFEM-600',
         },
         totalItemsCount: 1,
         winnersCount: 1,
@@ -517,6 +522,7 @@ describe('useDemandReports', () => {
       expect(html).toContain('<!DOCTYPE html>')
       expect(html).toContain('Demanda Teste 2026')
       expect(html).toContain('PROC-100')
+      expect(html).toContain('SIAFEM-600')
       expect(html).toContain('Alfa Comércio')
       expect(html).toContain('11.222.333/0001-44')
       expect(html).toContain('Produto A')
@@ -543,6 +549,7 @@ describe('useDemandReports', () => {
         disputeDate: '-',
         offerOpeningDate: '-',
         idPca: '-',
+        siafemNumber: '-',
       },
       totalItemsCount: 0,
       winnersCount: 0,

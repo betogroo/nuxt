@@ -90,6 +90,7 @@
     process_number: '',
     id_pca: '',
     contract_number: '',
+    siafem_number: '',
   })
 
   const [name, nameProps] = defineField('name')
@@ -97,6 +98,7 @@
   const [processNumber, processNumberProps] = defineField('process_number')
   const [idPca, idPcaProps] = defineField('id_pca')
   const [contractNumber, contractNumberProps] = defineField('contract_number')
+  const [siafemNumber, siafemNumberProps] = defineField('siafem_number')
 
   const modal = useModal<{ id?: string }>({})
 
@@ -111,6 +113,7 @@
           process_number: item.process_number || '',
           id_pca: item.id_pca || '',
           contract_number: item.contract_number ? String(item.contract_number) : '',
+          siafem_number: item.siafem_number || '',
         },
       })
       originalOpen({ id: item.id })
@@ -138,6 +141,7 @@
         process_number: values.process_number || null,
         id_pca: values.id_pca || null,
         contract_number: values.contract_number ? String(values.contract_number) : null,
+        siafem_number: values.siafem_number || null,
       }
 
       if (values.id) {
@@ -378,6 +382,15 @@
         label="Nº da Contratação"
         placeholder="Apenas números"
         type="number"
+      />
+
+      <UiInput
+        v-model="siafemNumber"
+        v-bind="siafemNumberProps"
+        :error-messages="errors.siafem_number"
+        hint="Opcional. Número SIAFEM."
+        label="Nº SIAFEM"
+        placeholder="Ex: 2026NE000123 ou número SIAFEM"
       />
 
       <template #actions>

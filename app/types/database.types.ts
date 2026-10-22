@@ -266,6 +266,7 @@ export type Database = {
           name: string
           offer_opening_date: string | null
           process_number: string | null
+          siafem_number: string | null
           status: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
           updated_at: string
@@ -285,6 +286,7 @@ export type Database = {
           name: string
           offer_opening_date?: string | null
           process_number?: string | null
+          siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
           updated_at?: string
@@ -304,6 +306,7 @@ export type Database = {
           name?: string
           offer_opening_date?: string | null
           process_number?: string | null
+          siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type?: Database['public']['Enums']['demand_type']
           updated_at?: string

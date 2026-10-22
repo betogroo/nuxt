@@ -64,6 +64,7 @@
     process_number: '',
     id_pca: '',
     contract_number: '',
+    siafem_number: '',
   })
 
   const [epName, epNameProps] = epDefine('name')
@@ -71,6 +72,7 @@
   const [epProcess, epProcessProps] = epDefine('process_number')
   const [epIdPca, epIdPcaProps] = epDefine('id_pca')
   const [epContract, epContractProps] = epDefine('contract_number')
+  const [epSiafem, epSiafemProps] = epDefine('siafem_number')
 
   const editPlanningModal = useModal({})
 
@@ -84,6 +86,7 @@
           process_number: demand.value.process_number || '',
           id_pca: demand.value.id_pca || '',
           contract_number: demand.value.contract_number ? String(demand.value.contract_number) : '',
+          siafem_number: demand.value.siafem_number || '',
         },
       })
       editPlanningModal.open()
@@ -99,6 +102,7 @@
         process_number: values.process_number || null,
         id_pca: values.id_pca || null,
         contract_number: values.contract_number || null,
+        siafem_number: values.siafem_number || null,
       }
       await updateDemand(demandId, payload)
       await refreshDemand()
@@ -824,6 +828,12 @@
                   {{ demand.contract_number || '-' }}
                 </div>
               </UiCol>
+              <UiCol cols="12" md="4" sm="6">
+                <div class="text-caption text-grey">Nº SIAFEM</div>
+                <div class="text-body-1 font-weight-medium">
+                  {{ demand.siafem_number || '-' }}
+                </div>
+              </UiCol>
               <UiCol cols="12">
                 <UiAlert
                   v-if="isPlanningIncomplete"
@@ -833,7 +843,7 @@
                   variant="soft"
                 >
                   Para avançar para a Cotação, preencha os dados do planejamento (Processo Oficial,
-                  ID PCA e Nº Contratação).
+                  ID PCA, Nº Contratação e Nº SIAFEM).
                   <br />
                   <small>Você pode editar a demanda voltando à tela de listagem.</small>
                 </UiAlert>
@@ -2024,6 +2034,15 @@
         label="Nº da Contratação"
         placeholder="Apenas números"
         type="number"
+      />
+
+      <UiInput
+        v-model="epSiafem"
+        v-bind="epSiafemProps"
+        :error-messages="epErrors.siafem_number"
+        hint="Opcional."
+        label="Nº SIAFEM"
+        placeholder="Ex: 2026NE000123 ou número SIAFEM"
       />
 
       <template #actions>

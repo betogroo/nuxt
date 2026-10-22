@@ -310,4 +310,43 @@ describe('useDemandWorkflow', () => {
       expect(workflow.advanceModal.isOpen.value).toBe(false)
     })
   })
+
+  describe('Advancing from planning to quotation', () => {
+    beforeEach(() => {
+      demandRef.value = {
+        id: 'demand-123',
+        name: 'Demanda Planejamento',
+        status: 'planning',
+        type: 'consumption',
+        process_number: '123/2026',
+        internal_process_number: 'INT-123',
+        id_pca: 'PCA-1',
+        contract_number: 'CTR-01',
+        siafem_number: null,
+      } as unknown as DemandRow
+    })
+
+    it('blocks advancing to quotation if siafem_number is missing', async () => {
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+
+      expect(workflow.targetStatus.value).toBe('quotation')
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toContain('Nº SIAFEM')
+      expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+    })
+
+    it('allows advancing to quotation when all planning fields including siafem_number are present', async () => {
+      demandRef.value!.siafem_number = '2026NE000123'
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+
+      expect(workflow.targetStatus.value).toBe('quotation')
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toBe('')
+      expect(mockAdvanceDemandStatus).toHaveBeenCalledWith('demand-123', 'quotation', {})
+    })
+  })
 })

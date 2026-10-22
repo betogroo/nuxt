@@ -9,6 +9,7 @@ export const demandFormSchema = z.object({
   process_number: z.string().trim().nullable().optional(),
   id_pca: z.string().trim().nullable().optional(),
   contract_number: z.string().trim().nullable().optional(),
+  siafem_number: z.string().trim().nullable().optional(),
 })
 
 export const demandResponsibleSchema = z.object({

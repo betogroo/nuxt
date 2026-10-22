@@ -21,8 +21,22 @@ export function useDemandDetail(demandId: string) {
 
   const isPlanningIncomplete = computed(() => {
     if (demand.value?.status !== 'planning') return false
-    const { process_number, internal_process_number, id_pca, type, contract_number } = demand.value
-    return !process_number || !internal_process_number || !id_pca || !type || !contract_number
+    const {
+      process_number,
+      internal_process_number,
+      id_pca,
+      type,
+      contract_number,
+      siafem_number,
+    } = demand.value
+    return (
+      !process_number ||
+      !internal_process_number ||
+      !id_pca ||
+      !type ||
+      !contract_number ||
+      !siafem_number
+    )
   })
 
   const updateDemand = async (payload: Database['public']['Tables']['demands']['Update']) => {

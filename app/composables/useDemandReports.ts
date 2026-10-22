@@ -26,6 +26,7 @@ export interface DisputeReportDemandInfo {
   disputeDate: string
   offerOpeningDate: string
   idPca: string
+  siafemNumber: string
 }
 
 export interface DisputeReportWinnerSupplier {
@@ -130,6 +131,7 @@ export function generateDisputeReportData(
     disputeDate: formatDate(demand?.dispute_date),
     offerOpeningDate: formatDateTime(demand?.offer_opening_date),
     idPca: demand?.id_pca || '-',
+    siafemNumber: demand?.siafem_number || '-',
   }
 
   if (!items || items.length === 0) {
@@ -342,6 +344,9 @@ export function buildDisputeReportCsv(reportData: DisputeReportData): string {
     ].join(';'),
   )
   lines.push([escapeCsvField('PCA:'), escapeCsvField(reportData.demand.idPca)].join(';'))
+  lines.push(
+    [escapeCsvField('Nº SIAFEM:'), escapeCsvField(reportData.demand.siafemNumber)].join(';'),
+  )
   lines.push([escapeCsvField('Tipo:'), escapeCsvField(reportData.demand.typeLabel)].join(';'))
   lines.push([escapeCsvField('Status:'), escapeCsvField(reportData.demand.statusLabel)].join(';'))
   lines.push('') // Blank line
@@ -772,6 +777,7 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
       <div><div class="label">Data Disputa</div><div class="value">${escapeHtml(demand.disputeDate)}</div></div>
       <div><div class="label">Abertura Ofertas</div><div class="value">${escapeHtml(demand.offerOpeningDate)}</div></div>
       <div><div class="label">PCA</div><div class="value">${escapeHtml(demand.idPca)}</div></div>
+      <div><div class="label">Nº SIAFEM</div><div class="value">${escapeHtml(demand.siafemNumber)}</div></div>
       <div><div class="label">Total Homologado</div><div class="value text-success" style="font-weight: 700;">${formatCurrency(reportData.grandTotalValorFinal)}</div></div>
     </div>
   </div>
@@ -1010,9 +1016,10 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
       [
         'ID PCA:',
         reportData.demand.idPca || '-',
-        'Total de Itens:',
-        String(reportData.totalItemsCount),
+        'Nº SIAFEM:',
+        reportData.demand.siafemNumber || '-',
       ],
+      ['Total de Itens:', String(reportData.totalItemsCount), '', ''],
     ],
   })
 
