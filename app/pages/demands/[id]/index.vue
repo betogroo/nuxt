@@ -1299,6 +1299,7 @@
           { text: 'Fornecedor', value: 'supplier' },
           { text: 'Participou (Itens)', value: 'participated', align: 'center' },
           { text: 'Venceu (Itens)', value: 'won', align: 'center' },
+          { text: 'Notas de Empenho', value: 'commitments' },
           { text: 'Total Arrematado', value: 'total_amount', align: 'right' },
         ]"
         :items="winningSuppliersSummary"
@@ -1336,6 +1337,56 @@
 
         <template #item-won="{ item: supplier }">
           <UiChip color="success" size="sm">{{ supplier.wonCount }}</UiChip>
+        </template>
+
+        <template #item-commitments="{ item: supplier }">
+          <!-- Alerta quando nenhum item do vencedor possui nota de empenho emitida -->
+          <UiAlert
+            v-if="supplier.allPendingCommitments"
+            class="py-1 px-2 my-1"
+            density="compact"
+            size="xs"
+            type="warning"
+            variant="soft"
+          >
+            Nenhum empenho cadastrado
+          </UiAlert>
+
+          <!-- Lista de notas de empenho e valores somados -->
+          <div v-else class="d-flex flex-column ga-1 py-1">
+            <div
+              v-for="c in supplier.commitments"
+              :key="c.commitmentNumber"
+              class="d-flex align-center justify-space-between ga-2"
+            >
+              <div class="d-flex align-center ga-1">
+                <UiChip color="purple" size="xs" variant="flat">
+                  <UiIcon class="mr-1" name="document" size="xs" />
+                  {{ c.commitmentNumber }}
+                </UiChip>
+                <span v-if="c.itemsCount > 1" class="text-caption text-grey font-weight-medium">
+                  ({{ c.itemsCount }} itens)
+                </span>
+              </div>
+              <span class="text-caption font-weight-bold">
+                {{ formatCurrency(c.totalAmount) }}
+              </span>
+            </div>
+
+            <!-- Caso parcial: fornecedor tem empenhos mas alguns itens ainda não tem -->
+            <div
+              v-if="supplier.hasPendingCommitments"
+              class="d-flex align-center justify-space-between ga-2 text-warning mt-1"
+            >
+              <div class="d-flex align-center ga-1 text-caption">
+                <UiIcon name="alert" size="xs" />
+                <span>{{ supplier.pendingCommitmentsCount }} item(ns) sem empenho</span>
+              </div>
+              <span class="text-caption font-weight-bold">
+                {{ formatCurrency(supplier.pendingCommitmentsAmount) }}
+              </span>
+            </div>
+          </div>
         </template>
 
         <template #item-total_amount="{ item: supplier }">

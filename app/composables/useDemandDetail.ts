@@ -1,6 +1,29 @@
 import type { Database } from '~/types/database.types'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { useToast } from '~/composables/useToast'
+import { getWinningBid, getItemSubtotal } from '~/utils/bids'
+
+export interface SupplierCommitmentGroup {
+  commitmentNumber: string
+  itemsCount: number
+  totalAmount: number
+  itemNames: string[]
+}
+
+export interface WinningSupplierSummaryItem {
+  id: string
+  company_name: string
+  cnpj: string
+  participatedCount: number
+  wonCount: number
+  totalAmountWon: number
+  commitments: SupplierCommitmentGroup[]
+  pendingCommitmentsCount: number
+  pendingCommitmentsAmount: number
+  allPendingCommitments: boolean
+  hasPendingCommitments: boolean
+  [key: string]: unknown
+}
 
 export function useDemandDetail(demandId: string) {
   const toast = useToast()
@@ -151,7 +174,7 @@ export function useDemandDetail(demandId: string) {
   }
 
   // 4. Winning Suppliers Summary
-  const winningSuppliersSummary = computed(() => {
+  const winningSuppliersSummary = computed<WinningSupplierSummaryItem[]>(() => {
     if (!items.value) return []
 
     const supplierStats = new Map<
@@ -161,6 +184,12 @@ export function useDemandDetail(demandId: string) {
         participated: Set<string>
         won: Set<string>
         totalAmountWon: number
+        commitmentsMap: Map<
+          string,
+          { itemsCount: number; totalAmount: number; itemNames: string[] }
+        >
+        pendingCommitmentsCount: number
+        pendingCommitmentsAmount: number
       }
     >()
 
@@ -175,6 +204,9 @@ export function useDemandDetail(demandId: string) {
               participated: new Set(),
               won: new Set(),
               totalAmountWon: 0,
+              commitmentsMap: new Map(),
+              pendingCommitmentsCount: 0,
+              pendingCommitmentsAmount: 0,
             })
           }
           supplierStats.get(suppId)!.participated.add(product.id)
@@ -186,19 +218,69 @@ export function useDemandDetail(demandId: string) {
         const stats = supplierStats.get(winningBid.supplier_id)
         if (stats) {
           stats.won.add(product.id)
-          stats.totalAmountWon += getItemSubtotal(winningBid.amount, product.quantity)
+          const subtotal = getItemSubtotal(winningBid.amount, product.quantity)
+          stats.totalAmountWon += subtotal
+
+          const trimmedCommitment = product.commitment_number?.trim() || null
+          const itemName = product.product_name_snapshot || product.product?.name || 'Item'
+
+          if (trimmedCommitment) {
+            const existing = stats.commitmentsMap.get(trimmedCommitment)
+            if (existing) {
+              existing.itemsCount += 1
+              existing.totalAmount = Number((existing.totalAmount + subtotal).toFixed(2))
+              existing.itemNames.push(itemName)
+            } else {
+              stats.commitmentsMap.set(trimmedCommitment, {
+                itemsCount: 1,
+                totalAmount: subtotal,
+                itemNames: [itemName],
+              })
+            }
+          } else {
+            stats.pendingCommitmentsCount += 1
+            stats.pendingCommitmentsAmount = Number(
+              (stats.pendingCommitmentsAmount + subtotal).toFixed(2),
+            )
+          }
         }
       }
     })
 
-    const winners = Array.from(supplierStats.values())
+    const winners: WinningSupplierSummaryItem[] = Array.from(supplierStats.values())
       .filter((s) => s.won.size > 0)
-      .map((s) => ({
-        ...s.supplier,
-        participatedCount: s.participated.size,
-        wonCount: s.won.size,
-        totalAmountWon: s.totalAmountWon,
-      }))
+      .map((s) => {
+        const commitments: SupplierCommitmentGroup[] = Array.from(s.commitmentsMap.entries())
+          .map(([commitmentNumber, group]) => ({
+            commitmentNumber,
+            itemsCount: group.itemsCount,
+            totalAmount: group.totalAmount,
+            itemNames: group.itemNames,
+          }))
+          .sort((a, b) => a.commitmentNumber.localeCompare(b.commitmentNumber))
+
+        const wonCount = s.won.size
+        const pendingCommitmentsCount = s.pendingCommitmentsCount
+        const pendingCommitmentsAmount = s.pendingCommitmentsAmount
+        const hasCommitments = commitments.length > 0
+        const hasPendingCommitments = pendingCommitmentsCount > 0
+        const allPendingCommitments = hasPendingCommitments && !hasCommitments
+
+        return {
+          ...s.supplier,
+          id: String(s.supplier.id || ''),
+          company_name: String(s.supplier.company_name || ''),
+          cnpj: String(s.supplier.cnpj || ''),
+          participatedCount: s.participated.size,
+          wonCount,
+          totalAmountWon: Number(s.totalAmountWon.toFixed(2)),
+          commitments,
+          pendingCommitmentsCount,
+          pendingCommitmentsAmount,
+          allPendingCommitments,
+          hasPendingCommitments,
+        }
+      })
 
     return winners.sort((a, b) => b.wonCount - a.wonCount)
   })

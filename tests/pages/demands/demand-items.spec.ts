@@ -489,4 +489,61 @@ describe('Demand Items Page', () => {
       }),
     )
   })
+
+  it('computes winning suppliers with commitments and alerts', () => {
+    mockDemandProducts.value = [
+      {
+        id: 'item-1',
+        quantity: 10,
+        commitment_number: '2026-NE-00500',
+        product_name_snapshot: 'Papel A4',
+        demand_product_bids: [
+          {
+            id: 'bid-1',
+            supplier_id: 'sup-winner',
+            amount: 20.0,
+            status: 'classified',
+            suppliers: {
+              id: 'sup-winner',
+              company_name: 'Fornecedor Vencedor Alpha LTDA',
+              cnpj: '12345678000199',
+            },
+          },
+        ],
+      },
+      {
+        id: 'item-2',
+        quantity: 5,
+        commitment_number: '2026-NE-00500',
+        product_name_snapshot: 'Papel A3',
+        demand_product_bids: [
+          {
+            id: 'bid-2',
+            supplier_id: 'sup-winner',
+            amount: 30.0,
+            status: 'classified',
+            suppliers: {
+              id: 'sup-winner',
+              company_name: 'Fornecedor Vencedor Alpha LTDA',
+              cnpj: '12345678000199',
+            },
+          },
+        ],
+      },
+    ]
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.winningSuppliersSummary).toHaveLength(1)
+    const winner = vm.winningSuppliersSummary[0]
+    expect(winner.company_name).toBe('Fornecedor Vencedor Alpha LTDA')
+    expect(winner.totalAmountWon).toBe(350)
+    expect(winner.allPendingCommitments).toBe(false)
+    expect(winner.commitments).toHaveLength(1)
+    expect(winner.commitments[0].commitmentNumber).toBe('2026-NE-00500')
+    expect(winner.commitments[0].totalAmount).toBe(350)
+    expect(winner.commitments[0].itemsCount).toBe(2)
+  })
 })
