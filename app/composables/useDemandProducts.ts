@@ -484,7 +484,7 @@ export const useDemandProducts = () => {
     const { data: otherItems, error } = await supabase
       .from('demand_products')
       .select(
-        'id, commitment_number, demand_product_bids(id, supplier_id, amount, status, created_at, suppliers(id, name, company_name, trade_name))',
+        'id, commitment_number, demand_product_bids(id, supplier_id, amount, status, created_at, suppliers(id, company_name, cnpj))',
       )
       .ilike('commitment_number', trimmed)
       .neq('id', params.itemId)
@@ -502,8 +502,7 @@ export const useDemandProducts = () => {
         const otherSupplier = winningBid.suppliers
         const supplierName =
           otherSupplier?.company_name ||
-          otherSupplier?.trade_name ||
-          otherSupplier?.name ||
+          (otherSupplier?.cnpj ? `CNPJ ${otherSupplier.cnpj}` : null) ||
           'outro fornecedor'
         throw new Error(
           `O número de empenho "${trimmed}" já está vinculado a ${supplierName}. Não é permitido utilizar o mesmo empenho para fornecedores diferentes.`,

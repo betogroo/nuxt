@@ -120,7 +120,7 @@
         {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }} | Qtd:
         {{ item.quantity }}
         <template v-if="winningBid?.suppliers">
-          | Fornecedor: {{ winningBid.suppliers.company_name || winningBid.suppliers.name }}
+          | Fornecedor: {{ winningBid.suppliers.company_name || winningBid.suppliers.cnpj }}
         </template>
       </div>
     </div>

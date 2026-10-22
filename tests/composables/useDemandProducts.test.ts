@@ -718,31 +718,35 @@ describe('useDemandProducts', () => {
 
   it('validateCommitmentNumberSupplier allows same commitment number for same supplier', async () => {
     const { validateCommitmentNumberSupplier } = useDemandProducts()
+    let capturedSelect = ''
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'demand_products') {
         return {
-          select: vi.fn().mockReturnValue({
-            ilike: vi.fn().mockReturnValue({
-              neq: vi.fn().mockResolvedValue({
-                data: [
-                  {
-                    id: 'dp-2',
-                    commitment_number: '2026-NE-00247',
-                    demand_product_bids: [
-                      {
-                        id: 'bid-2',
-                        supplier_id: 'sup-same',
-                        amount: 10,
-                        status: 'classified',
-                        suppliers: { id: 'sup-same', company_name: 'Fornecedor Mesmo' },
-                      },
-                    ],
-                  },
-                ],
-                error: null,
+          select: vi.fn().mockImplementation((query: string) => {
+            capturedSelect = query
+            return {
+              ilike: vi.fn().mockReturnValue({
+                neq: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: 'dp-2',
+                      commitment_number: '2026-NE-00247',
+                      demand_product_bids: [
+                        {
+                          id: 'bid-2',
+                          supplier_id: 'sup-same',
+                          amount: 10,
+                          status: 'classified',
+                          suppliers: { id: 'sup-same', company_name: 'Fornecedor Mesmo' },
+                        },
+                      ],
+                    },
+                  ],
+                  error: null,
+                }),
               }),
-            }),
+            }
           }),
         }
       }
@@ -756,6 +760,9 @@ describe('useDemandProducts', () => {
         supplierId: 'sup-same',
       }),
     ).resolves.not.toThrow()
+
+    expect(capturedSelect).toContain('suppliers(id, company_name, cnpj)')
+    expect(capturedSelect).not.toContain('suppliers(id, name')
   })
 
   it('validateCommitmentNumberSupplier throws error when commitment number belongs to a different supplier', async () => {
