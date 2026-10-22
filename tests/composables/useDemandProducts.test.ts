@@ -809,4 +809,131 @@ describe('useDemandProducts', () => {
       }),
     ).rejects.toThrow(/Empresa Concorrente LTDA/)
   })
+
+  describe('batchUpdateCommitmentsByNature', () => {
+    it('throws error when the same commitment number is used for multiple different expense natures', async () => {
+      const { batchUpdateCommitmentsByNature } = useDemandProducts()
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'demand_products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'dp-1',
+                    commitment_number: null,
+                    execution_status: 'homologated',
+                    product_id: 'p-1',
+                    product: { expense_nature_id: '33903016' },
+                    demand_product_bids: [
+                      { id: 'b-1', supplier_id: 'sup-1', amount: 10, status: 'classified' },
+                    ],
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      await expect(
+        batchUpdateCommitmentsByNature({
+          demandId: 'dem-1',
+          supplierId: 'sup-1',
+          updates: [
+            { expenseNatureId: '33903016', commitmentNumber: '2026-NE-00500' },
+            { expenseNatureId: '33903010', commitmentNumber: '2026-NE-00500' },
+          ],
+        }),
+      ).rejects.toThrow(/Cada natureza deve possuir uma nota de empenho exclusiva/)
+    })
+
+    it('updates matching items to commitment_issued with commitment number and creates history', async () => {
+      const { batchUpdateCommitmentsByNature } = useDemandProducts()
+
+      const mockUpdate = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      })
+      const mockInsertHistory = vi.fn().mockResolvedValue({ error: null })
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'demand_products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'dp-1',
+                    commitment_number: null,
+                    execution_status: 'homologated',
+                    product_id: 'p-1',
+                    product: { expense_nature_id: '33903016' },
+                    demand_product_bids: [
+                      { id: 'b-1', supplier_id: 'sup-1', amount: 10, status: 'classified' },
+                    ],
+                  },
+                  {
+                    id: 'dp-2',
+                    commitment_number: null,
+                    execution_status: 'homologated',
+                    product_id: 'p-2',
+                    product: { expense_nature_id: '33903016' },
+                    demand_product_bids: [
+                      { id: 'b-2', supplier_id: 'sup-1', amount: 20, status: 'classified' },
+                    ],
+                  },
+                ],
+                error: null,
+              }),
+              ilike: vi.fn().mockReturnValue({
+                neq: vi.fn().mockResolvedValue({ data: [], error: null }),
+              }),
+            }),
+            update: mockUpdate,
+          }
+        }
+        if (table === 'demand_item_status_history') {
+          return {
+            insert: mockInsertHistory,
+          }
+        }
+        return {}
+      })
+
+      await batchUpdateCommitmentsByNature({
+        demandId: 'dem-1',
+        supplierId: 'sup-1',
+        updates: [{ expenseNatureId: '33903016', commitmentNumber: '2026-NE-00999' }],
+      })
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          commitment_number: '2026-NE-00999',
+          execution_status: 'commitment_issued',
+        }),
+      )
+      expect(mockInsertHistory).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            demand_product_id: 'dp-1',
+            status: 'commitment_issued',
+            commitment_number: '2026-NE-00999',
+          }),
+          expect.objectContaining({
+            demand_product_id: 'dp-2',
+            status: 'commitment_issued',
+            commitment_number: '2026-NE-00999',
+          }),
+        ]),
+      )
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'BATCH_UPDATE_DEMAND_COMMITMENTS',
+        expect.stringContaining('sup-1'),
+        'user-1',
+      )
+    })
+  })
 })

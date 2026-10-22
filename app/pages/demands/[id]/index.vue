@@ -17,6 +17,8 @@
   import type { DemandProductRow } from '~/composables/useDemandProducts'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
+  import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
+  import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -706,6 +708,19 @@
     await refreshItems()
   }
 
+  // --- MODAL DE GERENCIAMENTO EM LOTE DE EMPENHOS POR FORNECEDOR & NATUREZA ---
+  const isCommitmentsBatchModalOpen = ref(false)
+  const selectedSupplierForCommitments = ref<WinningSupplierSummaryItem | null>(null)
+
+  const openCommitmentsBatchModal = (supplier: WinningSupplierSummaryItem) => {
+    selectedSupplierForCommitments.value = supplier
+    isCommitmentsBatchModalOpen.value = true
+  }
+
+  const handleCommitmentsBatchSaved = async () => {
+    await refreshItems()
+  }
+
   const handleGenerateReport = () => {
     isReportModalOpen.value = true
   }
@@ -1301,6 +1316,7 @@
           { text: 'Venceu (Itens)', value: 'won', align: 'center' },
           { text: 'Notas de Empenho', value: 'commitments' },
           { text: 'Total Arrematado', value: 'total_amount', align: 'right' },
+          { text: '', value: 'actions', align: 'right' },
         ]"
         :items="winningSuppliersSummary"
       >
@@ -1393,6 +1409,19 @@
           <span class="text-success font-weight-bold">
             {{ formatCurrency(supplier.totalAmountWon) }}
           </span>
+        </template>
+
+        <template #item-actions="{ item: supplier }">
+          <UiButton
+            color="primary"
+            icon="document"
+            size="xs"
+            tooltip="Gerenciar Empenhos por Natureza"
+            variant="soft"
+            @click="openCommitmentsBatchModal(supplier)"
+          >
+            Empenhos
+          </UiButton>
         </template>
       </UiTable>
     </UiCard>
@@ -2170,6 +2199,15 @@
       v-model="isExecutionStatusModalOpen"
       :item="selectedItemForExecutionStatus"
       @saved="handleExecutionStatusSaved"
+    />
+
+    <!-- Modal de Gerenciamento de Empenhos em Lote por Fornecedor & Natureza -->
+    <SupplierCommitmentsBatchModal
+      v-model="isCommitmentsBatchModalOpen"
+      :demand-id="demandId"
+      :items="items || []"
+      :supplier="selectedSupplierForCommitments"
+      @saved="handleCommitmentsBatchSaved"
     />
   </UiContainer>
 </template>

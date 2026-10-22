@@ -545,5 +545,9 @@ describe('Demand Items Page', () => {
     expect(winner.commitments[0].commitmentNumber).toBe('2026-NE-00500')
     expect(winner.commitments[0].totalAmount).toBe(350)
     expect(winner.commitments[0].itemsCount).toBe(2)
+
+    vm.openCommitmentsBatchModal(winner)
+    expect(vm.isCommitmentsBatchModalOpen).toBe(true)
+    expect(vm.selectedSupplierForCommitments).toEqual(winner)
   })
 })

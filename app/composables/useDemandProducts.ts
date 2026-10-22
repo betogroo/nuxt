@@ -587,6 +587,130 @@ export const useDemandProducts = () => {
     return (data || []) as DemandItemStatusHistoryRow[]
   }
 
+  const batchUpdateCommitmentsByNature = async (params: {
+    demandId: string
+    supplierId: string
+    updates: Array<{
+      expenseNatureId: string
+      commitmentNumber: string | null
+    }>
+  }) => {
+    // 1. Fetch current demand items for this demand with their products & bids
+    const { data: demandItems, error: itemsErr } = await supabase
+      .from('demand_products')
+      .select(
+        'id, commitment_number, execution_status, product_id, product:products(expense_nature_id), demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
+      .eq('demand_id', params.demandId)
+
+    if (itemsErr) throw itemsErr
+    if (!demandItems || demandItems.length === 0) return
+
+    // 2. Validate that within the updates, two different expense natures don't have the same commitment number
+    const seenCommitments = new Map<string, string>()
+    for (const update of params.updates) {
+      const trimmed = update.commitmentNumber?.trim().toUpperCase() || null
+      if (trimmed) {
+        if (
+          seenCommitments.has(trimmed) &&
+          seenCommitments.get(trimmed) !== update.expenseNatureId
+        ) {
+          throw new Error(
+            `O número de empenho "${trimmed}" foi informado para mais de uma natureza de despesa diferente. Cada natureza deve possuir uma nota de empenho exclusiva.`,
+          )
+        }
+        seenCommitments.set(trimmed, update.expenseNatureId)
+      }
+    }
+
+    // 3. For each update, find the matching won items
+    const now = new Date().toISOString()
+    const updatePromises: Promise<unknown>[] = []
+    const historyInserts: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
+      []
+    let updatedItemsCount = 0
+
+    for (const update of params.updates) {
+      const trimmedCommitment = update.commitmentNumber?.trim().toUpperCase() || null
+
+      const matchingItems = demandItems.filter((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const prod = Array.isArray(item.product) ? item.product[0] : (item.product as any)
+        const itemNatureId = prod?.expense_nature_id || 'none'
+        if (itemNatureId !== update.expenseNatureId) return false
+
+        const bids = item.demand_product_bids || []
+        const winner = getWinningBid(bids)
+        return winner && winner.supplier_id === params.supplierId
+      })
+
+      if (matchingItems.length === 0) continue
+
+      if (trimmedCommitment) {
+        await validateCommitmentNumberSupplier({
+          itemId: matchingItems[0].id,
+          commitmentNumber: trimmedCommitment,
+          supplierId: params.supplierId,
+        })
+      }
+
+      for (const item of matchingItems) {
+        const currentCommitment = item.commitment_number?.trim().toUpperCase() || null
+        if (trimmedCommitment !== currentCommitment) {
+          updatedItemsCount++
+          const newStatus: DemandItemExecutionStatus = trimmedCommitment
+            ? 'commitment_issued'
+            : item.execution_status === 'commitment_issued'
+              ? 'homologated'
+              : (item.execution_status as DemandItemExecutionStatus) || 'homologated'
+
+          updatePromises.push(
+            supabase
+              .from('demand_products')
+              .update({
+                commitment_number: trimmedCommitment,
+                execution_status: newStatus,
+                execution_status_updated_at: now,
+              })
+              .eq('id', item.id),
+          )
+
+          historyInserts.push({
+            demand_product_id: item.id,
+            status: newStatus,
+            commitment_number: trimmedCommitment,
+            observation: trimmedCommitment
+              ? 'Empenho atribuído em lote por Natureza de Despesa'
+              : 'Empenho desvinculado em lote',
+            created_by: user.value?.id || null,
+          })
+        }
+      }
+    }
+
+    if (updatePromises.length > 0) {
+      const results = await Promise.all(updatePromises)
+      for (const res of results) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const err = (res as any)?.error
+        if (err) throw err
+      }
+
+      if (historyInserts.length > 0) {
+        const { error: histErr } = await supabase
+          .from('demand_item_status_history')
+          .insert(historyInserts)
+        if (histErr) console.error('Erro ao inserir histórico de empenhos em lote:', histErr)
+      }
+
+      await logAction(
+        'BATCH_UPDATE_DEMAND_COMMITMENTS',
+        `Empenhos atualizados em lote para o fornecedor ${params.supplierId} na demanda ${params.demandId} (${updatedItemsCount} itens)`,
+        user.value?.id,
+      )
+    }
+  }
+
   return {
     reorderDemandItems,
     fetchDemandProducts,
@@ -598,6 +722,7 @@ export const useDemandProducts = () => {
     removeDemandProduct,
     validateCommitmentNumberSupplier,
     updateDemandItemExecutionStatus,
+    batchUpdateCommitmentsByNature,
     fetchDemandItemStatusHistory,
   }
 }
