@@ -41,19 +41,50 @@
   const errorMessage = ref('')
   const existingCitizen = ref<Record<string, unknown> | null>(null)
 
-  const emptyDemandForm = (): Partial<IirgdDemandFormInput> => ({
-    rg: '',
-    cpf: '',
-    other_document: '',
-    is_other_state: false,
-    name: '',
-    document_type_id: '',
-    document_type_name: '',
-    observation: '',
-  })
+  const STORAGE_STATION_KEY = 'iirgd_last_station_code'
+  const STORAGE_DOC_TYPE_KEY = 'iirgd_last_document_type_id'
+
+  const { data: documentTypes } = useAsyncData(
+    'active-document-types',
+    fetchAllActiveDocumentTypes,
+    {
+      default: () => [],
+    },
+  )
+
+  const getLastStationCode = (): (typeof IIRGD_STATION_CODES)[number] | undefined => {
+    if (!import.meta.client) return undefined
+    const val = localStorage.getItem(STORAGE_STATION_KEY)
+    return IIRGD_STATION_CODES.includes(val as (typeof IIRGD_STATION_CODES)[number])
+      ? (val as (typeof IIRGD_STATION_CODES)[number])
+      : undefined
+  }
+
+  const getLastDocumentTypeId = (): string => {
+    if (!import.meta.client) return ''
+    return localStorage.getItem(STORAGE_DOC_TYPE_KEY) || ''
+  }
+
+  const initialDemandForm = (): Partial<IirgdDemandFormInput> => {
+    const lastDocType = getLastDocumentTypeId()
+    const matched = documentTypes.value?.find(
+      (dt) => dt.id === lastDocType || dt.name === lastDocType,
+    )
+    return {
+      station_code: getLastStationCode(),
+      document_type_id: lastDocType,
+      document_type_name: matched?.name || lastDocType || '',
+      rg: '',
+      cpf: '',
+      other_document: '',
+      is_other_state: false,
+      name: '',
+      observation: '',
+    }
+  }
 
   const { errors, values, defineField, setFieldValue, validateField, handleSubmit, resetForm } =
-    useZodForm(iirgdDemandFormSchema, emptyDemandForm())
+    useZodForm(iirgdDemandFormSchema, initialDemandForm())
 
   const [stationCode] = defineField('station_code')
   const [documentTypeId] = defineField('document_type_id')
@@ -63,14 +94,6 @@
   const [cpf] = defineField('cpf', { validateOnModelUpdate: false })
   const [name] = defineField('name')
   const [observation] = defineField('observation')
-
-  const { data: documentTypes } = useAsyncData(
-    'active-document-types',
-    fetchAllActiveDocumentTypes,
-    {
-      default: () => [],
-    },
-  )
 
   const selectedDocType = computed(() => {
     if (!values.document_type_id) return null
@@ -97,6 +120,17 @@
     }
   })
 
+  watch(documentTypes, (types) => {
+    if (values.document_type_id && !values.document_type_name) {
+      const matched = types?.find(
+        (dt) => dt.id === values.document_type_id || dt.name === values.document_type_id,
+      )
+      if (matched?.name) {
+        setFieldValue('document_type_name', matched.name)
+      }
+    }
+  })
+
   // Ao alternar estado de origem do documento, limpa o campo correspondente
   watch(isOtherState, (val) => {
     if (val) {
@@ -106,10 +140,10 @@
     }
   })
 
-  // Ao abrir o modal, reseta os dados
+  // Ao abrir o modal, reseta os dados preservando os últimos código do posto e tipo de documento
   watch(isOpen, (newVal) => {
     if (newVal) {
-      resetForm({ values: emptyDemandForm() })
+      resetForm({ values: initialDemandForm() })
       errorMessage.value = ''
       existingCitizen.value = null
       isSaving.value = false
@@ -220,6 +254,15 @@
         cpf: formValues.cpf ? formatCpf(formValues.cpf) : null,
       })
 
+      if (import.meta.client) {
+        if (formValues.station_code) {
+          localStorage.setItem(STORAGE_STATION_KEY, formValues.station_code)
+        }
+        if (finalDocTypeId) {
+          localStorage.setItem(STORAGE_DOC_TYPE_KEY, finalDocTypeId)
+        }
+      }
+
       closeModal()
       toast.success('Demanda criada com sucesso!')
       emit('created')
@@ -228,6 +271,12 @@
     } finally {
       isSaving.value = false
     }
+  })
+
+  defineExpose({
+    saveDemand,
+    values,
+    errors,
   })
 </script>
 
