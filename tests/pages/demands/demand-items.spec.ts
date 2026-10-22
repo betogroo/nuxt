@@ -414,4 +414,51 @@ describe('Demand Items Page', () => {
     expect(vm.isExecutionStatusModalOpen).toBe(true)
     expect(vm.selectedItemForExecutionStatus.id).toBe('item-1')
   })
+
+  it('opens edit planning modal and populates form values', () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      name: 'Demanda de Teste',
+      type: 'consumption',
+      process_number: '058.00100793/2026-21',
+      id_pca: 'PCA-2026',
+      contract_number: '12345',
+      siafem_number: '2026NE0001',
+      status: 'planning',
+    }
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditPlanning()
+    expect(vm.editPlanningModal.isOpen.value).toBe(true)
+    expect(vm.epProcess).toBe('058.00100793/2026-21')
+    expect(vm.epName).toBe('Demanda de Teste')
+  })
+
+  it('saves planning data calling updateDemand with payload', async () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      name: 'Demanda de Teste',
+      type: 'consumption',
+      process_number: '058.00100793/2026-21',
+      status: 'planning',
+    }
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditPlanning()
+    vm.epProcess = '058.00100793/2026-99'
+    await vm.savePlanning()
+
+    expect(mockUpdateDemandDb).toHaveBeenCalledWith(
+      'demand-123',
+      expect.objectContaining({
+        process_number: '058.00100793/2026-99',
+      }),
+    )
+  })
 })

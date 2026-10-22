@@ -5,13 +5,14 @@ import { useDemandDetail } from '../../app/composables/useDemandDetail'
 import type { DemandRow } from '../../app/composables/useDemands'
 
 const mockDemand = ref<Partial<DemandRow> | null>(null)
+const mockUpdateDemandDb = vi.fn().mockResolvedValue(true)
 
 mockNuxtImport('useDemands', () => () => ({
   fetchDemandById: vi.fn().mockImplementation(async () => mockDemand.value),
   fetchDemandResponsibles: vi.fn().mockResolvedValue([]),
   addResponsible: vi.fn().mockResolvedValue(true),
   removeResponsible: vi.fn().mockResolvedValue(true),
-  updateDemand: vi.fn().mockResolvedValue(true),
+  updateDemand: mockUpdateDemandDb,
 }))
 
 mockNuxtImport('useDemandProducts', () => () => ({
@@ -76,5 +77,29 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
     mockDemand.value!.siafem_number = null
     const { isPlanningIncomplete } = useDemandDetail('demand-1')
     expect(isPlanningIncomplete.value).toBe(false)
+  })
+
+  describe('updateDemand', () => {
+    it('accepts single argument payload and uses closured demandId', async () => {
+      mockUpdateDemandDb.mockClear()
+      const { updateDemand } = useDemandDetail('demand-1')
+
+      await updateDemand({ process_number: '058.00100793/2026-21' })
+
+      expect(mockUpdateDemandDb).toHaveBeenCalledWith('demand-1', {
+        process_number: '058.00100793/2026-21',
+      })
+    })
+
+    it('accepts two arguments (demandId, payload) and updates target demand properly', async () => {
+      mockUpdateDemandDb.mockClear()
+      const { updateDemand } = useDemandDetail('demand-1')
+
+      await updateDemand('demand-1', { process_number: '058.00100793/2026-99' })
+
+      expect(mockUpdateDemandDb).toHaveBeenCalledWith('demand-1', {
+        process_number: '058.00100793/2026-99',
+      })
+    })
   })
 })

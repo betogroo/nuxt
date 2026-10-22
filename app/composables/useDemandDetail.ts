@@ -39,8 +39,16 @@ export function useDemandDetail(demandId: string) {
     )
   })
 
-  const updateDemand = async (payload: Database['public']['Tables']['demands']['Update']) => {
-    await updateDemandDb(demandId, payload)
+  const updateDemand = async (
+    demandIdOrPayload: string | Database['public']['Tables']['demands']['Update'],
+    maybePayload?: Database['public']['Tables']['demands']['Update'],
+  ) => {
+    const payload =
+      typeof demandIdOrPayload === 'string'
+        ? (maybePayload as Database['public']['Tables']['demands']['Update'])
+        : demandIdOrPayload
+    const targetId = typeof demandIdOrPayload === 'string' ? demandIdOrPayload : demandId
+    await updateDemandDb(targetId, payload)
     await refreshDemand()
   }
 

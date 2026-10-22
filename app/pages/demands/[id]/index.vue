@@ -20,7 +20,9 @@
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
+  const toast = useToast()
   const { profile, fetchAllProfiles } = useProfile()
+  const { canEditDemand } = usePermissions()
 
   const { addDemandItemWithDependencies, updateDemandItemWithDependencies } = useDemandProducts()
 
@@ -93,26 +95,38 @@
     }
   }
 
-  const savePlanning = epSubmit(async (values) => {
-    editPlanningModal.startSaving()
-    try {
-      const payload = {
-        name: values.name,
-        type: values.type,
-        process_number: values.process_number || null,
-        id_pca: values.id_pca || null,
-        contract_number: values.contract_number || null,
-        siafem_number: values.siafem_number || null,
+  const savePlanning = epSubmit(
+    async (values) => {
+      editPlanningModal.startSaving()
+      try {
+        const payload = {
+          name: values.name,
+          type: values.type,
+          process_number: values.process_number || null,
+          id_pca: values.id_pca || null,
+          contract_number: values.contract_number || null,
+          siafem_number: values.siafem_number || null,
+        }
+        await updateDemand(payload)
+        await refreshDemand()
+        toast.success('Dados do planejamento atualizados com sucesso!')
+        editPlanningModal.close()
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err)
+        editPlanningModal.error.value = msg
+        toast.error(msg)
+      } finally {
+        editPlanningModal.stopSaving()
       }
-      await updateDemand(demandId, payload)
-      await refreshDemand()
-      editPlanningModal.close()
-    } catch (err: unknown) {
-      editPlanningModal.error.value = err instanceof Error ? err.message : String(err)
-    } finally {
-      editPlanningModal.stopSaving()
-    }
-  })
+    },
+    ({ errors }) => {
+      const firstError = Object.values(errors).find(Boolean)
+      if (firstError) {
+        editPlanningModal.error.value = firstError
+        toast.error(firstError)
+      }
+    },
+  )
 
   // Modal de Edição dos Dados do Aviso de Contratação e Disputa
   const editBiddingNoticeModal = useModal({
@@ -786,7 +800,12 @@
                 <span>Dados do Planejamento</span>
                 <UiSpacer />
                 <UiButton
-                  v-if="demand?.status === 'planning'"
+                  v-if="
+                    demand &&
+                    canEditDemand(demand) &&
+                    demand.status !== 'completed' &&
+                    demand.status !== 'cancelled'
+                  "
                   color="primary"
                   prepend-icon="edit"
                   size="sm"
@@ -2044,7 +2063,6 @@
         hint="Opcional."
         label="Nº da Contratação"
         placeholder="Apenas números"
-        type="number"
       />
 
       <UiInput
