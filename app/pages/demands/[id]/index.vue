@@ -63,6 +63,7 @@
   } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
+    internal_process_number: '',
     process_number: '',
     id_pca: '',
     contract_number: '',
@@ -71,6 +72,7 @@
 
   const [epName, epNameProps] = epDefine('name')
   const [epType, epTypeProps] = epDefine('type')
+  const [epInternalProcess, epInternalProcessProps] = epDefine('internal_process_number')
   const [epProcess, epProcessProps] = epDefine('process_number')
   const [epIdPca, epIdPcaProps] = epDefine('id_pca')
   const [epContract, epContractProps] = epDefine('contract_number')
@@ -85,6 +87,7 @@
           id: demand.value.id,
           name: demand.value.name,
           type: demand.value.type as 'consumption' | 'permanent',
+          internal_process_number: demand.value.internal_process_number || '',
           process_number: demand.value.process_number || '',
           id_pca: demand.value.id_pca || '',
           contract_number: demand.value.contract_number ? String(demand.value.contract_number) : '',
@@ -99,13 +102,24 @@
     async (values) => {
       editPlanningModal.startSaving()
       try {
-        const payload = {
+        const payload: {
+          name: string
+          type: 'consumption' | 'permanent'
+          internal_process_number?: string
+          process_number: string | null
+          id_pca: string | null
+          contract_number: string | null
+          siafem_number: string | null
+        } = {
           name: values.name,
           type: values.type,
           process_number: values.process_number || null,
           id_pca: values.id_pca || null,
           contract_number: values.contract_number || null,
           siafem_number: values.siafem_number || null,
+        }
+        if (profile.value?.role === ROLES.ADMIN && values.internal_process_number) {
+          payload.internal_process_number = values.internal_process_number.trim()
         }
         await updateDemand(payload)
         await refreshDemand()
@@ -2022,6 +2036,16 @@
         :error-messages="epErrors.name"
         label="Nome da Demanda*"
         required
+      />
+
+      <UiInput
+        v-if="profile?.role === ROLES.ADMIN"
+        v-model="epInternalProcess"
+        v-bind="epInternalProcessProps"
+        :error-messages="epErrors.internal_process_number"
+        hint="Exclusivo Administrador. Formato: AAAA-XXXX (ex: 2026-0001)"
+        label="Nº do Processo Interno"
+        placeholder="Ex: 2026-0001"
       />
 
       <UiSelect

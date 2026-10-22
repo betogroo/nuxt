@@ -61,6 +61,7 @@ mockNuxtImport('useSupabaseUser', () => () => ({
   value: { id: 'user-1' },
 }))
 mockNuxtImport('useProfile', () => () => ({
+  profile: { value: { id: 'user-1', role: 'admin' } },
   fetchAllProfiles: vi.fn().mockResolvedValue([]),
 }))
 mockNuxtImport('useDemands', () => () => ({
@@ -458,6 +459,33 @@ describe('Demand Items Page', () => {
       'demand-123',
       expect.objectContaining({
         process_number: '058.00100793/2026-99',
+      }),
+    )
+  })
+
+  it('saves internal_process_number when user is admin', async () => {
+    mockDemandData.value = {
+      id: 'demand-123',
+      name: 'Demanda de Teste',
+      type: 'consumption',
+      internal_process_number: '2026-0001',
+      process_number: '058.00100793/2026-21',
+      status: 'planning',
+    }
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditPlanning()
+    expect(vm.epInternalProcess).toBe('2026-0001')
+    vm.epInternalProcess = '2026-0042'
+    await vm.savePlanning()
+
+    expect(mockUpdateDemandDb).toHaveBeenCalledWith(
+      'demand-123',
+      expect.objectContaining({
+        internal_process_number: '2026-0042',
       }),
     )
   })

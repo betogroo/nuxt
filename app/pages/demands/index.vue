@@ -2,6 +2,7 @@
   import type { DemandRow } from '~/composables/useDemands'
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema } from '~/schemas/forms/demand'
+  import { ROLES } from '~/constants/roles'
 
   definePageMeta({
     icon: 'recordsList',
@@ -87,6 +88,7 @@
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
+    internal_process_number: '',
     process_number: '',
     id_pca: '',
     contract_number: '',
@@ -95,6 +97,7 @@
 
   const [name, nameProps] = defineField('name')
   const [type, typeProps] = defineField('type')
+  const [internalProcessNumber, internalProcessNumberProps] = defineField('internal_process_number')
   const [processNumber, processNumberProps] = defineField('process_number')
   const [idPca, idPcaProps] = defineField('id_pca')
   const [contractNumber, contractNumberProps] = defineField('contract_number')
@@ -110,6 +113,7 @@
           id: item.id,
           name: item.name || '',
           type: item.type || 'consumption',
+          internal_process_number: item.internal_process_number || '',
           process_number: item.process_number || '',
           id_pca: item.id_pca || '',
           contract_number: item.contract_number ? String(item.contract_number) : '',
@@ -135,13 +139,25 @@
     modal.startSaving()
     modal.error.value = ''
     try {
-      const payload = {
+      const payload: {
+        name: string
+        type: 'consumption' | 'permanent'
+        internal_process_number?: string
+        process_number: string | null
+        id_pca: string | null
+        contract_number: string | null
+        siafem_number: string | null
+      } = {
         name: values.name,
         type: values.type,
         process_number: values.process_number || null,
         id_pca: values.id_pca || null,
         contract_number: values.contract_number ? String(values.contract_number) : null,
         siafem_number: values.siafem_number || null,
+      }
+
+      if (profile.value?.role === ROLES.ADMIN && values.internal_process_number) {
+        payload.internal_process_number = values.internal_process_number.trim()
       }
 
       if (values.id) {
@@ -340,6 +356,16 @@
         :error-messages="errors.name"
         label="Nome da Demanda *"
         required
+      />
+
+      <UiInput
+        v-if="profile?.role === ROLES.ADMIN"
+        v-model="internalProcessNumber"
+        v-bind="internalProcessNumberProps"
+        :error-messages="errors.internal_process_number"
+        hint="Exclusivo Administrador. Formato: AAAA-XXXX (ex: 2026-0001)"
+        label="Nº do Processo Interno"
+        placeholder="Ex: 2026-0001"
       />
 
       <UiSelect

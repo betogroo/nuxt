@@ -42,4 +42,31 @@ describe('demandFormSchema', () => {
     const result = demandFormSchema.safeParse(data)
     expect(result.success).toBe(false)
   })
+
+  it('validates successfully with valid internal_process_number format (AAAA-XXXX)', () => {
+    const data = {
+      name: 'Demanda Teste',
+      type: 'consumption' as const,
+      internal_process_number: '2026-0042',
+    }
+    const result = demandFormSchema.safeParse(data)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.internal_process_number).toBe('2026-0042')
+    }
+  })
+
+  it('fails validation when internal_process_number format is invalid', () => {
+    const data = {
+      name: 'Demanda Teste',
+      type: 'consumption' as const,
+      internal_process_number: '2026/001',
+    }
+    const result = demandFormSchema.safeParse(data)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('internal_process_number'))
+      expect(issue?.message).toContain('AAAA-XXXX')
+    }
+  })
 })

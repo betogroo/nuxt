@@ -6,6 +6,13 @@ export const demandFormSchema = z.object({
   type: z.enum(['consumption', 'permanent'], {
     message: 'O Tipo de Demanda é obrigatório.',
   }),
+  internal_process_number: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{4,6}$/, 'O processo interno deve seguir o formato AAAA-XXXX (ex: 2026-0001).')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
   process_number: z.string().trim().nullable().optional(),
   id_pca: z.string().trim().nullable().optional(),
   contract_number: z.string().trim().nullable().optional(),
