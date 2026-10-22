@@ -1209,6 +1209,17 @@
                   />
                   {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[item.execution_status || 'homologated'] }}
                 </UiChip>
+                <UiChip
+                  v-if="item.commitment_number"
+                  class="font-weight-medium font-monospace"
+                  color="purple"
+                  size="xs"
+                  title="Número do Empenho"
+                  variant="outlined"
+                >
+                  <UiIcon name="document" size="10" start />
+                  {{ item.commitment_number }}
+                </UiChip>
                 <div
                   v-if="item.execution_status === 'error' && item.execution_error_details"
                   class="text-caption text-error text-truncate"

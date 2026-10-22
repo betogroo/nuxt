@@ -1,5 +1,6 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
+import { getWinningBid } from '~/utils/bids'
 
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?:
@@ -460,17 +461,86 @@ export const useDemandProducts = () => {
     const errors = results.filter((r) => r.error).map((r) => r.error)
     if (errors.length > 0) throw new Error('Erro ao reordenar os itens')
   }
+  const validateCommitmentNumberSupplier = async (params: {
+    itemId: string
+    commitmentNumber: string
+    supplierId?: string | null
+  }): Promise<void> => {
+    const trimmed = params.commitmentNumber.trim().toUpperCase()
+    if (!trimmed) return
+
+    let currentSupplierId = params.supplierId || null
+    if (!currentSupplierId) {
+      const { data: currentBids } = await supabase
+        .from('demand_product_bids')
+        .select('id, supplier_id, amount, status, created_at')
+        .eq('demand_product_id', params.itemId)
+      const winner = getWinningBid(currentBids || [])
+      currentSupplierId = winner?.supplier_id || null
+    }
+
+    if (!currentSupplierId) return
+
+    const { data: otherItems, error } = await supabase
+      .from('demand_products')
+      .select(
+        'id, commitment_number, demand_product_bids(id, supplier_id, amount, status, created_at, suppliers(id, name, company_name, trade_name))',
+      )
+      .ilike('commitment_number', trimmed)
+      .neq('id', params.itemId)
+
+    if (error) {
+      console.error('Erro ao verificar empenho em outros itens:', error)
+      throw error
+    }
+
+    if (!otherItems || otherItems.length === 0) return
+
+    for (const otherItem of otherItems) {
+      const winningBid = getWinningBid(otherItem.demand_product_bids || [])
+      if (winningBid && winningBid.supplier_id && winningBid.supplier_id !== currentSupplierId) {
+        const otherSupplier = winningBid.suppliers
+        const supplierName =
+          otherSupplier?.company_name ||
+          otherSupplier?.trade_name ||
+          otherSupplier?.name ||
+          'outro fornecedor'
+        throw new Error(
+          `O número de empenho "${trimmed}" já está vinculado a ${supplierName}. Não é permitido utilizar o mesmo empenho para fornecedores diferentes.`,
+        )
+      }
+    }
+  }
+
   const updateDemandItemExecutionStatus = async (params: {
     itemId: string
     status: DemandItemExecutionStatus
+    commitmentNumber?: string | null
     observation?: string | null
     errorDetails?: string | null
+    supplierId?: string | null
   }) => {
+    const trimmedCommitment = params.commitmentNumber
+      ? params.commitmentNumber.trim().toUpperCase()
+      : null
+
+    if (params.status === 'commitment_issued' && trimmedCommitment) {
+      await validateCommitmentNumberSupplier({
+        itemId: params.itemId,
+        commitmentNumber: trimmedCommitment,
+        supplierId: params.supplierId,
+      })
+    }
+
     const now = new Date().toISOString()
     const updatePayload: Database['public']['Tables']['demand_products']['Update'] = {
       execution_status: params.status,
       execution_error_details: params.status === 'error' ? params.errorDetails || null : null,
       execution_status_updated_at: now,
+    }
+
+    if (params.status === 'commitment_issued' && trimmedCommitment) {
+      updatePayload.commitment_number = trimmedCommitment
     }
 
     const { error: updateErr } = await supabase
@@ -483,6 +553,7 @@ export const useDemandProducts = () => {
     const { error: historyErr } = await supabase.from('demand_item_status_history').insert({
       demand_product_id: params.itemId,
       status: params.status,
+      commitment_number: trimmedCommitment,
       observation: params.observation ? params.observation.trim() : null,
       error_details:
         params.status === 'error' && params.errorDetails ? params.errorDetails.trim() : null,
@@ -495,7 +566,7 @@ export const useDemandProducts = () => {
 
     await logAction(
       'UPDATE_DEMAND_ITEM_EXECUTION_STATUS',
-      `Status de execução do item ${params.itemId} atualizado para "${params.status}"`,
+      `Status de execução do item ${params.itemId} atualizado para "${params.status}"${trimmedCommitment ? ` (Empenho: ${trimmedCommitment})` : ''}`,
       user.value?.id,
     )
   }
@@ -526,6 +597,7 @@ export const useDemandProducts = () => {
     updateDemandProduct,
     updateDemandItemWithDependencies,
     removeDemandProduct,
+    validateCommitmentNumberSupplier,
     updateDemandItemExecutionStatus,
     fetchDemandItemStatusHistory,
   }

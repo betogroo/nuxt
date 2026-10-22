@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { watch, ref } from 'vue'
+  import { watch, ref, computed } from 'vue'
   import { useZodForm } from '~/composables/useZodForm'
   import {
     demandItemStatusChangeFormSchema,
@@ -11,6 +11,7 @@
     type DemandItemExecutionStatus,
   } from '~/constants/demand-item-status'
   import type { DemandProductRow } from '~/composables/useDemandProducts'
+  import { getWinningBid } from '~/utils/bids'
 
   const props = defineProps<{
     modelValue: boolean
@@ -27,6 +28,11 @@
   const isSaving = ref(false)
   const serverError = ref('')
 
+  const winningBid = computed(() => {
+    if (!props.item?.demand_product_bids) return null
+    return getWinningBid(props.item.demand_product_bids)
+  })
+
   const statusOptions = ALL_DEMAND_ITEM_EXECUTION_STATUSES.map((status) => ({
     title: DEMAND_ITEM_EXECUTION_STATUS_LABELS[status],
     value: status,
@@ -36,12 +42,14 @@
     demandItemStatusChangeFormSchema,
     {
       status: 'homologated',
+      commitment_number: '',
       observation: '',
       error_details: '',
     },
   )
 
   const [status, statusProps] = defineField('status')
+  const [commitmentNumber, commitmentNumberProps] = defineField('commitment_number')
   const [observation, observationProps] = defineField('observation')
   const [errorDetails, errorDetailsProps] = defineField('error_details')
 
@@ -53,6 +61,7 @@
         resetForm({
           values: {
             status: current,
+            commitment_number: props.item.commitment_number || '',
             observation: '',
             error_details: props.item.execution_error_details || '',
           },
@@ -76,8 +85,10 @@
       await updateDemandItemExecutionStatus({
         itemId: props.item.id,
         status: values.status,
+        commitmentNumber: values.commitment_number || null,
         observation: values.observation || null,
         errorDetails: values.status === 'error' ? values.error_details || null : null,
+        supplierId: winningBid.value?.supplier_id || null,
       })
 
       toast.success('Status de execução do item atualizado com sucesso!')
@@ -108,6 +119,9 @@
       <div class="text-caption text-grey">
         {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }} | Qtd:
         {{ item.quantity }}
+        <template v-if="winningBid?.suppliers">
+          | Fornecedor: {{ winningBid.suppliers.company_name || winningBid.suppliers.name }}
+        </template>
       </div>
     </div>
 
@@ -123,6 +137,16 @@
       item-value="value"
       :items="statusOptions"
       label="Novo Status de Execução *"
+    />
+
+    <UiInput
+      v-if="status === 'commitment_issued'"
+      v-model="commitmentNumber"
+      v-bind="commitmentNumberProps"
+      class="mt-3"
+      :error-messages="errors.commitment_number"
+      label="Número do Empenho *"
+      placeholder="Ex: 2026-NE-00247"
     />
 
     <UiTextarea

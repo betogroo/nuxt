@@ -5,6 +5,7 @@ export type DemandItemExecutionStatus = Database['public']['Enums']['demand_item
 
 export const DEMAND_ITEM_EXECUTION_FLOW: DemandItemExecutionStatus[] = [
   'homologated',
+  'commitment_issued',
   'commitment_sent',
   'commitment_confirmed',
   'shipped',
@@ -15,6 +16,7 @@ export const DEMAND_ITEM_EXECUTION_FLOW: DemandItemExecutionStatus[] = [
 
 export const DEMAND_ITEM_EXECUTION_STATUS_LABELS: Record<DemandItemExecutionStatus, string> = {
   homologated: 'Homologado',
+  commitment_issued: 'Empenho Emitido',
   commitment_sent: 'Empenho Enviado',
   commitment_confirmed: 'Empenho Confirmado',
   shipped: 'Enviado',
@@ -26,6 +28,7 @@ export const DEMAND_ITEM_EXECUTION_STATUS_LABELS: Record<DemandItemExecutionStat
 
 export const DEMAND_ITEM_EXECUTION_STATUS_COLORS: Record<DemandItemExecutionStatus, string> = {
   homologated: 'primary',
+  commitment_issued: 'purple',
   commitment_sent: 'indigo',
   commitment_confirmed: 'teal',
   shipped: 'blue',
@@ -37,6 +40,7 @@ export const DEMAND_ITEM_EXECUTION_STATUS_COLORS: Record<DemandItemExecutionStat
 
 export const DEMAND_ITEM_EXECUTION_STATUS_ICONS: Record<DemandItemExecutionStatus, IconName> = {
   homologated: 'check',
+  commitment_issued: 'document',
   commitment_sent: 'document',
   commitment_confirmed: 'recordsList',
   shipped: 'delivery',

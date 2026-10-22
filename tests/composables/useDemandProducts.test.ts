@@ -667,4 +667,139 @@ describe('useDemandProducts', () => {
     expect(history).toHaveLength(1)
     expect(history[0].status).toBe('commitment_sent')
   })
+
+  it('updateDemandItemExecutionStatus should save commitment_number when status is commitment_issued', async () => {
+    const { updateDemandItemExecutionStatus } = useDemandProducts()
+
+    const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq })
+    const mockHistoryInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return {
+          update: mockUpdate,
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              neq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
+        }
+      }
+      if (table === 'demand_item_status_history') {
+        return { insert: mockHistoryInsert }
+      }
+      return {}
+    })
+
+    await updateDemandItemExecutionStatus({
+      itemId: 'dp-1',
+      status: 'commitment_issued',
+      commitmentNumber: '2026-NE-00247',
+      observation: 'Nota de empenho gerada',
+      supplierId: 'sup-1',
+    })
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution_status: 'commitment_issued',
+        commitment_number: '2026-NE-00247',
+      }),
+    )
+    expect(mockHistoryInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        demand_product_id: 'dp-1',
+        status: 'commitment_issued',
+        commitment_number: '2026-NE-00247',
+        observation: 'Nota de empenho gerada',
+      }),
+    )
+  })
+
+  it('validateCommitmentNumberSupplier allows same commitment number for same supplier', async () => {
+    const { validateCommitmentNumberSupplier } = useDemandProducts()
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              neq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'dp-2',
+                    commitment_number: '2026-NE-00247',
+                    demand_product_bids: [
+                      {
+                        id: 'bid-2',
+                        supplier_id: 'sup-same',
+                        amount: 10,
+                        status: 'classified',
+                        suppliers: { id: 'sup-same', company_name: 'Fornecedor Mesmo' },
+                      },
+                    ],
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    await expect(
+      validateCommitmentNumberSupplier({
+        itemId: 'dp-1',
+        commitmentNumber: '2026-NE-00247',
+        supplierId: 'sup-same',
+      }),
+    ).resolves.not.toThrow()
+  })
+
+  it('validateCommitmentNumberSupplier throws error when commitment number belongs to a different supplier', async () => {
+    const { validateCommitmentNumberSupplier } = useDemandProducts()
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              neq: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'dp-2',
+                    commitment_number: '2026-NE-00247',
+                    demand_product_bids: [
+                      {
+                        id: 'bid-2',
+                        supplier_id: 'sup-different',
+                        amount: 15,
+                        status: 'classified',
+                        suppliers: {
+                          id: 'sup-different',
+                          company_name: 'Empresa Concorrente LTDA',
+                        },
+                      },
+                    ],
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    await expect(
+      validateCommitmentNumberSupplier({
+        itemId: 'dp-1',
+        commitmentNumber: '2026-NE-00247',
+        supplierId: 'sup-1',
+      }),
+    ).rejects.toThrow(/Empresa Concorrente LTDA/)
+  })
 })

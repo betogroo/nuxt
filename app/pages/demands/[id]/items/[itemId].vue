@@ -448,7 +448,7 @@
           <UiCard v-if="hasExecution" class="mb-4" variant="outline">
             <template #header>
               <div class="d-flex justify-space-between align-center w-100 flex-wrap ga-2">
-                <div class="d-flex align-center ga-2">
+                <div class="d-flex align-center flex-wrap ga-2">
                   <span class="font-weight-bold">Acompanhamento da Execução</span>
                   <UiChip
                     :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[currentExecutionStatus]"
@@ -461,6 +461,16 @@
                       start
                     />
                     {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[currentExecutionStatus] }}
+                  </UiChip>
+                  <UiChip
+                    v-if="item?.commitment_number"
+                    class="font-weight-medium font-monospace"
+                    color="purple"
+                    size="sm"
+                    variant="outlined"
+                  >
+                    <UiIcon name="document" size="14" start />
+                    Empenho: {{ item.commitment_number }}
                   </UiChip>
                 </div>
                 <UiButton
@@ -561,6 +571,16 @@
                           start
                         />
                         {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[entry.status] }}
+                      </UiChip>
+                      <UiChip
+                        v-if="entry.commitment_number"
+                        class="font-weight-medium font-monospace"
+                        color="purple"
+                        size="xs"
+                        variant="outlined"
+                      >
+                        <UiIcon name="document" size="10" start />
+                        Empenho: {{ entry.commitment_number }}
                       </UiChip>
                       <span class="text-caption text-medium-emphasis">
                         {{ new Date(entry.created_at).toLocaleString('pt-BR') }}

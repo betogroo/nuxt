@@ -30,6 +30,7 @@ export type Database = {
     Tables: {
       demand_item_status_history: {
         Row: {
+          commitment_number: string | null
           created_at: string
           created_by: string | null
           demand_product_id: string
@@ -39,6 +40,7 @@ export type Database = {
           status: Database['public']['Enums']['demand_item_execution_status']
         }
         Insert: {
+          commitment_number?: string | null
           created_at?: string
           created_by?: string | null
           demand_product_id: string
@@ -48,6 +50,7 @@ export type Database = {
           status: Database['public']['Enums']['demand_item_execution_status']
         }
         Update: {
+          commitment_number?: string | null
           created_at?: string
           created_by?: string | null
           demand_product_id?: string
@@ -130,6 +133,7 @@ export type Database = {
           alias_name_snapshot: string | null
           bid_interval: number | null
           bid_interval_type: string | null
+          commitment_number: string | null
           created_at: string
           created_by: string | null
           demand_id: string
@@ -153,6 +157,7 @@ export type Database = {
           alias_name_snapshot?: string | null
           bid_interval?: number | null
           bid_interval_type?: string | null
+          commitment_number?: string | null
           created_at?: string
           created_by?: string | null
           demand_id: string
@@ -176,6 +181,7 @@ export type Database = {
           alias_name_snapshot?: string | null
           bid_interval?: number | null
           bid_interval_type?: string | null
+          commitment_number?: string | null
           created_at?: string
           created_by?: string | null
           demand_id?: string
@@ -913,6 +919,7 @@ export type Database = {
       bid_status: 'classified' | 'disqualified'
       demand_item_execution_status:
         | 'homologated'
+        | 'commitment_issued'
         | 'commitment_sent'
         | 'commitment_confirmed'
         | 'shipped'
@@ -1069,6 +1076,7 @@ export const Constants = {
       bid_status: ['classified', 'disqualified'],
       demand_item_execution_status: [
         'homologated',
+        'commitment_issued',
         'commitment_sent',
         'commitment_confirmed',
         'shipped',

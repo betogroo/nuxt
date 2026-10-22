@@ -59,4 +59,54 @@ describe('demandItemStatusChangeFormSchema', () => {
       expect(errorMsg).toBe('A especificação do erro é obrigatória quando o status for "Erro".')
     }
   })
+
+  it('should accept commitment_issued when commitment_number is provided and valid', () => {
+    const validCommitmentData = {
+      status: 'commitment_issued' as const,
+      commitment_number: '2026-NE-00247',
+      observation: 'Empenho emitido no SIAFEM',
+      error_details: '',
+    }
+
+    const result = demandItemStatusChangeFormSchema.safeParse(validCommitmentData)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.status).toBe('commitment_issued')
+      expect(result.data.commitment_number).toBe('2026-NE-00247')
+    }
+  })
+
+  it('should fail when status is commitment_issued and commitment_number is missing or empty', () => {
+    const invalidData = {
+      status: 'commitment_issued' as const,
+      commitment_number: '   ',
+      observation: '',
+      error_details: '',
+    }
+
+    const result = demandItemStatusChangeFormSchema.safeParse(invalidData)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('commitment_number'))
+      expect(issue?.message).toBe(
+        'O número do empenho é obrigatório quando o status for "Empenho Emitido".',
+      )
+    }
+  })
+
+  it('should fail when commitment_number contains invalid characters', () => {
+    const invalidData = {
+      status: 'commitment_issued' as const,
+      commitment_number: '2026 NE @#$',
+      observation: '',
+      error_details: '',
+    }
+
+    const result = demandItemStatusChangeFormSchema.safeParse(invalidData)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const issue = result.error.issues.find((i) => i.path.includes('commitment_number'))
+      expect(issue?.message).toBe('O número do empenho deve ser alfanumérico (ex: 2026-NE-00247).')
+    }
+  })
 })
