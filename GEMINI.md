@@ -11,6 +11,17 @@ Whenever a new feature is implemented, use the `logAction` function to record th
 All database table names, column names, functions, triggers, and any other database artifacts MUST be written in English. Use English for enum types and values as well (e.g., use 'consumption' instead of 'consumo').
 Furthermore, all Route names, URL parameters and their programmatic mappings (e.g. /status/in-progress instead of /status/em-andamento) MUST ALWAYS be in English.
 
+# Database & Backup Synchronization (CRITICAL / MANDATORY)
+
+**STOP AND READ THIS**: Whenever any database schema modification is made (creating, altering, or dropping tables, columns, constraints, foreign keys, enums, or triggers):
+
+1. **Backup Generation (`generate_system_backup`)**: Verify and ensure that new tables and modified columns are properly included in the exported backup payload and summary count.
+2. **Backup Restoration (`restore_system_backup`)**: You MUST ALWAYS update the `restore_system_backup` procedure to align with the new reality:
+   - Ensure table dependency levels and restoration order are respected.
+   - Column lists in `INSERT` and `ON CONFLICT` clauses MUST exactly match existing database columns (no non-existent columns, mismatched types, or invalid casts).
+   - Foreign keys and deletion checks (`DELETE FROM ... WHERE ...`) must avoid blocking restores or causing cascade/restrict violations.
+3. **Tests & Validation**: Corresponding backup tests (e.g. `tests/composables/useBackup.spec.ts`) and database migration tests MUST be updated and executed to prove backup generation and restoration work seamlessly with the new schema.
+
 # Planning (CRITICAL / MANDATORY)
 
 **STOP AND READ THIS**: YOU MUST ALWAYS show what will be done before applying changes. CREATE an implementation plan and WAIT FOR THE USER'S APPROVAL BEFORE executing modifications, creating new features, or writing code. Skipping this step is strictly forbidden.
