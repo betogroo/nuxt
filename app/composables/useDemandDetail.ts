@@ -1,3 +1,4 @@
+import { onMounted, getCurrentInstance } from 'vue'
 import type { Database } from '~/types/database.types'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { useToast } from '~/composables/useToast'
@@ -286,6 +287,13 @@ export function useDemandDetail(demandId: string) {
 
     return winners.sort((a, b) => b.wonCount - a.wonCount)
   })
+
+  // Ensure fresh data on component mount (client navigation / return)
+  if (getCurrentInstance()) {
+    onMounted(async () => {
+      await Promise.all([refreshDemand(), refreshResponsibles(), refreshItems()])
+    })
+  }
 
   return {
     demand,

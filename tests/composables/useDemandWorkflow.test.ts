@@ -16,9 +16,16 @@ mockNuxtImport('useDemands', () => () => ({
   requestDemandReturn: mockRequestDemandReturn,
   fetchDemandById: mockFetchDemandById,
 }))
+const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
+const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq })
+const mockInsert = vi.fn().mockResolvedValue({ error: null })
+
 mockNuxtImport('useSupabaseClient', () =>
   vi.fn(() => ({
-    from: vi.fn(),
+    from: vi.fn(() => ({
+      update: mockUpdate,
+      insert: mockInsert,
+    })),
   })),
 )
 mockNuxtImport('useSupabaseUser', () => vi.fn(() => ({ value: { id: 'user-1' } })))
@@ -293,8 +300,11 @@ describe('useDemandWorkflow', () => {
     })
 
     it('successfully finalizes dispute and advances to homologation', async () => {
-      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
-      workflow.openAdvanceModal()
+      const mockRefreshItems = vi.fn().mockResolvedValue([])
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef, mockRefreshItems)
+      await workflow.openAdvanceModal()
+      expect(mockRefreshItems).toHaveBeenCalledTimes(1)
+
       workflow.advanceModal.payload.value.contract_number = 'CTR-2026/01'
 
       await workflow.confirmAdvanceStatus()
@@ -307,7 +317,53 @@ describe('useDemandWorkflow', () => {
           contract_number: 'CTR-2026/01',
         }),
       )
+      expect(mockRefreshItems).toHaveBeenCalledTimes(3) // 1 in open, 1 before check, 1 after advance
       expect(workflow.advanceModal.isOpen.value).toBe(false)
+    })
+
+    it('initializes execution_status to homologated and logs history for winning items', async () => {
+      itemsRef.value = [
+        {
+          id: 'item-winner-1',
+          quantity: 10,
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              amount: 5.5,
+              status: 'classified',
+              supplier_id: 'supp-1',
+            },
+          ],
+        } as unknown as DemandProductRow,
+      ]
+
+      const mockRefreshItems = vi.fn().mockResolvedValue([])
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef, mockRefreshItems)
+      await workflow.openAdvanceModal()
+      await workflow.confirmAdvanceStatus()
+
+      expect(mockUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          execution_status: 'homologated',
+        }),
+      )
+      expect(mockUpdateEq).toHaveBeenCalledWith('id', 'item-winner-1')
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          demand_product_id: 'item-winner-1',
+          status: 'homologated',
+        }),
+      )
+    })
+
+    it('reverts status and calls refreshItems', async () => {
+      const mockRefreshItems = vi.fn().mockResolvedValue([])
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef, mockRefreshItems)
+      workflow.openRevertModal()
+      await workflow.confirmRevertStatus()
+
+      expect(mockRevertDemandStatus).toHaveBeenCalledWith('demand-123', 'bidding_notice')
+      expect(mockRefreshItems).toHaveBeenCalledTimes(1)
     })
   })
 

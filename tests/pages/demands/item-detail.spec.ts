@@ -11,6 +11,7 @@ const {
   mockAddBid,
   mockRemoveBid,
   mockRefreshBids,
+  mockClearNuxtData,
 } = vi.hoisted(() => ({
   mockItemData: {
     value: {
@@ -47,8 +48,10 @@ const {
   mockAddBid: vi.fn().mockResolvedValue(undefined),
   mockRemoveBid: vi.fn().mockResolvedValue(undefined),
   mockRefreshBids: vi.fn().mockResolvedValue(undefined),
+  mockClearNuxtData: vi.fn(),
 }))
 
+mockNuxtImport('clearNuxtData', () => mockClearNuxtData)
 mockNuxtImport('definePageMeta', () => vi.fn())
 mockNuxtImport('useToast', () => () => ({
   warning: vi.fn(),
@@ -155,6 +158,7 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
       'Marca não atende ao termo de referência',
     )
     expect(mockRefreshBids).toHaveBeenCalled()
+    expect(mockClearNuxtData).toHaveBeenCalledWith('demand-items-demand-1')
     expect(vm.isDisqualifyModalOpen).toBe(false)
   })
 
@@ -167,6 +171,7 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
 
     expect(mockUpdateBidStatus).toHaveBeenCalledWith('bid-1', 'classified', null)
     expect(mockRefreshBids).toHaveBeenCalled()
+    expect(mockClearNuxtData).toHaveBeenCalledWith('demand-items-demand-1')
   })
 
   it('prevents bid registration when demand status is quotation but preserves existing bids', async () => {

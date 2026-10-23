@@ -616,7 +616,7 @@
     targetStatus,
     openAdvanceModal,
     confirmAdvanceStatus,
-  } = useDemandWorkflow(demandId, demand, items)
+  } = useDemandWorkflow(demandId, demand, items, refreshItems)
 
   const disputeSummary = computed(() => {
     if (!items.value) return { winnersCount: 0, failedCount: 0, desertedCount: 0, total: 0 }

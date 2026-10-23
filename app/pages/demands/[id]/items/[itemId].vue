@@ -229,6 +229,14 @@
     supplierName: string
   } | null>(null)
 
+  const invalidateParentDemandItems = () => {
+    try {
+      clearNuxtData(`demand-items-${demandId}`)
+    } catch {
+      // NuxtApp context might not be active in isolated unit test environments
+    }
+  }
+
   const openDisqualifyModal = (bid: {
     id: string
     amount: number
@@ -263,6 +271,7 @@
         disqualificationReason.value,
       )
       await refreshBids()
+      invalidateParentDemandItems()
       closeDisqualifyModal()
     } catch (err: unknown) {
       statusUpdateError.value = err instanceof Error ? err.message : String(err)
@@ -276,6 +285,7 @@
     try {
       await updateBidStatus(bidId, 'classified', null)
       await refreshBids()
+      invalidateParentDemandItems()
     } catch (err: unknown) {
       console.error('Erro ao classificar lance', err)
     } finally {
@@ -348,6 +358,7 @@
 
       await addBid(itemId, finalSupplierId!, values.amount)
       await refreshBids()
+      invalidateParentDemandItems()
       closeBidModal()
     } catch (err: unknown) {
       bidError.value = err instanceof Error ? err.message : String(err)
@@ -367,6 +378,7 @@
     try {
       await removeBid(bidId)
       await refreshBids()
+      invalidateParentDemandItems()
       toast.success('Lance removido com sucesso.')
     } catch (err) {
       console.error('Erro ao remover lance', err)

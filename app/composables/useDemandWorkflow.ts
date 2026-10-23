@@ -9,6 +9,7 @@ export function useDemandWorkflow(
   demandId: string,
   demand: Ref<DemandRow | null | undefined>,
   items: Ref<DemandProductRow[] | null | undefined>,
+  refreshItems?: () => Promise<unknown>,
 ) {
   const { advanceDemandStatus, revertDemandStatus, requestDemandReturn, fetchDemandById } =
     useDemands()
@@ -67,6 +68,9 @@ export function useDemandWorkflow(
       await revertDemandStatus(demandId, prev as Database['public']['Enums']['demand_status'])
       revertModal.close()
       await reloadDemand()
+      if (refreshItems) {
+        await refreshItems()
+      }
     } catch (err: unknown) {
       revertModal.error.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -101,11 +105,15 @@ export function useDemandWorkflow(
   })
   const targetStatus = ref<Database['public']['Enums']['demand_status'] | ''>('')
 
-  const openAdvanceModal = () => {
+  const openAdvanceModal = async () => {
     if (!demand.value) return
     const next = getNextStatus(demand.value.status)
     if (!next) return
     targetStatus.value = next as Database['public']['Enums']['demand_status']
+
+    if (targetStatus.value === 'homologation' && refreshItems) {
+      await refreshItems()
+    }
 
     const { date: offerDate, time: offerTime } = splitDateTime(demand.value.offer_opening_date)
     advanceModal.open({
@@ -232,6 +240,9 @@ export function useDemandWorkflow(
         payload.dispute_date = disputeDate
         payload.offer_opening_date = offerOpening
       } else if (targetStatus.value === 'homologation') {
+        if (refreshItems) {
+          await refreshItems()
+        }
         if (!items.value || items.value.length === 0) {
           throw new Error('Não é possível finalizar a disputa de uma demanda sem itens.')
         }
@@ -274,6 +285,9 @@ export function useDemandWorkflow(
 
       advanceModal.close()
       await reloadDemand()
+      if (refreshItems) {
+        await refreshItems()
+      }
     } catch (err: unknown) {
       advanceModal.error.value = err instanceof Error ? err.message : String(err)
     } finally {
