@@ -38,6 +38,7 @@
   const toast = useToast()
 
   const isSaving = ref(false)
+  const isSavingAndContinuing = ref(false)
   const errorMessage = ref('')
   const existingCitizen = ref<Record<string, unknown> | null>(null)
 
@@ -147,6 +148,7 @@
       errorMessage.value = ''
       existingCitizen.value = null
       isSaving.value = false
+      isSavingAndContinuing.value = false
     }
   })
 
@@ -230,10 +232,14 @@
   const isUUID = (str: string) =>
     /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(str)
 
-  const saveDemand = handleSubmit(async (formValues) => {
+  const executeSave = async (formValues: IirgdDemandFormInput, keepOpen: boolean) => {
     try {
       errorMessage.value = ''
-      isSaving.value = true
+      if (keepOpen) {
+        isSavingAndContinuing.value = true
+      } else {
+        isSaving.value = true
+      }
 
       let finalDocTypeId = formValues.document_type_id
       if (finalDocTypeId && !isUUID(finalDocTypeId)) {
@@ -263,18 +269,46 @@
         }
       }
 
-      closeModal()
       toast.success('Demanda criada com sucesso!')
       emit('created')
+
+      if (keepOpen) {
+        const currentStation = formValues.station_code
+        const currentDocTypeId = finalDocTypeId
+        const currentDocTypeName = formValues.document_type_name
+
+        resetForm({
+          values: {
+            station_code: currentStation,
+            document_type_id: currentDocTypeId,
+            document_type_name: currentDocTypeName,
+            rg: '',
+            cpf: '',
+            other_document: '',
+            is_other_state: false,
+            name: '',
+            observation: '',
+          },
+        })
+        existingCitizen.value = null
+        errorMessage.value = ''
+      } else {
+        closeModal()
+      }
     } catch (e: unknown) {
       errorMessage.value = e instanceof Error ? e.message : 'Ocorreu um erro ao salvar.'
     } finally {
       isSaving.value = false
+      isSavingAndContinuing.value = false
     }
-  })
+  }
+
+  const saveDemand = handleSubmit((formValues) => executeSave(formValues, false))
+  const saveAndContinue = handleSubmit((formValues) => executeSave(formValues, true))
 
   defineExpose({
     saveDemand,
+    saveAndContinue,
     values,
     errors,
   })
@@ -282,104 +316,127 @@
 
 <template>
   <UiModal v-model="isOpen" max-width="600px" title="Nova Demanda IIRGD">
-    <UiAlert v-if="errorMessage" class="mb-4" size="sm" type="error" variant="soft">
-      {{ errorMessage }}
-    </UiAlert>
+    <form id="iirgd-new-demand-form" @submit.prevent="saveAndContinue">
+      <UiAlert v-if="errorMessage" class="mb-4" size="sm" type="error" variant="soft">
+        {{ errorMessage }}
+      </UiAlert>
 
-    <UiRow density="compact">
-      <UiCol cols="12">
-        <UiSelect
-          v-model="stationCode"
-          :error-messages="errors.station_code"
-          :items="[...IIRGD_STATION_CODES]"
-          label="Código do Posto *"
-          placeholder="Selecione"
-        />
-      </UiCol>
-      <UiCol cols="12">
-        <UiCombobox
-          v-model="documentTypeId"
-          :error-messages="errors.document_type_id"
-          item-title="name"
-          item-value="id"
-          :items="documentTypes"
-          label="Tipo do Documento *"
-          placeholder="Selecione ou digite um novo tipo..."
-        />
-      </UiCol>
+      <UiRow density="compact">
+        <UiCol cols="12">
+          <UiSelect
+            v-model="stationCode"
+            :error-messages="errors.station_code"
+            :items="[...IIRGD_STATION_CODES]"
+            label="Código do Posto *"
+            placeholder="Selecione"
+          />
+        </UiCol>
+        <UiCol cols="12">
+          <UiCombobox
+            v-model="documentTypeId"
+            :error-messages="errors.document_type_id"
+            item-title="name"
+            item-value="id"
+            :items="documentTypes"
+            label="Tipo do Documento *"
+            placeholder="Selecione ou digite um novo tipo..."
+          />
+        </UiCol>
 
-      <UiCol cols="12">
-        <UiCheckbox
-          v-model="isOtherState"
-          class="my-1"
-          density="compact"
-          hide-details
-          label="Cidadão de outro estado (sem RG de SP)"
-        />
-      </UiCol>
+        <UiCol cols="12">
+          <UiCheckbox
+            v-model="isOtherState"
+            class="my-1"
+            density="compact"
+            hide-details
+            label="Cidadão de outro estado (sem RG de SP)"
+          />
+        </UiCol>
 
-      <UiCol v-if="isAntecedentes" class="mb-2" cols="12">
-        <div class="text-caption text-medium-emphasis">
-          * Para Antecedentes, informe ao menos um documento (RG ou CPF).
-        </div>
-      </UiCol>
+        <UiCol v-if="isAntecedentes" class="mb-2" cols="12">
+          <div class="text-caption text-medium-emphasis">
+            * Para Antecedentes, informe ao menos um documento (RG ou CPF).
+          </div>
+        </UiCol>
 
-      <UiCol v-if="isOtherState" cols="12" sm="6">
-        <UiInput
-          v-model="otherDocument"
-          :disabled="!!existingCitizen?.other_document"
-          :error-messages="errors.other_document"
-          label="Documento de Outro Estado *"
-          placeholder="Ex: 0561015112-BA"
-          @blur="onOtherDocumentBlur"
-          @update:model-value="otherDocument = String($event || '').toUpperCase()"
-        />
-      </UiCol>
-      <UiCol v-else cols="12" sm="6">
-        <UiRgInput
-          v-model="rg"
-          :disabled="!!existingCitizen?.rg"
-          :error-messages="errors.rg"
-          :label="isAntecedentes ? 'Número do RG' : 'Número do RG *'"
-          @blur="onRgBlur"
-        />
-      </UiCol>
+        <UiCol v-if="isOtherState" cols="12" sm="6">
+          <UiInput
+            v-model="otherDocument"
+            :disabled="!!existingCitizen?.other_document"
+            :error-messages="errors.other_document"
+            label="Documento de Outro Estado *"
+            placeholder="Ex: 0561015112-BA"
+            @blur="onOtherDocumentBlur"
+            @update:model-value="otherDocument = String($event || '').toUpperCase()"
+          />
+        </UiCol>
+        <UiCol v-else cols="12" sm="6">
+          <UiRgInput
+            v-model="rg"
+            :disabled="!!existingCitizen?.rg"
+            :error-messages="errors.rg"
+            :label="isAntecedentes ? 'Número do RG' : 'Número do RG *'"
+            @blur="onRgBlur"
+          />
+        </UiCol>
 
-      <UiCol cols="12" sm="6">
-        <UiCpfInput
-          v-model="cpf"
-          :disabled="!!existingCitizen?.cpf"
-          :error-messages="errors.cpf"
-          :label="isAntecedentes ? 'Número do CPF' : 'CPF (Opcional)'"
-          @blur="onCpfBlur"
-        />
-      </UiCol>
+        <UiCol cols="12" sm="6">
+          <UiCpfInput
+            v-model="cpf"
+            :disabled="!!existingCitizen?.cpf"
+            :error-messages="errors.cpf"
+            :label="isAntecedentes ? 'Número do CPF' : 'CPF (Opcional)'"
+            @blur="onCpfBlur"
+          />
+        </UiCol>
 
-      <UiCol cols="12">
-        <UiInput
-          v-model="name"
-          :disabled="!!existingCitizen"
-          :error-messages="errors.name"
-          label="Nome do Cidadão *"
-          @update:model-value="setFieldValue('name', String($event || '').toUpperCase())"
-        />
-      </UiCol>
-      <UiCol cols="12">
-        <UiTextarea
-          v-model="observation"
-          :error-messages="errors.observation"
-          label="Observação"
-          rounded="lg"
-          rows="3"
-          size="md"
-          variant="outline"
-        />
-      </UiCol>
-    </UiRow>
+        <UiCol cols="12">
+          <UiInput
+            v-model="name"
+            :disabled="!!existingCitizen"
+            :error-messages="errors.name"
+            label="Nome do Cidadão *"
+            @update:model-value="setFieldValue('name', String($event || '').toUpperCase())"
+          />
+        </UiCol>
+        <UiCol cols="12">
+          <UiTextarea
+            v-model="observation"
+            :error-messages="errors.observation"
+            label="Observação"
+            rounded="lg"
+            rows="3"
+            size="md"
+            variant="outline"
+            @keydown.ctrl.enter="saveAndContinue"
+          />
+        </UiCol>
+      </UiRow>
+
+      <!-- Invisible button to ensure standard HTML form submit on Enter key in text fields -->
+      <button aria-hidden="true" class="d-none" tabindex="-1" type="submit"></button>
+    </form>
 
     <template #actions>
-      <UiButton variant="ghost" @click="closeModal">Cancelar</UiButton>
-      <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveDemand">
+      <UiButton :disabled="isSaving || isSavingAndContinuing" variant="ghost" @click="closeModal">
+        Cancelar
+      </UiButton>
+      <UiButton
+        color="primary"
+        :disabled="isSaving"
+        :loading="isSavingAndContinuing"
+        variant="tonal"
+        @click="saveAndContinue"
+      >
+        Salvar e Continuar Inserindo
+      </UiButton>
+      <UiButton
+        color="primary"
+        :disabled="isSavingAndContinuing"
+        :loading="isSaving"
+        variant="solid"
+        @click="saveDemand"
+      >
         Salvar
       </UiButton>
     </template>

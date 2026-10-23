@@ -173,5 +173,105 @@ describe('NewDemandModal', () => {
     expect(mockCreateDemand).toHaveBeenCalled()
     expect(localStorage.getItem('iirgd_last_station_code')).toBe('1342-5')
     expect(localStorage.getItem('iirgd_last_document_type_id')).toBe(DOC_TYPE_2)
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('renders "Salvar e Continuar Inserindo" button and keeps modal open while resetting non-persistent fields', async () => {
+    const wrapper = mount(NewDemandModal, {
+      props: {
+        modelValue: true,
+      },
+      global: {
+        plugins: [vuetify],
+        stubs: {
+          UiModal: { template: '<div><slot /><slot name="actions" /></div>' },
+          UiButton: {
+            template: '<button @click="$emit(\'click\', $event)"><slot /></button>',
+            emits: ['click'],
+          },
+        },
+      },
+    })
+
+    const buttons = wrapper.findAll('button')
+    const continueBtn = buttons.find((b) => b.text().includes('Salvar e Continuar Inserindo'))
+    expect(continueBtn).toBeDefined()
+
+    const select = wrapper.findComponent({ name: 'UiSelect' })
+    const combobox = wrapper.findComponent({ name: 'UiCombobox' })
+    await select.vm.$emit('update:modelValue', '1342-5')
+    await combobox.vm.$emit('update:modelValue', DOC_TYPE_2)
+
+    // Fill citizen name and RG
+    const rgInput = wrapper.findComponent({ name: 'UiRgInput' })
+    await rgInput.vm.$emit('update:modelValue', '72894286-0')
+
+    const allInputs = wrapper.findAllComponents({ name: 'UiInput' })
+    const nameInput = allInputs.find((i) => i.props('label')?.includes('Nome do Cidadão'))
+    expect(nameInput).toBeDefined()
+    await nameInput!.vm.$emit('update:modelValue', 'CIDADAO CONTINUO')
+
+    const vm = wrapper.vm as unknown as {
+      saveAndContinue: () => Promise<void>
+      values: Record<string, unknown>
+    }
+    await vm.saveAndContinue()
+    await flushPromises()
+
+    expect(mockCreateDemand).toHaveBeenCalled()
+    expect(localStorage.getItem('iirgd_last_station_code')).toBe('1342-5')
+    expect(localStorage.getItem('iirgd_last_document_type_id')).toBe(DOC_TYPE_2)
+
+    // Modal did not close
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('created')).toBeDefined()
+
+    // Persistent fields preserved, other fields cleared
+    expect(vm.values.station_code).toBe('1342-5')
+    expect(vm.values.document_type_id).toBe(DOC_TYPE_2)
+    expect(vm.values.name).toBe('')
+    expect(vm.values.rg).toBe('')
+  })
+
+  it('submitting form triggers saveAndContinue', async () => {
+    const wrapper = mount(NewDemandModal, {
+      props: {
+        modelValue: true,
+      },
+      global: {
+        plugins: [vuetify],
+        stubs: {
+          UiModal: { template: '<div><slot /><slot name="actions" /></div>' },
+          UiButton: {
+            template: '<button @click="$emit(\'click\', $event)"><slot /></button>',
+            emits: ['click'],
+          },
+        },
+      },
+    })
+
+    const select = wrapper.findComponent({ name: 'UiSelect' })
+    const combobox = wrapper.findComponent({ name: 'UiCombobox' })
+    await select.vm.$emit('update:modelValue', '1342-5')
+    await combobox.vm.$emit('update:modelValue', DOC_TYPE_2)
+
+    const rgInput = wrapper.findComponent({ name: 'UiRgInput' })
+    await rgInput.vm.$emit('update:modelValue', '72894286-0')
+
+    const allInputs = wrapper.findAllComponents({ name: 'UiInput' })
+    const nameInput = allInputs.find((i) => i.props('label')?.includes('Nome do Cidadão'))
+    await nameInput!.vm.$emit('update:modelValue', 'CIDADAO ENTER')
+
+    const form = wrapper.find('form')
+    expect(form.exists()).toBe(true)
+
+    // Trigger submit on the form
+    await form.trigger('submit')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await flushPromises()
+
+    expect(mockCreateDemand).toHaveBeenCalled()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(wrapper.emitted('created')).toBeDefined()
   })
 })
