@@ -554,4 +554,33 @@ describe('Demand Items Page', () => {
     expect(vm.isConvocationEmailModalOpen).toBe(true)
     expect(vm.selectedSupplierForConvocationEmail).toEqual(winner)
   })
+
+  it('manages activeTab navigation and calculates quick summary amounts correctly', () => {
+    mockDemandProducts.value = [
+      {
+        id: 'item-1',
+        quantity: 10,
+        reference_price: 25.0,
+      },
+      {
+        id: 'item-2',
+        quantity: 5,
+        reference_price: 40.0,
+      },
+    ]
+
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.activeTab).toBe('items')
+    // 10 * 25 + 5 * 40 = 250 + 200 = 450
+    expect(vm.totalEstimatedAmount).toBe(450)
+
+    vm.activeTab = 'suppliers'
+    expect(vm.activeTab).toBe('suppliers')
+
+    vm.activeTab = 'planning'
+    expect(vm.activeTab).toBe('planning')
+  })
 })
