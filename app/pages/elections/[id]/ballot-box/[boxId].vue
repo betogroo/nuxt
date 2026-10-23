@@ -8,6 +8,7 @@
   import type { ElectionRow } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
   import type { RealtimeChannel } from '@supabase/supabase-js'
+  import VirtualBallotBox from '~/components/elections/VirtualBallotBox.vue'
 
   definePageMeta({
     middleware: ['elections'],
@@ -98,6 +99,16 @@
     } else {
       router.push(`/elections/${electionId.value}`)
     }
+  }
+
+  const handleVoteConfirmed = (payload: {
+    candidateId?: string | null
+    candidateNumber?: string | null
+    isBlank: boolean
+    isNull: boolean
+  }) => {
+    // Handler do voto confirmado na urna virtual
+    console.log('Voto registrado:', payload)
   }
 
   onMounted(async () => {
@@ -279,32 +290,12 @@
         </div>
 
         <!-- Urna Ativa e Pronta -->
-        <div v-else class="flex-grow-1 d-flex flex-column align-center justify-center pa-6">
-          <UiCard class="pa-8 text-center border-success" max-width="600" variant="elevated">
-            <UiAvatar class="mb-4 pulse-success" color="success" size="80">
-              <UiIcon color="white" name="vote" size="44" />
-            </UiAvatar>
-            <h1 class="text-h4 font-weight-bold mb-2">Terminal Liberado</h1>
-            <p class="text-subtitle-1 text-medium-emphasis mb-6">
-              Esta urna está ativa e pronta para recepção de votos.
-            </p>
-
-            <div class="d-flex justify-center ga-3 mb-6">
-              <UiChip color="primary" label size="default">
-                {{ candidates.length }} Candidatos Homologados
-              </UiChip>
-              <UiChip color="info" label size="default">
-                {{ election.digits_count }} Dígitos por Voto
-              </UiChip>
-            </div>
-
-            <UiAlert
-              class="text-left mb-6"
-              text="O eleitor deve se posicionar em frente ao terminal para registrar seu voto com total sigilo."
-              type="success"
-              variant="soft"
-            />
-          </UiCard>
+        <div v-else class="flex-grow-1 d-flex flex-column align-center justify-center pa-2 pa-sm-4">
+          <VirtualBallotBox
+            :candidates="candidates"
+            :election="election"
+            @vote-confirmed="handleVoteConfirmed"
+          />
         </div>
       </div>
     </UiMain>
