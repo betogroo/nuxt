@@ -1386,8 +1386,7 @@
               class="d-flex align-center justify-space-between ga-2"
             >
               <div class="d-flex align-center ga-1">
-                <UiChip color="purple" size="xs" variant="flat">
-                  <UiIcon class="mr-1" name="document" size="xs" />
+                <UiChip color="purple" prepend-icon="document" size="xs" variant="flat">
                   {{ c.commitmentNumber }}
                 </UiChip>
                 <span v-if="c.itemsCount > 1" class="text-caption text-grey font-weight-medium">
@@ -1425,7 +1424,7 @@
           <div class="d-flex align-center ga-1">
             <UiButton
               color="primary"
-              icon="document"
+              prepend-icon="document"
               size="xs"
               tooltip="Gerenciar Empenhos por Natureza"
               variant="soft"
@@ -1436,7 +1435,7 @@
             <UiButton
               v-if="supplier.commitments && supplier.commitments.length > 0"
               color="info"
-              icon="email"
+              prepend-icon="email"
               size="xs"
               tooltip="Gerar E-mail de Convocação"
               variant="soft"
