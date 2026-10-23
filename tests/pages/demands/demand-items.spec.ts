@@ -549,5 +549,9 @@ describe('Demand Items Page', () => {
     vm.openCommitmentsBatchModal(winner)
     expect(vm.isCommitmentsBatchModalOpen).toBe(true)
     expect(vm.selectedSupplierForCommitments).toEqual(winner)
+
+    vm.openConvocationEmailModal(winner)
+    expect(vm.isConvocationEmailModalOpen).toBe(true)
+    expect(vm.selectedSupplierForConvocationEmail).toEqual(winner)
   })
 })

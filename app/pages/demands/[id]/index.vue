@@ -18,6 +18,7 @@
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
+  import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -721,6 +722,15 @@
     await refreshItems()
   }
 
+  // --- MODAL DE E-MAIL DE CONVOCAÇÃO DO FORNECEDOR ---
+  const isConvocationEmailModalOpen = ref(false)
+  const selectedSupplierForConvocationEmail = ref<WinningSupplierSummaryItem | null>(null)
+
+  const openConvocationEmailModal = (supplier: WinningSupplierSummaryItem) => {
+    selectedSupplierForConvocationEmail.value = supplier
+    isConvocationEmailModalOpen.value = true
+  }
+
   const handleGenerateReport = () => {
     isReportModalOpen.value = true
   }
@@ -1412,16 +1422,29 @@
         </template>
 
         <template #item-actions="{ item: supplier }">
-          <UiButton
-            color="primary"
-            icon="document"
-            size="xs"
-            tooltip="Gerenciar Empenhos por Natureza"
-            variant="soft"
-            @click="openCommitmentsBatchModal(supplier)"
-          >
-            Empenhos
-          </UiButton>
+          <div class="d-flex align-center ga-1">
+            <UiButton
+              color="primary"
+              icon="document"
+              size="xs"
+              tooltip="Gerenciar Empenhos por Natureza"
+              variant="soft"
+              @click="openCommitmentsBatchModal(supplier)"
+            >
+              Empenhos
+            </UiButton>
+            <UiButton
+              v-if="supplier.commitments && supplier.commitments.length > 0"
+              color="info"
+              icon="email"
+              size="xs"
+              tooltip="Gerar E-mail de Convocação"
+              variant="soft"
+              @click="openConvocationEmailModal(supplier)"
+            >
+              Convocação
+            </UiButton>
+          </div>
         </template>
       </UiTable>
     </UiCard>
@@ -2208,6 +2231,13 @@
       :items="items || []"
       :supplier="selectedSupplierForCommitments"
       @saved="handleCommitmentsBatchSaved"
+    />
+
+    <!-- Modal de E-mail de Convocação do Fornecedor Vencedor -->
+    <DemandConvocationEmailModal
+      v-model="isConvocationEmailModalOpen"
+      :demand="demand"
+      :supplier="selectedSupplierForConvocationEmail"
     />
   </UiContainer>
 </template>

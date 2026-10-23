@@ -14,6 +14,7 @@ export interface WinningSupplierSummaryItem {
   id: string
   company_name: string
   cnpj: string
+  email?: string | null
   participatedCount: number
   wonCount: number
   totalAmountWon: number
@@ -271,6 +272,7 @@ export function useDemandDetail(demandId: string) {
           id: String(s.supplier.id || ''),
           company_name: String(s.supplier.company_name || ''),
           cnpj: String(s.supplier.cnpj || ''),
+          email: (s.supplier.email as string | null) || null,
           participatedCount: s.participated.size,
           wonCount,
           totalAmountWon: Number(s.totalAmountWon.toFixed(2)),

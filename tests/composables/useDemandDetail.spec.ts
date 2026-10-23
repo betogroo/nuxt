@@ -116,6 +116,7 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
       id: 'sup-a',
       company_name: 'Fornecedor A LTDA',
       cnpj: '11111111000111',
+      email: 'contato@fornecedora.com',
     }
     const mockSupplierB = {
       id: 'sup-b',
@@ -267,6 +268,7 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
       const winnerA = winningSuppliersSummary.value[0]
 
       expect(winnerA.wonCount).toBe(3)
+      expect(winnerA.email).toBe('contato@fornecedora.com')
       // 6000 + 1200 + 150 = 7350
       expect(winnerA.totalAmountWon).toBe(7350)
       expect(winnerA.allPendingCommitments).toBe(false)
