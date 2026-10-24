@@ -42,7 +42,10 @@ export const useBackup = () => {
         { count: electionsCount },
         { count: candidatesCount },
         { count: ballotBoxesCount },
+        { count: committeeMembersCount },
+        { count: votersCount },
         { count: voterAttendanceCount },
+        { count: electionVotesCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -68,7 +71,10 @@ export const useBackup = () => {
         supabase.from('elections').select('id', { count: 'exact', head: true }),
         supabase.from('candidates').select('id', { count: 'exact', head: true }),
         supabase.from('ballot_boxes').select('id', { count: 'exact', head: true }),
+        supabase.from('election_committee_members').select('id', { count: 'exact', head: true }),
+        supabase.from('election_voters').select('id', { count: 'exact', head: true }),
         supabase.from('election_voter_attendance').select('id', { count: 'exact', head: true }),
+        supabase.from('election_votes').select('id', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
@@ -96,7 +102,10 @@ export const useBackup = () => {
         elections: electionsCount || 0,
         candidates: candidatesCount || 0,
         ballot_boxes: ballotBoxesCount || 0,
+        election_committee_members: committeeMembersCount || 0,
+        election_voters: votersCount || 0,
         election_voter_attendance: voterAttendanceCount || 0,
+        election_votes: electionVotesCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -189,9 +198,14 @@ export const useBackup = () => {
         elections: Array.isArray(data.elections) ? data.elections.length : 0,
         candidates: Array.isArray(data.candidates) ? data.candidates.length : 0,
         ballot_boxes: Array.isArray(data.ballot_boxes) ? data.ballot_boxes.length : 0,
+        election_committee_members: Array.isArray(data.election_committee_members)
+          ? data.election_committee_members.length
+          : 0,
+        election_voters: Array.isArray(data.election_voters) ? data.election_voters.length : 0,
         election_voter_attendance: Array.isArray(data.election_voter_attendance)
           ? data.election_voter_attendance.length
           : 0,
+        election_votes: Array.isArray(data.election_votes) ? data.election_votes.length : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 

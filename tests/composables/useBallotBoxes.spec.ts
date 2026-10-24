@@ -216,8 +216,60 @@ describe('useBallotBoxes Composable', () => {
     expect(notVoted).toBeNull()
   })
 
+  it('releaseBallotBoxForVoter throws error if voter not found in election_voters', async () => {
+    const voterMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null })
+    const voterEq = vi.fn().mockReturnValue({ maybeSingle: voterMaybeSingle })
+    const voterSelect = vi.fn().mockReturnValue({ eq: voterEq })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'election_voters') return { select: voterSelect }
+      return {}
+    })
+
+    const { releaseBallotBoxForVoter } = useBallotBoxes()
+
+    await expect(
+      releaseBallotBoxForVoter({
+        electionId: 'elec-1',
+        ballotBoxId: 'box-1',
+        voterRegistrationNumber: '000000',
+      }),
+    ).rejects.toThrow('não foi encontrado no cadastro de eleitores')
+  })
+
+  it('releaseBallotBoxForVoter throws error if voter is inactive', async () => {
+    const voterMaybeSingle = vi.fn().mockResolvedValue({
+      data: { id: 'v-1', name: 'Eleitor Inativo', is_active: false },
+      error: null,
+    })
+    const voterEq = vi.fn().mockReturnValue({ maybeSingle: voterMaybeSingle })
+    const voterSelect = vi.fn().mockReturnValue({ eq: voterEq })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'election_voters') return { select: voterSelect }
+      return {}
+    })
+
+    const { releaseBallotBoxForVoter } = useBallotBoxes()
+
+    await expect(
+      releaseBallotBoxForVoter({
+        electionId: 'elec-1',
+        ballotBoxId: 'box-1',
+        voterRegistrationNumber: '111222',
+      }),
+    ).rejects.toThrow('está desativado')
+  })
+
   it('releaseBallotBoxForVoter throws error if voter already voted in the election', async () => {
-    const maybeSingleMock = vi.fn().mockResolvedValue({
+    const voterMaybeSingle = vi.fn().mockResolvedValue({
+      data: { id: 'v-1', name: 'Eleitor Teste', is_active: true },
+      error: null,
+    })
+    const voterEq = vi.fn().mockReturnValue({ maybeSingle: voterMaybeSingle })
+    const voterSelect = vi.fn().mockReturnValue({ eq: voterEq })
+
+    const attMaybeSingle = vi.fn().mockResolvedValue({
       data: {
         id: 'att-1',
         election_id: 'elec-1',
@@ -225,10 +277,15 @@ describe('useBallotBoxes Composable', () => {
       },
       error: null,
     })
-    const eqVoterMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
-    const eqElectionMock = vi.fn().mockReturnValue({ eq: eqVoterMock })
-    selectMock.mockReturnValue({ eq: eqElectionMock })
-    fromMock.mockReturnValue({ select: selectMock })
+    const attEqVoter = vi.fn().mockReturnValue({ maybeSingle: attMaybeSingle })
+    const attEqElec = vi.fn().mockReturnValue({ eq: attEqVoter })
+    const attSelect = vi.fn().mockReturnValue({ eq: attEqElec })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'election_voters') return { select: voterSelect }
+      if (table === 'election_voter_attendance') return { select: attSelect }
+      return {}
+    })
 
     const { releaseBallotBoxForVoter } = useBallotBoxes()
 
@@ -242,18 +299,27 @@ describe('useBallotBoxes Composable', () => {
   })
 
   it('releaseBallotBoxForVoter records attendance and activates ballot box when voter has not voted yet', async () => {
-    // 1. checkVoterAlreadyVoted returns null
+    // 1. voterRecord found in election_voters
+    const voterMaybeSingle = vi.fn().mockResolvedValue({
+      data: { id: 'v-777', name: 'Eleitor Válido', is_active: true },
+      error: null,
+    })
+    const voterEq = vi.fn().mockReturnValue({ maybeSingle: voterMaybeSingle })
+    const voterSelect = vi.fn().mockReturnValue({ eq: voterEq })
+
+    // 2. checkVoterAlreadyVoted returns null
     const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null })
     const eqVoterMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
     const eqElectionMock = vi.fn().mockReturnValue({ eq: eqVoterMock })
     const selectAttendanceMock = vi.fn().mockReturnValue({ eq: eqElectionMock })
 
-    // 2. insert into election_voter_attendance
+    // 3. insert into election_voter_attendance
     const singleInsertMock = vi.fn().mockResolvedValue({
       data: {
         id: 'att-new',
         election_id: 'elec-1',
         ballot_box_id: 'box-1',
+        voter_id: 'v-777',
         voter_registration_number: '777111',
       },
       error: null,
@@ -261,7 +327,7 @@ describe('useBallotBoxes Composable', () => {
     const selectAfterInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
     const insertAttendanceMock = vi.fn().mockReturnValue({ select: selectAfterInsertMock })
 
-    // 3. toggleBallotBoxStatus update on ballot_boxes
+    // 4. toggleBallotBoxStatus update on ballot_boxes
     const singleBoxMock = vi.fn().mockResolvedValue({
       data: { id: 'box-1', is_active: true },
       error: null,
@@ -271,6 +337,9 @@ describe('useBallotBoxes Composable', () => {
     const updateBoxMock = vi.fn().mockReturnValue({ eq: eqBoxMock })
 
     fromMock.mockImplementation((table: string) => {
+      if (table === 'election_voters') {
+        return { select: voterSelect }
+      }
       if (table === 'election_voter_attendance') {
         return {
           select: selectAttendanceMock,
@@ -296,6 +365,7 @@ describe('useBallotBoxes Composable', () => {
       expect.objectContaining({
         election_id: 'elec-1',
         ballot_box_id: 'box-1',
+        voter_id: 'v-777',
         voter_registration_number: '777111',
       }),
     )

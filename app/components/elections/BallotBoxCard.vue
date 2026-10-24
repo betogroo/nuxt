@@ -1,7 +1,9 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import type { BallotBoxRow } from '~/types/ballot-box'
   import type { ElectionStatus, ElectionVotingMode } from '~/types/election'
+  import type { ElectionVoterRow } from '~/types/election-voter'
+  import { useElectionVoters } from '~/composables/useElectionVoters'
 
   const props = withDefaults(
     defineProps<{
@@ -27,11 +29,38 @@
     (e: 'edit' | 'delete' | 'openTerminal', box: BallotBoxRow): void
   }>()
 
+  const { fetchVoterByNumber } = useElectionVoters()
+
   const voterRegistrationNumber = ref('')
+  const searchedVoter = ref<ElectionVoterRow | null>(null)
+  const isLookingUpVoter = ref(false)
+  const voterLookupAttempted = ref(false)
 
   const isActive = computed(() => props.ballotBox.is_active)
   const isMonitoredMode = computed(() => props.votingMode === 'monitored')
   const isElectionReleased = computed(() => props.electionStatus === 'released')
+
+  let lookupTimeout: ReturnType<typeof setTimeout> | null = null
+  watch(voterRegistrationNumber, (val) => {
+    if (lookupTimeout) clearTimeout(lookupTimeout)
+    const clean = val?.trim() || ''
+    if (!clean) {
+      searchedVoter.value = null
+      voterLookupAttempted.value = false
+      return
+    }
+    lookupTimeout = setTimeout(async () => {
+      isLookingUpVoter.value = true
+      try {
+        searchedVoter.value = await fetchVoterByNumber(clean)
+        voterLookupAttempted.value = true
+      } catch {
+        searchedVoter.value = null
+      } finally {
+        isLookingUpVoter.value = false
+      }
+    }, 250)
+  })
 
   const handleToggle = () => {
     emit('toggle', props.ballotBox, !isActive.value)
@@ -46,6 +75,8 @@
     if (!clean) return
     emit('releaseForVoter', props.ballotBox, clean)
     voterRegistrationNumber.value = ''
+    searchedVoter.value = null
+    voterLookupAttempted.value = false
   }
 </script>
 
@@ -143,6 +174,27 @@
             >
               Liberar
             </UiButton>
+          </div>
+
+          <!-- Preview do Eleitor Encontrado -->
+          <div
+            v-if="isLookingUpVoter"
+            class="text-caption text-medium-emphasis mt-2 d-flex align-center ga-1"
+          >
+            <UiIcon name="refresh" size="12" />
+            <span>Consultando eleitor...</span>
+          </div>
+          <div v-else-if="searchedVoter" class="mt-2">
+            <UiChip color="primary" label size="xs" variant="tonal">
+              <UiIcon class="mr-1" name="check" size="12" />
+              Eleitor: <strong>{{ searchedVoter.name }}</strong>
+            </UiChip>
+          </div>
+          <div v-else-if="voterLookupAttempted && voterRegistrationNumber.trim()" class="mt-2">
+            <UiChip color="error" label size="xs" variant="tonal">
+              <UiIcon class="mr-1" name="alertCircle" size="12" />
+              Eleitor não localizado no cadastro
+            </UiChip>
           </div>
         </div>
       </div>

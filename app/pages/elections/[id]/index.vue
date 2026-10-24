@@ -12,12 +12,19 @@
   import type { ElectionStatus, ElectionVotingMode } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
   import type { BallotBoxRow } from '~/types/ballot-box'
+  import type { ElectionCommitteeMemberRow } from '~/types/election-committee'
+  import type { ElectionVoterRow } from '~/types/election-voter'
   import ElectionFormModal from '~/components/elections/ElectionFormModal.vue'
   import CandidateFormModal from '~/components/elections/CandidateFormModal.vue'
   import BallotBoxFormModal from '~/components/elections/BallotBoxFormModal.vue'
   import BallotBoxCard from '~/components/elections/BallotBoxCard.vue'
+  import ElectionReportModal from '~/components/elections/ElectionReportModal.vue'
   import { useCandidates } from '~/composables/useCandidates'
   import { useBallotBoxes } from '~/composables/useBallotBoxes'
+  import { useElectionCommittee } from '~/composables/useElectionCommittee'
+  import { useElectionVotes } from '~/composables/useElectionVotes'
+  import { useElectionVoters } from '~/composables/useElectionVoters'
+  import { formatPercentageBr } from '~/composables/useElectionReports'
   import { useSupabaseClient } from '#imports'
 
   definePageMeta({
@@ -34,10 +41,27 @@
 
   const { fetchElectionById, updateElection, deleteElection } = useElections()
   const { fetchCandidates, deleteCandidate: deleteCandidateApi } = useCandidates()
+  const {
+    fetchCommitteeMembers,
+    addCommitteeMember,
+    updateCommitteeMember,
+    deleteCommitteeMember,
+  } = useElectionCommittee()
+  const { fetchElectionVotes, computeElectionTally } = useElectionVotes()
+  const { fetchVoters } = useElectionVoters()
   const { canManageElections, canDeleteElections } = usePermissions()
 
   // Tab State
-  const activeTab = ref<'overview' | 'candidates' | 'voting' | 'results'>('overview')
+  const activeTab = ref<'overview' | 'candidates' | 'committee' | 'voters' | 'voting' | 'results'>(
+    'overview',
+  )
+
+  // Report Modal Ref
+  const reportModalRef = ref<InstanceType<typeof ElectionReportModal> | null>(null)
+
+  const openReportModal = (type: 'initial' | 'final') => {
+    reportModalRef.value?.open(type)
+  }
 
   // Modals state
   const modalRef = ref<InstanceType<typeof ElectionFormModal> | null>(null)
@@ -72,6 +96,239 @@
   } = useAsyncData(`election-candidates-${electionId.value}`, async () => {
     return await fetchCandidates(electionId.value)
   })
+
+  // Fetch committee members for this election
+  const {
+    data: committeeMembers,
+    pending: committeePending,
+    refresh: refreshCommittee,
+  } = useAsyncData(`election-committee-${electionId.value}`, async () => {
+    return await fetchCommitteeMembers(electionId.value)
+  })
+
+  // Fetch votes for this election
+  const { data: electionVotes, refresh: refreshVotes } = useAsyncData(
+    `election-votes-${electionId.value}`,
+    async () => {
+      return await fetchElectionVotes(electionId.value)
+    },
+  )
+
+  const electionTally = computed(() =>
+    computeElectionTally(candidates.value || [], electionVotes.value || []),
+  )
+
+  // Voters & Attendance state
+  const votersSearch = ref('')
+  const votersFilter = ref<'all' | 'voted' | 'pending'>('all')
+
+  const {
+    data: electionVoters,
+    pending: votersPending,
+    refresh: refreshVoters,
+  } = useAsyncData(`election-voters-${electionId.value}`, async () => {
+    return await fetchVoters()
+  })
+
+  const {
+    data: electionAttendance,
+    pending: attendancePending,
+    refresh: refreshAttendance,
+  } = useAsyncData(`election-attendance-${electionId.value}`, async () => {
+    const supabase = useSupabaseClient()
+    const { data, error: attErr } = await supabase
+      .from('election_voter_attendance')
+      .select('id, voter_id, voter_registration_number, ballot_box_id, voted_at')
+      .eq('election_id', electionId.value)
+
+    if (attErr) throw attErr
+    return (data || []) as Array<{
+      id: string
+      voter_id: string | null
+      voter_registration_number: string
+      ballot_box_id: string | null
+      voted_at: string
+    }>
+  })
+
+  interface VoterWithAttendance extends ElectionVoterRow {
+    hasVoted: boolean
+    votedAt: string | null
+    ballotBoxId: string | null
+  }
+
+  const attendanceMap = computed(() => {
+    const map = new Map<string, { votedAt: string; ballotBoxId: string | null }>()
+    for (const att of electionAttendance.value || []) {
+      if (att.voter_id) {
+        map.set(att.voter_id, { votedAt: att.voted_at, ballotBoxId: att.ballot_box_id })
+      }
+      if (att.voter_registration_number) {
+        map.set(att.voter_registration_number, {
+          votedAt: att.voted_at,
+          ballotBoxId: att.ballot_box_id,
+        })
+      }
+    }
+    return map
+  })
+
+  const votersWithAttendance = computed<VoterWithAttendance[]>(() => {
+    const list = electionVoters.value || []
+    const map = attendanceMap.value
+    return list.map((v) => {
+      const att = map.get(v.id) || map.get(v.voter_registration_number)
+      return {
+        ...v,
+        hasVoted: !!att,
+        votedAt: att?.votedAt || null,
+        ballotBoxId: att?.ballotBoxId || null,
+      }
+    })
+  })
+
+  const filteredVoters = computed<VoterWithAttendance[]>(() => {
+    let list = votersWithAttendance.value
+    const term = votersSearch.value.trim().toLowerCase()
+    if (term) {
+      list = list.filter(
+        (v) =>
+          v.name.toLowerCase().includes(term) ||
+          v.voter_registration_number.toLowerCase().includes(term),
+      )
+    }
+    if (votersFilter.value === 'voted') {
+      list = list.filter((v) => v.hasVoted)
+    } else if (votersFilter.value === 'pending') {
+      list = list.filter((v) => !v.hasVoted)
+    }
+    return list
+  })
+
+  const totalVotersCount = computed(() => electionVoters.value?.length || 0)
+  const votedVotersCount = computed(() => electionAttendance.value?.length || 0)
+  const pendingVotersCount = computed(() =>
+    Math.max(0, totalVotersCount.value - votedVotersCount.value),
+  )
+  const turnoutPercentage = computed(() => {
+    if (totalVotersCount.value === 0) return 0
+    return (votedVotersCount.value / totalVotersCount.value) * 100
+  })
+
+  const votersTableHeaders: Array<{
+    text: string
+    value: string
+    align?: 'left' | 'center' | 'right'
+    width?: string | number
+  }> = [
+    { text: 'Nº do Título', value: 'voter_registration_number', width: 140 },
+    { text: 'Nome do Eleitor', value: 'name' },
+    { text: 'Comparecimento nesta Eleição', value: 'attendance', align: 'center', width: 220 },
+    { text: 'Situação', value: 'is_active', align: 'center', width: 120 },
+  ]
+
+  // Committee Form & Actions state
+  const committeeFormName = ref('')
+  const committeeFormRole = ref('')
+  const editingCommitteeMember = ref<ElectionCommitteeMemberRow | null>(null)
+  const isSavingCommitteeMember = ref(false)
+  const deletingCommitteeMemberId = ref<string | null>(null)
+
+  const committeeTableHeaders = computed(() => {
+    const base: Array<{
+      text: string
+      value: string
+      align?: 'left' | 'center' | 'right'
+      width?: string | number
+    }> = [
+      { text: '#', value: 'order', width: 70 },
+      { text: 'Nome do Integrante', value: 'name' },
+      { text: 'Cargo na Comissão', value: 'role_name' },
+    ]
+    if (canManageElections() && election.value?.status !== 'finished') {
+      base.push({ text: 'Ações', value: 'actions', align: 'right', width: 130 })
+    }
+    return base
+  })
+
+  const rankingTableHeaders: Array<{
+    text: string
+    value: string
+    align?: 'left' | 'center' | 'right'
+    width?: string | number
+  }> = [
+    { text: 'Classificação', value: 'rank', align: 'center', width: 120 },
+    { text: 'Foto', value: 'photo', align: 'center', width: 80 },
+    { text: 'Número', value: 'candidate_number', width: 100 },
+    { text: 'Candidato', value: 'name' },
+    { text: 'Votos', value: 'votesCount', align: 'right', width: 120 },
+    { text: 'Porcentagem', value: 'percentage', align: 'right', width: 190 },
+  ]
+
+  const startEditCommitteeMember = (member: ElectionCommitteeMemberRow) => {
+    editingCommitteeMember.value = member
+    committeeFormName.value = member.name
+    committeeFormRole.value = member.role_name
+  }
+
+  const cancelEditCommitteeMember = () => {
+    editingCommitteeMember.value = null
+    committeeFormName.value = ''
+    committeeFormRole.value = ''
+  }
+
+  const handleSaveCommitteeMember = async () => {
+    if (!election.value) return
+    const cleanName = committeeFormName.value.trim()
+    const cleanRole = committeeFormRole.value.trim()
+    if (!cleanName || !cleanRole) {
+      toast.warning('Informe o nome e o cargo do membro da comissão.')
+      return
+    }
+
+    isSavingCommitteeMember.value = true
+    try {
+      if (editingCommitteeMember.value) {
+        await updateCommitteeMember(editingCommitteeMember.value.id, {
+          name: cleanName,
+          role_name: cleanRole,
+        })
+        toast.success('Membro da comissão atualizado com sucesso.')
+      } else {
+        await addCommitteeMember({
+          election_id: election.value.id,
+          name: cleanName,
+          role_name: cleanRole,
+          sort_order: (committeeMembers.value?.length || 0) + 1,
+        })
+        toast.success('Membro adicionado à comissão eleitoral.')
+      }
+      cancelEditCommitteeMember()
+      await refreshCommittee()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao salvar membro da comissão.'
+      toast.error(msg)
+    } finally {
+      isSavingCommitteeMember.value = false
+    }
+  }
+
+  const handleDeleteCommitteeMember = async (member: ElectionCommitteeMemberRow) => {
+    deletingCommitteeMemberId.value = member.id
+    try {
+      await deleteCommitteeMember(member.id, member.name)
+      toast.success(`Membro "${member.name}" removido da comissão.`)
+      if (editingCommitteeMember.value?.id === member.id) {
+        cancelEditCommitteeMember()
+      }
+      await refreshCommittee()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao remover membro da comissão.'
+      toast.error(msg)
+    } finally {
+      deletingCommitteeMemberId.value = null
+    }
+  }
 
   const openCreateCandidateModal = () => {
     candidateModalRef.value?.open()
@@ -127,6 +384,7 @@
   const togglingBoxId = ref<string | null>(null)
   const releasingVoterBoxId = ref<string | null>(null)
   let ballotBoxesChannel: ReturnType<typeof subscribeToBallotBoxes> | null = null
+  let attendanceChannel: ReturnType<typeof useSupabaseClient>['channel'] | null = null
 
   const activeBallotBoxesCount = computed(
     () => ballotBoxes.value?.filter((b) => b.is_active).length || 0,
@@ -174,7 +432,7 @@
       toast.success(
         `Eleitor (Título nº ${voterRegistrationNumber}) validado! Urna "${box.name}" liberada para votação.`,
       )
-      await refreshBallotBoxes()
+      await Promise.all([refreshBallotBoxes(), refreshAttendance()])
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Falha ao validar título do eleitor.'
       toast.error(msg)
@@ -218,11 +476,31 @@
     ballotBoxesChannel = subscribeToBallotBoxes(electionId.value, () => {
       refreshBallotBoxes()
     })
+
+    const supabase = useSupabaseClient()
+    attendanceChannel = supabase
+      .channel(`attendance_election_${electionId.value}_${Date.now()}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'election_voter_attendance',
+          filter: `election_id=eq.${electionId.value}`,
+        },
+        () => {
+          refreshAttendance()
+        },
+      )
+      .subscribe()
   })
 
   onUnmounted(() => {
     if (ballotBoxesChannel) {
       useSupabaseClient().removeChannel(ballotBoxesChannel)
+    }
+    if (attendanceChannel) {
+      useSupabaseClient().removeChannel(attendanceChannel)
     }
   })
 
@@ -317,7 +595,7 @@
       )
       isStatusModalOpen.value = false
       targetStatus.value = null
-      await refresh()
+      await Promise.all([refresh(), refreshVotes()])
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Falha ao alterar situação.'
       toast.error(msg)
@@ -444,6 +722,29 @@
 
         <!-- Ações no Topo -->
         <div class="d-flex align-center ga-2 flex-wrap">
+          <!-- Relatório Inicial (Zerésima) -->
+          <UiButton
+            color="info"
+            data-testid="btn-open-initial-report"
+            prepend-icon="printer"
+            variant="soft"
+            @click="openReportModal('initial')"
+          >
+            Relatório Inicial (Zerésima)
+          </UiButton>
+
+          <!-- Relatório Final de Apuração -->
+          <UiButton
+            v-if="election.status === 'tallying' || election.status === 'finished'"
+            color="success"
+            data-testid="btn-open-final-report"
+            prepend-icon="document"
+            variant="soft"
+            @click="openReportModal('final')"
+          >
+            Relatório Final
+          </UiButton>
+
           <!-- Botão de Transição de Status Contextual -->
           <UiButton
             v-if="canManageElections() && nextStatusAction"
@@ -606,6 +907,8 @@
         <UiTabs v-model="activeTab" color="primary">
           <UiTab value="overview">Visão Geral & Diretrizes</UiTab>
           <UiTab value="candidates">Candidatos & Chapas</UiTab>
+          <UiTab value="committee">Comissão Eleitoral</UiTab>
+          <UiTab value="voters">Eleitores Cadastrados</UiTab>
           <UiTab value="voting">Urnas Virtuais & Votação</UiTab>
           <UiTab value="results">Apuração & Resultados</UiTab>
         </UiTabs>
@@ -813,6 +1116,335 @@
             </UiRow>
           </div>
 
+          <!-- ABA: COMISSÃO ELEITORAL -->
+          <div v-else-if="activeTab === 'committee'">
+            <div class="d-flex flex-wrap align-center justify-space-between mb-4 ga-3">
+              <div>
+                <h3 class="text-subtitle-1 font-weight-bold mb-1">Equipe e Comissão Eleitoral</h3>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Cadastre os nomes e os cargos dos membros da comissão. Todos os integrantes
+                  listarão com local de assinatura nos relatórios Inicial (Zerésima) e Final.
+                </p>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <UiButton
+                  color="info"
+                  prepend-icon="printer"
+                  size="sm"
+                  variant="soft"
+                  @click="openReportModal('initial')"
+                >
+                  Emitir Relatório Inicial (Zerésima)
+                </UiButton>
+              </div>
+            </div>
+
+            <!-- Formulário de Adição / Edição de Membro da Comissão -->
+            <UiCard
+              v-if="canManageElections() && election.status !== 'finished'"
+              class="pa-4 mb-5 bg-surface-variant"
+              variant="outline"
+            >
+              <div class="text-subtitle-2 font-weight-bold mb-3">
+                {{
+                  editingCommitteeMember
+                    ? `Editando Membro: ${editingCommitteeMember.name}`
+                    : 'Adicionar Membro à Comissão Eleitoral'
+                }}
+              </div>
+              <UiRow align="center" dense>
+                <UiCol cols="12" md="5">
+                  <UiInput
+                    v-model="committeeFormName"
+                    data-testid="input-committee-member-name"
+                    density="compact"
+                    hide-details
+                    label="Nome Completo da Pessoa *"
+                    placeholder="Ex: Maria Aparecida Silva"
+                    @keyup.enter="handleSaveCommitteeMember"
+                  />
+                </UiCol>
+                <UiCol cols="12" md="4">
+                  <UiInput
+                    v-model="committeeFormRole"
+                    data-testid="input-committee-member-role"
+                    density="compact"
+                    hide-details
+                    label="Cargo na Comissão (Texto Livre) *"
+                    placeholder="Ex: Presidente da Comissão, 1º Mesário, Secretário..."
+                    @keyup.enter="handleSaveCommitteeMember"
+                  />
+                </UiCol>
+                <UiCol class="d-flex ga-2" cols="12" md="3">
+                  <UiButton
+                    block
+                    color="primary"
+                    data-testid="btn-save-committee-member"
+                    :loading="isSavingCommitteeMember"
+                    :prepend-icon="editingCommitteeMember ? 'save' : 'add'"
+                    variant="solid"
+                    @click="handleSaveCommitteeMember"
+                  >
+                    {{ editingCommitteeMember ? 'Salvar' : 'Adicionar' }}
+                  </UiButton>
+                  <UiButton
+                    v-if="editingCommitteeMember"
+                    color="default"
+                    variant="outline"
+                    @click="cancelEditCommitteeMember"
+                  >
+                    Cancelar
+                  </UiButton>
+                </UiCol>
+              </UiRow>
+            </UiCard>
+
+            <!-- Loading de Comissão -->
+            <div v-if="committeePending" class="text-center py-8">
+              <UiProgressCircular color="primary" indeterminate size="32" />
+              <div class="text-caption text-medium-emphasis mt-2">
+                Carregando membros da comissão...
+              </div>
+            </div>
+
+            <!-- Empty State da Comissão -->
+            <UiCard
+              v-else-if="!committeeMembers || committeeMembers.length === 0"
+              class="text-center py-8 px-4"
+              variant="outline"
+            >
+              <UiAvatar class="mb-3" color="primary" rounded="lg" size="48">
+                <UiIcon color="white" name="usersGroup" size="24" />
+              </UiAvatar>
+              <h4 class="text-subtitle-1 font-weight-bold mb-1">
+                Nenhum membro cadastrado na comissão
+              </h4>
+              <p class="text-caption text-medium-emphasis mb-0">
+                Utilize os campos acima para informar o nome e o cargo de cada membro da equipe que
+                assinará os relatórios oficiais da eleição.
+              </p>
+            </UiCard>
+
+            <!-- Tabela de Membros da Comissão -->
+            <UiCard v-else variant="outline">
+              <UiTable
+                density="comfortable"
+                :headers="committeeTableHeaders"
+                :items="(committeeMembers || []) as unknown as Record<string, unknown>[]"
+              >
+                <template #item-order="{ index }">
+                  <span class="text-medium-emphasis font-weight-bold">{{ index + 1 }}</span>
+                </template>
+                <template #item-name="{ item }">
+                  <span class="font-weight-bold">{{
+                    (item as unknown as ElectionCommitteeMemberRow).name
+                  }}</span>
+                </template>
+                <template #item-role_name="{ item }">
+                  <UiChip color="primary" size="sm" variant="soft">
+                    {{ (item as unknown as ElectionCommitteeMemberRow).role_name }}
+                  </UiChip>
+                </template>
+                <template #item-actions="{ item }">
+                  <div class="d-inline-flex ga-1">
+                    <UiActionButton
+                      action="edit"
+                      tooltip="Editar membro"
+                      variant="ghost"
+                      @click="
+                        startEditCommitteeMember(item as unknown as ElectionCommitteeMemberRow)
+                      "
+                    />
+                    <UiActionButton
+                      action="delete"
+                      :loading="
+                        deletingCommitteeMemberId ===
+                        (item as unknown as ElectionCommitteeMemberRow).id
+                      "
+                      tooltip="Remover membro"
+                      variant="ghost"
+                      @click="
+                        handleDeleteCommitteeMember(item as unknown as ElectionCommitteeMemberRow)
+                      "
+                    />
+                  </div>
+                </template>
+              </UiTable>
+            </UiCard>
+          </div>
+
+          <!-- ABA: ELEITORES CADASTRADOS & COMPARECIMENTO -->
+          <div v-else-if="activeTab === 'voters'">
+            <div class="d-flex flex-wrap align-center justify-space-between mb-4 ga-3">
+              <div>
+                <h3 class="text-subtitle-1 font-weight-bold mb-1">
+                  Eleitores Cadastrados & Comparecimento
+                </h3>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Consulte a relação de eleitores aptos e acompanhe o registro de presença em tempo
+                  real.
+                </p>
+              </div>
+
+              <UiButton
+                color="primary"
+                :loading="votersPending || attendancePending"
+                prepend-icon="refresh"
+                size="sm"
+                variant="tonal"
+                @click="
+                  async () => {
+                    await refreshVoters()
+                    await refreshAttendance()
+                  }
+                "
+              >
+                Atualizar Lista
+              </UiButton>
+            </div>
+
+            <!-- Cards de Métricas dos Eleitores -->
+            <UiRow class="g-3 mb-4">
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center" variant="outline">
+                  <span class="text-caption text-medium-emphasis d-block mb-1"
+                    >Total de Eleitores Aptos</span
+                  >
+                  <div class="text-h6 font-weight-bold text-primary">
+                    {{ totalVotersCount }}
+                  </div>
+                </UiCard>
+              </UiCol>
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center" variant="outline">
+                  <span class="text-caption text-medium-emphasis d-block mb-1"
+                    >Compareceram (Votaram)</span
+                  >
+                  <div class="text-h6 font-weight-bold text-success">
+                    {{ votedVotersCount }}
+                    <span class="text-caption text-medium-emphasis font-weight-regular">
+                      ({{ turnoutPercentage.toFixed(1) }}%)
+                    </span>
+                  </div>
+                </UiCard>
+              </UiCol>
+              <UiCol cols="12" sm="4">
+                <UiCard class="pa-3 text-center" variant="outline">
+                  <span class="text-caption text-medium-emphasis d-block mb-1"
+                    >Aguardando Votação</span
+                  >
+                  <div class="text-h6 font-weight-bold text-warning">
+                    {{ pendingVotersCount }}
+                  </div>
+                </UiCard>
+              </UiCol>
+            </UiRow>
+
+            <!-- Barra de Busca e Filtros -->
+            <UiCard class="pa-3 mb-4" variant="outline">
+              <UiRow align="center" class="g-2">
+                <UiCol cols="12" md="6">
+                  <UiInput
+                    v-model="votersSearch"
+                    clearable
+                    density="compact"
+                    hide-details
+                    placeholder="Buscar por nome ou nº do título..."
+                    prepend-inner-icon="search"
+                    size="sm"
+                    variant="outline"
+                  />
+                </UiCol>
+                <UiCol cols="12" md="6">
+                  <div class="d-flex align-center justify-md-end ga-2 flex-wrap">
+                    <UiButton
+                      :color="votersFilter === 'all' ? 'primary' : 'default'"
+                      size="xs"
+                      :variant="votersFilter === 'all' ? 'solid' : 'tonal'"
+                      @click="votersFilter = 'all'"
+                    >
+                      Todos ({{ totalVotersCount }})
+                    </UiButton>
+                    <UiButton
+                      :color="votersFilter === 'voted' ? 'success' : 'default'"
+                      size="xs"
+                      :variant="votersFilter === 'voted' ? 'solid' : 'tonal'"
+                      @click="votersFilter = 'voted'"
+                    >
+                      Já Votaram ({{ votedVotersCount }})
+                    </UiButton>
+                    <UiButton
+                      :color="votersFilter === 'pending' ? 'warning' : 'default'"
+                      size="xs"
+                      :variant="votersFilter === 'pending' ? 'solid' : 'tonal'"
+                      @click="votersFilter = 'pending'"
+                    >
+                      Pendentes ({{ pendingVotersCount }})
+                    </UiButton>
+                  </div>
+                </UiCol>
+              </UiRow>
+            </UiCard>
+
+            <!-- Tabela de Eleitores -->
+            <UiCard variant="outline">
+              <UiTable
+                :headers="votersTableHeaders"
+                :items="filteredVoters as unknown as Array<Record<string, unknown>>"
+                :loading="votersPending || attendancePending"
+              >
+                <template #item-voter_registration_number="{ item }">
+                  <span class="font-weight-bold text-caption font-monospace">
+                    {{ (item as unknown as VoterWithAttendance).voter_registration_number }}
+                  </span>
+                </template>
+
+                <template #item-name="{ item }">
+                  <span class="font-weight-medium">
+                    {{ (item as unknown as VoterWithAttendance).name }}
+                  </span>
+                </template>
+
+                <template #item-attendance="{ item }">
+                  <UiChip
+                    v-if="(item as unknown as VoterWithAttendance).hasVoted"
+                    color="success"
+                    label
+                    size="xs"
+                    variant="tonal"
+                  >
+                    <UiIcon class="mr-1" name="check" size="12" />
+                    Votou em {{ formatDateTime((item as unknown as VoterWithAttendance).votedAt) }}
+                  </UiChip>
+                  <UiChip v-else color="warning" label size="xs" variant="tonal">
+                    <UiIcon class="mr-1" name="clockOutline" size="12" />
+                    Não votou
+                  </UiChip>
+                </template>
+
+                <template #item-is_active="{ item }">
+                  <UiChip
+                    :color="
+                      (item as unknown as VoterWithAttendance).is_active ? 'success' : 'error'
+                    "
+                    label
+                    size="xs"
+                    variant="tonal"
+                  >
+                    {{ (item as unknown as VoterWithAttendance).is_active ? 'Ativo' : 'Inativo' }}
+                  </UiChip>
+                </template>
+
+                <template #empty>
+                  <span v-if="votersSearch"
+                    >Nenhum eleitor encontrado para o termo pesquisado.</span
+                  >
+                  <span v-else>Nenhum eleitor cadastrado no sistema.</span>
+                </template>
+              </UiTable>
+            </UiCard>
+          </div>
+
           <!-- ABA 3: URNAS VIRTUAIS & TERMINAL DE VOTAÇÃO -->
           <div v-else-if="activeTab === 'voting'">
             <div class="d-flex flex-wrap align-center justify-space-between mb-4 ga-3">
@@ -943,12 +1575,38 @@
 
           <!-- ABA 4: APURAÇÃO & RESULTADOS -->
           <div v-else-if="activeTab === 'results'">
-            <h3 class="text-subtitle-1 font-weight-bold mb-2">
-              Boletim de Urna e Totalização de Votos
-            </h3>
-            <p class="text-caption text-medium-emphasis mb-4">
-              Contagem de votos nominais, votos em branco e nulos.
-            </p>
+            <div class="d-flex flex-wrap align-center justify-space-between mb-4 ga-3">
+              <div>
+                <h3 class="text-subtitle-1 font-weight-bold mb-1">
+                  Boletim de Urna e Totalização de Votos
+                </h3>
+                <p class="text-caption text-medium-emphasis mb-0">
+                  Contagem de votos nominais, porcentagens, fotos, classificação e emissão de
+                  relatórios oficiais.
+                </p>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <UiButton
+                  color="info"
+                  prepend-icon="printer"
+                  size="sm"
+                  variant="soft"
+                  @click="openReportModal('initial')"
+                >
+                  Relatório Inicial (Zerésima)
+                </UiButton>
+                <UiButton
+                  v-if="election.status === 'tallying' || election.status === 'finished'"
+                  color="primary"
+                  prepend-icon="document"
+                  size="sm"
+                  variant="solid"
+                  @click="openReportModal('final')"
+                >
+                  Emitir Relatório Final de Apuração
+                </UiButton>
+              </div>
+            </div>
 
             <UiAlert
               v-if="election.status === 'awaiting_release' || election.status === 'released'"
@@ -957,17 +1615,24 @@
               variant="soft"
             >
               Os resultados da apuração serão computados e exibidos assim que a fase de votação for
-              concluída e a apuração for iniciada.
+              concluída e a apuração for iniciada. Antes de iniciar a votação, você pode emitir o
+              <strong>Relatório Inicial (Zerésima)</strong> para comprovar a condição inicial da
+              urna.
             </UiAlert>
 
             <div v-else>
-              <UiRow class="g-4 mb-4">
+              <UiRow class="g-4 mb-5">
                 <UiCol cols="12" sm="3">
                   <div class="pa-4 border rounded-lg text-center bg-surface-variant">
                     <div class="text-caption text-medium-emphasis font-weight-bold">
                       VOTOS VÁLIDOS
                     </div>
-                    <div class="text-h4 font-weight-bold text-success mt-1">0</div>
+                    <div class="text-h4 font-weight-bold text-success mt-1">
+                      {{ electionTally.validVotes }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">
+                      {{ formatPercentageBr(electionTally.validPercentage) }} do total
+                    </div>
                   </div>
                 </UiCol>
                 <UiCol cols="12" sm="3">
@@ -975,7 +1640,12 @@
                     <div class="text-caption text-medium-emphasis font-weight-bold">
                       VOTOS EM BRANCO
                     </div>
-                    <div class="text-h4 font-weight-bold text-primary mt-1">0</div>
+                    <div class="text-h4 font-weight-bold text-primary mt-1">
+                      {{ electionTally.blankVotes }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">
+                      {{ formatPercentageBr(electionTally.blankPercentage) }} do total
+                    </div>
                   </div>
                 </UiCol>
                 <UiCol cols="12" sm="3">
@@ -983,7 +1653,12 @@
                     <div class="text-caption text-medium-emphasis font-weight-bold">
                       VOTOS NULOS
                     </div>
-                    <div class="text-h4 font-weight-bold text-warning mt-1">0</div>
+                    <div class="text-h4 font-weight-bold text-warning mt-1">
+                      {{ electionTally.nullVotes }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">
+                      {{ formatPercentageBr(electionTally.nullPercentage) }} do total
+                    </div>
                   </div>
                 </UiCol>
                 <UiCol cols="12" sm="3">
@@ -991,13 +1666,126 @@
                     <div class="text-caption text-medium-emphasis font-weight-bold">
                       TOTAL DE VOTANTES
                     </div>
-                    <div class="text-h4 font-weight-bold text-high-emphasis mt-1">0</div>
+                    <div class="text-h4 font-weight-bold text-high-emphasis mt-1">
+                      {{ electionTally.totalVotes }}
+                    </div>
+                    <div class="text-caption text-medium-emphasis mt-1">100,00% computados</div>
                   </div>
                 </UiCol>
               </UiRow>
 
+              <h4 class="text-subtitle-2 font-weight-bold text-uppercase text-primary mb-3">
+                Ordem de Classificação dos Candidatos
+              </h4>
+              <UiCard class="mb-4" variant="outline">
+                <UiTable
+                  density="comfortable"
+                  :headers="rankingTableHeaders"
+                  :items="electionTally.candidatesRanking as unknown as Record<string, unknown>[]"
+                >
+                  <template #item-rank="{ item }">
+                    <UiChip
+                      class="font-weight-bold"
+                      :color="
+                        (item as unknown as (typeof electionTally.candidatesRanking)[0]).rank === 1
+                          ? 'warning'
+                          : 'secondary'
+                      "
+                      size="sm"
+                      :variant="
+                        (item as unknown as (typeof electionTally.candidatesRanking)[0]).rank === 1
+                          ? 'solid'
+                          : 'soft'
+                      "
+                    >
+                      {{ (item as unknown as (typeof electionTally.candidatesRanking)[0]).rank }}º
+                      Lugar
+                    </UiChip>
+                  </template>
+                  <template #item-photo="{ item }">
+                    <div class="py-1">
+                      <UiAvatar color="primary" size="44">
+                        <img
+                          :alt="
+                            (item as unknown as (typeof electionTally.candidatesRanking)[0])
+                              .candidate.name
+                          "
+                          class="w-100 h-100 object-cover"
+                          :src="
+                            (item as unknown as (typeof electionTally.candidatesRanking)[0])
+                              .candidate.photo_url ||
+                            'https://picsum.photos/seed/' +
+                              (item as unknown as (typeof electionTally.candidatesRanking)[0])
+                                .candidate.candidate_number +
+                              '/300/300'
+                          "
+                        />
+                      </UiAvatar>
+                    </div>
+                  </template>
+                  <template #item-candidate_number="{ item }">
+                    <UiChip color="primary" label size="sm" variant="outlined">
+                      Nº
+                      {{
+                        (item as unknown as (typeof electionTally.candidatesRanking)[0]).candidate
+                          .candidate_number
+                      }}
+                    </UiChip>
+                  </template>
+                  <template #item-name="{ item }">
+                    <span class="font-weight-bold">{{
+                      (item as unknown as (typeof electionTally.candidatesRanking)[0]).candidate
+                        .name
+                    }}</span>
+                  </template>
+                  <template #item-votesCount="{ item }">
+                    <span class="font-weight-bold text-body-1">
+                      {{
+                        (item as unknown as (typeof electionTally.candidatesRanking)[0]).votesCount
+                      }}
+                      voto(s)
+                    </span>
+                  </template>
+                  <template #item-percentage="{ item }">
+                    <div class="font-weight-bold text-primary">
+                      {{
+                        formatPercentageBr(
+                          (item as unknown as (typeof electionTally.candidatesRanking)[0])
+                            .percentageOfValid,
+                        )
+                      }}
+                      dos válidos
+                    </div>
+                    <div class="text-caption text-medium-emphasis">
+                      {{
+                        formatPercentageBr(
+                          (item as unknown as (typeof electionTally.candidatesRanking)[0])
+                            .percentageOfTotal,
+                        )
+                      }}
+                      do total
+                    </div>
+                  </template>
+                  <template #empty> Nenhum candidato registrado nesta eleição. </template>
+                </UiTable>
+              </UiCard>
+
               <UiAlert type="success" variant="soft">
-                Boletim de urna pronto para emissão e homologação dos resultados.
+                <div class="d-flex flex-wrap align-center justify-space-between ga-2">
+                  <span>
+                    Boletim de urna consolidado e pronto para impressão e assinatura da comissão
+                    eleitoral.
+                  </span>
+                  <UiButton
+                    color="success"
+                    prepend-icon="printer"
+                    size="sm"
+                    variant="solid"
+                    @click="openReportModal('final')"
+                  >
+                    Visualizar / Imprimir Relatório Final
+                  </UiButton>
+                </div>
               </UiAlert>
             </div>
           </div>
@@ -1007,6 +1795,17 @@
 
     <!-- Modal de Edição da Eleição -->
     <ElectionFormModal ref="modalRef" @saved="onElectionSaved" />
+
+    <!-- Modal de Relatórios Oficiais (Inicial / Final) -->
+    <ElectionReportModal
+      v-if="election"
+      ref="reportModalRef"
+      :ballot-boxes="ballotBoxes || []"
+      :candidates="candidates || []"
+      :committee="committeeMembers || []"
+      :election="election"
+      :tally="electionTally"
+    />
 
     <!-- Modal de Confirmação de Transição de Situação -->
     <UiModal v-model="isStatusModalOpen" max-width="480px" title="Confirmar Alteração de Situação">

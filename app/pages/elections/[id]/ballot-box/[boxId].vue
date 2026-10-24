@@ -3,6 +3,7 @@
   import { useElections } from '~/composables/useElections'
   import { useBallotBoxes } from '~/composables/useBallotBoxes'
   import { useCandidates } from '~/composables/useCandidates'
+  import { useElectionVotes } from '~/composables/useElectionVotes'
   import { useSupabaseClient } from '#imports'
   import type { BallotBoxRow } from '~/types/ballot-box'
   import type { ElectionRow } from '~/types/election'
@@ -26,6 +27,7 @@
   const { fetchElectionById } = useElections()
   const { fetchBallotBoxById, toggleBallotBoxStatus } = useBallotBoxes()
   const { fetchCandidates } = useCandidates()
+  const { castVote } = useElectionVotes()
 
   const election = ref<ElectionRow | null>(null)
   const ballotBox = ref<BallotBoxRow | null>(null)
@@ -110,10 +112,20 @@
     isBlank: boolean
     isNull: boolean
   }) => {
-    // Simulação do registro do voto na urna virtual
-    console.log('Voto registrado:', payload)
-
     if (!ballotBox.value) return
+
+    try {
+      await castVote({
+        election_id: electionId.value,
+        ballot_box_id: ballotBox.value.id,
+        candidate_id: payload.candidateId ?? null,
+        candidate_number: payload.candidateNumber ?? null,
+        is_blank: payload.isBlank,
+        is_null: payload.isNull,
+      })
+    } catch (err) {
+      console.warn('Falha ao registrar voto no banco:', err)
+    }
 
     if (!isMonitoredMode.value) {
       // Modo Simples: desativa a urna no banco e reativa após 3 segundos

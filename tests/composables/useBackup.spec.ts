@@ -52,7 +52,10 @@ describe('useBackup Composable', () => {
       elections: 5,
       candidates: 5,
       ballot_boxes: 5,
+      election_committee_members: 5,
+      election_voters: 5,
       election_voter_attendance: 5,
+      election_votes: 5,
       logs: 5,
     })
   })
@@ -118,6 +121,7 @@ describe('useBackup Composable', () => {
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
         elections: [{ id: 'el-1' }, { id: 'el-2' }],
         candidates: [{ id: 'cnd-1' }, { id: 'cnd-2' }, { id: 'cnd-3' }],
+        election_voters: [{ id: 'v-1' }],
         iirgd_citizens: [{ id: 'c-1' }, { id: 'c-2' }, { id: 'c-3' }],
         iirgd_demands: [{ id: 'id-1' }, { id: 'id-2' }],
         logs: [{ id: 'log-1' }],
@@ -140,6 +144,7 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.system_settings).toBe(1)
     expect(inspection.counts.elections).toBe(2)
     expect(inspection.counts.candidates).toBe(3)
+    expect(inspection.counts.election_voters).toBe(1)
     expect(inspection.counts.logs).toBe(1)
   })
 

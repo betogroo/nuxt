@@ -19,9 +19,11 @@ mockNuxtImport('definePageMeta', () => vi.fn())
 
 const toastSuccessMock = vi.fn()
 const toastErrorMock = vi.fn()
+const toastWarningMock = vi.fn()
 mockNuxtImport('useToast', () => () => ({
   success: toastSuccessMock,
   error: toastErrorMock,
+  warning: toastWarningMock,
   info: vi.fn(),
 }))
 
@@ -41,6 +43,7 @@ const mockElection = {
   digits_count: 2,
   is_uppercase: true,
   status: 'awaiting_release',
+  voting_mode: 'simple',
   description: 'Eleição anual para escolha dos representantes do Grêmio Estudantil.',
   creator_name: 'Diretoria Escolar',
   created_at: '2026-10-20T12:00:00Z',
@@ -127,8 +130,78 @@ mockNuxtImport('useBallotBoxes', () => () => ({
   subscribeToBallotBoxes: subscribeToBallotBoxesMock,
 }))
 
+const mockCommitteeMembers = [
+  {
+    id: 'cm-1',
+    election_id: 'election-123',
+    name: 'Maria Silva',
+    role_name: 'Presidente da Comissão',
+    sort_order: 1,
+    created_by: 'user-1',
+    created_at: '2026-10-21T10:00:00Z',
+    updated_at: '2026-10-21T10:00:00Z',
+  },
+]
+
+const fetchCommitteeMembersMock = vi.fn().mockResolvedValue(mockCommitteeMembers)
+const addCommitteeMemberMock = vi.fn().mockResolvedValue(mockCommitteeMembers[0])
+const updateCommitteeMemberMock = vi.fn().mockResolvedValue(mockCommitteeMembers[0])
+const deleteCommitteeMemberMock = vi.fn().mockResolvedValue(undefined)
+
+mockNuxtImport('useElectionCommittee', () => () => ({
+  fetchCommitteeMembers: fetchCommitteeMembersMock,
+  addCommitteeMember: addCommitteeMemberMock,
+  updateCommitteeMember: updateCommitteeMemberMock,
+  deleteCommitteeMember: deleteCommitteeMemberMock,
+}))
+
+const fetchElectionVotesMock = vi.fn().mockResolvedValue([])
+const computeElectionTallyMock = vi.fn().mockReturnValue({
+  totalVotes: 0,
+  validVotes: 0,
+  blankVotes: 0,
+  nullVotes: 0,
+  validPercentage: 0,
+  blankPercentage: 0,
+  nullPercentage: 0,
+  candidatesRanking: [],
+})
+
+mockNuxtImport('useElectionVotes', () => () => ({
+  fetchElectionVotes: fetchElectionVotesMock,
+  computeElectionTally: computeElectionTallyMock,
+}))
+
+const mockVoters = [
+  {
+    id: 'voter-1',
+    voter_registration_number: '100599',
+    name: 'Bruno Alves Alves',
+    is_active: true,
+    created_at: '2026-10-24T12:00:00Z',
+    updated_at: '2026-10-24T12:00:00Z',
+  },
+]
+const fetchVotersMock = vi.fn().mockResolvedValue(mockVoters)
+mockNuxtImport('useElectionVoters', () => () => ({
+  fetchVoters: fetchVotersMock,
+  fetchVoterByNumber: vi.fn(),
+  checkVoterElectionStatus: vi.fn(),
+  createVoter: vi.fn(),
+  updateVoter: vi.fn(),
+  deleteVoter: vi.fn(),
+}))
+
 const removeChannelMock = vi.fn()
+const channelSubscribeMock = vi.fn().mockReturnValue({ unsubscribe: vi.fn() })
+const channelOnMock = vi.fn().mockReturnValue({ subscribe: channelSubscribeMock })
+const channelMock = vi.fn().mockReturnValue({ on: channelOnMock, subscribe: channelSubscribeMock })
+const fromAttendanceSelectMock = vi.fn().mockReturnValue({
+  eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+})
 mockNuxtImport('useSupabaseClient', () => () => ({
+  from: vi.fn().mockReturnValue({ select: fromAttendanceSelectMock }),
+  channel: channelMock,
   removeChannel: removeChannelMock,
 }))
 
@@ -141,10 +214,18 @@ mockNuxtImport('usePermissions', () => () => ({
 const electionDataRef = ref<typeof mockElection | null>(mockElection)
 const candidatesDataRef = ref<typeof mockCandidates>(mockCandidates)
 const ballotBoxesDataRef = ref<typeof mockBallotBoxes>(mockBallotBoxes)
+const committeeDataRef = ref<typeof mockCommitteeMembers>(mockCommitteeMembers)
+const votersDataRef = ref<typeof mockVoters>(mockVoters)
+const attendanceDataRef = ref<unknown[]>([])
+const votesDataRef = ref<unknown[]>([])
 const pendingRef = ref(false)
 const refreshMock = vi.fn()
 const refreshCandidatesMock = vi.fn()
 const refreshBallotBoxesMock = vi.fn()
+const refreshCommitteeMock = vi.fn()
+const refreshVotersMock = vi.fn()
+const refreshAttendanceMock = vi.fn()
+const refreshVotesMock = vi.fn()
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
   if (key.startsWith('election-candidates')) {
@@ -161,6 +242,38 @@ mockNuxtImport('useAsyncData', () => (key: string) => {
       pending: pendingRef,
       error: ref(null),
       refresh: refreshBallotBoxesMock,
+    }
+  }
+  if (key.startsWith('election-committee')) {
+    return {
+      data: committeeDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshCommitteeMock,
+    }
+  }
+  if (key.startsWith('election-voters')) {
+    return {
+      data: votersDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshVotersMock,
+    }
+  }
+  if (key.startsWith('election-attendance')) {
+    return {
+      data: attendanceDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshAttendanceMock,
+    }
+  }
+  if (key.startsWith('election-votes')) {
+    return {
+      data: votesDataRef,
+      pending: pendingRef,
+      error: ref(null),
+      refresh: refreshVotesMock,
     }
   }
   return {
@@ -198,10 +311,13 @@ describe('Election Detail Page (/elections/[id])', () => {
           UiModal: true,
           UiProgressCircular: true,
           UiActionButton: true,
+          UiInput: true,
+          UiTable: true,
           ElectionFormModal: true,
           CandidateFormModal: true,
           BallotBoxFormModal: true,
           BallotBoxCard: true,
+          ElectionReportModal: true,
         },
       },
     })
@@ -255,6 +371,7 @@ describe('Election Detail Page (/elections/[id])', () => {
     expect(updateElectionMock).toHaveBeenCalledWith('election-123', { status: 'released' })
     expect(toastSuccessMock).toHaveBeenCalled()
     expect(refreshMock).toHaveBeenCalled()
+    expect(refreshVotesMock).toHaveBeenCalled()
     expect(vm.isStatusModalOpen).toBe(false)
   })
 
@@ -312,7 +429,7 @@ describe('Election Detail Page (/elections/[id])', () => {
     vm.openCreateCandidateModal()
     expect(openSpy).toHaveBeenCalledWith()
 
-    vm.openEditCandidateModal(mockCandidates[0])
+    vm.openEditCandidateModal(mockCandidates[0]!)
     expect(openSpy).toHaveBeenCalledWith(mockCandidates[0])
   })
 
@@ -325,7 +442,7 @@ describe('Election Detail Page (/elections/[id])', () => {
       candidateToDelete: (typeof mockCandidates)[0] | null
     }
 
-    vm.openDeleteCandidateModal(mockCandidates[0])
+    vm.openDeleteCandidateModal(mockCandidates[0]!)
     expect(vm.isCandidateDeleteModalOpen).toBe(true)
     expect(vm.candidateToDelete).toEqual(mockCandidates[0])
 
@@ -350,7 +467,7 @@ describe('Election Detail Page (/elections/[id])', () => {
     vm.openCreateBallotBoxModal()
     expect(openSpy).toHaveBeenCalledWith()
 
-    vm.openEditBallotBoxModal(mockBallotBoxes[0])
+    vm.openEditBallotBoxModal(mockBallotBoxes[0]!)
     expect(openSpy).toHaveBeenCalledWith(mockBallotBoxes[0])
   })
 
@@ -360,7 +477,7 @@ describe('Election Detail Page (/elections/[id])', () => {
       handleToggleBallotBox: (b: (typeof mockBallotBoxes)[0], active: boolean) => Promise<void>
     }
 
-    await vm.handleToggleBallotBox(mockBallotBoxes[0], true)
+    await vm.handleToggleBallotBox(mockBallotBoxes[0]!, true)
     expect(toggleBallotBoxStatusApiMock).toHaveBeenCalledWith('box-1', true)
     expect(toastSuccessMock).toHaveBeenCalledWith(expect.stringContaining('ativada'))
     expect(refreshBallotBoxesMock).toHaveBeenCalled()
@@ -375,7 +492,7 @@ describe('Election Detail Page (/elections/[id])', () => {
       ballotBoxToDelete: (typeof mockBallotBoxes)[0] | null
     }
 
-    vm.openDeleteBallotBoxModal(mockBallotBoxes[0])
+    vm.openDeleteBallotBoxModal(mockBallotBoxes[0]!)
     expect(vm.isBallotBoxDeleteModalOpen).toBe(true)
     expect(vm.ballotBoxToDelete).toEqual(mockBallotBoxes[0])
 
@@ -394,7 +511,7 @@ describe('Election Detail Page (/elections/[id])', () => {
       handleOpenBallotBoxTerminal: (b: (typeof mockBallotBoxes)[0]) => void
     }
 
-    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0])
+    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0]!)
     expect(windowOpenSpy).toHaveBeenCalledWith(
       '/elections/election-123/ballot-box/box-1',
       'BallotBoxKiosk_box-1',
@@ -403,9 +520,92 @@ describe('Election Detail Page (/elections/[id])', () => {
 
     // Test fallback when popup is blocked
     windowOpenSpy.mockReturnValue(null)
-    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0])
+    vm.handleOpenBallotBoxTerminal(mockBallotBoxes[0]!)
     expect(routerPushMock).toHaveBeenCalledWith('/elections/election-123/ballot-box/box-1')
 
     windowOpenSpy.mockRestore()
+  })
+
+  it('handles committee member creation, editing, and removal', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      committeeFormName: string
+      committeeFormRole: string
+      handleSaveCommitteeMember: () => Promise<void>
+      startEditCommitteeMember: (m: (typeof mockCommitteeMembers)[0]) => void
+      handleDeleteCommitteeMember: (m: (typeof mockCommitteeMembers)[0]) => Promise<void>
+    }
+
+    vm.committeeFormName = 'José Alencar'
+    vm.committeeFormRole = '1º Secretário'
+    await vm.handleSaveCommitteeMember()
+
+    expect(addCommitteeMemberMock).toHaveBeenCalledWith({
+      election_id: 'election-123',
+      name: 'José Alencar',
+      role_name: '1º Secretário',
+      sort_order: 2,
+    })
+    expect(refreshCommitteeMock).toHaveBeenCalled()
+
+    vm.startEditCommitteeMember(mockCommitteeMembers[0]!)
+    vm.committeeFormName = 'Maria Silva Atualizada'
+    vm.committeeFormRole = 'Presidente'
+    await vm.handleSaveCommitteeMember()
+
+    expect(updateCommitteeMemberMock).toHaveBeenCalledWith('cm-1', {
+      name: 'Maria Silva Atualizada',
+      role_name: 'Presidente',
+    })
+
+    await vm.handleDeleteCommitteeMember(mockCommitteeMembers[0]!)
+    expect(deleteCommitteeMemberMock).toHaveBeenCalledWith('cm-1', 'Maria Silva')
+  })
+
+  it('opens initial and final election reports modal', () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      openReportModal: (type: 'initial' | 'final') => void
+      reportModalRef: { open: ReturnType<typeof vi.fn> } | null
+    }
+
+    const openSpy = vi.fn()
+    vm.reportModalRef = { open: openSpy }
+
+    vm.openReportModal('initial')
+    expect(openSpy).toHaveBeenCalledWith('initial')
+
+    vm.openReportModal('final')
+    expect(openSpy).toHaveBeenCalledWith('final')
+  })
+
+  it('renders registered voters tab, metrics, and filters voters by search term', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      activeTab: string
+      totalVotersCount: number
+      votedVotersCount: number
+      pendingVotersCount: number
+      votersSearch: string
+      votersFilter: string
+      filteredVoters: Array<{ name: string; voter_registration_number: string; hasVoted: boolean }>
+      refreshVoters: () => Promise<void>
+      refreshAttendance: () => Promise<void>
+    }
+
+    vm.activeTab = 'voters'
+    await wrapper.vm.$nextTick()
+
+    expect(vm.totalVotersCount).toBe(1)
+    expect(vm.votedVotersCount).toBe(0)
+    expect(vm.pendingVotersCount).toBe(1)
+    expect(vm.filteredVoters).toHaveLength(1)
+    expect(vm.filteredVoters[0]?.name).toBe('Bruno Alves Alves')
+
+    vm.votersSearch = 'NonExistent'
+    expect(vm.filteredVoters).toHaveLength(0)
+
+    vm.votersSearch = '100599'
+    expect(vm.filteredVoters).toHaveLength(1)
   })
 })

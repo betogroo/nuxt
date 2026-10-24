@@ -76,6 +76,21 @@ mockNuxtImport('useCandidates', () => () => ({
   fetchCandidates: vi.fn().mockResolvedValue(mockCandidates),
 }))
 
+const castVoteMock = vi.fn().mockResolvedValue({
+  id: 'vote-1',
+  election_id: 'elec-1',
+  ballot_box_id: 'box-1',
+  candidate_id: 'cand-1',
+  candidate_number: '10',
+  is_blank: false,
+  is_null: false,
+  created_at: '2026-10-24T12:00:00Z',
+})
+
+mockNuxtImport('useElectionVotes', () => () => ({
+  castVote: castVoteMock,
+}))
+
 describe('BallotBox Kiosk Terminal Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -150,6 +165,14 @@ describe('BallotBox Kiosk Terminal Page', () => {
     })
     await vbb.vm.$emit('vote-cycle-completed')
 
+    expect(castVoteMock).toHaveBeenCalledWith({
+      election_id: 'elec-1',
+      ballot_box_id: 'box-1',
+      candidate_id: 'cand-1',
+      candidate_number: '10',
+      is_blank: false,
+      is_null: false,
+    })
     expect(toggleBallotBoxStatusMock).toHaveBeenCalledWith('box-1', false)
   })
 })

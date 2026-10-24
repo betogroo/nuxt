@@ -119,4 +119,19 @@ describe('UiTable', () => {
 
     expect(wrapper.text()).toContain('Nenhum registro encontrado.')
   })
+
+  it('renders default slot content safely when headers prop is omitted', () => {
+    const wrapper = mount(UiTable, {
+      slots: {
+        default:
+          '<thead><tr><th>Coluna Livre</th></tr></thead><tbody><tr><td>Valor 1</td></tr></tbody>',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    expect(wrapper.text()).toContain('Coluna Livre')
+    expect(wrapper.text()).toContain('Valor 1')
+  })
 })

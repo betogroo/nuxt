@@ -1,7 +1,13 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import BallotBoxCard from '~/components/elections/BallotBoxCard.vue'
 import type { BallotBoxRow } from '~/types/ballot-box'
+
+const fetchVoterByNumberMock = vi.fn().mockResolvedValue(null)
+mockNuxtImport('useElectionVoters', () => () => ({
+  fetchVoterByNumber: fetchVoterByNumberMock,
+}))
 
 describe('BallotBoxCard Component', () => {
   const mockBoxActive: BallotBoxRow = {

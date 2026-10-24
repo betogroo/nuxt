@@ -247,10 +247,34 @@ export function useBallotBoxes() {
         throw new Error('Informe o número do título do eleitor para liberar a urna.')
       }
 
+      // Check if voter exists in election_voters table
+      const { data: voterRecord, error: voterLookupErr } = await supabase
+        .from('election_voters')
+        .select('id, name, is_active')
+        .eq('voter_registration_number', cleanNumber)
+        .maybeSingle()
+
+      if (voterLookupErr) {
+        console.error('Erro ao consultar cadastro do eleitor:', voterLookupErr)
+        throw new Error(voterLookupErr.message || 'Falha ao consultar cadastro do eleitor.')
+      }
+
+      if (!voterRecord) {
+        throw new Error(
+          `Eleitor com título nº ${cleanNumber} não foi encontrado no cadastro de eleitores.`,
+        )
+      }
+
+      if (!voterRecord.is_active) {
+        throw new Error(
+          `O cadastro do eleitor "${voterRecord.name}" (Título nº ${cleanNumber}) está desativado.`,
+        )
+      }
+
       const existingAttendance = await checkVoterAlreadyVoted(params.electionId, cleanNumber)
       if (existingAttendance) {
         throw new Error(
-          `Este eleitor (Título nº ${cleanNumber}) já votou nesta eleição. A urna não será liberada.`,
+          `O eleitor "${voterRecord.name}" (Título nº ${cleanNumber}) já votou nesta eleição. A urna não será liberada.`,
         )
       }
 
@@ -263,6 +287,7 @@ export function useBallotBoxes() {
         .insert({
           election_id: params.electionId,
           ballot_box_id: params.ballotBoxId,
+          voter_id: voterRecord.id,
           voter_registration_number: cleanNumber,
           released_by: user?.id || null,
           voted_at: new Date().toISOString(),
@@ -284,7 +309,7 @@ export function useBallotBoxes() {
 
       await logAction(
         'RELEASE_BALLOT_BOX_FOR_VOTER',
-        `Urna virtual ${params.ballotBoxId} liberada para o eleitor título nº ${cleanNumber} na eleição ${params.electionId}.`,
+        `Urna virtual ${params.ballotBoxId} liberada para o eleitor ${voterRecord.name} (título nº ${cleanNumber}) na eleição ${params.electionId}.`,
       )
 
       return attendanceData as VoterAttendanceRow
