@@ -158,7 +158,8 @@
   }
 
   interface VoterWithAttendanceAndVote extends VoterWithAttendance {
-    voteType?: string | null
+    isBlank?: boolean
+    isNull?: boolean
     candidateName?: string | null
     candidateNumber?: string | null
   }
@@ -183,21 +184,35 @@
     const map = new Map<string, CandidateRow>()
     for (const c of candidates.value || []) {
       map.set(c.id, c)
+      if (c.candidate_number) {
+        map.set(c.candidate_number, c)
+      }
     }
     return map
   })
 
   const votesByVoterMap = computed(() => {
-    const map = new Map<string, { voteType: string; candidateId: string | null }>()
+    const map = new Map<
+      string,
+      {
+        isBlank: boolean
+        isNull: boolean
+        candidateId: string | null
+        candidateNumber: string | null
+      }
+    >()
     for (const v of electionVotes.value || []) {
+      const voteData = {
+        isBlank: v.is_blank,
+        isNull: v.is_null,
+        candidateId: v.candidate_id,
+        candidateNumber: v.candidate_number,
+      }
       if (v.voter_id) {
-        map.set(v.voter_id, { voteType: v.vote_type, candidateId: v.candidate_id })
+        map.set(v.voter_id, voteData)
       }
       if (v.voter_registration_number) {
-        map.set(v.voter_registration_number, {
-          voteType: v.vote_type,
-          candidateId: v.candidate_id,
-        })
+        map.set(v.voter_registration_number, voteData)
       }
     }
     return map
@@ -215,16 +230,21 @@
       const voteInfo = isNominal
         ? voteMap.get(v.id) || voteMap.get(v.voter_registration_number)
         : null
-      const candidate = voteInfo?.candidateId ? candMap.get(voteInfo.candidateId) : null
+      const candidate = voteInfo?.candidateId
+        ? candMap.get(voteInfo.candidateId)
+        : voteInfo?.candidateNumber
+          ? candMap.get(voteInfo.candidateNumber)
+          : null
 
       return {
         ...v,
         hasVoted: !!att,
         votedAt: att?.votedAt || null,
         ballotBoxId: att?.ballotBoxId || null,
-        voteType: voteInfo?.voteType || null,
+        isBlank: voteInfo?.isBlank ?? false,
+        isNull: voteInfo?.isNull ?? false,
         candidateName: candidate?.name || null,
-        candidateNumber: candidate?.candidate_number || null,
+        candidateNumber: candidate?.candidate_number || voteInfo?.candidateNumber || null,
       }
     })
   })
@@ -1483,7 +1503,28 @@
                 <template v-if="election.is_anonymous === false" #item-vote="{ item }">
                   <template v-if="(item as unknown as VoterWithAttendanceAndVote).hasVoted">
                     <UiChip
-                      v-if="(item as unknown as VoterWithAttendanceAndVote).voteType === 'nominal'"
+                      v-if="(item as unknown as VoterWithAttendanceAndVote).isBlank"
+                      color="default"
+                      label
+                      size="xs"
+                      variant="tonal"
+                    >
+                      Voto em Branco
+                    </UiChip>
+                    <UiChip
+                      v-else-if="(item as unknown as VoterWithAttendanceAndVote).isNull"
+                      color="error"
+                      label
+                      size="xs"
+                      variant="tonal"
+                    >
+                      Voto Nulo
+                    </UiChip>
+                    <UiChip
+                      v-else-if="
+                        (item as unknown as VoterWithAttendanceAndVote).candidateNumber ||
+                        (item as unknown as VoterWithAttendanceAndVote).candidateName
+                      "
                       color="primary"
                       label
                       size="xs"
@@ -1494,28 +1535,6 @@
                       {{
                         (item as unknown as VoterWithAttendanceAndVote).candidateName || 'Candidato'
                       }}
-                    </UiChip>
-                    <UiChip
-                      v-else-if="
-                        (item as unknown as VoterWithAttendanceAndVote).voteType === 'blank'
-                      "
-                      color="default"
-                      label
-                      size="xs"
-                      variant="tonal"
-                    >
-                      Voto em Branco
-                    </UiChip>
-                    <UiChip
-                      v-else-if="
-                        (item as unknown as VoterWithAttendanceAndVote).voteType === 'null'
-                      "
-                      color="error"
-                      label
-                      size="xs"
-                      variant="tonal"
-                    >
-                      Voto Nulo
                     </UiChip>
                     <span v-else class="text-caption text-medium-emphasis">Voto Registrado</span>
                   </template>

@@ -62,18 +62,29 @@
     const candidateMap = new Map<string, CandidateRow>()
     for (const c of props.candidates) {
       candidateMap.set(c.id, c)
+      if (c.candidate_number) {
+        candidateMap.set(c.candidate_number, c)
+      }
     }
     return (props.votes || [])
       .filter((v) => v.voter_name || v.voter_registration_number)
       .map((v) => {
         let voteDesc = 'Desconhecido'
-        if (v.vote_type === 'nominal') {
-          const c = v.candidate_id ? candidateMap.get(v.candidate_id) : null
-          voteDesc = c ? `${c.candidate_number} - ${c.name}` : 'Candidato'
-        } else if (v.vote_type === 'blank') {
+        if (v.is_blank) {
           voteDesc = 'Voto em Branco'
-        } else if (v.vote_type === 'null') {
+        } else if (v.is_null) {
           voteDesc = 'Voto Nulo'
+        } else {
+          const c =
+            (v.candidate_id ? candidateMap.get(v.candidate_id) : null) ||
+            (v.candidate_number ? candidateMap.get(v.candidate_number) : null)
+          if (c) {
+            voteDesc = `${c.candidate_number} - ${c.name}`
+          } else if (v.candidate_number) {
+            voteDesc = `Candidato Nº ${v.candidate_number}`
+          } else {
+            voteDesc = 'Candidato'
+          }
         }
         return {
           voterRegistrationNumber: v.voter_registration_number || '-',

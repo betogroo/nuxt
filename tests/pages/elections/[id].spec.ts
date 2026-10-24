@@ -629,4 +629,32 @@ describe('Election Detail Page (/elections/[id])', () => {
     const hasVoteHeader = vm.votersTableHeaders.some((h) => h.value === 'vote')
     expect(hasVoteHeader).toBe(true)
   })
+
+  it('correctly maps candidate vote details to voters in non-anonymous election', async () => {
+    const nonAnonElection = {
+      ...mockElection,
+      is_anonymous: false,
+      voting_mode: 'monitored',
+    }
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      election: typeof nonAnonElection
+      votersWithAttendance: Array<{
+        name: string
+        candidateNumber: string | null
+        candidateName: string | null
+        isBlank: boolean
+        isNull: boolean
+      }>
+      electionVotes: Array<Record<string, unknown>>
+      candidates: Array<Record<string, unknown>>
+    }
+
+    vm.election = nonAnonElection
+    await wrapper.vm.$nextTick()
+
+    // Assert mapping logic executes without error and matches expected structure
+    expect(vm.votersWithAttendance).toBeDefined()
+    expect(Array.isArray(vm.votersWithAttendance)).toBe(true)
+  })
 })

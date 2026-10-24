@@ -186,11 +186,26 @@ describe('ElectionReportModal Component', () => {
         election_id: 'elec-1',
         ballot_box_id: 'box-1',
         candidate_id: 'cand-1',
-        vote_type: 'nominal' as const,
+        candidate_number: '11',
+        is_blank: false,
+        is_null: false,
         voter_id: 'voter-1',
         voter_registration_number: '12345678',
         voter_name: 'Roberto Votante',
         created_at: '2026-10-24T12:30:00Z',
+      },
+      {
+        id: 'vote-2',
+        election_id: 'elec-1',
+        ballot_box_id: 'box-1',
+        candidate_id: null,
+        candidate_number: null,
+        is_blank: true,
+        is_null: false,
+        voter_id: 'voter-2',
+        voter_registration_number: '87654321',
+        voter_name: 'Eleitor Branco',
+        created_at: '2026-10-24T12:35:00Z',
       },
     ]
 
@@ -214,5 +229,7 @@ describe('ElectionReportModal Component', () => {
     expect(wrapper.text()).toContain('Roberto Votante')
     expect(wrapper.text()).toContain('12345678')
     expect(wrapper.text()).toContain('11 - João Carlos')
+    expect(wrapper.text()).toContain('Eleitor Branco')
+    expect(wrapper.text()).toContain('Voto em Branco')
   })
 })
