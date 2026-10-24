@@ -24,7 +24,7 @@
   const boxId = computed(() => route.params.boxId as string)
 
   const { fetchElectionById } = useElections()
-  const { fetchBallotBoxById } = useBallotBoxes()
+  const { fetchBallotBoxById, toggleBallotBoxStatus } = useBallotBoxes()
   const { fetchCandidates } = useCandidates()
 
   const election = ref<ElectionRow | null>(null)
@@ -35,10 +35,13 @@
 
   const isFullscreen = ref(false)
   const isExitModalOpen = ref(false)
+  const isPostVoteCooldown = ref(false)
+  let cooldownTimer: ReturnType<typeof setTimeout> | null = null
   let realtimeChannel: RealtimeChannel | null = null
 
   const isBoxActive = computed(() => !!ballotBox.value?.is_active)
   const isElectionReleased = computed(() => election.value?.status === 'released')
+  const isMonitoredMode = computed(() => election.value?.voting_mode === 'monitored')
 
   const electionDisplayName = computed(() => {
     if (!election.value) return ''
@@ -101,20 +104,66 @@
     }
   }
 
-  const handleVoteConfirmed = (payload: {
+  const handleVoteConfirmed = async (payload: {
     candidateId?: string | null
     candidateNumber?: string | null
     isBlank: boolean
     isNull: boolean
   }) => {
-    // Handler do voto confirmado na urna virtual
+    // Simulação do registro do voto na urna virtual
     console.log('Voto registrado:', payload)
+
+    if (!ballotBox.value) return
+
+    if (!isMonitoredMode.value) {
+      // Modo Simples: desativa a urna no banco e reativa após 3 segundos
+      isPostVoteCooldown.value = true
+      try {
+        await toggleBallotBoxStatus(ballotBox.value.id, false)
+      } catch (err) {
+        console.warn('Falha ao pausar urna no modo simples:', err)
+      }
+
+      if (cooldownTimer) clearTimeout(cooldownTimer)
+      cooldownTimer = setTimeout(async () => {
+        try {
+          if (ballotBox.value) {
+            const updated = await toggleBallotBoxStatus(ballotBox.value.id, true)
+            ballotBox.value = updated
+          }
+        } catch (err) {
+          console.warn('Falha ao reativar urna no modo simples:', err)
+        } finally {
+          isPostVoteCooldown.value = false
+        }
+      }, 3000)
+    } else {
+      // Modo Monitorado: mantém tela de FIM por 3s (isPostVoteCooldown) e desativa a urna aguardando próximo eleitor
+      isPostVoteCooldown.value = true
+    }
+  }
+
+  const handleVoteCycleCompleted = async () => {
+    if (!ballotBox.value) return
+
+    if (isMonitoredMode.value) {
+      try {
+        const updated = await toggleBallotBoxStatus(ballotBox.value.id, false)
+        ballotBox.value = updated
+      } catch (err) {
+        console.warn('Falha ao desativar urna após voto monitorado:', err)
+      } finally {
+        isPostVoteCooldown.value = false
+      }
+    } else {
+      isPostVoteCooldown.value = false
+    }
   }
 
   onMounted(async () => {
     await loadData()
 
-    // Monitoramento Realtime do status desta urna específica
+    // Monitoramento Realtime do status desta urna específica e da eleição
     realtimeChannel = supabase
       .channel(`ballot_box_${boxId.value}_realtime`)
       .on(
@@ -134,6 +183,23 @@
           }
         },
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'elections',
+          filter: `id=eq.${electionId.value}`,
+        },
+        (payload) => {
+          if (payload.new && election.value) {
+            election.value = {
+              ...election.value,
+              ...(payload.new as Partial<ElectionRow>),
+            }
+          }
+        },
+      )
       .subscribe()
 
     // Listener para tecla Esc e saída de fullscreen
@@ -143,6 +209,9 @@
   })
 
   onUnmounted(() => {
+    if (cooldownTimer) {
+      clearTimeout(cooldownTimer)
+    }
     if (realtimeChannel) {
       supabase.removeChannel(realtimeChannel)
     }
@@ -244,7 +313,7 @@
 
         <!-- Bloqueio Realtime: Urna Desativada -->
         <div
-          v-if="!isBoxActive"
+          v-if="!isBoxActive && !isPostVoteCooldown"
           class="flex-grow-1 d-flex align-center justify-center pa-6 text-center bg-grey-lighten-4"
         >
           <UiCard class="pa-8 text-center border-error" max-width="540" variant="elevated">
@@ -252,15 +321,26 @@
               <UiIcon color="white" name="lock" size="40" />
             </UiAvatar>
             <h2 class="text-h5 font-weight-bold mb-3 text-error">
-              Urna Desativada pelo Administrador
+              {{
+                isMonitoredMode && isElectionReleased
+                  ? 'Aguardando Liberação do Mesário'
+                  : 'Urna Desativada pelo Administrador'
+              }}
             </h2>
             <p class="text-body-1 text-medium-emphasis mb-4">
-              Esta urna virtual foi desativada na central de gerenciamento. A recepção de votos está
-              temporariamente suspensa neste equipamento.
+              {{
+                isMonitoredMode && isElectionReleased
+                  ? 'Informe o número do seu título ao mesário para validação e liberação desta urna para o seu voto.'
+                  : 'Esta urna virtual foi desativada na central de gerenciamento. A recepção de votos está temporariamente suspensa neste equipamento.'
+              }}
             </p>
             <UiAlert
               class="text-left"
-              text="A tela será desbloqueada automaticamente assim que o mesário ou administrador ativar a urna na central."
+              :text="
+                isMonitoredMode && isElectionReleased
+                  ? 'Assim que o mesário validar o título na central, esta tela será liberada automaticamente em tempo real.'
+                  : 'A tela será desbloqueada automaticamente assim que o mesário ou administrador ativar a urna na central.'
+              "
               type="info"
               variant="soft"
             />
@@ -295,6 +375,7 @@
             :candidates="candidates"
             :election="election"
             @vote-confirmed="handleVoteConfirmed"
+            @vote-cycle-completed="handleVoteCycleCompleted"
           />
         </div>
       </div>

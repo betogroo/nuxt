@@ -3,8 +3,13 @@
   import { useElections } from '~/composables/useElections'
   import { usePermissions } from '~/composables/usePermissions'
   import { useToast } from '~/composables/useToast'
-  import { ELECTION_STATUS_LABELS, ELECTION_STATUS_COLORS } from '~/constants/elections'
-  import type { ElectionStatus } from '~/types/election'
+  import {
+    ELECTION_STATUS_LABELS,
+    ELECTION_STATUS_COLORS,
+    ELECTION_VOTING_MODE_LABELS,
+    ELECTION_VOTING_MODE_COLORS,
+  } from '~/constants/elections'
+  import type { ElectionStatus, ElectionVotingMode } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
   import type { BallotBoxRow } from '~/types/ballot-box'
   import ElectionFormModal from '~/components/elections/ElectionFormModal.vue'
@@ -102,6 +107,7 @@
   const {
     fetchBallotBoxes,
     toggleBallotBoxStatus: toggleBallotBoxStatusApi,
+    releaseBallotBoxForVoter: releaseBallotBoxForVoterApi,
     deleteBallotBox: deleteBallotBoxApi,
     subscribeToBallotBoxes,
   } = useBallotBoxes()
@@ -119,6 +125,7 @@
   const isBallotBoxDeleteModalOpen = ref(false)
   const isDeletingBallotBox = ref(false)
   const togglingBoxId = ref<string | null>(null)
+  const releasingVoterBoxId = ref<string | null>(null)
   let ballotBoxesChannel: ReturnType<typeof subscribeToBallotBoxes> | null = null
 
   const activeBallotBoxesCount = computed(
@@ -152,6 +159,27 @@
       toast.error(msg)
     } finally {
       togglingBoxId.value = null
+    }
+  }
+
+  const handleReleaseForVoter = async (box: BallotBoxRow, voterRegistrationNumber: string) => {
+    if (!election.value) return
+    releasingVoterBoxId.value = box.id
+    try {
+      await releaseBallotBoxForVoterApi({
+        electionId: election.value.id,
+        ballotBoxId: box.id,
+        voterRegistrationNumber,
+      })
+      toast.success(
+        `Eleitor (Título nº ${voterRegistrationNumber}) validado! Urna "${box.name}" liberada para votação.`,
+      )
+      await refreshBallotBoxes()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Falha ao validar título do eleitor.'
+      toast.error(msg)
+    } finally {
+      releasingVoterBoxId.value = null
     }
   }
 
@@ -384,6 +412,24 @@
                 :variant="election.is_uppercase ? 'solid' : 'soft'"
               >
                 {{ election.is_uppercase ? 'CAIXA ALTA: SIM' : 'CAIXA ALTA: NÃO' }}
+              </UiChip>
+              <UiChip
+                :color="
+                  ELECTION_VOTING_MODE_COLORS[
+                    (election.voting_mode || 'simple') as ElectionVotingMode
+                  ] || 'teal'
+                "
+                size="sm"
+                variant="soft"
+              >
+                MODO:
+                {{
+                  (
+                    ELECTION_VOTING_MODE_LABELS[
+                      (election.voting_mode || 'simple') as ElectionVotingMode
+                    ] || 'Simples'
+                  ).toUpperCase()
+                }}
               </UiChip>
             </div>
             <div class="d-flex align-center ga-2 text-caption text-medium-emphasis mt-1">
@@ -882,10 +928,13 @@
                   :ballot-box="box"
                   :can-manage="canManageElections()"
                   :election-status="election.status"
+                  :is-releasing-voter="releasingVoterBoxId === box.id"
                   :is-toggling="togglingBoxId === box.id"
+                  :voting-mode="election.voting_mode || 'simple'"
                   @delete="openDeleteBallotBoxModal"
                   @edit="openEditBallotBoxModal"
                   @open-terminal="handleOpenBallotBoxTerminal"
+                  @release-for-voter="handleReleaseForVoter"
                   @toggle="handleToggleBallotBox"
                 />
               </UiCol>

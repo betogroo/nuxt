@@ -199,4 +199,115 @@ describe('useBallotBoxes Composable', () => {
     )
     expect(subscribeMock).toHaveBeenCalled()
   })
+
+  it('checkVoterAlreadyVoted returns null if voter has not voted yet and attendance row if already voted', async () => {
+    const maybeSingleMock = vi.fn().mockResolvedValueOnce({ data: null, error: null })
+    const eqVoterMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
+    const eqElectionMock = vi.fn().mockReturnValue({ eq: eqVoterMock })
+    selectMock.mockReturnValue({ eq: eqElectionMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { checkVoterAlreadyVoted } = useBallotBoxes()
+    const notVoted = await checkVoterAlreadyVoted('elec-1', '123456')
+
+    expect(fromMock).toHaveBeenCalledWith('election_voter_attendance')
+    expect(eqElectionMock).toHaveBeenCalledWith('election_id', 'elec-1')
+    expect(eqVoterMock).toHaveBeenCalledWith('voter_registration_number', '123456')
+    expect(notVoted).toBeNull()
+  })
+
+  it('releaseBallotBoxForVoter throws error if voter already voted in the election', async () => {
+    const maybeSingleMock = vi.fn().mockResolvedValue({
+      data: {
+        id: 'att-1',
+        election_id: 'elec-1',
+        voter_registration_number: '999888',
+      },
+      error: null,
+    })
+    const eqVoterMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
+    const eqElectionMock = vi.fn().mockReturnValue({ eq: eqVoterMock })
+    selectMock.mockReturnValue({ eq: eqElectionMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { releaseBallotBoxForVoter } = useBallotBoxes()
+
+    await expect(
+      releaseBallotBoxForVoter({
+        electionId: 'elec-1',
+        ballotBoxId: 'box-1',
+        voterRegistrationNumber: '999888',
+      }),
+    ).rejects.toThrow('já votou nesta eleição')
+  })
+
+  it('releaseBallotBoxForVoter records attendance and activates ballot box when voter has not voted yet', async () => {
+    // 1. checkVoterAlreadyVoted returns null
+    const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    const eqVoterMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
+    const eqElectionMock = vi.fn().mockReturnValue({ eq: eqVoterMock })
+    const selectAttendanceMock = vi.fn().mockReturnValue({ eq: eqElectionMock })
+
+    // 2. insert into election_voter_attendance
+    const singleInsertMock = vi.fn().mockResolvedValue({
+      data: {
+        id: 'att-new',
+        election_id: 'elec-1',
+        ballot_box_id: 'box-1',
+        voter_registration_number: '777111',
+      },
+      error: null,
+    })
+    const selectAfterInsertMock = vi.fn().mockReturnValue({ single: singleInsertMock })
+    const insertAttendanceMock = vi.fn().mockReturnValue({ select: selectAfterInsertMock })
+
+    // 3. toggleBallotBoxStatus update on ballot_boxes
+    const singleBoxMock = vi.fn().mockResolvedValue({
+      data: { id: 'box-1', is_active: true },
+      error: null,
+    })
+    const selectAfterUpdateMock = vi.fn().mockReturnValue({ single: singleBoxMock })
+    const eqBoxMock = vi.fn().mockReturnValue({ select: selectAfterUpdateMock })
+    const updateBoxMock = vi.fn().mockReturnValue({ eq: eqBoxMock })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'election_voter_attendance') {
+        return {
+          select: selectAttendanceMock,
+          insert: insertAttendanceMock,
+        }
+      }
+      if (table === 'ballot_boxes') {
+        return {
+          update: updateBoxMock,
+        }
+      }
+      return {}
+    })
+
+    const { releaseBallotBoxForVoter } = useBallotBoxes()
+    const result = await releaseBallotBoxForVoter({
+      electionId: 'elec-1',
+      ballotBoxId: 'box-1',
+      voterRegistrationNumber: '777111',
+    })
+
+    expect(insertAttendanceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        election_id: 'elec-1',
+        ballot_box_id: 'box-1',
+        voter_registration_number: '777111',
+      }),
+    )
+    expect(updateBoxMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_active: true,
+      }),
+    )
+    expect(logActionMock).toHaveBeenCalledWith(
+      'RELEASE_BALLOT_BOX_FOR_VOTER',
+      expect.stringContaining('777111'),
+    )
+    expect(result.voter_registration_number).toBe('777111')
+  })
 })

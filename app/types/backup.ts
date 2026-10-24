@@ -21,6 +21,8 @@ export interface BackupSummary {
   system_settings?: number
   elections?: number
   candidates?: number
+  ballot_boxes?: number
+  election_voter_attendance?: number
   logs: number
 }
 
@@ -58,6 +60,8 @@ export interface BackupData {
   system_settings?: Record<string, unknown>[]
   elections?: Record<string, unknown>[]
   candidates?: Record<string, unknown>[]
+  ballot_boxes?: Record<string, unknown>[]
+  election_voter_attendance?: Record<string, unknown>[]
   logs?: Record<string, unknown>[]
 }
 

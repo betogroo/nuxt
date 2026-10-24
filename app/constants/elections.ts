@@ -1,4 +1,4 @@
-import type { ElectionStatus } from '~/types/election'
+import type { ElectionStatus, ElectionVotingMode } from '~/types/election'
 
 export const ELECTION_STATUS: Record<string, ElectionStatus> = {
   AWAITING_RELEASE: 'awaiting_release',
@@ -19,4 +19,14 @@ export const ELECTION_STATUS_COLORS: Record<ElectionStatus, string> = {
   released: 'success',
   tallying: 'info',
   finished: 'secondary',
+}
+
+export const ELECTION_VOTING_MODE_LABELS: Record<ElectionVotingMode, string> = {
+  simple: 'Simples (Contínua)',
+  monitored: 'Monitorada (Por Título)',
+}
+
+export const ELECTION_VOTING_MODE_COLORS: Record<ElectionVotingMode, string> = {
+  simple: 'teal',
+  monitored: 'indigo',
 }

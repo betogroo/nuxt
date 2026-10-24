@@ -4,8 +4,18 @@
   import { usePagination } from '~/composables/usePagination'
   import { usePermissions } from '~/composables/usePermissions'
   import { useToast } from '~/composables/useToast'
-  import { ELECTION_STATUS_LABELS, ELECTION_STATUS_COLORS } from '~/constants/elections'
-  import type { ElectionRow, ElectionStatus, ElectionTimelineFilter } from '~/types/election'
+  import {
+    ELECTION_STATUS_LABELS,
+    ELECTION_STATUS_COLORS,
+    ELECTION_VOTING_MODE_LABELS,
+    ELECTION_VOTING_MODE_COLORS,
+  } from '~/constants/elections'
+  import type {
+    ElectionRow,
+    ElectionStatus,
+    ElectionVotingMode,
+    ElectionTimelineFilter,
+  } from '~/types/election'
   import ElectionFormModal from '~/components/elections/ElectionFormModal.vue'
 
   definePageMeta({
@@ -364,6 +374,7 @@
         :headers="[
           { text: 'Eleição', value: 'name' },
           { text: 'Data do Pleito', value: 'election_date' },
+          { text: 'Modo de Votação', value: 'voting_mode', align: 'center' },
           { text: 'Dígitos', value: 'digits_count', align: 'center' },
           { text: 'Caixa Alta', value: 'is_uppercase', align: 'center' },
           { text: 'Situação', value: 'status', align: 'center' },
@@ -419,6 +430,23 @@
             <UiIcon class="text-medium-emphasis" name="calendar" size="14" />
             <span class="text-body-2">{{ formatDate(item.election_date) }}</span>
           </div>
+        </template>
+
+        <!-- Modo de Votação -->
+        <template #item-voting_mode="{ item }">
+          <UiChip
+            :color="
+              ELECTION_VOTING_MODE_COLORS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
+              'teal'
+            "
+            size="xs"
+            variant="soft"
+          >
+            {{
+              ELECTION_VOTING_MODE_LABELS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
+              'Simples'
+            }}
+          </UiChip>
         </template>
 
         <!-- Quantidade de Dígitos -->

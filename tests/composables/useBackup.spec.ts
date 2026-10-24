@@ -51,6 +51,8 @@ describe('useBackup Composable', () => {
       system_settings: 5,
       elections: 5,
       candidates: 5,
+      ballot_boxes: 5,
+      election_voter_attendance: 5,
       logs: 5,
     })
   })

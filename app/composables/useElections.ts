@@ -154,6 +154,7 @@ export function useElections() {
           digits_count: payload.digits_count,
           is_uppercase: payload.is_uppercase,
           status: payload.status,
+          voting_mode: payload.voting_mode || 'simple',
           description: payload.description?.trim() || null,
           created_by: user?.id || null,
         })
@@ -208,6 +209,7 @@ export function useElections() {
       }
       if (payload.is_uppercase !== undefined) updateData.is_uppercase = payload.is_uppercase
       if (payload.status !== undefined) updateData.status = payload.status
+      if (payload.voting_mode !== undefined) updateData.voting_mode = payload.voting_mode
       if (payload.description !== undefined) {
         updateData.description = payload.description?.trim() || null
       }

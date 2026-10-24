@@ -65,8 +65,11 @@ mockNuxtImport('useElections', () => () => ({
   fetchElectionById: vi.fn().mockResolvedValue(mockElection),
 }))
 
+const toggleBallotBoxStatusMock = vi.fn().mockResolvedValue({ ...mockBallotBox, is_active: false })
+
 mockNuxtImport('useBallotBoxes', () => () => ({
   fetchBallotBoxById: vi.fn().mockResolvedValue(mockBallotBox),
+  toggleBallotBoxStatus: toggleBallotBoxStatusMock,
 }))
 
 mockNuxtImport('useCandidates', () => () => ({
@@ -106,5 +109,47 @@ describe('BallotBox Kiosk Terminal Page', () => {
     await wrapper.vm.$nextTick()
 
     expect(wrapper.findComponent({ name: 'VirtualBallotBox' }).exists()).toBe(true)
+  })
+
+  it('deactivates ballot box when vote cycle completes in monitored mode', async () => {
+    mockElection.voting_mode = 'monitored'
+
+    const wrapper = shallowMount(BallotBoxKioskPage, {
+      global: {
+        stubs: {
+          UiApp: { template: '<div><slot /></div>' },
+          UiMain: { template: '<div><slot /></div>' },
+          UiProgressCircular: true,
+          UiCard: true,
+          UiAvatar: true,
+          UiIcon: true,
+          UiChip: true,
+          UiButton: true,
+          UiAlert: true,
+          UiModal: true,
+          VirtualBallotBox: {
+            name: 'VirtualBallotBox',
+            template: '<div class="virtual-ballot-box-stub" />',
+            props: ['election', 'candidates'],
+          },
+        },
+      },
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await wrapper.vm.$nextTick()
+
+    const vbb = wrapper.findComponent({ name: 'VirtualBallotBox' })
+    expect(vbb.exists()).toBe(true)
+
+    await vbb.vm.$emit('vote-confirmed', {
+      candidateId: 'cand-1',
+      candidateNumber: '10',
+      isBlank: false,
+      isNull: false,
+    })
+    await vbb.vm.$emit('vote-cycle-completed')
+
+    expect(toggleBallotBoxStatusMock).toHaveBeenCalledWith('box-1', false)
   })
 })

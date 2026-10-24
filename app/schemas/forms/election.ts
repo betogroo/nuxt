@@ -21,6 +21,12 @@ export const electionFormSchema = z.object({
       invalid_type_error: 'Situação inválida.',
     })
     .default('awaiting_release'),
+  voting_mode: z
+    .enum(['simple', 'monitored'], {
+      required_error: 'O modo de votação é obrigatório.',
+      invalid_type_error: 'Modo de votação inválido.',
+    })
+    .default('simple'),
   description: z.string().optional().nullable(),
 })
 

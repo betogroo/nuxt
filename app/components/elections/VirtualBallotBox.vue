@@ -24,6 +24,7 @@
         isNull: boolean
       },
     ): void
+    (e: 'vote-cycle-completed'): void
   }>()
 
   // State
@@ -186,6 +187,7 @@
   const startResetCountdown = () => {
     if (countdownTimer.value) clearTimeout(countdownTimer.value)
     countdownTimer.value = setTimeout(() => {
+      emit('vote-cycle-completed')
       resetUrna()
     }, 3000)
   }

@@ -1,7 +1,12 @@
 import { ref } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { useLogger } from './useLogger'
-import type { BallotBoxRow, BallotBoxInput } from '~/types/ballot-box'
+import type {
+  BallotBoxRow,
+  BallotBoxInput,
+  VoterAttendanceRow,
+  ReleaseBallotBoxForVoterInput,
+} from '~/types/ballot-box'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useBallotBoxes() {
@@ -208,6 +213,90 @@ export function useBallotBoxes() {
     }
   }
 
+  const checkVoterAlreadyVoted = async (
+    electionId: string,
+    voterRegistrationNumber: string,
+  ): Promise<VoterAttendanceRow | null> => {
+    const cleanNumber = voterRegistrationNumber.trim()
+    if (!cleanNumber) return null
+
+    const { data, error: err } = await supabase
+      .from('election_voter_attendance')
+      .select('*')
+      .eq('election_id', electionId)
+      .eq('voter_registration_number', cleanNumber)
+      .maybeSingle()
+
+    if (err) {
+      console.error('Erro ao verificar presença do eleitor:', err)
+      throw new Error(err.message || 'Falha ao consultar situação do título do eleitor.')
+    }
+
+    return data as VoterAttendanceRow | null
+  }
+
+  const releaseBallotBoxForVoter = async (
+    params: ReleaseBallotBoxForVoterInput,
+  ): Promise<VoterAttendanceRow> => {
+    loading.value = true
+    error.value = null
+
+    try {
+      const cleanNumber = params.voterRegistrationNumber.trim()
+      if (!cleanNumber) {
+        throw new Error('Informe o número do título do eleitor para liberar a urna.')
+      }
+
+      const existingAttendance = await checkVoterAlreadyVoted(params.electionId, cleanNumber)
+      if (existingAttendance) {
+        throw new Error(
+          `Este eleitor (Título nº ${cleanNumber}) já votou nesta eleição. A urna não será liberada.`,
+        )
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const { data: attendanceData, error: insertErr } = await supabase
+        .from('election_voter_attendance')
+        .insert({
+          election_id: params.electionId,
+          ballot_box_id: params.ballotBoxId,
+          voter_registration_number: cleanNumber,
+          released_by: user?.id || null,
+          voted_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (insertErr) {
+        if (insertErr.code === '23505') {
+          throw new Error(
+            `Este eleitor (Título nº ${cleanNumber}) já votou nesta eleição. A urna não será liberada.`,
+          )
+        }
+        console.error('Erro ao registrar presença do eleitor:', insertErr)
+        throw new Error(insertErr.message || 'Falha ao registrar validação do eleitor.')
+      }
+
+      await toggleBallotBoxStatus(params.ballotBoxId, true)
+
+      await logAction(
+        'RELEASE_BALLOT_BOX_FOR_VOTER',
+        `Urna virtual ${params.ballotBoxId} liberada para o eleitor título nº ${cleanNumber} na eleição ${params.electionId}.`,
+      )
+
+      return attendanceData as VoterAttendanceRow
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Erro ao liberar urna para o eleitor.'
+      error.value = message
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
   const subscribeToBallotBoxes = (electionId: string, onUpdate: () => void): RealtimeChannel => {
     const channelName = `ballot_boxes_election_${electionId}_${Date.now()}`
     const channel = supabase
@@ -238,6 +327,8 @@ export function useBallotBoxes() {
     updateBallotBox,
     toggleBallotBoxStatus,
     deleteBallotBox,
+    checkVoterAlreadyVoted,
+    releaseBallotBoxForVoter,
     subscribeToBallotBoxes,
   }
 }

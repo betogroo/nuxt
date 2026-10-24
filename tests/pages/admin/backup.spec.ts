@@ -35,6 +35,8 @@ const mockCounts = {
   system_settings: 3,
   elections: 3,
   candidates: 4,
+  ballot_boxes: 2,
+  election_voter_attendance: 8,
   logs: 120,
 }
 
@@ -88,13 +90,13 @@ describe('Backup Admin Page', () => {
     expect(vm.currentCounts).toEqual(mockCounts)
     const expectedSum = Object.values(mockCounts).reduce((a, b) => a + b, 0)
     expect(vm.totalCurrentRecords).toBe(expectedSum)
-    expect(vm.totalCurrentRecords).toBe(537)
-    expect(vm.totalTablesCount).toBe(23)
+    expect(vm.totalCurrentRecords).toBe(547)
+    expect(vm.totalTablesCount).toBe(25)
 
-    // Check that all 23 tables are represented in categories
+    // Check that all 25 tables are represented in categories
     const allTableKeys = vm.BACKUP_CATEGORIES.flatMap((c) => c.tables.map((t) => t.key))
-    expect(allTableKeys).toHaveLength(23)
-    expect(new Set(allTableKeys).size).toBe(23)
+    expect(allTableKeys).toHaveLength(25)
+    expect(new Set(allTableKeys).size).toBe(25)
     for (const key of Object.keys(mockCounts)) {
       expect(allTableKeys).toContain(key)
     }
@@ -133,14 +135,14 @@ describe('Backup Admin Page', () => {
       counts: mockCounts,
     }
 
-    expect(vm.totalInspectionRecords).toBe(537)
+    expect(vm.totalInspectionRecords).toBe(547)
 
     vm.restoreResult = {
       success: true,
       counts: mockCounts,
     }
 
-    expect(vm.totalRestoredRecords).toBe(537)
+    expect(vm.totalRestoredRecords).toBe(547)
   })
 
   it('should trigger backup generation when generate method is called', async () => {

@@ -41,6 +41,8 @@ export const useBackup = () => {
         { count: systemSettingsCount },
         { count: electionsCount },
         { count: candidatesCount },
+        { count: ballotBoxesCount },
+        { count: voterAttendanceCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -65,6 +67,8 @@ export const useBackup = () => {
         supabase.from('system_settings').select('key', { count: 'exact', head: true }),
         supabase.from('elections').select('id', { count: 'exact', head: true }),
         supabase.from('candidates').select('id', { count: 'exact', head: true }),
+        supabase.from('ballot_boxes').select('id', { count: 'exact', head: true }),
+        supabase.from('election_voter_attendance').select('id', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
@@ -91,6 +95,8 @@ export const useBackup = () => {
         system_settings: systemSettingsCount || 0,
         elections: electionsCount || 0,
         candidates: candidatesCount || 0,
+        ballot_boxes: ballotBoxesCount || 0,
+        election_voter_attendance: voterAttendanceCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -182,6 +188,10 @@ export const useBackup = () => {
         system_settings: Array.isArray(data.system_settings) ? data.system_settings.length : 0,
         elections: Array.isArray(data.elections) ? data.elections.length : 0,
         candidates: Array.isArray(data.candidates) ? data.candidates.length : 0,
+        ballot_boxes: Array.isArray(data.ballot_boxes) ? data.ballot_boxes.length : 0,
+        election_voter_attendance: Array.isArray(data.election_voter_attendance)
+          ? data.election_voter_attendance.length
+          : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 

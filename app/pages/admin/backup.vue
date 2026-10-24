@@ -136,6 +136,18 @@
           suffix: 'candidatos',
           color: 'purple',
         },
+        {
+          key: 'ballot_boxes',
+          label: 'Urnas Virtuais',
+          suffix: 'urnas',
+          color: 'indigo',
+        },
+        {
+          key: 'election_voter_attendance',
+          label: 'Presença de Eleitores',
+          suffix: 'eleitores',
+          color: 'teal',
+        },
       ],
     },
     {

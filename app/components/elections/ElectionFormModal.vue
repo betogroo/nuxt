@@ -3,8 +3,8 @@
   import { useSupabaseClient } from '#imports'
   import { useZodForm } from '~/composables/useZodForm'
   import { electionFormSchema, type ElectionFormInput } from '~/schemas/forms/election'
-  import type { ElectionRow, ElectionStatus } from '~/types/election'
-  import { ELECTION_STATUS_LABELS } from '~/constants/elections'
+  import type { ElectionRow, ElectionStatus, ElectionVotingMode } from '~/types/election'
+  import { ELECTION_STATUS_LABELS, ELECTION_VOTING_MODE_LABELS } from '~/constants/elections'
 
   const emit = defineEmits<{
     (e: 'saved', election: ElectionRow): void
@@ -35,12 +35,24 @@
     { title: '5 dígitos (ex: 10000 a 99999)', value: 5 },
   ]
 
+  const votingModeOptions = [
+    {
+      title: ELECTION_VOTING_MODE_LABELS.simple,
+      value: 'simple' as ElectionVotingMode,
+    },
+    {
+      title: ELECTION_VOTING_MODE_LABELS.monitored,
+      value: 'monitored' as ElectionVotingMode,
+    },
+  ]
+
   const defaultValues = {
     name: '',
     election_date: '',
     digits_count: 2,
     is_uppercase: false,
     status: 'awaiting_release' as ElectionStatus,
+    voting_mode: 'simple' as ElectionVotingMode,
     description: '',
   }
 
@@ -54,6 +66,7 @@
   const [digitsCount, digitsCountProps] = defineField('digits_count')
   const [isUppercase, isUppercaseProps] = defineField('is_uppercase')
   const [status, statusProps] = defineField('status')
+  const [votingMode, votingModeProps] = defineField('voting_mode')
   const [description, descriptionProps] = defineField('description')
 
   const open = async (election?: ElectionRow, hasCandidatesParam?: boolean) => {
@@ -92,6 +105,7 @@
           digits_count: election.digits_count,
           is_uppercase: election.is_uppercase,
           status: election.status,
+          voting_mode: election.voting_mode || 'simple',
           description: election.description || '',
         },
       })
@@ -221,6 +235,25 @@
             label="Situação da Eleição *"
           />
         </div>
+      </div>
+
+      <!-- Modo de Votação -->
+      <div>
+        <UiSelect
+          v-model="votingMode"
+          v-bind="votingModeProps"
+          :error-messages="errors.voting_mode"
+          :hint="
+            votingMode === 'monitored'
+              ? 'O mesário digita o nº do título do eleitor para validar se já votou e liberar a urna. Após o voto, a urna é bloqueada aguardando o próximo eleitor.'
+              : 'A urna permanece liberada continuamente. Após cada voto, é pausada por 3 segundos (tela FIM) e reativada automaticamente.'
+          "
+          item-title="title"
+          item-value="value"
+          :items="votingModeOptions"
+          label="Modo de Votação *"
+          persistent-hint
+        />
       </div>
 
       <!-- Caixa Alta (Modo Infantil / Alfabetização) -->

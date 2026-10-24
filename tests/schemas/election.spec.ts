@@ -83,7 +83,27 @@ describe('Election Form Schema', () => {
       expect(result.data.digits_count).toBe(2)
       expect(result.data.is_uppercase).toBe(false)
       expect(result.data.status).toBe('awaiting_release')
+      expect(result.data.voting_mode).toBe('simple')
       expect(result.data.description).toBeUndefined()
     }
+  })
+
+  it('validates monitored voting_mode and rejects invalid voting_mode', () => {
+    const validMonitored = electionFormSchema.safeParse({
+      name: 'Eleição Monitorada',
+      election_date: '2026-11-01',
+      voting_mode: 'monitored',
+    })
+    expect(validMonitored.success).toBe(true)
+    if (validMonitored.success) {
+      expect(validMonitored.data.voting_mode).toBe('monitored')
+    }
+
+    const invalidMode = electionFormSchema.safeParse({
+      name: 'Eleição Inválida',
+      election_date: '2026-11-01',
+      voting_mode: 'invalid_mode',
+    })
+    expect(invalidMode.success).toBe(false)
   })
 })

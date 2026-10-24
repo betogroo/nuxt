@@ -1,21 +1,37 @@
 <script setup lang="ts">
-  import { computed } from 'vue'
+  import { ref, computed } from 'vue'
   import type { BallotBoxRow } from '~/types/ballot-box'
-  import type { ElectionStatus } from '~/types/election'
+  import type { ElectionStatus, ElectionVotingMode } from '~/types/election'
 
-  const props = defineProps<{
-    ballotBox: BallotBoxRow
-    electionStatus?: ElectionStatus
-    canManage?: boolean
-    isToggling?: boolean
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      ballotBox: BallotBoxRow
+      electionStatus?: ElectionStatus
+      votingMode?: ElectionVotingMode
+      canManage?: boolean
+      isToggling?: boolean
+      isReleasingVoter?: boolean
+    }>(),
+    {
+      electionStatus: 'awaiting_release',
+      votingMode: 'simple',
+      canManage: false,
+      isToggling: false,
+      isReleasingVoter: false,
+    },
+  )
 
   const emit = defineEmits<{
     (e: 'toggle', box: BallotBoxRow, active: boolean): void
+    (e: 'releaseForVoter', box: BallotBoxRow, voterRegistrationNumber: string): void
     (e: 'edit' | 'delete' | 'openTerminal', box: BallotBoxRow): void
   }>()
 
+  const voterRegistrationNumber = ref('')
+
   const isActive = computed(() => props.ballotBox.is_active)
+  const isMonitoredMode = computed(() => props.votingMode === 'monitored')
+  const isElectionReleased = computed(() => props.electionStatus === 'released')
 
   const handleToggle = () => {
     emit('toggle', props.ballotBox, !isActive.value)
@@ -23,6 +39,13 @@
 
   const handleOpenTerminal = () => {
     emit('openTerminal', props.ballotBox)
+  }
+
+  const handleReleaseForVoter = () => {
+    const clean = voterRegistrationNumber.value.trim()
+    if (!clean) return
+    emit('releaseForVoter', props.ballotBox, clean)
+    voterRegistrationNumber.value = ''
   }
 </script>
 
@@ -56,18 +79,70 @@
           <!-- Status da Urna em Realtime -->
           <UiChip :color="isActive ? 'success' : 'error'" label size="sm" variant="flat">
             <UiIcon class="mr-1" :name="isActive ? 'check' : 'close'" size="14" />
-            {{ isActive ? 'Ativa' : 'Desativada' }}
+            {{
+              isActive
+                ? 'Ativa'
+                : isMonitoredMode && isElectionReleased
+                  ? 'Aguardando Eleitor'
+                  : 'Desativada'
+            }}
           </UiChip>
         </div>
 
         <div class="text-caption text-medium-emphasis mb-3">
           <div v-if="isActive" class="text-success font-weight-medium d-flex align-center ga-1">
             <UiIcon color="success" name="check" size="14" />
-            Pronta para receber votos no dispositivo
+            {{
+              isMonitoredMode
+                ? 'Urna liberada para o eleitor votar agora'
+                : 'Pronta para receber votos no dispositivo'
+            }}
           </div>
           <div v-else class="text-error font-weight-medium d-flex align-center ga-1">
             <UiIcon color="error" name="close" size="14" />
-            Votação pausada / bloqueada neste equipamento
+            {{
+              isMonitoredMode && isElectionReleased
+                ? 'Aguardando digitação do título para liberar voto'
+                : 'Votação pausada / bloqueada neste equipamento'
+            }}
+          </div>
+        </div>
+
+        <!-- Painel do Mesário (Modo Monitorado) -->
+        <div
+          v-if="canManage && isMonitoredMode && isElectionReleased && !isActive"
+          class="pa-3 mb-3 rounded-lg border bg-surface-variant"
+        >
+          <div
+            class="text-caption font-weight-bold text-high-emphasis mb-2 d-flex align-center ga-1"
+          >
+            <UiIcon color="indigo" name="userBadge" size="16" />
+            <span>Liberação de Eleitor (Mesário)</span>
+          </div>
+          <div class="d-flex align-center ga-2">
+            <UiInput
+              v-model="voterRegistrationNumber"
+              class="flex-grow-1"
+              density="compact"
+              :disabled="isReleasingVoter"
+              hide-details
+              label="Nº do Título do Eleitor"
+              placeholder="Digite o nº do título..."
+              size="sm"
+              variant="outline"
+              @keydown.enter.prevent="handleReleaseForVoter"
+            />
+            <UiButton
+              color="success"
+              :disabled="!voterRegistrationNumber.trim()"
+              :loading="isReleasingVoter"
+              prepend-icon="check"
+              size="sm"
+              variant="solid"
+              @click="handleReleaseForVoter"
+            >
+              Liberar
+            </UiButton>
           </div>
         </div>
       </div>
@@ -78,7 +153,7 @@
           <!-- Botão Abrir Urna no Dispositivo -->
           <UiButton
             :color="isActive ? 'primary' : 'default'"
-            :disabled="!isActive"
+            :disabled="!isActive && !isMonitoredMode"
             prepend-icon="externalLink"
             size="sm"
             :variant="isActive ? 'solid' : 'tonal'"
@@ -91,9 +166,10 @@
           <div v-if="canManage" class="d-flex align-center ga-1">
             <!-- Alternar Ativação -->
             <UiButton
+              v-if="!isMonitoredMode || isActive || !isElectionReleased"
               :color="isActive ? 'error' : 'success'"
               :loading="isToggling"
-              :prepend-icon="isActive ? 'power' : 'power'"
+              prepend-icon="power"
               size="sm"
               variant="tonal"
               @click="handleToggle"

@@ -1,5 +1,7 @@
 export type ElectionStatus = 'awaiting_release' | 'released' | 'tallying' | 'finished'
 
+export type ElectionVotingMode = 'simple' | 'monitored'
+
 export type ElectionTimelineFilter = 'all' | 'active' | 'upcoming' | 'past'
 
 export interface ElectionRow {
@@ -9,6 +11,7 @@ export interface ElectionRow {
   digits_count: number
   is_uppercase: boolean
   status: ElectionStatus
+  voting_mode?: ElectionVotingMode
   description?: string | null
   created_at: string
   updated_at: string
@@ -24,6 +27,7 @@ export interface ElectionInput {
   digits_count: number
   is_uppercase: boolean
   status: ElectionStatus
+  voting_mode?: ElectionVotingMode
   description?: string | null
 }
 

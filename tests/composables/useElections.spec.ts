@@ -115,6 +115,7 @@ describe('useElections Composable', () => {
       digits_count: 2,
       is_uppercase: true,
       status: 'awaiting_release',
+      voting_mode: 'monitored',
     })
 
     expect(fromMock).toHaveBeenCalledWith('elections')
@@ -124,6 +125,7 @@ describe('useElections Composable', () => {
         digits_count: 2,
         is_uppercase: true,
         status: 'awaiting_release',
+        voting_mode: 'monitored',
         created_by: 'admin-id',
       }),
     )
