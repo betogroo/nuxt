@@ -251,7 +251,13 @@
         <template #item-name="{ item }">
           <div class="d-flex align-center gap-3">
             <UiAvatar color="primary" size="30" variant="soft">
-              <UiImg v-if="item.avatar_url" :src="item.avatar_url" />
+              <UiImg
+                v-if="item.avatar_url"
+                :alt="item.name || 'Avatar'"
+                class="rounded-circle"
+                cover
+                :src="item.avatar_url"
+              />
               <span v-else class="text-caption font-weight-bold">
                 {{ (item.name || 'U').charAt(0).toUpperCase() }}
               </span>
@@ -319,7 +325,14 @@
           <template #item-name="{ item }">
             <div class="d-flex align-center gap-3">
               <UiAvatar color="default" size="30" variant="soft">
-                <span class="text-caption font-weight-bold text-medium-emphasis">
+                <UiImg
+                  v-if="item.avatar_url"
+                  :alt="item.name || 'Avatar'"
+                  class="rounded-circle"
+                  cover
+                  :src="item.avatar_url"
+                />
+                <span v-else class="text-caption font-weight-bold text-medium-emphasis">
                   {{ (item.name || 'U').charAt(0).toUpperCase() }}
                 </span>
               </UiAvatar>

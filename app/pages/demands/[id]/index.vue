@@ -924,7 +924,14 @@
                   style="margin-left: -4px; border: 2px solid white; cursor: pointer"
                   @click="activeTab = 'planning'"
                 >
-                  {{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}
+                  <UiImg
+                    v-if="resp?.profiles?.avatar_url"
+                    :alt="resp?.profiles?.name || 'Responsável'"
+                    class="rounded-circle"
+                    cover
+                    :src="resp.profiles.avatar_url"
+                  />
+                  <span v-else>{{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}</span>
                 </UiAvatar>
               </template>
             </UiTooltip>
@@ -1630,7 +1637,14 @@
               >
                 <template #prepend>
                   <UiAvatar class="text-caption text-white" color="primary" size="32">
-                    {{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}
+                    <UiImg
+                      v-if="resp?.profiles?.avatar_url"
+                      :alt="resp?.profiles?.name || 'Responsável'"
+                      class="rounded-circle"
+                      cover
+                      :src="resp.profiles.avatar_url"
+                    />
+                    <span v-else>{{ (resp?.profiles?.name || 'U').charAt(0).toUpperCase() }}</span>
                   </UiAvatar>
                 </template>
                 <UiListItemTitle class="text-body-2">{{

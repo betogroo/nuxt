@@ -186,7 +186,16 @@
             >
               <template #prepend>
                 <UiAvatar color="primary" size="28">
-                  <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
+                  <UiImg
+                    v-if="profile?.avatar_url"
+                    :alt="profile?.name || 'Avatar'"
+                    class="rounded-circle"
+                    cover
+                    :src="profile.avatar_url"
+                  />
+                  <span v-else class="text-caption text-white font-weight-bold">{{
+                    userInitial
+                  }}</span>
                 </UiAvatar>
               </template>
               <template #append>
@@ -277,7 +286,14 @@
         <template #activator="{ props }">
           <UiButton v-bind="props" class="ml-1 mr-2" icon rounded="lg" size="md" variant="ghost">
             <UiAvatar color="primary" size="32">
-              <span class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
+              <UiImg
+                v-if="profile?.avatar_url"
+                :alt="profile?.name || 'Avatar'"
+                class="rounded-circle"
+                cover
+                :src="profile.avatar_url"
+              />
+              <span v-else class="text-caption text-white font-weight-bold">{{ userInitial }}</span>
             </UiAvatar>
           </UiButton>
         </template>
@@ -286,7 +302,16 @@
             <UiListItem>
               <template #prepend>
                 <UiAvatar class="mr-1" color="primary" size="40">
-                  <span class="text-subtitle-1 text-white font-weight-bold">{{ userInitial }}</span>
+                  <UiImg
+                    v-if="profile?.avatar_url"
+                    :alt="profile?.name || 'Avatar'"
+                    class="rounded-circle"
+                    cover
+                    :src="profile.avatar_url"
+                  />
+                  <span v-else class="text-subtitle-1 text-white font-weight-bold">{{
+                    userInitial
+                  }}</span>
                 </UiAvatar>
               </template>
               <UiListItemTitle class="font-weight-semibold">

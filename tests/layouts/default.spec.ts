@@ -4,10 +4,17 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DefaultLayout from '~/layouts/default.vue'
 
+const mockProfile = ref<{ id: string; name: string; role: string; avatar_url?: string | null }>({
+  id: 'user-123',
+  name: 'Administrador',
+  role: 'admin',
+  avatar_url: null,
+})
+
 mockNuxtImport('useSupabaseUser', () => () => ref({ id: 'user-123', email: 'admin@gov.br' }))
 mockNuxtImport('useAuth', () => () => ({ signOut: vi.fn() }))
 mockNuxtImport('useProfile', () => () => ({
-  profile: ref({ id: 'user-123', name: 'Administrador', role: 'admin' }),
+  profile: mockProfile,
   fetchProfile: vi.fn(),
 }))
 mockNuxtImport('usePageIcon', () => () => ({ getIcon: vi.fn(() => 'circle') }))
@@ -87,7 +94,11 @@ const defaultStubs = {
   UiApp: { template: '<div><slot /></div>' },
   UiToast: true,
   UiNavigationDrawer: { template: '<aside><slot /><slot name="append" /></aside>' },
-  UiAvatar: { template: '<div><slot /></div>' },
+  UiAvatar: { template: '<div class="ui-avatar"><slot /></div>' },
+  UiImg: {
+    props: ['src', 'alt'],
+    template: '<img class="ui-img" :src="src" :alt="alt" />',
+  },
   UiIcon: true,
   UiDivider: true,
   UiList: {
@@ -169,5 +180,46 @@ describe('Default Layout Drawer', () => {
     for (const item of items) {
       expect(item.attributes('data-density')).toBe('compact')
     }
+  })
+
+  it('should display image avatar in nav-bar, user menu, and drawer when profile has avatar_url', async () => {
+    mockProfile.value = {
+      id: 'user-123',
+      name: 'Administrador',
+      role: 'admin',
+      avatar_url: 'https://storage.supabase.co/avatars/user-123/avatar.png',
+    }
+
+    const wrapper = mount(DefaultLayout, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const avatarImages = wrapper.findAll('img.ui-img')
+    expect(avatarImages.length).toBeGreaterThanOrEqual(2)
+    for (const img of avatarImages) {
+      expect(img.attributes('src')).toBe('https://storage.supabase.co/avatars/user-123/avatar.png')
+    }
+  })
+
+  it('should fallback to userInitial when profile has no avatar_url', async () => {
+    mockProfile.value = {
+      id: 'user-123',
+      name: 'Administrador',
+      role: 'admin',
+      avatar_url: null,
+    }
+
+    const wrapper = mount(DefaultLayout, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.findAll('img.ui-img').length).toBe(0)
+    expect(wrapper.text()).toContain('A')
   })
 })

@@ -120,7 +120,7 @@ export const useDemands = () => {
   const fetchDemandResponsibles = async (demandId: string) => {
     const { data, error } = await supabase
       .from('demand_responsibles')
-      .select('*, profiles(name)')
+      .select('*, profiles(name, avatar_url)')
       .eq('demand_id', demandId)
 
     if (error) throw error
