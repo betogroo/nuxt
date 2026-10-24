@@ -434,19 +434,30 @@
 
         <!-- Modo de Votação -->
         <template #item-voting_mode="{ item }">
-          <UiChip
-            :color="
-              ELECTION_VOTING_MODE_COLORS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
-              'teal'
-            "
-            size="xs"
-            variant="soft"
-          >
-            {{
-              ELECTION_VOTING_MODE_LABELS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
-              'Simples'
-            }}
-          </UiChip>
+          <div class="d-flex flex-column align-center ga-1">
+            <UiChip
+              :color="
+                ELECTION_VOTING_MODE_COLORS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
+                'teal'
+              "
+              size="xs"
+              variant="soft"
+            >
+              {{
+                ELECTION_VOTING_MODE_LABELS[(item.voting_mode || 'simple') as ElectionVotingMode] ||
+                'Simples'
+              }}
+            </UiChip>
+            <UiChip
+              v-if="item.is_anonymous === false"
+              color="warning"
+              label
+              size="xs"
+              variant="outline"
+            >
+              Nominal
+            </UiChip>
+          </div>
         </template>
 
         <!-- Quantidade de Dígitos -->

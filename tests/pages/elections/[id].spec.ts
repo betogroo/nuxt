@@ -608,4 +608,25 @@ describe('Election Detail Page (/elections/[id])', () => {
     vm.votersSearch = '100599'
     expect(vm.filteredVoters).toHaveLength(1)
   })
+
+  it('includes vote column in voters headers and maps votes when election is not anonymous', async () => {
+    const nonAnonElection = {
+      ...mockElection,
+      is_anonymous: false,
+      voting_mode: 'monitored',
+    }
+    fetchElectionByIdMock.mockResolvedValueOnce(nonAnonElection)
+
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      election: typeof nonAnonElection
+      votersTableHeaders: Array<{ text: string; value: string }>
+    }
+
+    vm.election = nonAnonElection
+    await wrapper.vm.$nextTick()
+
+    const hasVoteHeader = vm.votersTableHeaders.some((h) => h.value === 'vote')
+    expect(hasVoteHeader).toBe(true)
+  })
 })

@@ -1,13 +1,17 @@
 <script setup lang="ts">
   import { ref, computed } from 'vue'
-  import { useElectionReports, formatPercentageBr } from '~/composables/useElectionReports'
+  import {
+    useElectionReports,
+    formatPercentageBr,
+    type FinalNominalVoteItem,
+  } from '~/composables/useElectionReports'
   import { formatDateTime } from '~/utils/formatters'
   import { ELECTION_STATUS_LABELS, ELECTION_VOTING_MODE_LABELS } from '~/constants/elections'
   import type { ElectionRow } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
   import type { BallotBoxRow } from '~/types/ballot-box'
   import type { ElectionCommitteeMemberRow } from '~/types/election-committee'
-  import type { ElectionTallySummary } from '~/types/election-vote'
+  import type { ElectionTallySummary, ElectionVoteRow } from '~/types/election-vote'
 
   const props = defineProps<{
     election: ElectionRow
@@ -15,6 +19,7 @@
     ballotBoxes: BallotBoxRow[]
     committee: ElectionCommitteeMemberRow[]
     tally: ElectionTallySummary
+    votes?: ElectionVoteRow[]
   }>()
 
   const isOpen = ref(false)
@@ -52,6 +57,33 @@
       .join('')
   }
 
+  const nominalVotes = computed<FinalNominalVoteItem[]>(() => {
+    if (props.election.is_anonymous !== false) return []
+    const candidateMap = new Map<string, CandidateRow>()
+    for (const c of props.candidates) {
+      candidateMap.set(c.id, c)
+    }
+    return (props.votes || [])
+      .filter((v) => v.voter_name || v.voter_registration_number)
+      .map((v) => {
+        let voteDesc = 'Desconhecido'
+        if (v.vote_type === 'nominal') {
+          const c = v.candidate_id ? candidateMap.get(v.candidate_id) : null
+          voteDesc = c ? `${c.candidate_number} - ${c.name}` : 'Candidato'
+        } else if (v.vote_type === 'blank') {
+          voteDesc = 'Voto em Branco'
+        } else if (v.vote_type === 'null') {
+          voteDesc = 'Voto Nulo'
+        }
+        return {
+          voterRegistrationNumber: v.voter_registration_number || '-',
+          voterName: v.voter_name || 'Eleitor identificado',
+          voteDescription: voteDesc,
+          votedAt: formatDateTime(v.created_at),
+        }
+      })
+  })
+
   const open = (type: 'initial' | 'final') => {
     reportType.value = type
     generatedAt.value = new Date()
@@ -76,6 +108,7 @@
           tally: props.tally,
           committee: props.committee,
           generatedAt: generatedAt.value,
+          nominalVotes: nominalVotes.value,
         })
       }
     } catch (error: unknown) {
@@ -103,6 +136,7 @@
           tally: props.tally,
           committee: props.committee,
           generatedAt: generatedAt.value,
+          nominalVotes: nominalVotes.value,
         })
       }
       toast.success('Relatório em PDF baixado com sucesso!')
@@ -174,9 +208,11 @@
           </UiCol>
           <UiCol cols="12" sm="3">
             <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">
-              Dígitos na Urna
+              Sigilo do Voto
             </div>
-            <div class="text-body-2 font-weight-medium">{{ election.digits_count }} dígito(s)</div>
+            <div class="text-body-2 font-weight-medium">
+              {{ election.is_anonymous !== false ? 'Voto Anônimo' : 'Voto Nominal (Não Anônimo)' }}
+            </div>
           </UiCol>
           <UiCol cols="12" sm="3">
             <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">
@@ -415,6 +451,46 @@
             </tbody>
           </UiTable>
         </UiCard>
+
+        <!-- Registro Nominal de Votos (Eleição Não Anônima) -->
+        <div
+          v-if="election.is_anonymous === false"
+          class="mb-4"
+          data-testid="report-nominal-votes-section"
+        >
+          <div class="text-subtitle-2 font-weight-bold text-uppercase text-primary mb-2">
+            Registro Nominal de Votos (Eleição Não Anônima)
+          </div>
+          <UiCard variant="outline">
+            <UiTable density="compact">
+              <thead>
+                <tr>
+                  <th style="width: 140px">Nº Título</th>
+                  <th>Eleitor</th>
+                  <th style="width: 240px">Voto Registrado</th>
+                  <th class="text-center" style="width: 160px">Data / Horário</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="nominalVotes.length === 0">
+                  <td class="text-center text-medium-emphasis py-4" colspan="4">
+                    Nenhum voto registrado até o momento.
+                  </td>
+                </tr>
+                <tr v-for="(nv, idx) in nominalVotes" :key="idx">
+                  <td class="font-weight-bold font-monospace">{{ nv.voterRegistrationNumber }}</td>
+                  <td class="font-weight-medium">{{ nv.voterName }}</td>
+                  <td>
+                    <UiChip color="primary" label size="xs" variant="tonal">
+                      {{ nv.voteDescription }}
+                    </UiChip>
+                  </td>
+                  <td class="text-center text-caption text-medium-emphasis">{{ nv.votedAt }}</td>
+                </tr>
+              </tbody>
+            </UiTable>
+          </UiCard>
+        </div>
       </div>
 
       <!-- SEÇÃO DE ASSINATURAS DA COMISSÃO ELEITORAL -->

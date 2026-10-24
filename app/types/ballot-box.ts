@@ -4,6 +4,9 @@ export interface BallotBoxRow {
   name: string
   device_info: string | null
   is_active: boolean
+  current_voter_id?: string | null
+  current_voter_registration_number?: string | null
+  current_voter_name?: string | null
   created_by: string | null
   deleted_at: string | null
   created_at: string

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { ref, computed } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useSupabaseClient } from '#imports'
   import { useZodForm } from '~/composables/useZodForm'
   import { electionFormSchema, type ElectionFormInput } from '~/schemas/forms/election'
@@ -53,6 +53,7 @@
     is_uppercase: false,
     status: 'awaiting_release' as ElectionStatus,
     voting_mode: 'simple' as ElectionVotingMode,
+    is_anonymous: true,
     description: '',
   }
 
@@ -67,7 +68,17 @@
   const [isUppercase, isUppercaseProps] = defineField('is_uppercase')
   const [status, statusProps] = defineField('status')
   const [votingMode, votingModeProps] = defineField('voting_mode')
+  const [isAnonymous, isAnonymousProps] = defineField('is_anonymous')
   const [description, descriptionProps] = defineField('description')
+
+  watch(
+    () => votingMode.value,
+    (mode) => {
+      if (mode === 'simple') {
+        isAnonymous.value = true
+      }
+    },
+  )
 
   const open = async (election?: ElectionRow, hasCandidatesParam?: boolean) => {
     errorMessage.value = ''
@@ -106,6 +117,7 @@
           is_uppercase: election.is_uppercase,
           status: election.status,
           voting_mode: election.voting_mode || 'simple',
+          is_anonymous: election.is_anonymous ?? true,
           description: election.description || '',
         },
       })
@@ -252,6 +264,26 @@
           item-value="value"
           :items="votingModeOptions"
           label="Modo de Votação *"
+          persistent-hint
+        />
+      </div>
+
+      <!-- Voto Anônimo -->
+      <div class="border rounded pa-3 bg-surface-variant">
+        <UiCheckbox
+          v-model="isAnonymous"
+          v-bind="isAnonymousProps"
+          color="primary"
+          :disabled="votingMode === 'simple'"
+          :error-messages="errors.is_anonymous"
+          :hint="
+            votingMode === 'simple'
+              ? 'O modo simples é obrigatoriamente anônimo, pois o eleitor não é identificado na urna.'
+              : isAnonymous
+                ? 'Voto Anônimo ativado: A identidade do eleitor não fica registrada junto ao voto no candidato.'
+                : 'Votação Nominal (Não Anônima): O voto no candidato fica registrado nominalmente com o eleitor (nome e título).'
+          "
+          label="Voto anônimo"
           persistent-hint
         />
       </div>

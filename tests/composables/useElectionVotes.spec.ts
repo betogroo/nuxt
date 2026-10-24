@@ -54,10 +54,64 @@ describe('useElectionVotes Composable', () => {
       candidate_number: '10',
       is_blank: false,
       is_null: false,
+      voter_id: null,
+      voter_registration_number: null,
+      voter_name: null,
     })
     expect(logActionMock).toHaveBeenCalledWith(
       'CAST_ELECTION_VOTE',
       expect.stringContaining('Voto anônimo registrado na eleição'),
+    )
+    expect(result).toEqual(mockVote)
+  })
+
+  it('castVote should insert a nominal vote with voter identification in non-anonymous election', async () => {
+    const mockVote: ElectionVoteRow = {
+      id: 'vote-2',
+      election_id: 'elec-1',
+      ballot_box_id: 'box-1',
+      candidate_id: 'cand-1',
+      candidate_number: '10',
+      is_blank: false,
+      is_null: false,
+      voter_id: 'voter-123',
+      voter_registration_number: '99887766',
+      voter_name: 'Carlos Silva',
+      created_at: '2026-10-24T11:05:00Z',
+    }
+
+    const singleMock = vi.fn().mockResolvedValue({ data: mockVote, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+    fromMock.mockReturnValue({ insert: insertMock })
+
+    const { castVote } = useElectionVotes()
+    const result = await castVote({
+      election_id: 'elec-1',
+      ballot_box_id: 'box-1',
+      candidate_id: 'cand-1',
+      candidate_number: '10',
+      is_blank: false,
+      is_null: false,
+      voter_id: 'voter-123',
+      voter_registration_number: '99887766',
+      voter_name: 'Carlos Silva',
+    })
+
+    expect(insertMock).toHaveBeenCalledWith({
+      election_id: 'elec-1',
+      ballot_box_id: 'box-1',
+      candidate_id: 'cand-1',
+      candidate_number: '10',
+      is_blank: false,
+      is_null: false,
+      voter_id: 'voter-123',
+      voter_registration_number: '99887766',
+      voter_name: 'Carlos Silva',
+    })
+    expect(logActionMock).toHaveBeenCalledWith(
+      'CAST_ELECTION_VOTE',
+      expect.stringContaining('Voto nominal registrado'),
     )
     expect(result).toEqual(mockVote)
   })

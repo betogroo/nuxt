@@ -114,6 +114,8 @@
   }) => {
     if (!ballotBox.value) return
 
+    const isNominal = isMonitoredMode.value && election.value?.is_anonymous === false
+
     try {
       await castVote({
         election_id: electionId.value,
@@ -122,6 +124,11 @@
         candidate_number: payload.candidateNumber ?? null,
         is_blank: payload.isBlank,
         is_null: payload.isNull,
+        voter_id: isNominal ? (ballotBox.value.current_voter_id ?? null) : null,
+        voter_registration_number: isNominal
+          ? (ballotBox.value.current_voter_registration_number ?? null)
+          : null,
+        voter_name: isNominal ? (ballotBox.value.current_voter_name ?? null) : null,
       })
     } catch (err) {
       console.warn('Falha ao registrar voto no banco:', err)
@@ -383,6 +390,24 @@
 
         <!-- Urna Ativa e Pronta -->
         <div v-else class="flex-grow-1 d-flex flex-column align-center justify-center pa-2 pa-sm-4">
+          <UiAlert
+            v-if="election?.is_anonymous === false && ballotBox?.current_voter_name"
+            class="mb-3 w-100"
+            color="warning"
+            max-width="820"
+            variant="soft"
+          >
+            <div class="d-flex align-center ga-2">
+              <UiIcon name="visibility" size="18" />
+              <span>
+                <strong>Votação Nominal:</strong> Eleitor identificado como
+                <strong>{{ ballotBox.current_voter_name }}</strong> (Título nº
+                {{ ballotBox.current_voter_registration_number }}). O voto nesta eleição NÃO é
+                anônimo.
+              </span>
+            </div>
+          </UiAlert>
+
           <VirtualBallotBox
             :candidates="candidates"
             :election="election"

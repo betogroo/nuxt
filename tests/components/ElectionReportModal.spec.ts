@@ -173,4 +173,46 @@ describe('ElectionReportModal Component', () => {
     await wrapper.find('[data-testid="btn-download-report-pdf"]').trigger('click')
     expect(exportFinalReportToPdfMock).toHaveBeenCalledTimes(1)
   })
+
+  it('renders nominal votes section when election is not anonymous in final report', async () => {
+    const nonAnonymousElection = {
+      ...mockElection,
+      is_anonymous: false,
+      voting_mode: 'monitored' as const,
+    }
+    const mockVotes = [
+      {
+        id: 'vote-1',
+        election_id: 'elec-1',
+        ballot_box_id: 'box-1',
+        candidate_id: 'cand-1',
+        vote_type: 'nominal' as const,
+        voter_id: 'voter-1',
+        voter_registration_number: '12345678',
+        voter_name: 'Roberto Votante',
+        created_at: '2026-10-24T12:30:00Z',
+      },
+    ]
+
+    const wrapper = mount(ElectionReportModal, {
+      props: {
+        election: nonAnonymousElection,
+        candidates: mockCandidates,
+        ballotBoxes: mockBallotBoxes,
+        committee: mockCommittee,
+        tally: mockTally,
+        votes: mockVotes,
+      },
+      global: { stubs: globalStubs },
+    })
+
+    const vm = wrapper.vm as unknown as { open: (type: 'initial' | 'final') => void }
+    vm.open('final')
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('[data-testid="report-nominal-votes-section"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Roberto Votante')
+    expect(wrapper.text()).toContain('12345678')
+    expect(wrapper.text()).toContain('11 - João Carlos')
+  })
 })

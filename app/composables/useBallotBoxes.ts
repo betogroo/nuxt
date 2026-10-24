@@ -159,12 +159,19 @@ export function useBallotBoxes() {
     error.value = null
 
     try {
+      const updatePayload: Record<string, unknown> = {
+        is_active: isActive,
+        updated_at: new Date().toISOString(),
+      }
+      if (!isActive) {
+        updatePayload.current_voter_id = null
+        updatePayload.current_voter_registration_number = null
+        updatePayload.current_voter_name = null
+      }
+
       const { data, error: err } = await supabase
         .from('ballot_boxes')
-        .update({
-          is_active: isActive,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single()
@@ -305,7 +312,21 @@ export function useBallotBoxes() {
         throw new Error(insertErr.message || 'Falha ao registrar validação do eleitor.')
       }
 
-      await toggleBallotBoxStatus(params.ballotBoxId, true)
+      const { error: boxUpdateErr } = await supabase
+        .from('ballot_boxes')
+        .update({
+          is_active: true,
+          current_voter_id: voterRecord.id,
+          current_voter_registration_number: cleanNumber,
+          current_voter_name: voterRecord.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', params.ballotBoxId)
+
+      if (boxUpdateErr) {
+        console.error('Erro ao atualizar status da urna:', boxUpdateErr)
+        throw new Error(boxUpdateErr.message || 'Falha ao liberar status da urna.')
+      }
 
       await logAction(
         'RELEASE_BALLOT_BOX_FOR_VOTER',

@@ -22,6 +22,9 @@ export const useElectionVotes = () => {
         candidate_number: payload.candidate_number ?? null,
         is_blank: payload.is_blank,
         is_null: payload.is_null,
+        voter_id: payload.voter_id ?? null,
+        voter_registration_number: payload.voter_registration_number ?? null,
+        voter_name: payload.voter_name ?? null,
       })
       .select('*')
       .single()
@@ -31,10 +34,11 @@ export const useElectionVotes = () => {
     }
 
     const vote = data as ElectionVoteRow
-    await logAction(
-      'CAST_ELECTION_VOTE',
-      `Voto anônimo registrado na eleição (ID: ${payload.election_id})${payload.ballot_box_id ? ` via urna (ID: ${payload.ballot_box_id})` : ''}.`,
-    )
+    const isNominal = !!payload.voter_registration_number
+    const logDesc = isNominal
+      ? `Voto nominal registrado para o eleitor ${payload.voter_name || payload.voter_registration_number} na eleição (ID: ${payload.election_id})${payload.ballot_box_id ? ` via urna (ID: ${payload.ballot_box_id})` : ''}.`
+      : `Voto anônimo registrado na eleição (ID: ${payload.election_id})${payload.ballot_box_id ? ` via urna (ID: ${payload.ballot_box_id})` : ''}.`
+    await logAction('CAST_ELECTION_VOTE', logDesc)
 
     return vote
   }

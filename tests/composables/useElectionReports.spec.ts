@@ -179,4 +179,40 @@ describe('useElectionReports Composable', () => {
 
     expect(finalDoc.getNumberOfPages()).toBeGreaterThanOrEqual(1)
   })
+
+  it('buildFinalElectionReportHtml and PdfDoc should include nominal votes when election is not anonymous', async () => {
+    const nonAnonymousElection: ElectionRow = {
+      ...mockElection,
+      is_anonymous: false,
+    }
+    const nominalVotes = [
+      {
+        voterRegistrationNumber: '55443322',
+        voterName: 'Juliana Costa',
+        voteDescription: '12 - Chapa Renovação',
+        votedAt: '25/10/2026 14:15:00',
+      },
+    ]
+
+    const html = buildFinalElectionReportHtml({
+      election: nonAnonymousElection,
+      tally: mockTally,
+      committee: mockCommittee,
+      nominalVotes,
+    })
+
+    expect(html).toContain('Registro Nominal de Votos (Eleição Não Anônima)')
+    expect(html).toContain('55443322')
+    expect(html).toContain('Juliana Costa')
+    expect(html).toContain('12 - Chapa Renovação')
+    expect(html).toContain('Voto Nominal (Não Anônimo)')
+
+    const doc = await buildFinalElectionReportPdfDoc({
+      election: nonAnonymousElection,
+      tally: mockTally,
+      committee: mockCommittee,
+      nominalVotes,
+    })
+    expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1)
+  })
 })

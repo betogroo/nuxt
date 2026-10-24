@@ -27,6 +27,7 @@ export const electionFormSchema = z.object({
       invalid_type_error: 'Modo de votação inválido.',
     })
     .default('simple'),
+  is_anonymous: z.boolean().default(true),
   description: z.string().optional().nullable(),
 })
 

@@ -61,14 +61,16 @@ mockNuxtImport('useSupabaseClient', () => () => ({
   removeChannel: vi.fn(),
 }))
 
+const fetchElectionByIdMock = vi.fn().mockResolvedValue(mockElection)
 mockNuxtImport('useElections', () => () => ({
-  fetchElectionById: vi.fn().mockResolvedValue(mockElection),
+  fetchElectionById: fetchElectionByIdMock,
 }))
 
+const fetchBallotBoxByIdMock = vi.fn().mockResolvedValue(mockBallotBox)
 const toggleBallotBoxStatusMock = vi.fn().mockResolvedValue({ ...mockBallotBox, is_active: false })
 
 mockNuxtImport('useBallotBoxes', () => () => ({
-  fetchBallotBoxById: vi.fn().mockResolvedValue(mockBallotBox),
+  fetchBallotBoxById: fetchBallotBoxByIdMock,
   toggleBallotBoxStatus: toggleBallotBoxStatusMock,
 }))
 
@@ -172,7 +174,82 @@ describe('BallotBox Kiosk Terminal Page', () => {
       candidate_number: '10',
       is_blank: false,
       is_null: false,
+      voter_id: null,
+      voter_registration_number: null,
+      voter_name: null,
     })
     expect(toggleBallotBoxStatusMock).toHaveBeenCalledWith('box-1', false)
+  })
+
+  it('passes voter identification to castVote when election is not anonymous', async () => {
+    const nonAnonElection = {
+      ...mockElection,
+      is_anonymous: false,
+      voting_mode: 'monitored',
+    }
+    fetchElectionByIdMock.mockResolvedValueOnce(nonAnonElection)
+
+    const ballotBoxWithVoter = {
+      id: 'box-1',
+      election_id: 'elec-1',
+      name: 'Urna 01',
+      device_info: 'PC',
+      is_active: true,
+      current_voter_id: 'v-1',
+      current_voter_registration_number: '12345678',
+      current_voter_name: 'Votante Nominal',
+      created_by: 'u1',
+      deleted_at: null,
+      created_at: '2026-10-24T10:00:00Z',
+      updated_at: '2026-10-24T10:00:00Z',
+    }
+    fetchBallotBoxByIdMock.mockResolvedValueOnce(ballotBoxWithVoter)
+
+    const wrapper = shallowMount(BallotBoxKioskPage, {
+      global: {
+        stubs: {
+          UiApp: { template: '<div><slot /></div>' },
+          UiMain: { template: '<div><slot /></div>' },
+          UiProgressCircular: true,
+          UiCard: true,
+          UiAvatar: true,
+          UiIcon: true,
+          UiChip: true,
+          UiButton: true,
+          UiAlert: true,
+          UiModal: true,
+          VirtualBallotBox: {
+            name: 'VirtualBallotBox',
+            template: '<div class="virtual-ballot-box-stub" />',
+            props: ['election', 'candidates'],
+          },
+        },
+      },
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await wrapper.vm.$nextTick()
+
+    const vbb = wrapper.findComponent({ name: 'VirtualBallotBox' })
+    expect(vbb.exists()).toBe(true)
+
+    await vbb.vm.$emit('vote-confirmed', {
+      candidateId: 'cand-1',
+      candidateNumber: '10',
+      isBlank: false,
+      isNull: false,
+    })
+
+    expect(castVoteMock).toHaveBeenCalledWith({
+      election_id: 'elec-1',
+      ballot_box_id: 'box-1',
+      candidate_id: 'cand-1',
+      candidate_number: '10',
+      is_blank: false,
+      is_null: false,
+      voter_id: 'v-1',
+      voter_registration_number: '12345678',
+      voter_name: 'Votante Nominal',
+    })
   })
 })

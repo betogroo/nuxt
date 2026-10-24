@@ -8,6 +8,9 @@ export interface ElectionVoteRow {
   candidate_number: string | null
   is_blank: boolean
   is_null: boolean
+  voter_id?: string | null
+  voter_registration_number?: string | null
+  voter_name?: string | null
   created_at: string
 }
 
@@ -18,6 +21,9 @@ export interface CastElectionVoteInput {
   candidate_number?: string | null
   is_blank: boolean
   is_null: boolean
+  voter_id?: string | null
+  voter_registration_number?: string | null
+  voter_name?: string | null
 }
 
 export interface CandidateTallyItem {

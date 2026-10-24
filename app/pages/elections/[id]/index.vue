@@ -157,6 +157,12 @@
     ballotBoxId: string | null
   }
 
+  interface VoterWithAttendanceAndVote extends VoterWithAttendance {
+    voteType?: string | null
+    candidateName?: string | null
+    candidateNumber?: string | null
+  }
+
   const attendanceMap = computed(() => {
     const map = new Map<string, { votedAt: string; ballotBoxId: string | null }>()
     for (const att of electionAttendance.value || []) {
@@ -173,21 +179,57 @@
     return map
   })
 
-  const votersWithAttendance = computed<VoterWithAttendance[]>(() => {
+  const candidateByIdMap = computed(() => {
+    const map = new Map<string, CandidateRow>()
+    for (const c of candidates.value || []) {
+      map.set(c.id, c)
+    }
+    return map
+  })
+
+  const votesByVoterMap = computed(() => {
+    const map = new Map<string, { voteType: string; candidateId: string | null }>()
+    for (const v of electionVotes.value || []) {
+      if (v.voter_id) {
+        map.set(v.voter_id, { voteType: v.vote_type, candidateId: v.candidate_id })
+      }
+      if (v.voter_registration_number) {
+        map.set(v.voter_registration_number, {
+          voteType: v.vote_type,
+          candidateId: v.candidate_id,
+        })
+      }
+    }
+    return map
+  })
+
+  const votersWithAttendance = computed<VoterWithAttendanceAndVote[]>(() => {
     const list = electionVoters.value || []
-    const map = attendanceMap.value
+    const attMap = attendanceMap.value
+    const voteMap = votesByVoterMap.value
+    const candMap = candidateByIdMap.value
+    const isNominal = election.value?.is_anonymous === false
+
     return list.map((v) => {
-      const att = map.get(v.id) || map.get(v.voter_registration_number)
+      const att = attMap.get(v.id) || attMap.get(v.voter_registration_number)
+      const voteInfo = isNominal
+        ? voteMap.get(v.id) || voteMap.get(v.voter_registration_number)
+        : null
+      const candidate = voteInfo?.candidateId ? candMap.get(voteInfo.candidateId) : null
+
       return {
         ...v,
         hasVoted: !!att,
         votedAt: att?.votedAt || null,
         ballotBoxId: att?.ballotBoxId || null,
+        voteType: voteInfo?.voteType || null,
+        candidateName: candidate?.name || null,
+        candidateNumber: candidate?.candidate_number || null,
       }
     })
   })
 
-  const filteredVoters = computed<VoterWithAttendance[]>(() => {
+  const filteredVoters = computed<VoterWithAttendanceAndVote[]>(() => {
     let list = votersWithAttendance.value
     const term = votersSearch.value.trim().toLowerCase()
     if (term) {
@@ -215,17 +257,25 @@
     return (votedVotersCount.value / totalVotersCount.value) * 100
   })
 
-  const votersTableHeaders: Array<{
-    text: string
-    value: string
-    align?: 'left' | 'center' | 'right'
-    width?: string | number
-  }> = [
-    { text: 'Nº do Título', value: 'voter_registration_number', width: 140 },
-    { text: 'Nome do Eleitor', value: 'name' },
-    { text: 'Comparecimento nesta Eleição', value: 'attendance', align: 'center', width: 220 },
-    { text: 'Situação', value: 'is_active', align: 'center', width: 120 },
-  ]
+  const votersTableHeaders = computed(() => {
+    const headers: Array<{
+      text: string
+      value: string
+      align?: 'left' | 'center' | 'right'
+      width?: string | number
+    }> = [
+      { text: 'Nº do Título', value: 'voter_registration_number', width: 140 },
+      { text: 'Nome do Eleitor', value: 'name' },
+      { text: 'Comparecimento nesta Eleição', value: 'attendance', align: 'center', width: 220 },
+    ]
+
+    if (election.value?.is_anonymous === false) {
+      headers.push({ text: 'Voto Registrado', value: 'vote', align: 'center', width: 220 })
+    }
+
+    headers.push({ text: 'Situação', value: 'is_active', align: 'center', width: 120 })
+    return headers
+  })
 
   // Committee Form & Actions state
   const committeeFormName = ref('')
@@ -708,6 +758,13 @@
                     ] || 'Simples'
                   ).toUpperCase()
                 }}
+              </UiChip>
+              <UiChip
+                :color="election.is_anonymous !== false ? 'default' : 'deep-orange'"
+                size="sm"
+                :variant="election.is_anonymous !== false ? 'soft' : 'solid'"
+              >
+                {{ election.is_anonymous !== false ? 'VOTO: ANÔNIMO' : 'VOTO: NOMINAL' }}
               </UiChip>
             </div>
             <div class="d-flex align-center ga-2 text-caption text-medium-emphasis mt-1">
@@ -1395,26 +1452,27 @@
               >
                 <template #item-voter_registration_number="{ item }">
                   <span class="font-weight-bold text-caption font-monospace">
-                    {{ (item as unknown as VoterWithAttendance).voter_registration_number }}
+                    {{ (item as unknown as VoterWithAttendanceAndVote).voter_registration_number }}
                   </span>
                 </template>
 
                 <template #item-name="{ item }">
                   <span class="font-weight-medium">
-                    {{ (item as unknown as VoterWithAttendance).name }}
+                    {{ (item as unknown as VoterWithAttendanceAndVote).name }}
                   </span>
                 </template>
 
                 <template #item-attendance="{ item }">
                   <UiChip
-                    v-if="(item as unknown as VoterWithAttendance).hasVoted"
+                    v-if="(item as unknown as VoterWithAttendanceAndVote).hasVoted"
                     color="success"
                     label
                     size="xs"
                     variant="tonal"
                   >
                     <UiIcon class="mr-1" name="check" size="12" />
-                    Votou em {{ formatDateTime((item as unknown as VoterWithAttendance).votedAt) }}
+                    Votou em
+                    {{ formatDateTime((item as unknown as VoterWithAttendanceAndVote).votedAt) }}
                   </UiChip>
                   <UiChip v-else color="warning" label size="xs" variant="tonal">
                     <UiIcon class="mr-1" name="clockOutline" size="12" />
@@ -1422,16 +1480,66 @@
                   </UiChip>
                 </template>
 
+                <template v-if="election.is_anonymous === false" #item-vote="{ item }">
+                  <template v-if="(item as unknown as VoterWithAttendanceAndVote).hasVoted">
+                    <UiChip
+                      v-if="(item as unknown as VoterWithAttendanceAndVote).voteType === 'nominal'"
+                      color="primary"
+                      label
+                      size="xs"
+                      variant="tonal"
+                    >
+                      <UiIcon class="mr-1" name="account" size="12" />
+                      {{ (item as unknown as VoterWithAttendanceAndVote).candidateNumber }} -
+                      {{
+                        (item as unknown as VoterWithAttendanceAndVote).candidateName || 'Candidato'
+                      }}
+                    </UiChip>
+                    <UiChip
+                      v-else-if="
+                        (item as unknown as VoterWithAttendanceAndVote).voteType === 'blank'
+                      "
+                      color="default"
+                      label
+                      size="xs"
+                      variant="tonal"
+                    >
+                      Voto em Branco
+                    </UiChip>
+                    <UiChip
+                      v-else-if="
+                        (item as unknown as VoterWithAttendanceAndVote).voteType === 'null'
+                      "
+                      color="error"
+                      label
+                      size="xs"
+                      variant="tonal"
+                    >
+                      Voto Nulo
+                    </UiChip>
+                    <span v-else class="text-caption text-medium-emphasis">Voto Registrado</span>
+                  </template>
+                  <span v-else class="text-caption text-medium-emphasis text-disabled">
+                    Aguardando voto
+                  </span>
+                </template>
+
                 <template #item-is_active="{ item }">
                   <UiChip
                     :color="
-                      (item as unknown as VoterWithAttendance).is_active ? 'success' : 'error'
+                      (item as unknown as VoterWithAttendanceAndVote).is_active
+                        ? 'success'
+                        : 'error'
                     "
                     label
                     size="xs"
                     variant="tonal"
                   >
-                    {{ (item as unknown as VoterWithAttendance).is_active ? 'Ativo' : 'Inativo' }}
+                    {{
+                      (item as unknown as VoterWithAttendanceAndVote).is_active
+                        ? 'Ativo'
+                        : 'Inativo'
+                    }}
                   </UiChip>
                 </template>
 
@@ -1805,6 +1913,7 @@
       :committee="committeeMembers || []"
       :election="election"
       :tally="electionTally"
+      :votes="electionVotes || []"
     />
 
     <!-- Modal de Confirmação de Transição de Situação -->

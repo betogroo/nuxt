@@ -84,7 +84,30 @@ describe('Election Form Schema', () => {
       expect(result.data.is_uppercase).toBe(false)
       expect(result.data.status).toBe('awaiting_release')
       expect(result.data.voting_mode).toBe('simple')
+      expect(result.data.is_anonymous).toBe(true)
       expect(result.data.description).toBeUndefined()
+    }
+  })
+
+  it('defaults is_anonymous to true and supports is_anonymous=false', () => {
+    const defaultAnon = electionFormSchema.safeParse({
+      name: 'Eleição Padrão',
+      election_date: '2026-11-01',
+    })
+    expect(defaultAnon.success).toBe(true)
+    if (defaultAnon.success) {
+      expect(defaultAnon.data.is_anonymous).toBe(true)
+    }
+
+    const nonAnon = electionFormSchema.safeParse({
+      name: 'Eleição Não Anônima',
+      election_date: '2026-11-01',
+      voting_mode: 'monitored',
+      is_anonymous: false,
+    })
+    expect(nonAnon.success).toBe(true)
+    if (nonAnon.success) {
+      expect(nonAnon.data.is_anonymous).toBe(false)
     }
   })
 

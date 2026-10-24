@@ -148,4 +148,32 @@ describe('ElectionFormModal Component', () => {
     expect(wrapper.emitted('saved')).toBeTruthy()
     expect(vm.isOpen).toBe(false)
   })
+
+  it('handles isAnonymous field defaulting to true and allows false when monitored', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      open: (e?: Record<string, unknown>) => Promise<void>
+      isAnonymous: boolean
+      votingMode: string
+      name: string
+      electionDate: string
+      onSubmit: () => Promise<void>
+    }
+
+    await vm.open()
+    expect(vm.isAnonymous).toBe(true)
+
+    vm.name = 'Eleição Monitorada Aberta'
+    vm.electionDate = '2026-11-20'
+    vm.votingMode = 'monitored'
+    vm.isAnonymous = false
+    await vm.onSubmit()
+
+    expect(createElectionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_anonymous: false,
+        voting_mode: 'monitored',
+      }),
+    )
+  })
 })

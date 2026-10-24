@@ -12,6 +12,7 @@ export interface ElectionRow {
   is_uppercase: boolean
   status: ElectionStatus
   voting_mode?: ElectionVotingMode
+  is_anonymous?: boolean
   description?: string | null
   created_at: string
   updated_at: string
@@ -28,6 +29,7 @@ export interface ElectionInput {
   is_uppercase: boolean
   status: ElectionStatus
   voting_mode?: ElectionVotingMode
+  is_anonymous?: boolean
   description?: string | null
 }
 

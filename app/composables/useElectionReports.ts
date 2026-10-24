@@ -19,11 +19,19 @@ export interface InitialElectionReportParams {
   generatedAt?: Date | string
 }
 
+export interface FinalNominalVoteItem {
+  voterRegistrationNumber: string
+  voterName: string
+  voteDescription: string
+  votedAt: string
+}
+
 export interface FinalElectionReportParams {
   election: ElectionRow
   tally: ElectionTallySummary
   committee: ElectionCommitteeMemberRow[]
   generatedAt?: Date | string
+  nominalVotes?: FinalNominalVoteItem[]
 }
 
 export function formatPercentageBr(value: number): string {
@@ -365,6 +373,10 @@ export function buildInitialElectionReportHtml(params: InitialElectionReportPara
         <div class="meta-value">${escapeHtml(modeLabel)}</div>
       </div>
       <div>
+        <div class="meta-label">Sigilo do Voto</div>
+        <div class="meta-value">${election.is_anonymous !== false ? 'Voto Anônimo' : 'Voto Nominal (Não Anônimo)'}</div>
+      </div>
+      <div>
         <div class="meta-label">Dígitos na Urna</div>
         <div class="meta-value">${election.digits_count} dígito(s)</div>
       </div>
@@ -492,6 +504,37 @@ export function buildFinalElectionReportHtml(params: FinalElectionReportParams):
           })
           .join('')
 
+  const nominalVotesSection =
+    election.is_anonymous === false && params.nominalVotes && params.nominalVotes.length > 0
+      ? `
+    <div class="section-title">Registro Nominal de Votos (Eleição Não Anônima)</div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 140px;">Nº do Título / Matrícula</th>
+          <th>Nome do Eleitor</th>
+          <th style="width: 220px;">Voto Registrado</th>
+          <th class="text-center" style="width: 140px;">Data / Horário</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${params.nominalVotes
+          .map(
+            (nv) => `
+          <tr>
+            <td style="font-family: monospace; font-weight: 700;">${escapeHtml(nv.voterRegistrationNumber)}</td>
+            <td>${escapeHtml(nv.voterName)}</td>
+            <td style="font-weight: 600;">${escapeHtml(nv.voteDescription)}</td>
+            <td class="text-center">${escapeHtml(nv.votedAt)}</td>
+          </tr>
+        `,
+          )
+          .join('')}
+      </tbody>
+    </table>
+  `
+      : ''
+
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -521,6 +564,10 @@ export function buildFinalElectionReportHtml(params: FinalElectionReportParams):
       <div>
         <div class="meta-label">Modalidade de Votação</div>
         <div class="meta-value">${escapeHtml(modeLabel)}</div>
+      </div>
+      <div>
+        <div class="meta-label">Sigilo do Voto</div>
+        <div class="meta-value">${election.is_anonymous !== false ? 'Voto Anônimo' : 'Voto Nominal (Não Anônimo)'}</div>
       </div>
       <div>
         <div class="meta-label">Dígitos na Urna</div>
@@ -572,6 +619,8 @@ export function buildFinalElectionReportHtml(params: FinalElectionReportParams):
       ${rankingRows}
     </tbody>
   </table>
+
+  ${nominalVotesSection}
 
   ${buildCommitteeSignaturesHtml(committee)}
 
@@ -750,15 +799,11 @@ export async function buildInitialElectionReportPdfDoc(
       [
         'Dígitos na Urna:',
         `${params.election.digits_count} dígito(s)`,
-        'Status Atual:',
-        statusLabel,
+        'Sigilo do Voto:',
+        params.election.is_anonymous !== false ? 'Voto Anônimo' : 'Voto Nominal (Não Anônimo)',
       ],
-      [
-        'Votos Computados:',
-        `${params.currentVotesCount} voto(s)`,
-        'Comissão Eleitoral:',
-        `${params.committee.length} membro(s)`,
-      ],
+      ['Votos Computados:', `${params.currentVotesCount} voto(s)`, 'Status Atual:', statusLabel],
+      ['Comissão Eleitoral:', `${params.committee.length} membro(s)`, '', ''],
     ],
   })
 
@@ -898,7 +943,12 @@ export async function buildFinalElectionReportPdfDoc(
     },
     body: [
       ['Data da Eleição:', electionDateStr, 'Modalidade:', modeLabel],
-      ['Dígitos na Urna:', `${params.election.digits_count} dígito(s)`, 'Status:', statusLabel],
+      [
+        'Dígitos na Urna:',
+        `${params.election.digits_count} dígito(s)`,
+        'Sigilo do Voto:',
+        params.election.is_anonymous !== false ? 'Voto Anônimo' : 'Voto Nominal (Não Anônimo)',
+      ],
       [
         'Total de Votos:',
         `${tally.totalVotes} voto(s) (100,00%)`,
@@ -911,6 +961,7 @@ export async function buildFinalElectionReportPdfDoc(
         'Votos Nulos:',
         `${tally.nullVotes} (${formatPercentageBr(tally.nullPercentage)})`,
       ],
+      ['Status:', statusLabel, '', ''],
     ],
   })
 
@@ -957,6 +1008,56 @@ export async function buildFinalElectionReportPdfDoc(
   })
 
   currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
+
+  if (
+    params.election.is_anonymous === false &&
+    params.nominalVotes &&
+    params.nominalVotes.length > 0
+  ) {
+    if (currentY > 220) {
+      doc.addPage()
+      currentY = 20
+    } else {
+      currentY += 6
+    }
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9.5)
+    doc.setTextColor(30, 58, 138)
+    doc.text('REGISTRO NOMINAL DE VOTOS (ELEIÇÃO NÃO ANÔNIMA)', marginX, currentY)
+
+    const nominalBody = params.nominalVotes.map((item) => [
+      item.voterRegistrationNumber,
+      item.voterName,
+      item.voteDescription,
+      item.votedAt,
+    ])
+
+    autoTable(doc, {
+      startY: currentY + 2,
+      margin: { left: marginX, right: marginX },
+      theme: 'striped',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+      },
+      columnStyles: {
+        0: { cellWidth: 32, fontStyle: 'bold' },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 46, fontStyle: 'bold' },
+        3: { cellWidth: 34, halign: 'center' },
+      },
+      head: [['Nº Título', 'Eleitor', 'Voto Registrado', 'Horário']],
+      body: nominalBody,
+    })
+
+    currentY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
+  }
 
   appendCommitteeSignaturesToPdf(doc, params.committee, currentY, marginX, pageWidth)
   appendPdfFooters(doc, 'Módulo Oficial de Eleições — Relatório Final de Apuração', generatedAtStr)

@@ -155,6 +155,7 @@ export function useElections() {
           is_uppercase: payload.is_uppercase,
           status: payload.status,
           voting_mode: payload.voting_mode || 'simple',
+          is_anonymous: payload.is_anonymous ?? true,
           description: payload.description?.trim() || null,
           created_by: user?.id || null,
         })
@@ -210,6 +211,7 @@ export function useElections() {
       if (payload.is_uppercase !== undefined) updateData.is_uppercase = payload.is_uppercase
       if (payload.status !== undefined) updateData.status = payload.status
       if (payload.voting_mode !== undefined) updateData.voting_mode = payload.voting_mode
+      if (payload.is_anonymous !== undefined) updateData.is_anonymous = payload.is_anonymous
       if (payload.description !== undefined) {
         updateData.description = payload.description?.trim() || null
       }
