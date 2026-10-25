@@ -124,9 +124,9 @@ export const VOTER_CARD_PRINT_STYLES = `
   .page-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-gap: 8mm;
+    grid-gap: 6mm 8mm;
     page-break-inside: avoid;
-    margin-bottom: 8mm;
+    margin-bottom: 6mm;
   }
   .page-break {
     page-break-after: always;
@@ -312,10 +312,10 @@ export function buildBatchVoterCardsHtml(options: VoterCardEmissionOptions): str
     `
   }
 
-  // Chunk voters into groups of 4 (2x2 grid per A4 page)
+  // Chunk voters into groups of 6 (2x3 grid per A4 page)
   const chunks: Array<typeof voters> = []
-  for (let i = 0; i < voters.length; i += 4) {
-    chunks.push(voters.slice(i, i + 4))
+  for (let i = 0; i < voters.length; i += 6) {
+    chunks.push(voters.slice(i, i + 6))
   }
 
   const pagesHtml = chunks
@@ -379,17 +379,18 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
 
   // A4 dimensions: 210 x 297 mm
   // Standard card proportion 92mm x 64mm (1.44:1)
+  // Grid of 2 columns x 3 rows = 6 cards per A4 page
   const cardWidth = 92
   const cardHeight = 64
   const gapX = 8
-  const gapY = 14
+  const gapY = 10
   const startX = (210 - (cardWidth * 2 + gapX)) / 2 // 9 mm
-  const startY = 35 // Generous margin for comfortable handling and clean cutting
+  const startY = (297 - (cardHeight * 3 + gapY * 2)) / 2 // 42.5 mm
 
   const formattedDate = formatCardDate(options.issueDate)
 
   voters.forEach((voter, index) => {
-    const slotInPage = index % 4
+    const slotInPage = index % 6
     if (index > 0 && slotInPage === 0) {
       doc.addPage()
     }

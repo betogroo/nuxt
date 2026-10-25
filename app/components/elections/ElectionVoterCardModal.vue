@@ -147,7 +147,7 @@
         <div class="d-flex align-center justify-space-between flex-wrap ga-2">
           <span>
             Você está emitindo <strong>{{ totalCount }} títulos eleitorais</strong>. Na impressão,
-            eles serão organizados em folhas A4 (até 4 títulos por folha) com marcações para
+            eles serão organizados em folhas A4 (até 6 títulos por folha) com marcações para
             recorte.
           </span>
           <UiChip color="primary" size="xs" variant="solid"> {{ totalCount }} Eleitores </UiChip>

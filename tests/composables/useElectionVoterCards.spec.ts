@@ -48,13 +48,15 @@ describe('useElectionVoterCards Composable', () => {
     expect(html).toContain('BR-100599-')
   })
 
-  it('buildBatchVoterCardsHtml should wrap voters in cut-guides and chunk into pages', () => {
+  it('buildBatchVoterCardsHtml should wrap voters in cut-guides and chunk into pages of 6', () => {
     const voters = [
       { ...mockVoterItem, id: 'v-1', voter_registration_number: '111111' },
       { ...mockVoterItem, id: 'v-2', voter_registration_number: '222222' },
       { ...mockVoterItem, id: 'v-3', voter_registration_number: '333333' },
       { ...mockVoterItem, id: 'v-4', voter_registration_number: '444444' },
       { ...mockVoterItem, id: 'v-5', voter_registration_number: '555555' },
+      { ...mockVoterItem, id: 'v-6', voter_registration_number: '666666' },
+      { ...mockVoterItem, id: 'v-7', voter_registration_number: '777777' },
     ]
 
     const html = buildBatchVoterCardsHtml({
@@ -62,10 +64,10 @@ describe('useElectionVoterCards Composable', () => {
       voters,
     })
 
-    expect(html).toContain('Emissão de Títulos Eleitorais (5 registros)')
-    expect(html).toContain('page-break') // 5 voters means 2 pages
+    expect(html).toContain('Emissão de Títulos Eleitorais (7 registros)')
+    expect(html).toContain('page-break') // 7 voters means 2 pages (6 on page 1, 1 on page 2)
     expect(html).toContain('111111')
-    expect(html).toContain('555555')
+    expect(html).toContain('777777')
   })
 
   it('printVoterCards should call printHtmlViaIframe and log action', async () => {
@@ -96,16 +98,23 @@ describe('useElectionVoterCards Composable', () => {
     )
   })
 
-  it('buildVoterCardsPdfDoc should build a valid jsPDF document with correct pages', async () => {
+  it('buildVoterCardsPdfDoc should build a valid jsPDF document with correct pages (6 per page)', async () => {
     const doc = await buildVoterCardsPdfDoc({
       issueDate: '2026-10-25',
-      voters: [mockVoterItem, { ...mockVoterItem, id: 'v-2', voter_registration_number: '200599' }],
+      voters: [
+        mockVoterItem,
+        { ...mockVoterItem, id: 'v-2', voter_registration_number: '200599' },
+        { ...mockVoterItem, id: 'v-3', voter_registration_number: '300599' },
+        { ...mockVoterItem, id: 'v-4', voter_registration_number: '400599' },
+        { ...mockVoterItem, id: 'v-5', voter_registration_number: '500599' },
+        { ...mockVoterItem, id: 'v-6', voter_registration_number: '600599' },
+      ],
     })
 
     expect(doc).toBeDefined()
-    expect(doc.getNumberOfPages()).toBe(1)
+    expect(doc.getNumberOfPages()).toBe(1) // 6 voters fit in 1 page
 
-    // With 5 voters, should create 2 pages (4 per page)
+    // With 7 voters, should create 2 pages (6 per page)
     const docMulti = await buildVoterCardsPdfDoc({
       issueDate: '2026-10-25',
       voters: [
@@ -114,6 +123,8 @@ describe('useElectionVoterCards Composable', () => {
         { ...mockVoterItem, id: 'v-3', voter_registration_number: '300599' },
         { ...mockVoterItem, id: 'v-4', voter_registration_number: '400599' },
         { ...mockVoterItem, id: 'v-5', voter_registration_number: '500599' },
+        { ...mockVoterItem, id: 'v-6', voter_registration_number: '600599' },
+        { ...mockVoterItem, id: 'v-7', voter_registration_number: '700599' },
       ],
     })
     expect(docMulti.getNumberOfPages()).toBe(2)
