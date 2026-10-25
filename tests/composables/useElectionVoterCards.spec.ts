@@ -5,6 +5,7 @@ import {
   formatCardDate,
   buildSingleVoterCardHtml,
   buildBatchVoterCardsHtml,
+  buildVoterCardsPdfDoc,
 } from '~/composables/useElectionVoterCards'
 import type { VoterCardItem } from '~/types/election-voter'
 
@@ -93,5 +94,28 @@ describe('useElectionVoterCards Composable', () => {
       'ELECTION_VOTER_CARDS_ISSUE',
       expect.stringContaining('Exportação em PDF de 1 título(s) eleitoral(is)'),
     )
+  })
+
+  it('buildVoterCardsPdfDoc should build a valid jsPDF document with correct pages', async () => {
+    const doc = await buildVoterCardsPdfDoc({
+      issueDate: '2026-10-25',
+      voters: [mockVoterItem, { ...mockVoterItem, id: 'v-2', voter_registration_number: '200599' }],
+    })
+
+    expect(doc).toBeDefined()
+    expect(doc.getNumberOfPages()).toBe(1)
+
+    // With 5 voters, should create 2 pages (4 per page)
+    const docMulti = await buildVoterCardsPdfDoc({
+      issueDate: '2026-10-25',
+      voters: [
+        mockVoterItem,
+        { ...mockVoterItem, id: 'v-2', voter_registration_number: '200599' },
+        { ...mockVoterItem, id: 'v-3', voter_registration_number: '300599' },
+        { ...mockVoterItem, id: 'v-4', voter_registration_number: '400599' },
+        { ...mockVoterItem, id: 'v-5', voter_registration_number: '500599' },
+      ],
+    })
+    expect(docMulti.getNumberOfPages()).toBe(2)
   })
 })

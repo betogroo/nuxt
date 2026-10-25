@@ -150,38 +150,39 @@ export const VOTER_CARD_PRINT_STYLES = `
     font-weight: 600;
   }
   .voter-card {
-    width: 100%;
-    min-height: 120mm;
-    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f7fee7 100%);
+    width: 92mm;
+    height: 64mm;
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 50%, #fefce8 100%);
     border: 2px solid #059669;
     border-radius: 6px;
-    padding: 4mm;
+    padding: 2mm;
     box-shadow: none;
     position: relative;
     overflow: hidden;
+    margin: 0 auto;
   }
   .card-inner-border {
     border: 1.5px solid #10b981;
     border-radius: 4px;
-    padding: 3mm;
+    padding: 2mm;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.9);
   }
   .card-header {
     display: flex;
     align-items: center;
-    border-bottom: 2px solid #059669;
-    padding-bottom: 3mm;
-    margin-bottom: 3mm;
+    border-bottom: 1.5px solid #059669;
+    padding-bottom: 1.5mm;
+    margin-bottom: 1.5mm;
   }
   .card-coat-placeholder {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     color: #047857;
-    margin-right: 8px;
+    margin-right: 6px;
     flex-shrink: 0;
   }
   .civic-icon {
@@ -193,52 +194,53 @@ export const VOTER_CARD_PRINT_STYLES = `
     text-align: center;
   }
   .card-institution {
-    font-size: 8px;
+    font-size: 7px;
     font-weight: 800;
     letter-spacing: 0.5px;
     color: #065f46;
     text-transform: uppercase;
   }
   .card-subinstitution {
-    font-size: 7px;
+    font-size: 6px;
     color: #047857;
     font-weight: 600;
-    margin-top: 1px;
+    margin-top: 0.5px;
     text-transform: uppercase;
   }
   .card-main-title {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 900;
     color: #064e3b;
     letter-spacing: 1px;
-    margin-top: 2px;
+    margin-top: 1px;
   }
   .card-body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2.5mm;
+    gap: 1.5mm;
   }
   .card-field {
     background: #ffffff;
     border: 1px solid #a7f3d0;
-    border-radius: 4px;
-    padding: 2mm 2.5mm;
+    border-radius: 3px;
+    padding: 1.2mm 2mm;
   }
   .field-label {
-    font-size: 7px;
+    font-size: 6px;
     font-weight: 700;
     color: #047857;
-    letter-spacing: 0.4px;
-    margin-bottom: 1px;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.5px;
   }
   .field-value {
-    font-size: 10.5px;
+    font-size: 8.5px;
     color: #0f172a;
     font-weight: 600;
+    line-height: 1.1;
   }
   .voter-name {
-    font-size: 11px;
+    font-size: 9px;
     font-weight: 700;
     color: #064e3b;
     white-space: nowrap;
@@ -248,27 +250,27 @@ export const VOTER_CARD_PRINT_STYLES = `
   .card-grid-row {
     display: grid;
     grid-template-columns: 1.2fr 1fr;
-    gap: 2mm;
+    gap: 1.5mm;
   }
   .voter-number {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 800;
     color: #047857;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
   }
   .voter-auth {
     font-family: 'Courier New', Courier, monospace;
-    font-size: 8.5px;
+    font-size: 7px;
     color: #475569;
     font-weight: 600;
   }
   .card-barcode-wrap {
-    margin-top: 3mm;
-    padding: 1.5mm 0;
+    margin-top: 1.5mm;
+    padding: 1mm 0;
     background: #ffffff;
     border: 1px dashed #a7f3d0;
-    border-radius: 4px;
+    border-radius: 3px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -276,25 +278,25 @@ export const VOTER_CARD_PRINT_STYLES = `
   .barcode-bars {
     display: flex;
     align-items: center;
-    height: 18px;
-    gap: 1.5px;
+    height: 14px;
+    gap: 1.2px;
   }
   .bar {
     height: 100%;
     background-color: #0f172a;
   }
-  .bar-w1 { width: 1.5px; }
-  .bar-w2 { width: 2.5px; }
-  .bar-w3 { width: 3.5px; }
-  .bar-w4 { width: 5px; }
+  .bar-w1 { width: 1.2px; }
+  .bar-w2 { width: 2px; }
+  .bar-w3 { width: 3px; }
+  .bar-w4 { width: 4px; }
   .card-footer {
-    margin-top: 2.5mm;
-    font-size: 6.5px;
+    margin-top: 1.5mm;
+    font-size: 5.5px;
     color: #065f46;
     text-align: center;
     font-weight: 600;
     border-top: 1px solid #a7f3d0;
-    padding-top: 1.5mm;
+    padding-top: 1mm;
   }
 `
 
@@ -376,12 +378,13 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
   }
 
   // A4 dimensions: 210 x 297 mm
-  const cardWidth = 90
-  const cardHeight = 130
-  const gapX = 10
-  const gapY = 10
-  const startX = (210 - (cardWidth * 2 + gapX)) / 2 // ~5mm
-  const startY = (297 - (cardHeight * 2 + gapY)) / 2 // ~8.5mm
+  // Standard card proportion 92mm x 64mm (1.44:1)
+  const cardWidth = 92
+  const cardHeight = 64
+  const gapX = 8
+  const gapY = 14
+  const startX = (210 - (cardWidth * 2 + gapX)) / 2 // 9 mm
+  const startY = 35 // Generous margin for comfortable handling and clean cutting
 
   const formattedDate = formatCardDate(options.issueDate)
 
@@ -397,111 +400,144 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
     const y = startY + row * (cardHeight + gapY)
 
     // Cut guide (dashed outline)
-    doc.setDrawColor(180, 190, 200)
+    doc.setDrawColor(148, 163, 184)
+    doc.setLineWidth(0.2)
     doc.setLineDashPattern([2, 2], 0)
-    doc.rect(x - 2, y - 2, cardWidth + 4, cardHeight + 4)
+    doc.roundedRect(x - 1.5, y - 1.5, cardWidth + 3, cardHeight + 3, 1, 1)
     doc.setLineDashPattern([], 0)
 
-    // Card background
-    doc.setFillColor(240, 253, 244)
-    doc.rect(x, y, cardWidth, cardHeight, 'F')
-
-    // Card border
-    doc.setDrawColor(5, 150, 105)
-    doc.setLineWidth(0.6)
-    doc.rect(x, y, cardWidth, cardHeight)
-
-    // Inner border
-    doc.setDrawColor(16, 185, 129)
-    doc.setLineWidth(0.3)
-    doc.rect(x + 2, y + 2, cardWidth - 4, cardHeight - 4)
-
-    // Header Title
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(6.5)
-    doc.setTextColor(6, 95, 70)
-    doc.text('REPÚBLICA FEDERATIVA DO BRASIL', x + cardWidth / 2, y + 8, { align: 'center' })
-
     doc.setFontSize(5.5)
+    doc.setTextColor(100, 116, 139)
+    doc.text('✂ Recorte aqui', x + cardWidth - 16, y - 2.2)
+
+    // Outer Card: soft gradient-like green background with solid emerald border
+    doc.setFillColor(236, 253, 245)
+    doc.setDrawColor(5, 150, 105)
+    doc.setLineWidth(0.55)
+    doc.roundedRect(x, y, cardWidth, cardHeight, 2.8, 2.8, 'FD')
+
+    // Inner Card: clean white panel with emerald inner border
+    const innerX = x + 1.8
+    const innerY = y + 1.8
+    const innerW = cardWidth - 3.6 // 88.4 mm
+    const innerH = cardHeight - 3.6 // 60.4 mm
+
+    doc.setFillColor(255, 255, 255)
+    doc.setDrawColor(16, 185, 129)
+    doc.setLineWidth(0.35)
+    doc.roundedRect(innerX, innerY, innerW, innerH, 2, 2, 'FD')
+
+    // Header Civic Shield Emblem (Vector)
+    const sx = innerX + 2.5
+    const sy = innerY + 2
+    const sw = 6.5
+    const sh = 8.5
+    doc.setDrawColor(4, 120, 87)
+    doc.setFillColor(240, 253, 244)
+    doc.setLineWidth(0.35)
+    doc.lines(
+      [
+        [sw, 0],
+        [0, sh * 0.55],
+        [-sw / 2, sh * 0.45],
+        [-sw / 2, -sh * 0.45],
+        [0, -sh * 0.55],
+      ],
+      sx,
+      sy,
+      [1, 1],
+      'FD',
+      true,
+    )
+    doc.setFillColor(4, 120, 87)
+    doc.circle(sx + sw / 2, sy + 3.2, 1.1, 'F')
+    doc.setLineWidth(0.4)
+    doc.line(sx + sw / 2 - 1.5, sy + 6.2, sx + sw / 2 + 1.5, sy + 6.2)
+
+    // Header Titles (centered across header area)
+    const titleCenterX = innerX + 10 + (innerW - 12) / 2
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(5.6)
+    doc.setTextColor(6, 95, 70)
+    doc.text('REPÚBLICA FEDERATIVA DO BRASIL', titleCenterX, innerY + 3.4, { align: 'center' })
+
+    doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
-    doc.text('JUSTIÇA ELEITORAL • SISTEMA ELEITORAL', x + cardWidth / 2, y + 12, {
+    doc.text('JUSTIÇA ELEITORAL • SISTEMA ELEITORAL', titleCenterX, innerY + 6.1, {
       align: 'center',
     })
 
-    doc.setFontSize(10)
+    doc.setFontSize(8.5)
     doc.setTextColor(6, 78, 59)
-    doc.text('TÍTULO ELEITORAL', x + cardWidth / 2, y + 18, { align: 'center' })
+    doc.text('TÍTULO ELEITORAL', titleCenterX, innerY + 10.2, { align: 'center' })
 
     // Header separator line
     doc.setDrawColor(5, 150, 105)
-    doc.setLineWidth(0.4)
-    doc.line(x + 5, y + 21, x + cardWidth - 5, y + 21)
+    doc.setLineWidth(0.45)
+    doc.line(innerX + 2, innerY + 12, innerX + innerW - 2, innerY + 12)
 
-    // Field: Nome
+    // Field: Nome do Eleitor (Full width box)
     doc.setFillColor(255, 255, 255)
     doc.setDrawColor(167, 243, 208)
     doc.setLineWidth(0.2)
-    doc.roundedRect(x + 5, y + 25, cardWidth - 10, 14, 1, 1, 'FD')
-
-    doc.setFontSize(5.5)
-    doc.setTextColor(4, 120, 87)
-    doc.text('NOME DO ELEITOR', x + 7, y + 29)
+    doc.roundedRect(innerX + 2, innerY + 13.5, innerW - 4, 7.8, 0.8, 0.8, 'FD')
 
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8.5)
-    doc.setTextColor(6, 78, 59)
-    const truncatedName = doc.splitTextToSize(voter.name.toUpperCase(), cardWidth - 14)[0] || ''
-    doc.text(truncatedName, x + 7, y + 35)
-
-    // Field: Inscrição / Título
-    doc.roundedRect(x + 5, y + 42, (cardWidth - 12) * 0.58, 14, 1, 1, 'FD')
-    doc.setFontSize(5.5)
+    doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
-    doc.text('NÚMERO DA INSCRIÇÃO', x + 7, y + 46)
+    doc.text('NOME DO ELEITOR', innerX + 3.5, innerY + 16.3)
+
+    doc.setFontSize(7.5)
+    doc.setTextColor(6, 78, 59)
+    const truncatedName = doc.splitTextToSize(voter.name.toUpperCase(), innerW - 8)[0] || ''
+    doc.text(truncatedName, innerX + 3.5, innerY + 19.8)
+
+    // Row 1: Inscrição / Título & Data de Emissão
+    // Col 1: Nº DA INSCRIÇÃO
+    doc.roundedRect(innerX + 2, innerY + 22.5, 48, 7.8, 0.8, 0.8, 'FD')
+    doc.setFontSize(4.8)
+    doc.setTextColor(4, 120, 87)
+    doc.text('Nº DA INSCRIÇÃO', innerX + 3.5, innerY + 25.3)
 
     doc.setFont('courier', 'bold')
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setTextColor(5, 150, 105)
-    doc.text(voter.voter_registration_number, x + 7, y + 52)
+    doc.text(voter.voter_registration_number, innerX + 3.5, innerY + 28.8)
 
-    // Field: Data de Emissão
-    const dateX = x + 5 + (cardWidth - 12) * 0.58 + 2
-    const dateW = (cardWidth - 12) * 0.42
-    doc.roundedRect(dateX, y + 42, dateW, 14, 1, 1, 'FD')
+    // Col 2: DATA DE EMISSÃO
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(5.5)
+    doc.roundedRect(innerX + 52, innerY + 22.5, innerW - 54, 7.8, 0.8, 0.8, 'FD')
+    doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
-    doc.text('DATA DE EMISSÃO', dateX + 2, y + 46)
+    doc.text('DATA DE EMISSÃO', innerX + 53.5, innerY + 25.3)
 
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(8)
+    doc.setFontSize(7.2)
     doc.setTextColor(15, 23, 42)
-    doc.text(formattedDate, dateX + 2, y + 52)
+    doc.text(formattedDate, innerX + 53.5, innerY + 28.8)
 
-    // Field: Situação
-    doc.roundedRect(x + 5, y + 59, (cardWidth - 12) * 0.5, 14, 1, 1, 'FD')
-    doc.setFontSize(5.5)
+    // Row 2: Situação Cadastral & Código de Validação
+    // Col 1: SITUAÇÃO CADASTRAL
+    doc.roundedRect(innerX + 2, innerY + 31.5, 40, 7.8, 0.8, 0.8, 'FD')
+    doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
-    doc.text('SITUAÇÃO CADASTRAL', x + 7, y + 63)
+    doc.text('SITUAÇÃO CADASTRAL', innerX + 3.5, innerY + 34.3)
 
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7.5)
+    doc.setFontSize(7)
     if (voter.is_active) {
       doc.setTextColor(21, 128, 61)
-      doc.text('REGULAR / APTO', x + 7, y + 69)
+      doc.text('REGULAR / APTO', innerX + 3.5, innerY + 37.8)
     } else {
       doc.setTextColor(185, 28, 28)
-      doc.text('INATIVO / SUSPENSO', x + 7, y + 69)
+      doc.text('INATIVO / SUSPENSO', innerX + 3.5, innerY + 37.8)
     }
 
-    // Field: Código de Validação
-    const codeX = x + 5 + (cardWidth - 12) * 0.5 + 2
-    const codeW = (cardWidth - 12) * 0.5
-    doc.roundedRect(codeX, y + 59, codeW, 14, 1, 1, 'FD')
+    // Col 2: CÓDIGO DE VALIDAÇÃO
+    doc.roundedRect(innerX + 44, innerY + 31.5, innerW - 46, 7.8, 0.8, 0.8, 'FD')
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(5.5)
+    doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
-    doc.text('CÓDIGO DE VALIDAÇÃO', codeX + 2, y + 63)
+    doc.text('CÓDIGO DE VALIDAÇÃO', innerX + 45.5, innerY + 34.3)
 
     const hashSuffix = Array.from(voter.voter_registration_number || '')
       .reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) % 10000, 7)
@@ -510,31 +546,50 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
     const validationCode = `BR-${voter.voter_registration_number}-${hashSuffix}`
 
     doc.setFont('courier', 'bold')
-    doc.setFontSize(6.5)
+    doc.setFontSize(6)
     doc.setTextColor(71, 85, 105)
-    doc.text(validationCode, codeX + 2, y + 69)
+    doc.text(validationCode, innerX + 45.5, innerY + 37.8)
 
-    // Simulated Barcode Box
+    // Simulated Barcode Box (24 bars matching HTML component)
     doc.setFillColor(255, 255, 255)
-    doc.roundedRect(x + 5, y + 77, cardWidth - 10, 16, 1, 1, 'FD')
+    doc.setDrawColor(167, 243, 208)
+    doc.setLineWidth(0.2)
+    doc.setLineDashPattern([1, 1], 0)
+    doc.roundedRect(innerX + 2, innerY + 40.5, innerW - 4, 8.5, 0.8, 0.8, 'FD')
+    doc.setLineDashPattern([], 0)
+
     doc.setFillColor(15, 23, 42)
-    // Draw some stylized vertical bars
-    let barCursorX = x + 9
-    const barWidths = [1, 0.5, 1.5, 0.5, 1, 0.5, 2, 1, 0.5, 1.5, 0.5, 1, 1, 1.5, 0.5, 2, 0.5, 1]
-    barWidths.forEach((w) => {
-      doc.rect(barCursorX, y + 80, w, 10, 'F')
-      barCursorX += w + 1.2
+    const barPatterns = [2, 1, 3, 1, 4, 2, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 3]
+    const unitW = 0.35
+    const barGap = 0.45
+    let totalBarcodeW = 0
+    barPatterns.forEach((p) => {
+      totalBarcodeW += p * unitW + barGap
+    })
+    totalBarcodeW -= barGap
+
+    let barCursorX = innerX + 2 + (innerW - 4 - totalBarcodeW) / 2
+    const barY = innerY + 42.2
+    const barH = 5.2
+    barPatterns.forEach((p) => {
+      const w = p * unitW
+      doc.rect(barCursorX, barY, w, barH, 'F')
+      barCursorX += w + barGap
     })
 
-    // Footer note
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(5)
+    // Footer divider line and note
+    doc.setDrawColor(167, 243, 208)
+    doc.setLineWidth(0.25)
+    doc.line(innerX + 2, innerY + 50.8, innerX + innerW - 2, innerY + 50.8)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(4.3)
     doc.setTextColor(6, 95, 70)
     const footerMsg =
       'Documento oficial de identificação do eleitor para votação nas urnas eletrônicas do sistema.'
-    doc.text(footerMsg, x + cardWidth / 2, y + 100, {
+    doc.text(footerMsg, innerX + innerW / 2, innerY + 54.2, {
       align: 'center',
-      maxWidth: cardWidth - 10,
+      maxWidth: innerW - 6,
     })
   })
 
