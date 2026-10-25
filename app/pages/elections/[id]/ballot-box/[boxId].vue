@@ -392,10 +392,10 @@
         <div v-else class="flex-grow-1 d-flex flex-column align-center justify-center pa-2 pa-sm-4">
           <UiAlert
             v-if="election?.is_anonymous === false && ballotBox?.current_voter_name"
-            class="mb-2 py-1 px-3 text-caption text-center"
+            class="nominal-voter-alert mb-3 px-4 py-1 text-caption text-center"
             :icon="false"
             size="sm"
-            style="max-width: 600px; width: 100%"
+            style="flex: 0 0 auto"
             type="warning"
             variant="soft"
           >
@@ -441,6 +441,15 @@
 <style scoped>
   .terminal-container {
     min-height: 100vh;
+  }
+  :deep(.nominal-voter-alert) {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    max-width: 580px;
+    min-height: unset !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    border-radius: 9999px !important;
   }
   .pulse-success {
     box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);

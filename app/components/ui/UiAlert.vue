@@ -38,7 +38,7 @@
 
   const mappedIcon = computed(() => {
     // If it's a known string in our map, return the mdi class
-    const attrIcon = props.icon || attrs.icon
+    const attrIcon = props.icon !== undefined ? props.icon : attrs.icon
     if (typeof attrIcon === 'string' && attrIcon in iconMap) {
       return iconMap[attrIcon as IconName]
     }
