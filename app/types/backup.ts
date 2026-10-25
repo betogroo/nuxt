@@ -3,11 +3,13 @@ export interface BackupSummary {
   suppliers: number
   expense_natures: number
   product_classes: number
+  product_characteristic_keys?: number
   measurement_units: number
   measurement_unit_aliases: number
   measurement_unit_alias_links?: number
   products: number
   product_units: number
+  product_characteristics?: number
   demands: number
   demand_products: number
   demand_product_bids: number
@@ -45,11 +47,13 @@ export interface BackupData {
   suppliers?: Record<string, unknown>[]
   expense_natures?: Record<string, unknown>[]
   product_classes?: Record<string, unknown>[]
+  product_characteristic_keys?: Record<string, unknown>[]
   measurement_units?: Record<string, unknown>[]
   measurement_unit_aliases?: Record<string, unknown>[]
   measurement_unit_alias_links?: Record<string, unknown>[]
   products?: Record<string, unknown>[]
   product_units?: Record<string, unknown>[]
+  product_characteristics?: Record<string, unknown>[]
   demands?: Record<string, unknown>[]
   demand_products?: Record<string, unknown>[]
   demand_product_bids?: Record<string, unknown>[]

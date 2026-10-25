@@ -1,8 +1,30 @@
 import type { Database } from '~/types/database.types'
 
+export type ProductCharacteristicSummary = {
+  id: string
+  value: string
+  key_id: string
+  key?: {
+    id: string
+    name: string
+    is_pending: boolean
+    is_active: boolean
+  } | null
+}
+
 export type ProductRow = Database['public']['Tables']['products']['Row'] & {
   expense_natures?: { id: string; name: string } | null
   product_classes?: { id: string; name: string } | null
+  product_characteristics?: ProductCharacteristicSummary[]
+}
+
+export type ProductCharacteristicDetail = {
+  id: string
+  key_id: string
+  key_name: string
+  value: string
+  is_pending: boolean
+  is_active: boolean
 }
 
 export type ProductUnitAlias = { id: string; code: number; name: string }
@@ -142,6 +164,11 @@ export const useProducts = () => {
       )
       .eq('product_id', id)
 
+    const { data: characteristicsData } = await supabase
+      .from('product_characteristics')
+      .select('id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active)')
+      .eq('product_id', id)
+
     let profiles = null
     if (data.created_by) {
       const { data: p } = await supabase
@@ -170,7 +197,27 @@ export const useProducts = () => {
           .filter((a): a is ProductUnitAlias => !!a),
       }))
 
-    return { ...data, profiles, units }
+    const rawCharacteristics = (characteristicsData ||
+      []) as unknown as ProductCharacteristicSummary[]
+    const characteristics: ProductCharacteristicDetail[] = rawCharacteristics
+      .filter(
+        (
+          c,
+        ): c is ProductCharacteristicSummary & {
+          key: NonNullable<ProductCharacteristicSummary['key']>
+        } => !!c.key,
+      )
+      .map((c) => ({
+        id: c.id,
+        key_id: c.key_id,
+        key_name: c.key.name,
+        value: c.value,
+        is_pending: c.key.is_pending,
+        is_active: c.key.is_active,
+      }))
+      .sort((a, b) => a.key_name.localeCompare(b.key_name, 'pt-BR'))
+
+    return { ...data, profiles, units, characteristics }
   }
 
   const fetchProductDemands = async (productId: string): Promise<ProductDemandUsage[]> => {
@@ -245,6 +292,101 @@ export const useProducts = () => {
     if (error) throw error
   }
 
+  const upsertProductCharacteristic = async (productId: string, keyName: string, value: string) => {
+    const cleanKey = keyName.trim()
+    const cleanValue = value.trim()
+
+    if (!cleanKey || !cleanValue) {
+      throw new Error('A chave e o valor da característica são obrigatórios.')
+    }
+
+    let keyId: string
+
+    const { data: existingKey, error: findKeyError } = await supabase
+      .from('product_characteristic_keys')
+      .select('id, name')
+      .ilike('name', cleanKey)
+      .maybeSingle()
+
+    if (findKeyError) throw findKeyError
+
+    if (existingKey) {
+      keyId = existingKey.id
+    } else {
+      const { data: newKey, error: insertKeyError } = await supabase
+        .from('product_characteristic_keys')
+        .insert({
+          name: cleanKey,
+          is_active: false,
+          is_pending: true,
+        })
+        .select('id, name')
+        .single()
+
+      if (insertKeyError) throw insertKeyError
+      keyId = newKey.id
+
+      await logAction(
+        'CREATE_PENDING_CHARACTERISTIC_KEY',
+        `Nova chave de característica sugerida: "${cleanKey}"`,
+        user.value?.id,
+      )
+    }
+
+    const { data: existingChar, error: findCharError } = await supabase
+      .from('product_characteristics')
+      .select('id')
+      .eq('product_id', productId)
+      .eq('key_id', keyId)
+      .maybeSingle()
+
+    if (findCharError) throw findCharError
+
+    if (existingChar) {
+      const { error: updateError } = await supabase
+        .from('product_characteristics')
+        .update({ value: cleanValue })
+        .eq('id', existingChar.id)
+
+      if (updateError) throw updateError
+
+      await logAction(
+        'UPDATE_PRODUCT_CHARACTERISTIC',
+        `Característica "${cleanKey}" atualizada para "${cleanValue}" no produto (${productId})`,
+        user.value?.id,
+      )
+    } else {
+      const { error: insertError } = await supabase.from('product_characteristics').insert({
+        product_id: productId,
+        key_id: keyId,
+        value: cleanValue,
+      })
+
+      if (insertError) throw insertError
+
+      await logAction(
+        'ADD_PRODUCT_CHARACTERISTIC',
+        `Característica "${cleanKey}: ${cleanValue}" adicionada ao produto (${productId})`,
+        user.value?.id,
+      )
+    }
+  }
+
+  const removeProductCharacteristic = async (characteristicId: string, label?: string) => {
+    const { error } = await supabase
+      .from('product_characteristics')
+      .delete()
+      .eq('id', characteristicId)
+
+    if (error) throw error
+
+    await logAction(
+      'REMOVE_PRODUCT_CHARACTERISTIC',
+      `Característica removida do produto: ${label || characteristicId}`,
+      user.value?.id,
+    )
+  }
+
   return {
     fetchProducts,
     fetchProductById,
@@ -255,5 +397,7 @@ export const useProducts = () => {
     toggleProductStatus,
     addProductUnit,
     removeProductUnit,
+    upsertProductCharacteristic,
+    removeProductCharacteristic,
   }
 }

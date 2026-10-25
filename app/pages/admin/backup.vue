@@ -92,6 +92,18 @@
           color: 'teal',
         },
         { key: 'product_units', label: 'Unidades por Produto', suffix: 'vínculos', color: 'teal' },
+        {
+          key: 'product_characteristic_keys',
+          label: 'Chaves de Características',
+          suffix: 'chaves',
+          color: 'teal',
+        },
+        {
+          key: 'product_characteristics',
+          label: 'Características por Produto',
+          suffix: 'vínculos',
+          color: 'teal',
+        },
       ],
     },
     {
@@ -292,7 +304,7 @@
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       back-to="/admin"
       subtitle="Exporte cópias de segurança e restaure demandas, usuários e históricos"
       title="Backup & Restauração"

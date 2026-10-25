@@ -2,10 +2,23 @@ import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import { getWinningBid } from '~/utils/bids'
 
+export type DemandProductCharacteristic = {
+  id: string
+  value: string
+  key_id: string
+  key?: {
+    id: string
+    name: string
+    is_pending: boolean
+    is_active: boolean
+  } | null
+}
+
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?:
     | (Database['public']['Tables']['products']['Row'] & {
         expense_natures?: Database['public']['Tables']['expense_natures']['Row'] | null
+        product_characteristics?: DemandProductCharacteristic[]
       })
     | null
   measurement_units?: Database['public']['Tables']['measurement_units']['Row'] | null
@@ -29,7 +42,7 @@ export const useDemandProducts = () => {
     const { data, error } = await supabase
       .from('demand_products')
       .select(
-        '*, product:products(*, expense_natures(id, name)), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
+        '*, product:products(*, expense_natures(id, name), product_characteristics(id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active))), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
       )
       .eq('demand_id', demandId)
       .order('sort_order', { ascending: true })
@@ -40,7 +53,7 @@ export const useDemandProducts = () => {
       throw error
     }
 
-    return data as DemandProductRow[]
+    return data as unknown as DemandProductRow[]
   }
 
   const addDemandProduct = async (
@@ -339,7 +352,7 @@ export const useDemandProducts = () => {
     const { data, error } = await supabase
       .from('demand_products')
       .select(
-        '*, product:products(*), measurement_units(*), measurement_unit_aliases(*), demand:demands(status)',
+        '*, product:products(*, product_characteristics(id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active))), measurement_units(*), measurement_unit_aliases(*), demand:demands(status)',
       )
       .eq('id', itemId)
       .single()

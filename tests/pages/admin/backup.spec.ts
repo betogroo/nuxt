@@ -17,11 +17,13 @@ const mockCounts = {
   suppliers: 12,
   expense_natures: 6,
   product_classes: 8,
+  product_characteristic_keys: 20,
   measurement_units: 5,
   measurement_unit_aliases: 3,
   measurement_unit_alias_links: 7,
   products: 45,
   product_units: 50,
+  product_characteristics: 30,
   demands: 25,
   demand_products: 50,
   demand_product_bids: 15,
@@ -61,7 +63,7 @@ mockNuxtImport('useBackup', () => () => ({
 }))
 
 describe('Backup Admin Page', () => {
-  it('should render successfully and compute total records across all 28 tables', async () => {
+  it('should render successfully and compute total records across all 30 tables', async () => {
     const wrapper = shallowMount(BackupAdminPage, {
       global: {
         stubs: {
@@ -93,13 +95,13 @@ describe('Backup Admin Page', () => {
     expect(vm.currentCounts).toEqual(mockCounts)
     const expectedSum = Object.values(mockCounts).reduce((a, b) => a + b, 0)
     expect(vm.totalCurrentRecords).toBe(expectedSum)
-    expect(vm.totalCurrentRecords).toBe(590)
-    expect(vm.totalTablesCount).toBe(28)
+    expect(vm.totalCurrentRecords).toBe(640)
+    expect(vm.totalTablesCount).toBe(30)
 
-    // Check that all 28 tables are represented in categories
+    // Check that all 30 tables are represented in categories
     const allTableKeys = vm.BACKUP_CATEGORIES.flatMap((c) => c.tables.map((t) => t.key))
-    expect(allTableKeys).toHaveLength(28)
-    expect(new Set(allTableKeys).size).toBe(28)
+    expect(allTableKeys).toHaveLength(30)
+    expect(new Set(allTableKeys).size).toBe(30)
     for (const key of Object.keys(mockCounts)) {
       expect(allTableKeys).toContain(key)
     }
@@ -138,14 +140,14 @@ describe('Backup Admin Page', () => {
       counts: mockCounts,
     }
 
-    expect(vm.totalInspectionRecords).toBe(590)
+    expect(vm.totalInspectionRecords).toBe(640)
 
     vm.restoreResult = {
       success: true,
       counts: mockCounts,
     }
 
-    expect(vm.totalRestoredRecords).toBe(590)
+    expect(vm.totalRestoredRecords).toBe(640)
   })
 
   it('should trigger backup generation when generate method is called', async () => {

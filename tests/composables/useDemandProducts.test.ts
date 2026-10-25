@@ -23,6 +23,49 @@ describe('useDemandProducts', () => {
     expect(composable).toBeDefined()
   })
 
+  it('fetchDemandItemDetails and fetchDemandProducts should include product_characteristics in select query', async () => {
+    const selectMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 'item-1',
+            product: {
+              id: 'prod-1',
+              name: 'Caneta',
+              product_characteristics: [
+                {
+                  id: 'pc-1',
+                  value: '1.0mm',
+                  key_id: 'k-1',
+                  key: { id: 'k-1', name: 'Ponta', is_pending: false, is_active: true },
+                },
+              ],
+            },
+          },
+          error: null,
+        }),
+        order: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({
+            data: [],
+            error: null,
+          }),
+        }),
+      }),
+    })
+
+    mockSupabase.from.mockReturnValue({
+      select: selectMock,
+    })
+
+    const { fetchDemandItemDetails, fetchDemandProducts } = useDemandProducts()
+    const item = await fetchDemandItemDetails('item-1')
+    await fetchDemandProducts('demand-1')
+
+    expect(selectMock).toHaveBeenCalledWith(expect.stringContaining('product_characteristics'))
+    expect(item?.product?.product_characteristics).toHaveLength(1)
+    expect(item?.product?.product_characteristics?.[0]?.value).toBe('1.0mm')
+  })
+
   it('addDemandItemWithDependencies should create product with class and link Unidade and finalUnit', async () => {
     const { addDemandItemWithDependencies } = useDemandProducts()
 

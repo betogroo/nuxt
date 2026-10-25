@@ -456,6 +456,36 @@
             documentos enviados pelos fornecedores aparecerão aqui.
           </UiAlert>
 
+          <!-- Características do Produto no Item da Demanda -->
+          <div
+            v-if="
+              item.product &&
+              'product_characteristics' in item.product &&
+              Array.isArray(item.product.product_characteristics) &&
+              item.product.product_characteristics.length > 0
+            "
+            class="mb-4 pa-3 rounded-lg bg-surface-variant"
+          >
+            <div class="d-flex align-center ga-2 mb-2">
+              <UiIcon color="teal" name="categories" size="16" />
+              <span class="text-caption font-weight-bold text-medium-emphasis text-uppercase">
+                Características do Produto
+              </span>
+            </div>
+            <div class="d-flex flex-wrap ga-2">
+              <UiChip
+                v-for="char in item.product.product_characteristics"
+                :key="char.id"
+                :color="char.key?.is_pending ? 'warning' : 'teal'"
+                label
+                size="sm"
+                variant="soft"
+              >
+                <strong>{{ char.key?.name || 'Característica' }}:</strong>&nbsp;{{ char.value }}
+              </UiChip>
+            </div>
+          </div>
+
           <!-- Card de Acompanhamento da Execução (Pós-Homologação) -->
           <UiCard v-if="hasExecution" class="mb-4" variant="outline">
             <template #header>

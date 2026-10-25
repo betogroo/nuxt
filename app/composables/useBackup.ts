@@ -23,11 +23,13 @@ export const useBackup = () => {
         { count: suppliersCount },
         { count: expenseNaturesCount },
         { count: productClassesCount },
+        { count: productCharacteristicKeysCount },
         { count: measurementUnitsCount },
         { count: unitAliasesCount },
         { count: unitAliasLinksCount },
         { count: productsCount },
         { count: productUnitsCount },
+        { count: productCharacteristicsCount },
         { count: demandsCount },
         { count: demandProductsCount },
         { count: demandBidsCount },
@@ -52,11 +54,13 @@ export const useBackup = () => {
         supabase.from('suppliers').select('id', { count: 'exact', head: true }),
         supabase.from('expense_natures').select('id', { count: 'exact', head: true }),
         supabase.from('product_classes').select('id', { count: 'exact', head: true }),
+        supabase.from('product_characteristic_keys').select('id', { count: 'exact', head: true }),
         supabase.from('measurement_units').select('id', { count: 'exact', head: true }),
         supabase.from('measurement_unit_aliases').select('id', { count: 'exact', head: true }),
         supabase.from('measurement_unit_alias_links').select('id', { count: 'exact', head: true }),
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('product_units').select('id', { count: 'exact', head: true }),
+        supabase.from('product_characteristics').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
         supabase.from('demand_products').select('id', { count: 'exact', head: true }),
         supabase.from('demand_product_bids').select('id', { count: 'exact', head: true }),
@@ -83,11 +87,13 @@ export const useBackup = () => {
         suppliers: suppliersCount || 0,
         expense_natures: expenseNaturesCount || 0,
         product_classes: productClassesCount || 0,
+        product_characteristic_keys: productCharacteristicKeysCount || 0,
         measurement_units: measurementUnitsCount || 0,
         measurement_unit_aliases: unitAliasesCount || 0,
         measurement_unit_alias_links: unitAliasLinksCount || 0,
         products: productsCount || 0,
         product_units: productUnitsCount || 0,
+        product_characteristics: productCharacteristicsCount || 0,
         demands: demandsCount || 0,
         demand_products: demandProductsCount || 0,
         demand_product_bids: demandBidsCount || 0,
@@ -163,6 +169,9 @@ export const useBackup = () => {
         suppliers: Array.isArray(data.suppliers) ? data.suppliers.length : 0,
         expense_natures: Array.isArray(data.expense_natures) ? data.expense_natures.length : 0,
         product_classes: Array.isArray(data.product_classes) ? data.product_classes.length : 0,
+        product_characteristic_keys: Array.isArray(data.product_characteristic_keys)
+          ? data.product_characteristic_keys.length
+          : 0,
         measurement_units: Array.isArray(data.measurement_units)
           ? data.measurement_units.length
           : 0,
@@ -174,6 +183,9 @@ export const useBackup = () => {
           : 0,
         products: Array.isArray(data.products) ? data.products.length : 0,
         product_units: Array.isArray(data.product_units) ? data.product_units.length : 0,
+        product_characteristics: Array.isArray(data.product_characteristics)
+          ? data.product_characteristics.length
+          : 0,
         demands: Array.isArray(data.demands) ? data.demands.length : 0,
         demand_products: Array.isArray(data.demand_products) ? data.demand_products.length : 0,
         demand_product_bids: Array.isArray(data.demand_product_bids)

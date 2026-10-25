@@ -669,6 +669,73 @@ export type Database = {
         }
         Relationships: []
       }
+      product_characteristic_keys: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_pending: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_pending?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_pending?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product_characteristics: {
+        Row: {
+          created_at: string
+          id: string
+          key_id: string
+          product_id: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key_id: string
+          product_id: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key_id?: string
+          product_id?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'product_characteristics_key_id_fkey'
+            columns: ['key_id']
+            referencedRelation: 'product_characteristic_keys'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'product_characteristics_product_id_fkey'
+            columns: ['product_id']
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       product_classes: {
         Row: {
           created_at: string

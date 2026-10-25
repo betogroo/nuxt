@@ -33,11 +33,13 @@ describe('useBackup Composable', () => {
       suppliers: 5,
       expense_natures: 5,
       product_classes: 5,
+      product_characteristic_keys: 5,
       measurement_units: 5,
       measurement_unit_aliases: 5,
       measurement_unit_alias_links: 5,
       products: 5,
       product_units: 5,
+      product_characteristics: 5,
       demands: 5,
       demand_products: 5,
       demand_product_bids: 5,
@@ -116,6 +118,10 @@ describe('useBackup Composable', () => {
         profiles: [{ id: '1' }, { id: '2' }],
         suppliers: [{ id: 'sup-1', name: 'Fornecedor A' }],
         products: [{ id: 'prod-1', name: 'Item 1' }],
+        product_characteristic_keys: [{ id: 'pck-1', name: 'Cor' }],
+        product_characteristics: [
+          { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Azul' },
+        ],
         demands: [{ id: 'dem-1' }],
         system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
@@ -137,6 +143,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.profiles).toBe(2)
     expect(inspection.counts.suppliers).toBe(1)
     expect(inspection.counts.products).toBe(1)
+    expect(inspection.counts.product_characteristic_keys).toBe(1)
+    expect(inspection.counts.product_characteristics).toBe(1)
     expect(inspection.counts.demands).toBe(1)
     expect(inspection.counts.iirgd_citizens).toBe(3)
     expect(inspection.counts.iirgd_demands).toBe(2)

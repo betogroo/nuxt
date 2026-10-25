@@ -42,6 +42,35 @@ describe('useProducts', () => {
     expect(composable.createProduct).toBeDefined()
   })
 
+  it('fetchProducts should fetch paginated products with expense_natures and product_classes', async () => {
+    const selectMock = vi.fn().mockReturnValue({
+      order: vi.fn().mockReturnValue({
+        range: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [{ id: 'prod-1', name: 'Caneta Azul', is_active: true }],
+            count: 1,
+            error: null,
+          }),
+        }),
+      }),
+    })
+
+    mockSupabase.from.mockReturnValue({
+      select: selectMock,
+    })
+
+    const { fetchProducts } = useProducts()
+    const result = await fetchProducts(1, 10, null, 'active')
+
+    expect(selectMock).toHaveBeenCalledWith(
+      '*, expense_natures(id, name), product_classes(id, name)',
+      { count: 'exact' },
+    )
+    expect(result.count).toBe(1)
+    expect(result.data).toHaveLength(1)
+    expect(result.data[0]?.name).toBe('Caneta Azul')
+  })
+
   it('fetchProductById should fetch product with relations', async () => {
     const mockProduct = { id: 'prod-1', name: 'Product A' }
     mockSupabase.from.mockReturnValue({
@@ -227,5 +256,132 @@ describe('useProducts', () => {
     await toggleProductStatus({ id: 'p1', is_active: true } as ProductRow)
 
     expect(mockSupabase.from).toHaveBeenCalledWith('products')
+  })
+
+  it('upsertProductCharacteristic should create pending key when key does not exist and insert characteristic', async () => {
+    const insertCharMock = vi.fn().mockResolvedValue({ error: null })
+    const insertKeyMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'key-pending-1', name: 'Tipo de Ponta' },
+          error: null,
+        }),
+      }),
+    })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'product_characteristic_keys') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+          insert: insertKeyMock,
+        }
+      }
+      if (table === 'product_characteristics') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: insertCharMock,
+        }
+      }
+      return {}
+    })
+
+    const { upsertProductCharacteristic } = useProducts()
+    await upsertProductCharacteristic('prod-1', 'Tipo de Ponta', '1.0mm')
+
+    expect(insertKeyMock).toHaveBeenCalledWith({
+      name: 'Tipo de Ponta',
+      is_active: false,
+      is_pending: true,
+    })
+    expect(insertCharMock).toHaveBeenCalledWith({
+      product_id: 'prod-1',
+      key_id: 'key-pending-1',
+      value: '1.0mm',
+    })
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'CREATE_PENDING_CHARACTERISTIC_KEY',
+      expect.stringContaining('Tipo de Ponta'),
+      'user-123',
+    )
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'ADD_PRODUCT_CHARACTERISTIC',
+      expect.stringContaining('Tipo de Ponta: 1.0mm'),
+      'user-123',
+    )
+  })
+
+  it('upsertProductCharacteristic should update existing characteristic value when key already linked', async () => {
+    const updateEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: updateEqMock })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'product_characteristic_keys') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: 'key-cor', name: 'Cor' },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'product_characteristics') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'char-existing-1' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+          update: updateMock,
+        }
+      }
+      return {}
+    })
+
+    const { upsertProductCharacteristic } = useProducts()
+    await upsertProductCharacteristic('prod-1', 'Cor', 'Branca')
+
+    expect(updateMock).toHaveBeenCalledWith({ value: 'Branca' })
+    expect(updateEqMock).toHaveBeenCalledWith('id', 'char-existing-1')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'UPDATE_PRODUCT_CHARACTERISTIC',
+      expect.stringContaining('Branca'),
+      'user-123',
+    )
+  })
+
+  it('removeProductCharacteristic should delete characteristic and log action', async () => {
+    const deleteEqMock = vi.fn().mockResolvedValue({ error: null })
+    mockSupabase.from.mockReturnValue({
+      delete: vi.fn().mockReturnValue({ eq: deleteEqMock }),
+    })
+
+    const { removeProductCharacteristic } = useProducts()
+    await removeProductCharacteristic('char-1', 'Cor: Branca')
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('product_characteristics')
+    expect(deleteEqMock).toHaveBeenCalledWith('id', 'char-1')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'REMOVE_PRODUCT_CHARACTERISTIC',
+      expect.stringContaining('Cor: Branca'),
+      'user-123',
+    )
   })
 })
