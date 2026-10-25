@@ -221,7 +221,7 @@ export const VOTER_CARD_PRINT_STYLES = `
     gap: 1.5mm;
   }
   .card-field {
-    background: #ffffff;
+    background: transparent;
     border: 1px solid #a7f3d0;
     border-radius: 3px;
     padding: 1.2mm 2mm;
@@ -268,7 +268,7 @@ export const VOTER_CARD_PRINT_STYLES = `
   .card-barcode-wrap {
     margin-top: 1.5mm;
     padding: 1mm 0;
-    background: #ffffff;
+    background: transparent;
     border: 1px dashed #a7f3d0;
     border-radius: 3px;
     display: flex;
@@ -479,10 +479,9 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
     doc.line(innerX + 2, innerY + 12, innerX + innerW - 2, innerY + 12)
 
     // Field: Nome do Eleitor (Full width box)
-    doc.setFillColor(255, 255, 255)
     doc.setDrawColor(167, 243, 208)
     doc.setLineWidth(0.2)
-    doc.roundedRect(innerX + 2, innerY + 13.5, innerW - 4, 7.8, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 2, innerY + 13.5, innerW - 4, 7.8, 0.8, 0.8, 'D')
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(4.8)
@@ -496,7 +495,7 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
 
     // Row 1: Inscrição / Título & Data de Emissão
     // Col 1: Nº DA INSCRIÇÃO
-    doc.roundedRect(innerX + 2, innerY + 22.5, 48, 7.8, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 2, innerY + 22.5, 48, 7.8, 0.8, 0.8, 'D')
     doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
     doc.text('Nº DA INSCRIÇÃO', innerX + 3.5, innerY + 25.3)
@@ -508,7 +507,7 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
 
     // Col 2: DATA DE EMISSÃO
     doc.setFont('helvetica', 'bold')
-    doc.roundedRect(innerX + 52, innerY + 22.5, innerW - 54, 7.8, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 52, innerY + 22.5, innerW - 54, 7.8, 0.8, 0.8, 'D')
     doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
     doc.text('DATA DE EMISSÃO', innerX + 53.5, innerY + 25.3)
@@ -519,7 +518,7 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
 
     // Row 2: Situação Cadastral & Código de Validação
     // Col 1: SITUAÇÃO CADASTRAL
-    doc.roundedRect(innerX + 2, innerY + 31.5, 40, 7.8, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 2, innerY + 31.5, 40, 7.8, 0.8, 0.8, 'D')
     doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
     doc.text('SITUAÇÃO CADASTRAL', innerX + 3.5, innerY + 34.3)
@@ -534,7 +533,7 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
     }
 
     // Col 2: CÓDIGO DE VALIDAÇÃO
-    doc.roundedRect(innerX + 44, innerY + 31.5, innerW - 46, 7.8, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 44, innerY + 31.5, innerW - 46, 7.8, 0.8, 0.8, 'D')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(4.8)
     doc.setTextColor(4, 120, 87)
@@ -552,11 +551,10 @@ export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): 
     doc.text(validationCode, innerX + 45.5, innerY + 37.8)
 
     // Simulated Barcode Box (24 bars matching HTML component)
-    doc.setFillColor(255, 255, 255)
     doc.setDrawColor(167, 243, 208)
     doc.setLineWidth(0.2)
     doc.setLineDashPattern([1, 1], 0)
-    doc.roundedRect(innerX + 2, innerY + 40.5, innerW - 4, 8.5, 0.8, 0.8, 'FD')
+    doc.roundedRect(innerX + 2, innerY + 40.5, innerW - 4, 8.5, 0.8, 0.8, 'D')
     doc.setLineDashPattern([], 0)
 
     doc.setFillColor(15, 23, 42)

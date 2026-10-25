@@ -201,7 +201,7 @@
   }
 
   .field-box {
-    background: #ffffff;
+    background: transparent;
     border: 1px solid #a7f3d0;
     border-radius: 4px;
     padding: 4px 8px;
@@ -241,7 +241,7 @@
   }
 
   .barcode-container {
-    background: #ffffff;
+    background: transparent;
     border: 1px dashed #a7f3d0;
     border-radius: 4px;
     padding: 6px 0;
