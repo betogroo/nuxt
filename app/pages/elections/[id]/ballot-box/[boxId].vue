@@ -392,18 +392,20 @@
         <div v-else class="flex-grow-1 d-flex flex-column align-center justify-center pa-2 pa-sm-4">
           <UiAlert
             v-if="election?.is_anonymous === false && ballotBox?.current_voter_name"
-            class="mb-3 w-100"
-            color="warning"
-            max-width="820"
+            class="mb-2 py-1 px-3 text-caption text-center"
+            :icon="false"
+            size="sm"
+            style="max-width: 600px; width: 100%"
+            type="warning"
             variant="soft"
           >
-            <div class="d-flex align-center ga-2">
-              <UiIcon name="visibility" size="18" />
+            <div class="d-flex align-center justify-center ga-2">
+              <UiIcon name="userBadge" size="16" />
               <span>
-                <strong>Votação Nominal:</strong> Eleitor identificado como
+                <strong>Votação Nominal:</strong> Eleitor
                 <strong>{{ ballotBox.current_voter_name }}</strong> (Título nº
-                {{ ballotBox.current_voter_registration_number }}). O voto nesta eleição NÃO é
-                anônimo.
+                {{ ballotBox.current_voter_registration_number }}) &mdash;
+                <span class="text-medium-emphasis">Voto identificado</span>
               </span>
             </div>
           </UiAlert>

@@ -216,7 +216,11 @@ describe('BallotBox Kiosk Terminal Page', () => {
           UiIcon: true,
           UiChip: true,
           UiButton: true,
-          UiAlert: true,
+          UiAlert: {
+            name: 'UiAlert',
+            template: '<div class="ui-alert-stub"><slot /></div>',
+            props: ['type', 'size', 'variant', 'icon'],
+          },
           UiModal: true,
           VirtualBallotBox: {
             name: 'VirtualBallotBox',
@@ -229,6 +233,13 @@ describe('BallotBox Kiosk Terminal Page', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50))
     await wrapper.vm.$nextTick()
+
+    const alertComponent = wrapper.findComponent({ name: 'UiAlert' })
+    expect(alertComponent.exists()).toBe(true)
+    expect(alertComponent.props('size')).toBe('sm')
+    expect(alertComponent.props('type')).toBe('warning')
+    expect(alertComponent.text()).toContain('Votante Nominal')
+    expect(alertComponent.text()).toContain('12345678')
 
     const vbb = wrapper.findComponent({ name: 'VirtualBallotBox' })
     expect(vbb.exists()).toBe(true)
