@@ -3,21 +3,26 @@ import { shallowMount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemsPage from '~/pages/demands/[id]/index.vue'
 
-const { mockProductsList, mockDemandData, mockDemandProducts, mockUpdateDemandDb } = vi.hoisted(
-  () => ({
-    mockProductsList: { value: [] as unknown[] },
-    mockDemandData: { value: null as Record<string, unknown> | null },
-    mockDemandProducts: { value: [] as unknown[] },
-    mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
-  }),
-)
+const {
+  mockProductsList,
+  mockDemandData,
+  mockDemandPending,
+  mockDemandProducts,
+  mockUpdateDemandDb,
+} = vi.hoisted(() => ({
+  mockProductsList: { value: [] as unknown[] },
+  mockDemandData: { value: null as Record<string, unknown> | null },
+  mockDemandPending: { value: false },
+  mockDemandProducts: { value: [] as unknown[] },
+  mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
+}))
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
   if (key === 'all-active-products') {
     return { data: mockProductsList, pending: { value: false }, refresh: vi.fn() }
   }
   if (key === 'demand-demand-123') {
-    return { data: mockDemandData, pending: { value: false }, refresh: vi.fn() }
+    return { data: mockDemandData, pending: mockDemandPending, refresh: vi.fn() }
   }
   if (key === 'demand-items-demand-123') {
     return { data: mockDemandProducts, pending: { value: false }, refresh: vi.fn() }
@@ -582,5 +587,35 @@ describe('Demand Items Page', () => {
 
     vm.activeTab = 'planning'
     expect(vm.activeTab).toBe('planning')
+  })
+
+  it('handles loading state gracefully without crashing', () => {
+    mockDemandPending.value = true
+    mockDemandData.value = null
+
+    expect(() => {
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+      expect(vm.demandPending.value).toBe(true)
+      expect(vm.demand.value).toBeNull()
+    }).not.toThrow()
+
+    mockDemandPending.value = false
+  })
+
+  it('handles null demand gracefully without crashing even if planning tab is active', () => {
+    mockDemandPending.value = false
+    mockDemandData.value = null
+
+    expect(() => {
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+      expect(vm.demandPending.value).toBe(false)
+      expect(vm.demand.value).toBeNull()
+      vm.activeTab = 'planning'
+      expect(vm.activeTab).toBe('planning')
+    }).not.toThrow()
   })
 })

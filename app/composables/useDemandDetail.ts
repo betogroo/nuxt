@@ -40,7 +40,11 @@ export function useDemandDetail(demandId: string) {
   const { fetchDemandProducts, removeDemandProduct, reorderDemandItems } = useDemandProducts()
 
   // 1. Demand Core
-  const { data: demand, refresh: refreshDemand } = useAsyncData(`demand-${demandId}`, async () => {
+  const {
+    data: demand,
+    pending: demandPending,
+    refresh: refreshDemand,
+  } = useAsyncData(`demand-${demandId}`, async () => {
     return await fetchDemandById(demandId)
   })
 
@@ -297,6 +301,7 @@ export function useDemandDetail(demandId: string) {
 
   return {
     demand,
+    demandPending,
     refreshDemand,
     updateDemand,
     isPlanningIncomplete,
