@@ -286,13 +286,19 @@
   ]
 
   // Product characteristics (Key : Value) logic
-  const isAddingCharacteristic = ref(false)
+  const isCharacteristicModalOpen = ref(false)
   const isEditingCharacteristic = ref(false)
   const characteristicKeyInput = ref<string | { name?: string }>('')
   const characteristicValueInput = ref<string | { name?: string }>('')
   const characteristicValueSuggestions = ref<string[]>([])
   const characteristicError = ref('')
   const savingCharacteristic = ref(false)
+  const savingAndContinuingCharacteristic = ref(false)
+
+  // Delete characteristic confirmation modal
+  const isDeleteCharacteristicModalOpen = ref(false)
+  const characteristicToDelete = ref<ProductCharacteristicDetail | null>(null)
+  const isDeletingCharacteristic = ref(false)
 
   const extractComboString = (val: unknown): string => {
     if (typeof val === 'string') return val.trim()
@@ -321,7 +327,7 @@
     characteristicKeyInput.value = ''
     characteristicValueInput.value = ''
     characteristicError.value = ''
-    isAddingCharacteristic.value = true
+    isCharacteristicModalOpen.value = true
   }
 
   const openEditCharacteristic = (char: ProductCharacteristicDetail) => {
@@ -329,18 +335,18 @@
     characteristicKeyInput.value = char.key_name
     characteristicValueInput.value = char.value
     characteristicError.value = ''
-    isAddingCharacteristic.value = true
+    isCharacteristicModalOpen.value = true
   }
 
-  const cancelCharacteristicForm = () => {
-    isAddingCharacteristic.value = false
+  const closeCharacteristicModal = () => {
+    isCharacteristicModalOpen.value = false
     isEditingCharacteristic.value = false
     characteristicKeyInput.value = ''
     characteristicValueInput.value = ''
     characteristicError.value = ''
   }
 
-  const saveCharacteristic = async () => {
+  const saveCharacteristic = async (keepOpen = false) => {
     const keyStr = extractComboString(characteristicKeyInput.value)
     const valStr = extractComboString(characteristicValueInput.value)
 
@@ -349,7 +355,11 @@
       return
     }
 
-    savingCharacteristic.value = true
+    if (keepOpen) {
+      savingAndContinuingCharacteristic.value = true
+    } else {
+      savingCharacteristic.value = true
+    }
     characteristicError.value = ''
 
     try {
@@ -361,24 +371,47 @@
       )
       await refresh()
       await refreshCharacteristicKeys()
-      cancelCharacteristicForm()
+
+      if (keepOpen) {
+        characteristicKeyInput.value = ''
+        characteristicValueInput.value = ''
+        characteristicError.value = ''
+      } else {
+        closeCharacteristicModal()
+      }
     } catch (e: unknown) {
       characteristicError.value = e instanceof Error ? e.message : String(e)
     } finally {
       savingCharacteristic.value = false
+      savingAndContinuingCharacteristic.value = false
     }
   }
 
-  const removeCharacteristic = async (char: ProductCharacteristicDetail) => {
-    if (!confirm(`Remover a característica "${char.key_name}: ${char.value}" deste produto?`)) {
-      return
-    }
+  const openDeleteCharacteristicModal = (char: ProductCharacteristicDetail) => {
+    characteristicToDelete.value = char
+    isDeleteCharacteristicModalOpen.value = true
+  }
+
+  const closeDeleteCharacteristicModal = () => {
+    isDeleteCharacteristicModalOpen.value = false
+    characteristicToDelete.value = null
+  }
+
+  const confirmDeleteCharacteristic = async () => {
+    if (!characteristicToDelete.value) return
+    isDeletingCharacteristic.value = true
     try {
-      await removeProductCharacteristic(char.id, `${char.key_name}: ${char.value}`)
+      await removeProductCharacteristic(
+        characteristicToDelete.value.id,
+        `${characteristicToDelete.value.key_name}: ${characteristicToDelete.value.value}`,
+      )
       toast.success('Característica removida do produto.')
+      closeDeleteCharacteristicModal()
       await refresh()
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e))
+    } finally {
+      isDeletingCharacteristic.value = false
     }
   }
 
@@ -693,7 +726,6 @@
               Características do Produto (Chave : Valor)
               <UiSpacer />
               <UiButton
-                v-if="!isAddingCharacteristic"
                 color="primary"
                 prepend-icon="add"
                 size="sm"
@@ -705,76 +737,12 @@
             </template>
 
             <div class="pa-4">
-              <div class="text-body-2 text-medium-emphasis mb-4">
+              <div class="text-body-2 text-medium-emphasis mb-1">
                 Especifique atributos técnicos ou físicos no formato
                 <strong>Chave : Valor</strong> (ex: <em>Cor : Branca</em>, <em>Ponta : 1.0mm</em>).
                 Caso a chave ainda não exista na lista, basta digitá-la para cadastrá-la
                 automaticamente.
               </div>
-
-              <UiSlideYTransition>
-                <div v-if="isAddingCharacteristic" class="mb-5 pa-4 rounded-lg bg-surface-variant">
-                  <div class="text-subtitle-2 font-weight-bold mb-1">
-                    {{
-                      isEditingCharacteristic
-                        ? 'Editar Valor da Característica'
-                        : 'Nova Característica (Chave : Valor)'
-                    }}
-                  </div>
-                  <div class="text-caption text-medium-emphasis mb-4">
-                    Selecione uma chave padronizada na lista ou digite uma nova chave.
-                  </div>
-
-                  <UiRow>
-                    <UiCol cols="12" md="5">
-                      <UiCombobox
-                        v-model="characteristicKeyInput"
-                        bg-color="surface"
-                        :disabled="isEditingCharacteristic"
-                        hide-details
-                        item-title="name"
-                        item-value="name"
-                        :items="allCharacteristicKeys || []"
-                        label="Chave (ex: Cor, Altura, Ponta)"
-                        :return-object="false"
-                        rounded="lg"
-                        size="md"
-                        variant="outline"
-                      />
-                    </UiCol>
-                    <UiCol cols="12" md="7">
-                      <UiCombobox
-                        v-model="characteristicValueInput"
-                        bg-color="surface"
-                        hide-details
-                        :items="characteristicValueSuggestions"
-                        label="Valor (ex: Branca, 1.0mm, Bivolt)"
-                        :return-object="false"
-                        rounded="lg"
-                        size="md"
-                        variant="outline"
-                        @keyup.enter="saveCharacteristic"
-                      />
-                    </UiCol>
-                  </UiRow>
-
-                  <UiAlert v-if="characteristicError" class="mt-3" size="sm" type="error">
-                    {{ characteristicError }}
-                  </UiAlert>
-
-                  <div class="d-flex justify-end mt-4 ga-2">
-                    <UiButton variant="ghost" @click="cancelCharacteristicForm">Cancelar</UiButton>
-                    <UiButton
-                      color="primary"
-                      :loading="savingCharacteristic"
-                      variant="solid"
-                      @click="saveCharacteristic"
-                    >
-                      {{ isEditingCharacteristic ? 'Salvar Valor' : 'Salvar Característica' }}
-                    </UiButton>
-                  </div>
-                </div>
-              </UiSlideYTransition>
             </div>
 
             <UiTable
@@ -807,7 +775,7 @@
                   <UiActionButton
                     action="delete"
                     tooltip="Remover característica"
-                    @click="removeCharacteristic(item)"
+                    @click="openDeleteCharacteristicModal(item)"
                   />
                 </div>
               </template>
@@ -1042,6 +1010,120 @@
           :loading="isDeletingUnit"
           variant="solid"
           @click="confirmDeleteUnit"
+        >
+          Confirmar Remoção
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Adicionar / Editar Característica -->
+    <UiModal
+      v-model="isCharacteristicModalOpen"
+      max-width="580px"
+      :title="isEditingCharacteristic ? 'Editar Característica' : 'Adicionar Característica'"
+    >
+      <div class="py-2">
+        <p class="text-body-2 text-medium-emphasis mb-4">
+          {{
+            isEditingCharacteristic
+              ? 'Altere o valor desta especificação técnica vinculada ao produto.'
+              : 'Especifique atributos técnicos ou físicos no formato Chave : Valor (ex: Cor : Branca, Ponta : 1.0mm).'
+          }}
+        </p>
+
+        <UiRow class="g-3">
+          <UiCol cols="12" md="5">
+            <UiCombobox
+              v-model="characteristicKeyInput"
+              :disabled="isEditingCharacteristic"
+              hide-details="auto"
+              item-title="name"
+              item-value="name"
+              :items="allCharacteristicKeys || []"
+              label="Chave *"
+              placeholder="Ex: Cor, Ponta"
+              :return-object="false"
+              variant="outline"
+            />
+          </UiCol>
+          <UiCol cols="12" md="7">
+            <UiCombobox
+              v-model="characteristicValueInput"
+              hide-details="auto"
+              :items="characteristicValueSuggestions"
+              label="Valor *"
+              placeholder="Ex: Branca, 1.0mm, Bivolt"
+              :return-object="false"
+              variant="outline"
+              @keyup.enter="saveCharacteristic(false)"
+            />
+          </UiCol>
+        </UiRow>
+
+        <UiAlert v-if="characteristicError" class="mt-4" size="sm" type="error">
+          {{ characteristicError }}
+        </UiAlert>
+      </div>
+
+      <template #actions>
+        <UiButton
+          :disabled="savingCharacteristic || savingAndContinuingCharacteristic"
+          variant="ghost"
+          @click="closeCharacteristicModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          v-if="!isEditingCharacteristic"
+          color="primary"
+          :disabled="savingCharacteristic"
+          :loading="savingAndContinuingCharacteristic"
+          variant="tonal"
+          @click="saveCharacteristic(true)"
+        >
+          Salvar e Continuar Inserindo
+        </UiButton>
+        <UiButton
+          color="primary"
+          :disabled="savingAndContinuingCharacteristic"
+          :loading="savingCharacteristic"
+          variant="solid"
+          @click="saveCharacteristic(false)"
+        >
+          {{ isEditingCharacteristic ? 'Salvar Alterações' : 'Salvar Característica' }}
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Confirmação de Exclusão de Característica -->
+    <UiModal
+      v-model="isDeleteCharacteristicModalOpen"
+      max-width="480px"
+      title="Remover Característica"
+    >
+      <div class="py-2">
+        <p class="text-body-1 mb-2">
+          Deseja realmente remover a característica
+          <strong
+            >"{{ characteristicToDelete?.key_name }}: {{ characteristicToDelete?.value }}"</strong
+          >
+          deste produto?
+        </p>
+      </div>
+
+      <template #actions>
+        <UiButton
+          :disabled="isDeletingCharacteristic"
+          variant="ghost"
+          @click="closeDeleteCharacteristicModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeletingCharacteristic"
+          variant="solid"
+          @click="confirmDeleteCharacteristic"
         >
           Confirmar Remoção
         </UiButton>

@@ -12,6 +12,8 @@ const mockProfile = ref<{ role: string } | null>({ role: ROLES.ADMIN })
 const mockToggleProductStatus = vi.fn()
 const mockUpdateProduct = vi.fn().mockResolvedValue({})
 const mockRemoveProductUnit = vi.fn().mockResolvedValue({})
+const mockUpsertProductCharacteristic = vi.fn().mockResolvedValue({})
+const mockRemoveProductCharacteristic = vi.fn().mockResolvedValue({})
 const mockToast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }
 const mockRefresh = vi.fn()
 
@@ -65,6 +67,8 @@ mockNuxtImport('useProducts', () => () => ({
   updateProduct: mockUpdateProduct,
   addProductUnit: vi.fn(),
   removeProductUnit: mockRemoveProductUnit,
+  upsertProductCharacteristic: mockUpsertProductCharacteristic,
+  removeProductCharacteristic: mockRemoveProductCharacteristic,
 }))
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAllActiveUnits: vi.fn().mockResolvedValue([]),
@@ -283,5 +287,124 @@ describe('Product Detail Page', () => {
     expect(mockRemoveProductUnit).toHaveBeenCalledWith('prod-1', 'unit-1')
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('Pacote 100 Unidade'))
     expect(vm.isDeleteUnitModalOpen).toBe(false)
+  })
+
+  it('opens characteristic modal and saves a new characteristic closing modal', async () => {
+    const wrapper = mountPage()
+    const vm = wrapper.vm as unknown as {
+      openAddCharacteristic: () => void
+      isCharacteristicModalOpen: boolean
+      isEditingCharacteristic: boolean
+      characteristicKeyInput: string
+      characteristicValueInput: string
+      saveCharacteristic: (keepOpen?: boolean) => Promise<void>
+    }
+
+    vm.openAddCharacteristic()
+    expect(vm.isCharacteristicModalOpen).toBe(true)
+    expect(vm.isEditingCharacteristic).toBe(false)
+
+    vm.characteristicKeyInput = 'Cor'
+    vm.characteristicValueInput = 'Azul'
+
+    await vm.saveCharacteristic(false)
+
+    expect(mockUpsertProductCharacteristic).toHaveBeenCalledWith('prod-1', 'Cor', 'Azul')
+    expect(mockToast.success).toHaveBeenCalledWith(
+      expect.stringContaining('Característica vinculada ao produto!'),
+    )
+    expect(vm.isCharacteristicModalOpen).toBe(false)
+  })
+
+  it('saves characteristic and keeps modal open when saving and continuing', async () => {
+    const wrapper = mountPage()
+    const vm = wrapper.vm as unknown as {
+      openAddCharacteristic: () => void
+      isCharacteristicModalOpen: boolean
+      characteristicKeyInput: string
+      characteristicValueInput: string
+      saveCharacteristic: (keepOpen?: boolean) => Promise<void>
+    }
+
+    vm.openAddCharacteristic()
+    vm.characteristicKeyInput = 'Voltagem'
+    vm.characteristicValueInput = '220V'
+
+    await vm.saveCharacteristic(true)
+
+    expect(mockUpsertProductCharacteristic).toHaveBeenCalledWith('prod-1', 'Voltagem', '220V')
+    expect(mockToast.success).toHaveBeenCalledWith(
+      expect.stringContaining('Característica vinculada ao produto!'),
+    )
+    expect(vm.characteristicKeyInput).toBe('')
+    expect(vm.characteristicValueInput).toBe('')
+    expect(vm.isCharacteristicModalOpen).toBe(true)
+  })
+
+  it('opens characteristic modal in edit mode with prepopulated values', () => {
+    const wrapper = mountPage()
+    const vm = wrapper.vm as unknown as {
+      openEditCharacteristic: (char: {
+        id: string
+        key_id: string
+        key_name: string
+        value: string
+        is_pending: boolean
+        is_active: boolean
+      }) => void
+      isCharacteristicModalOpen: boolean
+      isEditingCharacteristic: boolean
+      characteristicKeyInput: string
+      characteristicValueInput: string
+    }
+
+    vm.openEditCharacteristic({
+      id: 'char-1',
+      key_id: 'k-1',
+      key_name: 'Ponta',
+      value: '1.0mm',
+      is_pending: false,
+      is_active: true,
+    })
+
+    expect(vm.isCharacteristicModalOpen).toBe(true)
+    expect(vm.isEditingCharacteristic).toBe(true)
+    expect(vm.characteristicKeyInput).toBe('Ponta')
+    expect(vm.characteristicValueInput).toBe('1.0mm')
+  })
+
+  it('opens characteristic deletion modal and confirms removal', async () => {
+    const wrapper = mountPage()
+    const vm = wrapper.vm as unknown as {
+      openDeleteCharacteristicModal: (char: {
+        id: string
+        key_id: string
+        key_name: string
+        value: string
+        is_pending: boolean
+        is_active: boolean
+      }) => void
+      isDeleteCharacteristicModalOpen: boolean
+      characteristicToDelete: { key_name: string; value: string } | null
+      confirmDeleteCharacteristic: () => Promise<void>
+    }
+
+    const charItem = {
+      id: 'char-1',
+      key_id: 'k-1',
+      key_name: 'Cor',
+      value: 'Preta',
+      is_pending: false,
+      is_active: true,
+    }
+
+    vm.openDeleteCharacteristicModal(charItem)
+    expect(vm.isDeleteCharacteristicModalOpen).toBe(true)
+    expect(vm.characteristicToDelete).toEqual(charItem)
+
+    await vm.confirmDeleteCharacteristic()
+    expect(mockRemoveProductCharacteristic).toHaveBeenCalledWith('char-1', 'Cor: Preta')
+    expect(mockToast.success).toHaveBeenCalledWith('Característica removida do produto.')
+    expect(vm.isDeleteCharacteristicModalOpen).toBe(false)
   })
 })
