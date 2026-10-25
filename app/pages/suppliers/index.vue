@@ -84,7 +84,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerenciamento de Fornecedores do Sistema" title="Fornecedores" />
+    <UiPageHeader subtitle="Gerenciamento de Fornecedores do Sistema" title="Fornecedores" />
 
     <UiRow>
       <UiCol cols="12">

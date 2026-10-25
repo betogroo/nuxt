@@ -36,6 +36,9 @@ describe('SettingsAdminPage', () => {
           PageHeader: {
             template: '<div><slot /></div>',
           },
+          UiPageHeader: {
+            template: '<div><slot /></div>',
+          },
           UiContainer: { template: '<div><slot /></div>' },
           UiCard: { template: '<div><slot /><slot name="header" /><slot name="actions" /></div>' },
           UiAlert: { template: '<div><slot /></div>' },
@@ -65,6 +68,7 @@ describe('SettingsAdminPage', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiContainer: { template: '<div><slot /></div>' },
           UiCard: { template: '<div><slot /><slot name="actions" /></div>' },
           UiAlert: true,
@@ -98,6 +102,7 @@ describe('SettingsAdminPage', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiContainer: { template: '<div><slot /></div>' },
           UiCard: { template: '<div><slot /><slot name="actions" /></div>' },
           UiAlert: true,

@@ -1,5 +1,9 @@
 <script setup lang="ts">
-  import type { ProductUnitDetail, ProductDemandUsage } from '~/composables/useProducts'
+  import type {
+    ProductUnitDetail,
+    ProductCharacteristicDetail,
+    ProductDemandUsage,
+  } from '~/composables/useProducts'
   import { ROLES } from '~/constants/roles'
   import { formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
@@ -21,8 +25,11 @@
     updateProduct,
     addProductUnit,
     removeProductUnit,
+    upsertProductCharacteristic,
+    removeProductCharacteristic,
   } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
+  const { fetchAllSelectableKeys, fetchDistinctValuesForKey } = useProductCharacteristics()
   const { getBecProductUrl } = useSystemSettings()
   const { fetchAllActiveExpenseNatures, registerPendingExpenseNature } = useExpenseNatures()
   const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
@@ -70,6 +77,10 @@
   const { data: productClasses } = useAsyncData(
     'product-classes-select',
     fetchAllActiveProductClasses,
+  )
+  const { data: allCharacteristicKeys, refresh: refreshCharacteristicKeys } = useAsyncData(
+    'characteristic-keys-select',
+    fetchAllSelectableKeys,
   )
 
   // Edit product modal (admin)
@@ -236,13 +247,34 @@
     addUnitSearch.value = ''
   }
 
-  const removeUnit = async (unitId: string) => {
-    if (!confirm('Remover esta apresentação do produto?')) return
+  // Delete unit confirmation modal
+  const isDeleteUnitModalOpen = ref(false)
+  const unitToDelete = ref<ProductUnitDetail | null>(null)
+  const isDeletingUnit = ref(false)
+
+  const openDeleteUnitModal = (unit: ProductUnitDetail) => {
+    unitToDelete.value = unit
+    isDeleteUnitModalOpen.value = true
+  }
+
+  const closeDeleteUnitModal = () => {
+    isDeleteUnitModalOpen.value = false
+    unitToDelete.value = null
+  }
+
+  const confirmDeleteUnit = async () => {
+    if (!unitToDelete.value) return
+    isDeletingUnit.value = true
     try {
-      await removeProductUnit(productId, unitId)
+      await removeProductUnit(productId, unitToDelete.value.id)
+      toast.success(`Apresentação "${unitToDelete.value.name}" removida com sucesso.`)
+      closeDeleteUnitModal()
       await refresh()
+      await refreshUnitsList()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover apresentação.')
+    } finally {
+      isDeletingUnit.value = false
     }
   }
 
@@ -250,6 +282,110 @@
     { text: 'Apresentação (Unidade)', value: 'name' },
     { text: 'Status', value: 'status', align: 'center' as const },
     { text: 'Registros Alternativos (Aliases)', value: 'aliases' },
+    { text: 'Ações', value: 'actions', align: 'right' as const },
+  ]
+
+  // Product characteristics (Key : Value) logic
+  const isAddingCharacteristic = ref(false)
+  const isEditingCharacteristic = ref(false)
+  const characteristicKeyInput = ref<string | { name?: string }>('')
+  const characteristicValueInput = ref<string | { name?: string }>('')
+  const characteristicValueSuggestions = ref<string[]>([])
+  const characteristicError = ref('')
+  const savingCharacteristic = ref(false)
+
+  const extractComboString = (val: unknown): string => {
+    if (typeof val === 'string') return val.trim()
+    if (val && typeof val === 'object' && 'name' in val) {
+      const nameVal = (val as { name?: unknown }).name
+      return typeof nameVal === 'string' ? nameVal.trim() : ''
+    }
+    return ''
+  }
+
+  watch(characteristicKeyInput, async (newKeyVal) => {
+    const keyStr = extractComboString(newKeyVal)
+    if (!keyStr) {
+      characteristicValueSuggestions.value = []
+      return
+    }
+    try {
+      characteristicValueSuggestions.value = await fetchDistinctValuesForKey(keyStr)
+    } catch {
+      characteristicValueSuggestions.value = []
+    }
+  })
+
+  const openAddCharacteristic = () => {
+    isEditingCharacteristic.value = false
+    characteristicKeyInput.value = ''
+    characteristicValueInput.value = ''
+    characteristicError.value = ''
+    isAddingCharacteristic.value = true
+  }
+
+  const openEditCharacteristic = (char: ProductCharacteristicDetail) => {
+    isEditingCharacteristic.value = true
+    characteristicKeyInput.value = char.key_name
+    characteristicValueInput.value = char.value
+    characteristicError.value = ''
+    isAddingCharacteristic.value = true
+  }
+
+  const cancelCharacteristicForm = () => {
+    isAddingCharacteristic.value = false
+    isEditingCharacteristic.value = false
+    characteristicKeyInput.value = ''
+    characteristicValueInput.value = ''
+    characteristicError.value = ''
+  }
+
+  const saveCharacteristic = async () => {
+    const keyStr = extractComboString(characteristicKeyInput.value)
+    const valStr = extractComboString(characteristicValueInput.value)
+
+    if (!keyStr || !valStr) {
+      characteristicError.value = 'Informe tanto a Chave quanto o Valor da característica.'
+      return
+    }
+
+    savingCharacteristic.value = true
+    characteristicError.value = ''
+
+    try {
+      await upsertProductCharacteristic(productId, keyStr, valStr)
+      toast.success(
+        isEditingCharacteristic.value
+          ? 'Característica atualizada com sucesso!'
+          : 'Característica vinculada ao produto!',
+      )
+      await refresh()
+      await refreshCharacteristicKeys()
+      cancelCharacteristicForm()
+    } catch (e: unknown) {
+      characteristicError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      savingCharacteristic.value = false
+    }
+  }
+
+  const removeCharacteristic = async (char: ProductCharacteristicDetail) => {
+    if (!confirm(`Remover a característica "${char.key_name}: ${char.value}" deste produto?`)) {
+      return
+    }
+    try {
+      await removeProductCharacteristic(char.id, `${char.key_name}: ${char.value}`)
+      toast.success('Característica removida do produto.')
+      await refresh()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  const characteristicHeaders = [
+    { text: 'Chave (Característica)', value: 'key_name' },
+    { text: 'Valor', value: 'value' },
+    { text: 'Status da Chave', value: 'status', align: 'center' as const },
     { text: 'Ações', value: 'actions', align: 'right' as const },
   ]
 
@@ -297,7 +433,13 @@
       </div>
 
       <div v-if="isAdmin && product" class="d-flex align-center ga-2">
-        <UiButton color="primary" icon="pencil" size="sm" variant="soft" @click="openEditModal">
+        <UiButton
+          color="primary"
+          prepend-icon="edit"
+          size="sm"
+          variant="soft"
+          @click="openEditModal"
+        >
           Editar Produto
         </UiButton>
         <UiButton
@@ -525,7 +667,7 @@
                 <UiActionButton
                   action="delete"
                   tooltip="Remover apresentação"
-                  @click="removeUnit(item.id)"
+                  @click="openDeleteUnitModal(item as ProductUnitDetail)"
                 />
               </template>
 
@@ -534,6 +676,149 @@
                   <div class="text-body-1 font-weight-medium">Nenhuma apresentação vinculada</div>
                   <div class="text-caption text-medium-emphasis">
                     Vincule apresentações para utilizar este produto em demandas.
+                  </div>
+                </div>
+              </template>
+            </UiTable>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+
+      <!-- Características do Produto (Chave : Valor) -->
+      <UiRow class="mb-4">
+        <UiCol cols="12">
+          <UiCard variant="outline">
+            <template #header>
+              <UiIcon class="mr-2" color="teal" name="categories" />
+              Características do Produto (Chave : Valor)
+              <UiSpacer />
+              <UiButton
+                v-if="!isAddingCharacteristic"
+                color="primary"
+                prepend-icon="add"
+                size="sm"
+                variant="soft"
+                @click="openAddCharacteristic"
+              >
+                Adicionar Característica
+              </UiButton>
+            </template>
+
+            <div class="pa-4">
+              <div class="text-body-2 text-medium-emphasis mb-4">
+                Especifique atributos técnicos ou físicos no formato
+                <strong>Chave : Valor</strong> (ex: <em>Cor : Branca</em>, <em>Ponta : 1.0mm</em>).
+                Caso a chave ainda não exista na lista, basta digitá-la para cadastrá-la
+                automaticamente.
+              </div>
+
+              <UiSlideYTransition>
+                <div v-if="isAddingCharacteristic" class="mb-5 pa-4 rounded-lg bg-surface-variant">
+                  <div class="text-subtitle-2 font-weight-bold mb-1">
+                    {{
+                      isEditingCharacteristic
+                        ? 'Editar Valor da Característica'
+                        : 'Nova Característica (Chave : Valor)'
+                    }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis mb-4">
+                    Selecione uma chave padronizada na lista ou digite uma nova chave.
+                  </div>
+
+                  <UiRow>
+                    <UiCol cols="12" md="5">
+                      <UiCombobox
+                        v-model="characteristicKeyInput"
+                        bg-color="surface"
+                        :disabled="isEditingCharacteristic"
+                        hide-details
+                        item-title="name"
+                        item-value="name"
+                        :items="allCharacteristicKeys || []"
+                        label="Chave (ex: Cor, Altura, Ponta)"
+                        :return-object="false"
+                        rounded="lg"
+                        size="md"
+                        variant="outline"
+                      />
+                    </UiCol>
+                    <UiCol cols="12" md="7">
+                      <UiCombobox
+                        v-model="characteristicValueInput"
+                        bg-color="surface"
+                        hide-details
+                        :items="characteristicValueSuggestions"
+                        label="Valor (ex: Branca, 1.0mm, Bivolt)"
+                        :return-object="false"
+                        rounded="lg"
+                        size="md"
+                        variant="outline"
+                        @keyup.enter="saveCharacteristic"
+                      />
+                    </UiCol>
+                  </UiRow>
+
+                  <UiAlert v-if="characteristicError" class="mt-3" size="sm" type="error">
+                    {{ characteristicError }}
+                  </UiAlert>
+
+                  <div class="d-flex justify-end mt-4 ga-2">
+                    <UiButton variant="ghost" @click="cancelCharacteristicForm">Cancelar</UiButton>
+                    <UiButton
+                      color="primary"
+                      :loading="savingCharacteristic"
+                      variant="solid"
+                      @click="saveCharacteristic"
+                    >
+                      {{ isEditingCharacteristic ? 'Salvar Valor' : 'Salvar Característica' }}
+                    </UiButton>
+                  </div>
+                </div>
+              </UiSlideYTransition>
+            </div>
+
+            <UiTable
+              :headers="characteristicHeaders"
+              :items="(product.characteristics as ProductCharacteristicDetail[]) || []"
+            >
+              <template #item-key_name="{ item }">
+                <span class="text-body-1 font-weight-bold">{{ item.key_name }}</span>
+              </template>
+
+              <template #item-value="{ item }">
+                <UiChip color="teal" label size="sm" variant="soft">
+                  {{ item.value }}
+                </UiChip>
+              </template>
+
+              <template #item-status="{ item }">
+                <UiChip :color="item.is_pending ? 'warning' : 'success'" size="sm" variant="soft">
+                  {{ item.is_pending ? 'Chave Pendente' : 'Padronizada' }}
+                </UiChip>
+              </template>
+
+              <template #item-actions="{ item }">
+                <div class="d-flex justify-end ga-1">
+                  <UiActionButton
+                    action="edit"
+                    tooltip="Editar valor"
+                    @click="openEditCharacteristic(item)"
+                  />
+                  <UiActionButton
+                    action="delete"
+                    tooltip="Remover característica"
+                    @click="removeCharacteristic(item)"
+                  />
+                </div>
+              </template>
+
+              <template #empty>
+                <div class="text-center py-4">
+                  <div class="text-body-1 font-weight-medium">
+                    Nenhuma característica cadastrada
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    Adicione pares de Chave : Valor para detalhar as especificações deste produto.
                   </div>
                 </div>
               </template>
@@ -732,6 +1017,33 @@
           @click="saveProductEdit"
         >
           Salvar Alterações
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Confirmação de Exclusão de Apresentação -->
+    <UiModal v-model="isDeleteUnitModalOpen" max-width="480px" title="Remover Apresentação">
+      <div class="py-2">
+        <p class="text-body-1 mb-2">
+          Deseja realmente remover a apresentação
+          <strong>"{{ unitToDelete?.name }}"</strong> deste produto?
+        </p>
+        <UiAlert color="info" size="sm" variant="soft">
+          As demandas que já utilizam esta unidade de medida não serão impactadas.
+        </UiAlert>
+      </div>
+
+      <template #actions>
+        <UiButton :disabled="isDeletingUnit" variant="ghost" @click="closeDeleteUnitModal">
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeletingUnit"
+          variant="solid"
+          @click="confirmDeleteUnit"
+        >
+          Confirmar Remoção
         </UiButton>
       </template>
     </UiModal>

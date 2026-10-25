@@ -300,9 +300,19 @@
   // Committee Form & Actions state
   const committeeFormName = ref('')
   const committeeFormRole = ref('')
-  const editingCommitteeMember = ref<ElectionCommitteeMemberRow | null>(null)
   const isSavingCommitteeMember = ref(false)
-  const deletingCommitteeMemberId = ref<string | null>(null)
+
+  // Edit committee member modal state
+  const isEditCommitteeModalOpen = ref(false)
+  const editCommitteeFormName = ref('')
+  const editCommitteeFormRole = ref('')
+  const editingCommitteeMember = ref<ElectionCommitteeMemberRow | null>(null)
+  const isSavingEditCommittee = ref(false)
+
+  // Delete committee member modal state
+  const isDeleteCommitteeModalOpen = ref(false)
+  const committeeMemberToDelete = ref<ElectionCommitteeMemberRow | null>(null)
+  const isDeletingCommitteeMember = ref(false)
 
   const committeeTableHeaders = computed(() => {
     const base: Array<{
@@ -335,16 +345,44 @@
     { text: 'Porcentagem', value: 'percentage', align: 'right', width: 190 },
   ]
 
-  const startEditCommitteeMember = (member: ElectionCommitteeMemberRow) => {
+  const openEditCommitteeModal = (member: ElectionCommitteeMemberRow) => {
     editingCommitteeMember.value = member
-    committeeFormName.value = member.name
-    committeeFormRole.value = member.role_name
+    editCommitteeFormName.value = member.name
+    editCommitteeFormRole.value = member.role_name
+    isEditCommitteeModalOpen.value = true
   }
 
-  const cancelEditCommitteeMember = () => {
+  const closeEditCommitteeModal = () => {
+    isEditCommitteeModalOpen.value = false
     editingCommitteeMember.value = null
-    committeeFormName.value = ''
-    committeeFormRole.value = ''
+    editCommitteeFormName.value = ''
+    editCommitteeFormRole.value = ''
+  }
+
+  const handleSaveEditCommitteeMember = async () => {
+    if (!editingCommitteeMember.value) return
+    const cleanName = editCommitteeFormName.value.trim()
+    const cleanRole = editCommitteeFormRole.value.trim()
+    if (!cleanName || !cleanRole) {
+      toast.warning('Informe o nome e o cargo do membro da comissão.')
+      return
+    }
+
+    isSavingEditCommittee.value = true
+    try {
+      await updateCommitteeMember(editingCommitteeMember.value.id, {
+        name: cleanName,
+        role_name: cleanRole,
+      })
+      toast.success('Membro da comissão atualizado com sucesso.')
+      closeEditCommitteeModal()
+      await refreshCommittee()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao atualizar membro da comissão.'
+      toast.error(msg)
+    } finally {
+      isSavingEditCommittee.value = false
+    }
   }
 
   const handleSaveCommitteeMember = async () => {
@@ -358,22 +396,15 @@
 
     isSavingCommitteeMember.value = true
     try {
-      if (editingCommitteeMember.value) {
-        await updateCommitteeMember(editingCommitteeMember.value.id, {
-          name: cleanName,
-          role_name: cleanRole,
-        })
-        toast.success('Membro da comissão atualizado com sucesso.')
-      } else {
-        await addCommitteeMember({
-          election_id: election.value.id,
-          name: cleanName,
-          role_name: cleanRole,
-          sort_order: (committeeMembers.value?.length || 0) + 1,
-        })
-        toast.success('Membro adicionado à comissão eleitoral.')
-      }
-      cancelEditCommitteeMember()
+      await addCommitteeMember({
+        election_id: election.value.id,
+        name: cleanName,
+        role_name: cleanRole,
+        sort_order: (committeeMembers.value?.length || 0) + 1,
+      })
+      toast.success('Membro adicionado à comissão eleitoral.')
+      committeeFormName.value = ''
+      committeeFormRole.value = ''
       await refreshCommittee()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao salvar membro da comissão.'
@@ -383,20 +414,32 @@
     }
   }
 
-  const handleDeleteCommitteeMember = async (member: ElectionCommitteeMemberRow) => {
-    deletingCommitteeMemberId.value = member.id
+  const openDeleteCommitteeModal = (member: ElectionCommitteeMemberRow) => {
+    committeeMemberToDelete.value = member
+    isDeleteCommitteeModalOpen.value = true
+  }
+
+  const closeDeleteCommitteeModal = () => {
+    isDeleteCommitteeModalOpen.value = false
+    committeeMemberToDelete.value = null
+  }
+
+  const handleConfirmDeleteCommitteeMember = async () => {
+    if (!committeeMemberToDelete.value) return
+    isDeletingCommitteeMember.value = true
     try {
-      await deleteCommitteeMember(member.id, member.name)
-      toast.success(`Membro "${member.name}" removido da comissão.`)
-      if (editingCommitteeMember.value?.id === member.id) {
-        cancelEditCommitteeMember()
-      }
+      await deleteCommitteeMember(
+        committeeMemberToDelete.value.id,
+        committeeMemberToDelete.value.name,
+      )
+      toast.success(`Membro "${committeeMemberToDelete.value.name}" removido da comissão.`)
+      closeDeleteCommitteeModal()
       await refreshCommittee()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao remover membro da comissão.'
       toast.error(msg)
     } finally {
-      deletingCommitteeMemberId.value = null
+      isDeletingCommitteeMember.value = false
     }
   }
 
@@ -966,10 +1009,12 @@
                 <UiIcon
                   :name="
                     election.status === 'finished'
-                      ? 'checkCircle'
+                      ? 'success'
                       : election.status === 'tallying'
-                        ? 'trending'
-                        : 'vote'
+                        ? 'chart'
+                        : election.status === 'released'
+                          ? 'vote'
+                          : 'time'
                   "
                   size="24"
                 />
@@ -1216,18 +1261,14 @@
               </div>
             </div>
 
-            <!-- Formulário de Adição / Edição de Membro da Comissão -->
+            <!-- Formulário de Adição de Membro da Comissão -->
             <UiCard
               v-if="canManageElections() && election.status !== 'finished'"
               class="pa-4 mb-5 bg-surface-variant"
               variant="outline"
             >
               <div class="text-subtitle-2 font-weight-bold mb-3">
-                {{
-                  editingCommitteeMember
-                    ? `Editando Membro: ${editingCommitteeMember.name}`
-                    : 'Adicionar Membro à Comissão Eleitoral'
-                }}
+                Adicionar Membro à Comissão Eleitoral
               </div>
               <UiRow align="center" dense>
                 <UiCol cols="12" md="5">
@@ -1241,7 +1282,7 @@
                     @keyup.enter="handleSaveCommitteeMember"
                   />
                 </UiCol>
-                <UiCol cols="12" md="4">
+                <UiCol cols="12" md="5">
                   <UiInput
                     v-model="committeeFormRole"
                     data-testid="input-committee-member-role"
@@ -1252,25 +1293,17 @@
                     @keyup.enter="handleSaveCommitteeMember"
                   />
                 </UiCol>
-                <UiCol class="d-flex ga-2" cols="12" md="3">
+                <UiCol cols="12" md="2">
                   <UiButton
                     block
                     color="primary"
                     data-testid="btn-save-committee-member"
                     :loading="isSavingCommitteeMember"
-                    :prepend-icon="editingCommitteeMember ? 'save' : 'add'"
+                    prepend-icon="add"
                     variant="solid"
                     @click="handleSaveCommitteeMember"
                   >
-                    {{ editingCommitteeMember ? 'Salvar' : 'Adicionar' }}
-                  </UiButton>
-                  <UiButton
-                    v-if="editingCommitteeMember"
-                    color="default"
-                    variant="outline"
-                    @click="cancelEditCommitteeMember"
-                  >
-                    Cancelar
+                    Adicionar
                   </UiButton>
                 </UiCol>
               </UiRow>
@@ -1328,20 +1361,14 @@
                       action="edit"
                       tooltip="Editar membro"
                       variant="ghost"
-                      @click="
-                        startEditCommitteeMember(item as unknown as ElectionCommitteeMemberRow)
-                      "
+                      @click="openEditCommitteeModal(item as unknown as ElectionCommitteeMemberRow)"
                     />
                     <UiActionButton
                       action="delete"
-                      :loading="
-                        deletingCommitteeMemberId ===
-                        (item as unknown as ElectionCommitteeMemberRow).id
-                      "
                       tooltip="Remover membro"
                       variant="ghost"
                       @click="
-                        handleDeleteCommitteeMember(item as unknown as ElectionCommitteeMemberRow)
+                        openDeleteCommitteeModal(item as unknown as ElectionCommitteeMemberRow)
                       "
                     />
                   </div>
@@ -2086,6 +2113,82 @@
           @click="handleConfirmDeleteBallotBox"
         >
           Excluir Urna
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal de Edição de Membro da Comissão -->
+    <UiModal v-model="isEditCommitteeModalOpen" max-width="520px" title="Editar Membro da Comissão">
+      <div class="py-2 d-flex flex-column ga-3">
+        <UiInput
+          v-model="editCommitteeFormName"
+          label="Nome Completo da Pessoa *"
+          placeholder="Ex: Maria Aparecida Silva"
+          @keyup.enter="handleSaveEditCommitteeMember"
+        />
+        <UiInput
+          v-model="editCommitteeFormRole"
+          label="Cargo na Comissão (Texto Livre) *"
+          placeholder="Ex: Presidente da Comissão, 1º Mesário..."
+          @keyup.enter="handleSaveEditCommitteeMember"
+        />
+      </div>
+
+      <template #actions>
+        <UiButton
+          color="default"
+          :disabled="isSavingEditCommittee"
+          variant="outline"
+          @click="closeEditCommitteeModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :loading="isSavingEditCommittee"
+          prepend-icon="save"
+          variant="solid"
+          @click="handleSaveEditCommitteeMember"
+        >
+          Salvar Alterações
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal de Confirmação de Exclusão de Membro da Comissão -->
+    <UiModal
+      v-model="isDeleteCommitteeModalOpen"
+      max-width="480px"
+      title="Confirmar Remoção de Membro"
+    >
+      <div class="py-2">
+        <p class="text-body-1 mb-2">
+          Deseja realmente remover
+          <strong>"{{ committeeMemberToDelete?.name }}"</strong> ({{
+            committeeMemberToDelete?.role_name
+          }}) da comissão eleitoral?
+        </p>
+        <UiAlert color="warning" size="sm" variant="soft">
+          O membro não constará mais nos relatórios oficiais e listas de assinatura desta eleição.
+        </UiAlert>
+      </div>
+
+      <template #actions>
+        <UiButton
+          color="default"
+          :disabled="isDeletingCommitteeMember"
+          variant="outline"
+          @click="closeDeleteCommitteeModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeletingCommitteeMember"
+          variant="solid"
+          @click="handleConfirmDeleteCommitteeMember"
+        >
+          Confirmar Remoção
         </UiButton>
       </template>
     </UiModal>

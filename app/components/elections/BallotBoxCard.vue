@@ -109,7 +109,11 @@
 
           <!-- Status da Urna em Realtime -->
           <UiChip :color="isActive ? 'success' : 'error'" label size="sm" variant="flat">
-            <UiIcon class="mr-1" :name="isActive ? 'check' : 'close'" size="14" />
+            <UiIcon
+              class="mr-1"
+              :name="isActive ? 'check' : isMonitoredMode && isElectionReleased ? 'time' : 'power'"
+              size="14"
+            />
             {{
               isActive
                 ? 'Ativa'
@@ -130,7 +134,11 @@
             }}
           </div>
           <div v-else class="text-error font-weight-medium d-flex align-center ga-1">
-            <UiIcon color="error" name="close" size="14" />
+            <UiIcon
+              color="error"
+              :name="isMonitoredMode && isElectionReleased ? 'time' : 'power'"
+              size="14"
+            />
             {{
               isMonitoredMode && isElectionReleased
                 ? 'Aguardando digitação do título para liberar voto'

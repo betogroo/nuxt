@@ -230,7 +230,7 @@
 <template>
   <UiContainer class="py-6" max-width="1400px">
     <!-- Cabeçalho da Página -->
-    <PageHeader
+    <UiPageHeader
       icon="contactDetails"
       subtitle="Gerenciamento de eleitores e emissão de títulos eleitorais"
       title="Cadastro de Eleitores"
@@ -259,7 +259,7 @@
           </UiButton>
         </div>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <!-- Cards de Métricas / KPI -->
     <UiRow class="g-4 mb-6">
@@ -591,8 +591,6 @@
           <UiIcon color="error" name="alert" size="24" />
           <span class="font-weight-bold text-h6">Remover Eleitor</span>
         </div>
-        <UiSpacer />
-        <UiButton icon="close" size="sm" variant="ghost" @click="closeDeleteModal" />
       </template>
 
       <div class="py-2">

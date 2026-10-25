@@ -51,6 +51,7 @@ describe('Product Classes Admin Page', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiCard: true,
           UiTable: true,
           UiButton: true,
@@ -83,6 +84,7 @@ describe('Product Classes Admin Page', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiCard: true,
           UiButton: true,
           UiInput: true,

@@ -11,6 +11,7 @@ const mockProfile = ref<{ role: string } | null>({ role: ROLES.ADMIN })
 
 const mockToggleProductStatus = vi.fn()
 const mockUpdateProduct = vi.fn().mockResolvedValue({})
+const mockRemoveProductUnit = vi.fn().mockResolvedValue({})
 const mockToast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }
 const mockRefresh = vi.fn()
 
@@ -63,7 +64,7 @@ mockNuxtImport('useProducts', () => () => ({
   toggleProductStatus: mockToggleProductStatus,
   updateProduct: mockUpdateProduct,
   addProductUnit: vi.fn(),
-  removeProductUnit: vi.fn(),
+  removeProductUnit: mockRemoveProductUnit,
 }))
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAllActiveUnits: vi.fn().mockResolvedValue([]),
@@ -79,6 +80,10 @@ mockNuxtImport('useProductClasses', () => () => ({
     .fn()
     .mockResolvedValue([{ id: '7510', name: 'Material de Escritório' }]),
   registerPendingProductClass: vi.fn(),
+}))
+mockNuxtImport('useProductCharacteristics', () => () => ({
+  fetchAllSelectableKeys: vi.fn().mockResolvedValue([]),
+  fetchDistinctValuesForKey: vi.fn().mockResolvedValue([]),
 }))
 mockNuxtImport('useAsyncData', () => {
   return (key: string) => {
@@ -261,5 +266,22 @@ describe('Product Detail Page', () => {
 
     expect(vm.getBecProductUrl).toBeDefined()
     expect(vm.getBecProductUrl(78910)).toContain('78910')
+  })
+
+  it('opens unit deletion modal and confirms removal', async () => {
+    const wrapper = mountPage()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const unit = (mockProductData.value as any)!.units[0]
+    vm.openDeleteUnitModal(unit)
+    expect(vm.isDeleteUnitModalOpen).toBe(true)
+    expect(vm.unitToDelete).toEqual(unit)
+
+    await vm.confirmDeleteUnit()
+    expect(mockRemoveProductUnit).toHaveBeenCalledWith('prod-1', 'unit-1')
+    expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('Pacote 100 Unidade'))
+    expect(vm.isDeleteUnitModalOpen).toBe(false)
   })
 })

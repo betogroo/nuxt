@@ -276,8 +276,8 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
-    </PageHeader>
+    <UiPageHeader subtitle="Gerencie unidades e registros alternativos" title="Unidades de Medida">
+    </UiPageHeader>
 
     <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="units">

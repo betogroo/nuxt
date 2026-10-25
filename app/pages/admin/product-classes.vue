@@ -92,7 +92,10 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as Classes de Produtos do sistema" title="Classes de Produtos" />
+    <UiPageHeader
+      subtitle="Gerencie as Classes de Produtos do sistema"
+      title="Classes de Produtos"
+    />
 
     <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="active">

@@ -526,14 +526,21 @@ describe('Election Detail Page (/elections/[id])', () => {
     windowOpenSpy.mockRestore()
   })
 
-  it('handles committee member creation, editing, and removal', async () => {
+  it('handles committee member creation, editing in modal, and removal with confirmation modal', async () => {
     const wrapper = createWrapper()
     const vm = wrapper.vm as unknown as {
       committeeFormName: string
       committeeFormRole: string
       handleSaveCommitteeMember: () => Promise<void>
-      startEditCommitteeMember: (m: (typeof mockCommitteeMembers)[0]) => void
-      handleDeleteCommitteeMember: (m: (typeof mockCommitteeMembers)[0]) => Promise<void>
+      isEditCommitteeModalOpen: boolean
+      editCommitteeFormName: string
+      editCommitteeFormRole: string
+      openEditCommitteeModal: (m: (typeof mockCommitteeMembers)[0]) => void
+      handleSaveEditCommitteeMember: () => Promise<void>
+      isDeleteCommitteeModalOpen: boolean
+      committeeMemberToDelete: (typeof mockCommitteeMembers)[0] | null
+      openDeleteCommitteeModal: (m: (typeof mockCommitteeMembers)[0]) => void
+      handleConfirmDeleteCommitteeMember: () => Promise<void>
     }
 
     vm.committeeFormName = 'José Alencar'
@@ -548,18 +555,25 @@ describe('Election Detail Page (/elections/[id])', () => {
     })
     expect(refreshCommitteeMock).toHaveBeenCalled()
 
-    vm.startEditCommitteeMember(mockCommitteeMembers[0]!)
-    vm.committeeFormName = 'Maria Silva Atualizada'
-    vm.committeeFormRole = 'Presidente'
-    await vm.handleSaveCommitteeMember()
+    vm.openEditCommitteeModal(mockCommitteeMembers[0]!)
+    expect(vm.isEditCommitteeModalOpen).toBe(true)
+    vm.editCommitteeFormName = 'Maria Silva Atualizada'
+    vm.editCommitteeFormRole = 'Presidente'
+    await vm.handleSaveEditCommitteeMember()
 
     expect(updateCommitteeMemberMock).toHaveBeenCalledWith('cm-1', {
       name: 'Maria Silva Atualizada',
       role_name: 'Presidente',
     })
+    expect(vm.isEditCommitteeModalOpen).toBe(false)
 
-    await vm.handleDeleteCommitteeMember(mockCommitteeMembers[0]!)
+    vm.openDeleteCommitteeModal(mockCommitteeMembers[0]!)
+    expect(vm.isDeleteCommitteeModalOpen).toBe(true)
+    expect(vm.committeeMemberToDelete).toEqual(mockCommitteeMembers[0]!)
+
+    await vm.handleConfirmDeleteCommitteeMember()
     expect(deleteCommitteeMemberMock).toHaveBeenCalledWith('cm-1', 'Maria Silva')
+    expect(vm.isDeleteCommitteeModalOpen).toBe(false)
   })
 
   it('opens initial and final election reports modal', () => {

@@ -119,8 +119,6 @@
           {{ isBatch ? `Emissão em Lote (${totalCount} Títulos)` : 'Emissão de Título Eleitoral' }}
         </span>
       </div>
-      <UiSpacer />
-      <UiButton color="default" icon="close" size="sm" variant="ghost" @click="close" />
     </template>
 
     <div class="py-2 d-flex flex-column ga-4">

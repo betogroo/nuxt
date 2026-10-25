@@ -168,7 +168,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie suas informações de conta" title="Meu Perfil" />
+    <UiPageHeader subtitle="Gerencie suas informações de conta" title="Meu Perfil" />
 
     <UiRow justify="center">
       <UiCol cols="12" lg="6" md="8">

@@ -195,8 +195,8 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários">
-    </PageHeader>
+    <UiPageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários">
+    </UiPageHeader>
 
     <!-- Card de usuários ativos -->
     <UiCard class="mb-6">
@@ -391,8 +391,6 @@
             <div class="text-subtitle-2 font-weight-bold">{{ editingUser.name || 'Usuário' }}</div>
           </div>
         </div>
-        <UiSpacer />
-        <UiButton icon="close" size="sm" variant="ghost" @click="closeEditModal" />
       </template>
 
       <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">

@@ -3,6 +3,8 @@ import { mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref } from 'vue'
 
+import IirgdDocumentTypesPage from '~/pages/admin/iirgd-document-types.vue'
+
 mockNuxtImport('useSupabaseClient', () => () => ({}))
 mockNuxtImport('useSupabaseUser', () => () => ref(null))
 mockNuxtImport('useAsyncData', () => () => ({
@@ -13,8 +15,6 @@ mockNuxtImport('useAsyncData', () => () => ({
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('definePageMeta', () => vi.fn())
 
-import IirgdDocumentTypesPage from '~/pages/admin/iirgd-document-types.vue'
-
 describe('IIRGD Document Types Admin Page', () => {
   it('renders using only existing Ui wrappers (no unresolved components)', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -22,6 +22,7 @@ describe('IIRGD Document Types Admin Page', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiTabs: true,
           UiTab: true,
           UiIcon: true,

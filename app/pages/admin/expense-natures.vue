@@ -91,8 +91,11 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as Naturezas de Despesa do sistema" title="Naturezas de Despesa">
-    </PageHeader>
+    <UiPageHeader
+      subtitle="Gerencie as Naturezas de Despesa do sistema"
+      title="Naturezas de Despesa"
+    >
+    </UiPageHeader>
 
     <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="active">

@@ -301,7 +301,7 @@
   <div class="admin-dashboard-page">
     <!-- Cabeçalho com Ações Rápidas -->
     <div class="d-flex flex-column flex-sm-row align-sm-center justify-space-between gap-4 mb-6">
-      <PageHeader
+      <UiPageHeader
         class="mb-0"
         subtitle="Métricas em tempo real e central unificada de configurações"
         title="Painel de Administração"

@@ -181,8 +181,6 @@
           {{ isEditing ? 'Editar Eleição' : 'Cadastrar Nova Eleição' }}
         </span>
       </div>
-      <UiSpacer />
-      <UiButton icon="close" size="sm" variant="ghost" @click="close" />
     </template>
 
     <UiAlert v-if="errorMessage" class="mb-4" color="error" size="sm" variant="soft">

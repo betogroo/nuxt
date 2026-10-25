@@ -80,6 +80,12 @@ export const iconMap = {
   fullscreen: 'mdi-fullscreen',
   fullscreenExit: 'mdi-fullscreen-exit',
   printer: 'mdi-printer',
+  pencil: 'mdi-pencil',
+  checkCircle: 'mdi-check-circle-outline',
+  trending: 'mdi-chart-line',
+  trendingUp: 'mdi-trending-up',
+  pause: 'mdi-pause-circle-outline',
+  alertCircle: 'mdi-alert-circle-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

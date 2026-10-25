@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import ExpenseNaturesPage from '~/pages/admin/expense-natures.vue'
@@ -47,6 +47,7 @@ describe('Expense Natures Admin Page', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiCard: true,
           UiTable: true,
           UiButton: true,
@@ -78,6 +79,7 @@ describe('Expense Natures Admin Page', () => {
       global: {
         stubs: {
           PageHeader: true,
+          UiPageHeader: true,
           UiCard: true,
           UiButton: true,
           UiInput: true,
@@ -108,7 +110,7 @@ describe('Expense Natures Admin Page', () => {
     expect(wrapper.exists()).toBe(true)
 
     // To properly test the method, we test the VM
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { toggleStatus: unknown }
     expect(vm.toggleStatus).toBeDefined()
   })
 })

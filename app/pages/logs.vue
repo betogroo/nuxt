@@ -42,7 +42,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
+    <UiPageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
       <template #actions>
         <UiActionButton
           action="refresh"
@@ -52,7 +52,7 @@
           @click="refresh"
         />
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <UiCard>
       <template #header>

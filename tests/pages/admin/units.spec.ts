@@ -45,6 +45,7 @@ describe('Units Admin Page', () => {
           UiSlideYTransition: true,
           UiExpandTransition: true,
           PageHeader: true,
+          UiPageHeader: true,
           UiTabs: true,
           UiTab: true,
           UiTable: true,

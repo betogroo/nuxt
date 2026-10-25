@@ -12,7 +12,7 @@
 </script>
 <template>
   <div class="mx-auto" style="max-width: 800px">
-    <PageHeader subtitle="Informações sobre a aplicação" title="Sobre o Sistema" />
+    <UiPageHeader subtitle="Informações sobre a aplicação" title="Sobre o Sistema" />
 
     <UiCard>
       <div class="pa-4 text-body-1">

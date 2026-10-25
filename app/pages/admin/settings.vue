@@ -93,7 +93,7 @@
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       back-to="/admin"
       subtitle="Parâmetros globais e URLs de integração do sistema"
       title="Configurações do Sistema"

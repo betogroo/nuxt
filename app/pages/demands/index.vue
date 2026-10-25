@@ -186,7 +186,7 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas"> </PageHeader>
+    <UiPageHeader subtitle="Gerencie as demandas e processos" title="Demandas"> </UiPageHeader>
 
     <UiCard>
       <template #header>

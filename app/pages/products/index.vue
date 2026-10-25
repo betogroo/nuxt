@@ -195,8 +195,8 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Cadastre e gerencie os produtos do sistema" title="Produtos">
-    </PageHeader>
+    <UiPageHeader subtitle="Cadastre e gerencie os produtos do sistema" title="Produtos">
+    </UiPageHeader>
 
     <UiCard>
       <template #header>
@@ -260,7 +260,7 @@
           { text: 'Nome', value: 'name' },
           { text: 'CATMAT', value: 'cat_mat', align: 'center' },
           { text: 'CATBEC', value: 'cat_bec', align: 'center' },
-          { text: 'Natureza de Despesa', value: 'expense_nature' },
+          { text: 'Natureza de Despesa', value: 'expense_nature', align: 'center' },
           { text: 'Classe', value: 'product_class' },
           { text: 'Status', value: 'is_active', align: 'center' },
           { text: 'Ações', value: 'actions', align: 'right' },
@@ -300,12 +300,20 @@
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-expense_nature="{ item }">
-          <div v-if="item.expense_natures" class="d-flex align-center gap-2">
-            <UiChip color="blue-grey" label size="sm" variant="soft">
-              {{ item.expense_natures.id }}
-            </UiChip>
-            <span class="text-body-2">{{ item.expense_natures.name }}</span>
-          </div>
+          <UiTooltip v-if="item.expense_natures" :text="item.expense_natures.name">
+            <template #activator="{ props }">
+              <UiChip
+                v-bind="props"
+                color="blue-grey"
+                label
+                size="sm"
+                :title="item.expense_natures.name"
+                variant="soft"
+              >
+                {{ item.expense_natures.id }}
+              </UiChip>
+            </template>
+          </UiTooltip>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
         <template #item-product_class="{ item }">

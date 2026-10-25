@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import ProductsPage from '~/pages/products/index.vue'
-import { ref } from 'vue'
+import { ref, defineComponent } from 'vue'
 
 const mockCreateProduct = vi.fn().mockResolvedValue({})
 const mockUpdateProduct = vi.fn().mockResolvedValue({})
@@ -155,5 +155,76 @@ describe('Products Admin Page', () => {
     expect(vm.getBecProductUrl).toBeDefined()
     expect(vm.getBecProductUrl(67890)).toContain('67890')
     expect(vm.getBecProductUrl(null)).toBeNull()
+  })
+
+  it('renders only expense nature code in chip with tooltip description on hover', () => {
+    const mockProductsList = ref([
+      {
+        id: '1',
+        name: 'Caneta Azul',
+        cat_mat: 12345,
+        cat_bec: 67890,
+        expense_nature_id: '33903000',
+        expense_natures: { id: '33903000', name: 'Material de Consumo' },
+        product_class_id: '5915',
+        is_active: true,
+      },
+    ])
+
+    const UiTableStub = defineComponent({
+      props: ['items', 'headers'],
+      template: `
+        <div class="ui-table-stub">
+          <div v-for="item in items" :key="item.id" class="expense-nature-cell">
+            <slot name="item-expense_nature" :item="item" />
+          </div>
+        </div>
+      `,
+    })
+
+    const UiTooltipStub = defineComponent({
+      props: ['text'],
+      template: `<div class="ui-tooltip-stub" :data-tooltip="text"><slot name="activator" :props="{}" /></div>`,
+    })
+
+    const UiChipStub = defineComponent({
+      template: `<span class="ui-chip-stub"><slot /></span>`,
+    })
+
+    const wrapper = mount(ProductsPage, {
+      global: {
+        stubs: {
+          PageHeader: true,
+          UiCard: { template: '<div><slot /><slot name="header" /></div>' },
+          UiTable: UiTableStub,
+          UiTooltip: UiTooltipStub,
+          UiChip: UiChipStub,
+          UiIcon: true,
+          UiSpacer: true,
+          UiSelect: true,
+          UiDivider: true,
+          UiActionButton: true,
+          UiButton: true,
+          UiPagination: true,
+          UiModal: true,
+          UiAlert: true,
+          UiInput: true,
+          UiSwitch: true,
+          UiAutocomplete: true,
+        },
+      },
+    })
+
+    // Populate products ref and verify slot rendering
+    const vm = wrapper.vm as unknown as { products: typeof mockProductsList.value }
+    vm.products = mockProductsList.value
+
+    return wrapper.vm.$nextTick().then(() => {
+      const cell = wrapper.find('.expense-nature-cell')
+      expect(cell.exists()).toBe(true)
+      expect(cell.find('.ui-tooltip-stub').attributes('data-tooltip')).toBe('Material de Consumo')
+      expect(cell.find('.ui-chip-stub').text()).toBe('33903000')
+      expect(cell.text()).not.toContain('Material de Consumo')
+    })
   })
 })

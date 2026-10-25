@@ -60,7 +60,7 @@
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       back-to="/admin"
       subtitle="Definição de dias para prioridade e atraso das demandas"
       title="SLA IIRGD"

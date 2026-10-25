@@ -99,7 +99,7 @@
 
 <template>
   <div>
-    <PageHeader
+    <UiPageHeader
       subtitle="Gerencie os tipos de documento utilizados nas demandas do IIRGD"
       title="Tipos de Documento IIRGD"
     />

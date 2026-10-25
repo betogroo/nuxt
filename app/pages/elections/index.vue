@@ -153,7 +153,7 @@
 
 <template>
   <UiContainer class="py-6" max-width="1400px">
-    <PageHeader
+    <UiPageHeader
       icon="vote"
       subtitle="Acompanhamento e gestão de processos eleitorais"
       title="Dashboard de Eleições"
@@ -171,7 +171,7 @@
           </UiButton>
         </div>
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
     <!-- Cards de KPI (Clicáveis para filtrar) -->
     <UiRow class="g-4 mb-6">
@@ -554,8 +554,6 @@
           <UiIcon color="error" name="alert" size="24" />
           <span class="font-weight-bold text-h6">Remover Eleição</span>
         </div>
-        <UiSpacer />
-        <UiButton icon="close" size="sm" variant="ghost" @click="closeDeleteModal" />
       </template>
 
       <div class="py-2">
