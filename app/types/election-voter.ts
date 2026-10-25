@@ -19,3 +19,27 @@ export interface VoterSearchFilter {
   limit?: number
   offset?: number
 }
+
+export interface ElectionVoterFilter extends VoterSearchFilter {
+  page?: number
+  sortOrder?: 'asc' | 'desc'
+  sortBy?: 'name' | 'voter_registration_number' | 'created_at'
+}
+
+export interface ElectionVotersPagedResponse {
+  data: ElectionVoterRow[]
+  count: number
+}
+
+export interface VoterCardItem {
+  id: string
+  voter_registration_number: string
+  name: string
+  is_active: boolean
+  issueDate: string
+}
+
+export interface VoterCardEmissionOptions {
+  issueDate: string
+  voters: ElectionVoterRow[]
+}

@@ -5,6 +5,8 @@ import type {
   ElectionVoterRow,
   ElectionVoterInput,
   VoterSearchFilter,
+  ElectionVoterFilter,
+  ElectionVotersPagedResponse,
 } from '~/types/election-voter'
 
 export function useElectionVoters() {
@@ -50,6 +52,52 @@ export function useElectionVoters() {
     }
   }
 
+  const fetchVotersPaged = async (
+    filter?: ElectionVoterFilter,
+  ): Promise<ElectionVotersPagedResponse> => {
+    isLoading.value = true
+    error.value = null
+    try {
+      const page = Math.max(1, filter?.page || 1)
+      const limit = Math.max(1, filter?.limit || 20)
+      const offset = (page - 1) * limit
+
+      const sortBy = filter?.sortBy || 'name'
+      const ascending = filter?.sortOrder !== 'desc'
+
+      let query = supabase
+        .from('election_voters')
+        .select('*', { count: 'exact' })
+        .order(sortBy, { ascending })
+
+      if (filter?.search) {
+        const term = `%${filter.search.trim()}%`
+        query = query.or(`name.ilike.${term},voter_registration_number.ilike.${term}`)
+      }
+
+      if (filter?.is_active !== undefined) {
+        query = query.eq('is_active', filter.is_active)
+      }
+
+      query = query.range(offset, offset + limit - 1)
+
+      const { data, error: err, count } = await query
+
+      if (err) throw err
+
+      return {
+        data: (data || []) as ElectionVoterRow[],
+        count: count ?? 0,
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha ao carregar eleitores paginados.'
+      error.value = message
+      throw new Error(message, { cause: err })
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const fetchVoterByNumber = async (voterNumber: string): Promise<ElectionVoterRow | null> => {
     isLoading.value = true
     error.value = null
@@ -69,6 +117,30 @@ export function useElectionVoters() {
       throw new Error(message, { cause: err })
     } finally {
       isLoading.value = false
+    }
+  }
+
+  const generateNextVoterNumber = async (): Promise<string> => {
+    try {
+      const { data, error: err } = await supabase
+        .from('election_voters')
+        .select('voter_registration_number')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (err) throw err
+
+      let maxNumeric = 100000
+      for (const row of data || []) {
+        const num = parseInt(row.voter_registration_number, 10)
+        if (!isNaN(num) && num > maxNumeric) {
+          maxNumeric = num
+        }
+      }
+
+      return String(maxNumeric + 1)
+    } catch {
+      return String(Math.floor(100000 + Math.random() * 900000))
     }
   }
 
@@ -187,6 +259,13 @@ export function useElectionVoters() {
     }
   }
 
+  const toggleVoterActive = async (
+    id: string,
+    currentStatus: boolean,
+  ): Promise<ElectionVoterRow> => {
+    return await updateVoter(id, { is_active: !currentStatus })
+  }
+
   const deleteVoter = async (id: string): Promise<void> => {
     isLoading.value = true
     error.value = null
@@ -209,10 +288,13 @@ export function useElectionVoters() {
     isLoading,
     error,
     fetchVoters,
+    fetchVotersPaged,
     fetchVoterByNumber,
+    generateNextVoterNumber,
     checkVoterElectionStatus,
     createVoter,
     updateVoter,
+    toggleVoterActive,
     deleteVoter,
   }
 }

@@ -55,6 +55,22 @@ describe('useElectionVoters Composable', () => {
     expect(result).toEqual([mockVoter])
   })
 
+  it('fetchVotersPaged should query paginated voters with count', async () => {
+    const rangeMock = vi.fn().mockResolvedValue({ data: [mockVoter], error: null, count: 1 })
+    const orderMock = vi.fn().mockReturnValue({ range: rangeMock })
+    const selectMock = vi.fn().mockReturnValue({ order: orderMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { fetchVotersPaged } = useElectionVoters()
+    const result = await fetchVotersPaged({ page: 1, limit: 10 })
+
+    expect(fromMock).toHaveBeenCalledWith('election_voters')
+    expect(selectMock).toHaveBeenCalledWith('*', { count: 'exact' })
+    expect(orderMock).toHaveBeenCalledWith('name', { ascending: true })
+    expect(rangeMock).toHaveBeenCalledWith(0, 9)
+    expect(result).toEqual({ data: [mockVoter], count: 1 })
+  })
+
   it('fetchVoterByNumber should return voter when found', async () => {
     const maybeSingleMock = vi.fn().mockResolvedValue({ data: mockVoter, error: null })
     const eqMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
@@ -79,6 +95,21 @@ describe('useElectionVoters Composable', () => {
     const result = await fetchVoterByNumber('999999')
 
     expect(result).toBeNull()
+  })
+
+  it('generateNextVoterNumber should calculate next sequence from latest voter registration numbers', async () => {
+    const limitMock = vi.fn().mockResolvedValue({
+      data: [{ voter_registration_number: '100599' }, { voter_registration_number: '100600' }],
+      error: null,
+    })
+    const orderMock = vi.fn().mockReturnValue({ limit: limitMock })
+    const selectMock = vi.fn().mockReturnValue({ order: orderMock })
+    fromMock.mockReturnValue({ select: selectMock })
+
+    const { generateNextVoterNumber } = useElectionVoters()
+    const nextNumber = await generateNextVoterNumber()
+
+    expect(nextNumber).toBe('100601')
   })
 
   it('checkVoterElectionStatus should return voter status and attendance', async () => {
@@ -154,6 +185,22 @@ describe('useElectionVoters Composable', () => {
       expect.stringContaining('Bruno Updated'),
     )
     expect(updated.name).toBe('Bruno Updated')
+  })
+
+  it('toggleVoterActive should flip is_active status', async () => {
+    const toggledVoter = { ...mockVoter, is_active: false }
+    const singleMock = vi.fn().mockResolvedValue({ data: toggledVoter, error: null })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+    fromMock.mockReturnValue({ update: updateMock })
+
+    const { toggleVoterActive } = useElectionVoters()
+    const result = await toggleVoterActive(mockVoter.id, true)
+
+    expect(fromMock).toHaveBeenCalledWith('election_voters')
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ is_active: false }))
+    expect(result.is_active).toBe(false)
   })
 
   it('deleteVoter should remove record and log action', async () => {
