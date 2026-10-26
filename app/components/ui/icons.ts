@@ -86,6 +86,7 @@ export const iconMap = {
   trendingUp: 'mdi-trending-up',
   pause: 'mdi-pause-circle-outline',
   alertCircle: 'mdi-alert-circle-outline',
+  playlistAdd: 'mdi-playlist-plus',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

@@ -384,4 +384,62 @@ describe('useProducts', () => {
       'user-123',
     )
   })
+
+  it('batchUpsertProductCharacteristics should throw if items array is empty', async () => {
+    const { batchUpsertProductCharacteristics } = useProducts()
+    await expect(batchUpsertProductCharacteristics('prod-1', [])).rejects.toThrow(
+      'Nenhuma característica informada para inserção em lote.',
+    )
+  })
+
+  it('batchUpsertProductCharacteristics should upsert all items and record a summary log', async () => {
+    const insertKeyMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'key-pending-batch', name: 'Material Corpo' },
+          error: null,
+        }),
+      }),
+    })
+    const insertCharMock = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'product_characteristic_keys') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+          insert: insertKeyMock,
+        }
+      }
+      if (table === 'product_characteristics') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+          insert: insertCharMock,
+        }
+      }
+      return {}
+    })
+
+    const { batchUpsertProductCharacteristics } = useProducts()
+    const result = await batchUpsertProductCharacteristics('prod-1', [
+      { key: 'Tipo de escrita', value: 'média' },
+      { key: 'Material Corpo', value: 'Poliestireno' },
+    ])
+
+    expect(result.count).toBe(2)
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'BATCH_UPSERT_PRODUCT_CHARACTERISTICS',
+      expect.stringContaining('2 características'),
+      'user-123',
+    )
+  })
 })

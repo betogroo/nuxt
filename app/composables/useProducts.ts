@@ -372,6 +372,30 @@ export const useProducts = () => {
     }
   }
 
+  const batchUpsertProductCharacteristics = async (
+    productId: string,
+    items: Array<{ key: string; value: string }>,
+  ) => {
+    if (!items || items.length === 0) {
+      throw new Error('Nenhuma característica informada para inserção em lote.')
+    }
+
+    const processedKeys: string[] = []
+
+    for (const item of items) {
+      await upsertProductCharacteristic(productId, item.key, item.value)
+      processedKeys.push(item.key.trim())
+    }
+
+    await logAction(
+      'BATCH_UPSERT_PRODUCT_CHARACTERISTICS',
+      `${processedKeys.length} características inseridas/atualizadas em lote no produto (${productId}): ${processedKeys.join(', ')}`,
+      user.value?.id,
+    )
+
+    return { count: processedKeys.length }
+  }
+
   const removeProductCharacteristic = async (characteristicId: string, label?: string) => {
     const { error } = await supabase
       .from('product_characteristics')
@@ -398,6 +422,7 @@ export const useProducts = () => {
     addProductUnit,
     removeProductUnit,
     upsertProductCharacteristic,
+    batchUpsertProductCharacteristics,
     removeProductCharacteristic,
   }
 }

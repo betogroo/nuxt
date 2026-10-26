@@ -10,6 +10,7 @@
 
   import { productFormSchema } from '~/schemas/forms/product'
   import { useZodForm } from '~/composables/useZodForm'
+  import { parseCharacteristicsText } from '~/utils/parseCharacteristics'
 
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -26,6 +27,7 @@
     addProductUnit,
     removeProductUnit,
     upsertProductCharacteristic,
+    batchUpsertProductCharacteristics,
     removeProductCharacteristic,
   } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
@@ -415,6 +417,65 @@
     }
   }
 
+  // Batch product characteristics logic
+  const isBatchCharacteristicModalOpen = ref(false)
+  const batchCharacteristicsText = ref('')
+  const isSavingBatchCharacteristics = ref(false)
+  const batchCharacteristicError = ref('')
+
+  const parsedBatch = computed(() => parseCharacteristicsText(batchCharacteristicsText.value))
+
+  const openBatchCharacteristicModal = () => {
+    batchCharacteristicsText.value = ''
+    batchCharacteristicError.value = ''
+    isBatchCharacteristicModalOpen.value = true
+  }
+
+  const closeBatchCharacteristicModal = () => {
+    isBatchCharacteristicModalOpen.value = false
+    batchCharacteristicsText.value = ''
+    batchCharacteristicError.value = ''
+  }
+
+  const isKeyAlreadyRegistered = (keyName: string): boolean => {
+    const clean = keyName.trim().toLowerCase()
+    return (allCharacteristicKeys.value || []).some((k) => k.name.trim().toLowerCase() === clean)
+  }
+
+  const isKeyAlreadyOnProduct = (keyName: string): boolean => {
+    const clean = keyName.trim().toLowerCase()
+    const chars = (product.value?.characteristics as ProductCharacteristicDetail[]) || []
+    return chars.some((c) => c.key_name.trim().toLowerCase() === clean)
+  }
+
+  const saveBatchCharacteristics = async () => {
+    const items = parsedBatch.value.items
+    if (!items || items.length === 0) {
+      batchCharacteristicError.value = 'Nenhuma característica válida encontrada no texto.'
+      return
+    }
+
+    isSavingBatchCharacteristics.value = true
+    batchCharacteristicError.value = ''
+
+    try {
+      const { count } = await batchUpsertProductCharacteristics(
+        productId,
+        items.map((i) => ({ key: i.key, value: i.value })),
+      )
+      toast.success(
+        `${count} característica${count > 1 ? 's' : ''} inserida${count > 1 ? 's' : ''}/atualizada${count > 1 ? 's' : ''} com sucesso!`,
+      )
+      await refresh()
+      await refreshCharacteristicKeys()
+      closeBatchCharacteristicModal()
+    } catch (e: unknown) {
+      batchCharacteristicError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      isSavingBatchCharacteristics.value = false
+    }
+  }
+
   const characteristicHeaders = [
     { text: 'Chave (Característica)', value: 'key_name' },
     { text: 'Valor', value: 'value' },
@@ -725,15 +786,26 @@
               <UiIcon class="mr-2" color="teal" name="categories" />
               Características do Produto (Chave : Valor)
               <UiSpacer />
-              <UiButton
-                color="primary"
-                prepend-icon="add"
-                size="sm"
-                variant="soft"
-                @click="openAddCharacteristic"
-              >
-                Adicionar Característica
-              </UiButton>
+              <div class="d-flex ga-2">
+                <UiButton
+                  color="primary"
+                  prepend-icon="playlistAdd"
+                  size="sm"
+                  variant="tonal"
+                  @click="openBatchCharacteristicModal"
+                >
+                  Inserir em Lote
+                </UiButton>
+                <UiButton
+                  color="primary"
+                  prepend-icon="add"
+                  size="sm"
+                  variant="soft"
+                  @click="openAddCharacteristic"
+                >
+                  Adicionar Característica
+                </UiButton>
+              </div>
             </template>
 
             <div class="pa-4">
@@ -1091,6 +1163,123 @@
           @click="saveCharacteristic(false)"
         >
           {{ isEditingCharacteristic ? 'Salvar Alterações' : 'Salvar Característica' }}
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Inserir Características em Lote -->
+    <UiModal
+      v-model="isBatchCharacteristicModalOpen"
+      max-width="720px"
+      title="Inserir Características em Lote"
+    >
+      <div class="py-2">
+        <p class="text-body-2 text-medium-emphasis mb-3">
+          Cole uma lista de características no formato <strong>Chave: Valor</strong> (uma por
+          linha). Marcadores de lista (como traços ou números) serão removidos automaticamente.
+        </p>
+
+        <UiTextarea
+          v-model="batchCharacteristicsText"
+          auto-grow
+          class="mb-3"
+          hide-details="auto"
+          label="Texto das Características (Chave: Valor) *"
+          placeholder="Tipo de escrita: média (esfera entre 1mm e 2mm)&#10;Material Corpo: Poliestireno cristal translúcido/transparente&#10;Formato Corpo: Sextavado&#10;Certificação: INMETRO"
+          :rows="6"
+          variant="outline"
+        />
+
+        <!-- Alerta de Linhas Ignoradas (se houver) -->
+        <UiAlert v-if="parsedBatch.ignoredLines.length > 0" class="mb-3" size="sm" type="warning">
+          <div class="font-weight-medium mb-1">
+            {{ parsedBatch.ignoredLines.length }} linha(s) desconsiderada(s) por não estarem no
+            formato "Chave: Valor":
+          </div>
+          <ul class="ps-4 mb-0 text-caption">
+            <li v-for="ignored in parsedBatch.ignoredLines.slice(0, 3)" :key="ignored.lineNumber">
+              Linha {{ ignored.lineNumber }}: "{{ ignored.line }}" ({{ ignored.reason }})
+            </li>
+            <li v-if="parsedBatch.ignoredLines.length > 3">
+              ... e mais {{ parsedBatch.ignoredLines.length - 3 }} linha(s)
+            </li>
+          </ul>
+        </UiAlert>
+
+        <!-- Pré-visualização das características detectadas -->
+        <div v-if="parsedBatch.items.length > 0" class="mt-2">
+          <div class="d-flex align-center justify-space-between mb-2">
+            <span class="text-subtitle-2 font-weight-bold">
+              Pré-visualização ({{ parsedBatch.items.length }} característica{{
+                parsedBatch.items.length > 1 ? 's' : ''
+              }}
+              detectada{{ parsedBatch.items.length > 1 ? 's' : '' }}):
+            </span>
+          </div>
+
+          <UiCard class="pa-2 overflow-y-auto" max-height="240px" variant="outline">
+            <div
+              v-for="item in parsedBatch.items"
+              :key="item.key"
+              class="d-flex align-center justify-space-between py-1.5 px-2 border-b last:border-b-0"
+            >
+              <div class="d-flex align-center ga-2 flex-wrap flex-grow-1 mr-2">
+                <span class="font-weight-bold text-body-2">{{ item.key }}:</span>
+                <span class="text-body-2 text-medium-emphasis">{{ item.value }}</span>
+              </div>
+              <div class="d-flex align-center ga-1 flex-shrink-0">
+                <UiChip
+                  v-if="isKeyAlreadyOnProduct(item.key)"
+                  color="warning"
+                  label
+                  size="x-small"
+                  variant="soft"
+                >
+                  Atualizará valor
+                </UiChip>
+                <UiChip
+                  v-if="!isKeyAlreadyRegistered(item.key)"
+                  color="info"
+                  label
+                  size="x-small"
+                  variant="soft"
+                >
+                  Nova Chave (Pendente)
+                </UiChip>
+                <UiChip v-else color="success" label size="x-small" variant="soft">
+                  Chave Existente
+                </UiChip>
+              </div>
+            </div>
+          </UiCard>
+        </div>
+
+        <UiAlert v-if="batchCharacteristicError" class="mt-4" size="sm" type="error">
+          {{ batchCharacteristicError }}
+        </UiAlert>
+      </div>
+
+      <template #actions>
+        <UiButton
+          :disabled="isSavingBatchCharacteristics"
+          variant="ghost"
+          @click="closeBatchCharacteristicModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :disabled="parsedBatch.items.length === 0"
+          :loading="isSavingBatchCharacteristics"
+          prepend-icon="playlistAdd"
+          variant="solid"
+          @click="saveBatchCharacteristics"
+        >
+          {{
+            parsedBatch.items.length > 0
+              ? `Importar ${parsedBatch.items.length} Característica${parsedBatch.items.length > 1 ? 's' : ''}`
+              : 'Importar Características'
+          }}
         </UiButton>
       </template>
     </UiModal>
