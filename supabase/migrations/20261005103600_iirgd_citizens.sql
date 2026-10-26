@@ -1,6 +1,6 @@
 -- Create iirgd_citizens table
 CREATE TABLE iirgd_citizens (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   rg TEXT,
   cpf TEXT,
