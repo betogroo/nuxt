@@ -6,10 +6,10 @@
 </script>
 
 <template>
-  <v-icon-btn
+  <UiButton
     :aria-label="isDark ? 'Ativar tema claro' : 'Ativar tema escuro'"
-    :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
-    variant="text"
+    :icon="isDark ? 'sun' : 'moon'"
+    variant="ghost"
     @click="toggle"
   />
 </template>

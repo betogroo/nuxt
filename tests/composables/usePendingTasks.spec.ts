@@ -1,0 +1,78 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mockNuxtImport } from '@nuxt/test-utils/runtime'
+import { ref } from 'vue'
+import { usePendingTasks } from '~/composables/usePendingTasks'
+
+const mockSupabase = {
+  from: vi.fn(),
+}
+
+mockNuxtImport('useSupabaseClient', () => {
+  return () => mockSupabase
+})
+
+mockNuxtImport('useAsyncData', () => {
+  return (key: string, handler: () => Promise<unknown>) => {
+    const data = ref<unknown>(0)
+    handler()
+      .then((res) => {
+        data.value = res
+      })
+      .catch(() => {})
+    return { data, refresh: vi.fn() }
+  }
+})
+
+describe('usePendingTasks', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should correctly fetch and calculate pending tasks', async () => {
+    const expenseNaturesMockEq = { count: 3, error: null }
+    const unitsMockEq = { count: 2, error: null }
+    const demandsMockEq = { count: 4, error: null }
+    const productClassesMockEq = { count: 1, error: null }
+    const docTypesMockEq = { count: 5, error: null }
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'expense_natures') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(expenseNaturesMockEq),
+        }
+      }
+      if (table === 'measurement_units') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(unitsMockEq),
+        }
+      }
+      if (table === 'demands') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          is: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(demandsMockEq),
+        }
+      }
+      if (table === 'product_classes') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(productClassesMockEq),
+        }
+      }
+      if (table === 'iirgd_document_types') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(docTypesMockEq),
+        }
+      }
+    })
+
+    const { totalPending } = usePendingTasks()
+
+    await new Promise((r) => setTimeout(r, 10))
+
+    expect(totalPending.value).toBe(15) // 3 + 2 + 4 + 1 + 5
+  })
+})

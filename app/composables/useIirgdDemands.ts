@@ -1,0 +1,465 @@
+import { IIRGD_STATUS_LABELS, type IirgdDemandStatus } from '~/constants/iirgd-status'
+
+export interface IirgdCitizen {
+  id?: string
+  name: string
+  rg?: string | null
+  cpf?: string | null
+  other_document?: string | null
+  created_by?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+export interface IirgdDemand {
+  id?: string
+  citizen_id: string
+  document_type_id?: string
+  station_code: string
+  observation?: string
+  status?: string
+  priority?: 'alert' | 'delay' | 'normal' | 'none'
+  created_by?: string | null
+  created_at?: string
+  updated_at?: string
+  iirgd_citizens?: IirgdCitizen
+  iirgd_document_types?: { name: string }
+  profiles?: { name: string | null }
+}
+
+export const useIirgdDemands = () => {
+  // Use 'any' temporarily or omit Database type if it gets complex, but we try to stick to strict typing.
+  // We'll use useSupabaseClient without strict generics if the types aren't regenerated yet.
+  const supabase = useSupabaseClient()
+  const user = useSupabaseUser()
+  const { logAction } = useLogger()
+
+  const fetchDemandCounts = async () => {
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .select('status, document_type_id, iirgd_document_types(name)')
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar contagens de demandas do IIRGD')
+    }
+
+    const counts = {
+      inProgress: 0,
+      consulted: 0,
+      released: 0,
+      issued: 0,
+      issuedAntecedents: 0,
+      errors: 0,
+    }
+
+    if (data) {
+      data.forEach((d) => {
+        if (['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status)) {
+          counts.inProgress++
+        } else if (d.status === 'confronted') {
+          counts.consulted++
+        } else if (d.status === 'released') {
+          counts.released++
+        } else if (d.status === 'issued') {
+          const docName = (d.iirgd_document_types as { name?: string } | null)?.name || ''
+          if (docName.toLowerCase().includes('antecedentes')) {
+            counts.issuedAntecedents++
+          } else {
+            counts.issued++
+          }
+        } else if (
+          ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(d.status)
+        ) {
+          counts.errors++
+        }
+      })
+    }
+    return counts
+  }
+
+  const fetchDemands = async (options?: {
+    page?: number
+    itemsPerPage?: number
+    statusGroup?: string
+    searchQuery?: string
+    stationCode?: string
+    noPagination?: boolean
+  }) => {
+    const {
+      page = 1,
+      itemsPerPage = 10,
+      statusGroup,
+      searchQuery,
+      stationCode,
+      noPagination = false,
+    } = options || {}
+
+    let query = supabase
+      .from('iirgd_demands')
+      .select('*, iirgd_citizens!inner(*), iirgd_document_types(name)', { count: 'exact' })
+
+    if (statusGroup) {
+      const statusMap: Record<string, string[]> = {
+        'in-progress': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
+        consulted: ['confronted'],
+        released: ['released'],
+        issued: ['issued'],
+        'issued-antecedents': ['issued'],
+        errors: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
+      }
+      if (statusMap[statusGroup]) {
+        query = query.in('status', statusMap[statusGroup])
+      }
+
+      if (statusGroup === 'issued' || statusGroup === 'issued-antecedents') {
+        const { data: antecedentTypes } = await supabase
+          .from('iirgd_document_types')
+          .select('id')
+          .ilike('name', '%antecedentes%')
+
+        const antecedentIds = (antecedentTypes || []).map((t: { id: string }) => t.id)
+
+        if (statusGroup === 'issued-antecedents') {
+          if (antecedentIds.length > 0) {
+            query = query.in('document_type_id', antecedentIds)
+          } else {
+            return { data: [], count: 0 }
+          }
+        } else if (statusGroup === 'issued' && antecedentIds.length > 0) {
+          query = query.not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
+        }
+      }
+    }
+
+    if (stationCode) {
+      query = query.eq('station_code', stationCode)
+    }
+
+    if (searchQuery) {
+      const { data: citIds, error: citErr } = await supabase
+        .from('iirgd_citizens')
+        .select('id')
+        .or(
+          `name.ilike.%${searchQuery}%,rg.ilike.%${searchQuery}%,cpf.ilike.%${searchQuery}%,other_document.ilike.%${searchQuery}%`,
+        )
+
+      if (!citErr && citIds) {
+        if (citIds.length === 0) return { data: [], count: 0 }
+        query = query.in(
+          'citizen_id',
+          citIds.map((c) => c.id),
+        )
+      }
+    }
+
+    if (!noPagination) {
+      const from = (page - 1) * itemsPerPage
+      const to = from + itemsPerPage - 1
+      query = query.range(from, to)
+    }
+
+    const { data, count, error } = await query.order('created_at', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar demandas do IIRGD')
+    }
+    return { data: data || [], count: count || 0 }
+  }
+
+  const createDemand = async (payload: {
+    station_code: string
+    name: string
+    document_type_id?: string
+    rg?: string | null
+    cpf?: string | null
+    other_document?: string | null
+    observation?: string
+  }) => {
+    const cleanRg = payload.rg ? payload.rg.trim() : null
+    const cleanCpf = payload.cpf ? payload.cpf.trim() : null
+    const cleanOtherDoc = payload.other_document
+      ? payload.other_document.trim().toUpperCase()
+      : null
+
+    if (!cleanRg && !cleanCpf && !cleanOtherDoc) {
+      throw new Error('É necessário informar ao menos o RG, o CPF ou um Documento de Outro Estado.')
+    }
+
+    // 1. Try to find existing citizen by RG, CPF or Other Document
+    let citizenId = null
+    let existingCitizen = null
+
+    if (cleanRg) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('rg', cleanRg)
+
+      if (!citError && citizens && citizens.length > 0) {
+        existingCitizen = citizens[0]
+        citizenId = existingCitizen.id
+      }
+    }
+
+    if (!citizenId && cleanCpf) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('cpf', cleanCpf)
+
+      if (!citError && citizens && citizens.length > 0) {
+        existingCitizen = citizens[0]
+        citizenId = existingCitizen.id
+      }
+    }
+
+    if (!citizenId && cleanOtherDoc) {
+      const { data: citizens, error: citError } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .eq('other_document', cleanOtherDoc)
+
+      if (!citError && citizens && citizens.length > 0) {
+        existingCitizen = citizens[0]
+        citizenId = existingCitizen.id
+      }
+    }
+
+    if (citizenId) {
+      // Check for active demands
+      const { data: activeDemands } = await supabase
+        .from('iirgd_demands')
+        .select('id, status')
+        .eq('citizen_id', citizenId)
+        .in('status', [
+          'new',
+          'confronted',
+          'released',
+          'mailbag',
+          'cegaf',
+          'no_data',
+          'other_pending',
+        ])
+
+      if (activeDemands && activeDemands.length > 0) {
+        throw new Error('Este cidadão já possui uma solicitação em andamento.')
+      }
+
+      // Update citizen if new docs provided
+      const updates: Record<string, string> = {}
+      if (cleanRg && !existingCitizen.rg) updates.rg = cleanRg
+      if (cleanCpf && !existingCitizen.cpf) updates.cpf = cleanCpf
+      if (cleanOtherDoc && !existingCitizen.other_document) updates.other_document = cleanOtherDoc
+
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('iirgd_citizens').update(updates).eq('id', citizenId)
+      }
+    } else {
+      // Create new citizen
+      const { data: newCit, error: newCitError } = await supabase
+        .from('iirgd_citizens')
+        .insert([
+          {
+            name: payload.name.trim().toUpperCase(),
+            rg: cleanRg,
+            cpf: cleanCpf,
+            other_document: cleanOtherDoc,
+            created_by: user.value?.id || null,
+          },
+        ])
+        .select()
+        .single()
+
+      if (newCitError || !newCit) {
+        console.error(newCitError)
+        throw new Error('Erro ao registrar o cidadão.')
+      }
+      citizenId = newCit.id
+    }
+
+    // 2. Create Demand
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .insert([
+        {
+          citizen_id: citizenId,
+          document_type_id: payload.document_type_id || null,
+          station_code: payload.station_code,
+          observation: payload.observation,
+          status: 'new',
+          created_by: user.value?.id || null,
+        },
+      ])
+      .select('*, iirgd_citizens(*)')
+      .single()
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao criar demanda do IIRGD')
+    }
+
+    if (data) {
+      await logAction(
+        'CREATE_IIRGD_DEMAND',
+        `Nova demanda IIRGD criada para ${payload.name.trim().toUpperCase()} (Posto: ${payload.station_code})`,
+      )
+    }
+
+    return data
+  }
+
+  const fetchIssuedDemandsTrend = async (days: number = 30) => {
+    const today = new Date()
+    // Align with today's end of day in UTC
+    const pastDate = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
+
+    const { data, error } = await supabase
+      .from('iirgd_demand_status_history')
+      .select('created_at')
+      .eq('status', 'issued')
+      .gte('created_at', pastDate.toISOString())
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar histórico de emissões do IIRGD')
+    }
+
+    const countsByDate: Record<string, number> = {}
+
+    // Initialize last X days with 0
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000)
+      const dateStr = d.toISOString().split('T')[0]
+      countsByDate[dateStr] = 0
+    }
+
+    if (data) {
+      data.forEach((item) => {
+        const dateStr = item.created_at.split('T')[0]
+        if (countsByDate[dateStr] !== undefined) {
+          countsByDate[dateStr]++
+        }
+      })
+    }
+
+    return {
+      labels: Object.keys(countsByDate),
+      series: Object.values(countsByDate),
+    }
+  }
+
+  const fetchDemandById = async (id: string) => {
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .select('*, iirgd_citizens(*), iirgd_document_types(name), profiles(name)')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar a demanda do IIRGD')
+    }
+    return data
+  }
+
+  const fetchCitizenHistory = async (citizenId: string) => {
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .select('*')
+      .eq('citizen_id', citizenId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar histórico do cidadão')
+    }
+    return data
+  }
+
+  const fetchDemandStatusHistory = async (demandId: string) => {
+    const { data, error } = await supabase
+      .from('iirgd_demand_status_history')
+      .select('*, profiles(name)')
+      .eq('demand_id', demandId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao buscar histórico de status do IIRGD')
+    }
+    return data
+  }
+
+  const updateDemand = async (id: string, updates: Partial<IirgdDemand>) => {
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .update(updates)
+      .eq('id', id)
+      .select('*, iirgd_citizens(*)')
+      .single()
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao atualizar a demanda do IIRGD')
+    }
+
+    if (data) {
+      await logAction('UPDATE_IIRGD_DEMAND', `Demanda IIRGD atualizada: ID ${data.id}`)
+    }
+
+    return data
+  }
+
+  const updateDemandsBatch = async (
+    ids: string[],
+    updates: {
+      status: IirgdDemandStatus
+      observation?: string
+    },
+  ) => {
+    if (!ids || ids.length === 0) {
+      throw new Error('Nenhuma demanda selecionada para atualização.')
+    }
+
+    const payload: { status: IirgdDemandStatus; observation?: string } = {
+      status: updates.status,
+    }
+
+    if (updates.observation && updates.observation.trim() !== '') {
+      payload.observation = updates.observation.trim()
+    }
+
+    const { data, error } = await supabase
+      .from('iirgd_demands')
+      .update(payload)
+      .in('id', ids)
+      .select('id, status')
+
+    if (error) {
+      console.error(error)
+      throw new Error('Erro ao atualizar demandas do IIRGD em lote')
+    }
+
+    const statusLabel = IIRGD_STATUS_LABELS[updates.status] || updates.status
+    await logAction(
+      'BATCH_UPDATE_IIRGD_DEMAND_STATUS',
+      `Atualização de status em lote para '${statusLabel}' em ${ids.length} demanda(s).`,
+    )
+
+    return data
+  }
+
+  return {
+    fetchDemands,
+    fetchDemandCounts,
+    fetchIssuedDemandsTrend,
+    fetchDemandById,
+    fetchCitizenHistory,
+    fetchDemandStatusHistory,
+    createDemand,
+    updateDemand,
+    updateDemandsBatch,
+  }
+}

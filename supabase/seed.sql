@@ -1,265 +1,72 @@
--- Ensure default measurement unit exists
-INSERT INTO
-  public.measurement_units (name, is_active)
-VALUES
-  ('Unidade', true),
-  ('Caixa 10 unidade', true),
-  ('Pacote 100 unidade', true) ON CONFLICT (name) DO NOTHING;
+-- Seed auth users
+INSERT INTO auth.users 
+(id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token) 
+VALUES (
+'11111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'admin@admin.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''), 
 
--- Ensure core categories exist (in case of a fresh database reset where the migration finds 0 existing products)
-INSERT INTO
-  public.product_categories (name, is_active)
-VALUES
-  ('Papelaria', true),
-  ('Escritório', true),
-  ('Limpeza', true),
-  ('Higiene Pessoal', true) ON CONFLICT (name) DO NOTHING;
+('22222222-2222-2222-2222-222222222222', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'user@user.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
 
--- Seed data for products using the new relational category_id
-INSERT INTO
-  public.products (name, category_id, is_active)
-VALUES
-  -- Papelaria
+('33333333-3333-3333-3333-333333333333', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'uge@uge.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('44444444-4444-4444-4444-444444444444', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'user@rg.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') ,
+
+('55555555-5555-5555-5555-555555555555', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'admin@rg.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('66666666-6666-6666-6666-666666666666', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'user@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('77777777-7777-7777-7777-777777777777', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'manager@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('88888888-8888-8888-8888-888888888888', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'admin@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') 
+
+ON CONFLICT (id) DO NOTHING;
+
+-- Insert identities
+INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at) 
+VALUES 
+(gen_random_uuid(), '11111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', format('{"sub":"%s","email":"%s"}', '11111111-1111-1111-1111-111111111111', 'admin@admin.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '22222222-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', format('{"sub":"%s","email":"%s"}', '22222222-2222-2222-2222-222222222222', 'user@user.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '33333333-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', format('{"sub":"%s","email":"%s"}', '33333333-3333-3333-3333-333333333333', 'uge@uge.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '44444444-4444-4444-4444-444444444444', '44444444-4444-4444-4444-444444444444', format('{"sub":"%s","email":"%s"}', '44444444-4444-4444-4444-444444444444', 'user@rg.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '55555555-5555-5555-5555-555555555555', '55555555-5555-5555-5555-555555555555', format('{"sub":"%s","email":"%s"}', '55555555-5555-5555-5555-555555555555', 'admin@rg.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '66666666-6666-6666-6666-666666666666', '66666666-6666-6666-6666-666666666666', format('{"sub":"%s","email":"%s"}', '66666666-6666-6666-6666-666666666666', 'user@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '77777777-7777-7777-7777-777777777777', '77777777-7777-7777-7777-777777777777', format('{"sub":"%s","email":"%s"}', '77777777-7777-7777-7777-777777777777', 'manager@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '88888888-8888-8888-8888-888888888888', '88888888-8888-8888-8888-888888888888', format('{"sub":"%s","email":"%s"}', '88888888-8888-8888-8888-888888888888', 'admin@election.com')::jsonb, 'email', NOW(), NOW(), NOW())
+ON CONFLICT DO NOTHING;
+
+-- Update created profiles
+UPDATE public.profiles SET role = 'admin', name = 'Admin', is_active = true WHERE id = '11111111-1111-1111-1111-111111111111';
+UPDATE public.profiles SET role = 'user', name = 'User', is_active = true WHERE id = '22222222-2222-2222-2222-222222222222';
+UPDATE public.profiles SET role = 'uge', name = 'Uge', is_active = true WHERE id = '33333333-3333-3333-3333-333333333333';
+UPDATE public.profiles SET role = 'iirgd_user', name = 'IIRGD user', is_active = true WHERE id = '44444444-4444-4444-4444-444444444444';
+UPDATE public.profiles SET role = 'iirgd_manager', name = 'IIRGD Admin', is_active = true WHERE id = '55555555-5555-5555-5555-555555555555';
+UPDATE public.profiles SET role = 'user-election', name = 'Election User', is_active = true WHERE id = '66666666-6666-6666-6666-666666666666';
+UPDATE public.profiles SET role = 'manager-election', name = 'Election Manager', is_active = true WHERE id = '77777777-7777-7777-7777-777777777777';
+UPDATE public.profiles SET role = 'admin-election', name = 'Election Admin', is_active = true WHERE id = '88888888-8888-8888-8888-888888888888';
+
+insert into
+  "public"."measurement_units" (
+    "id",
+    "name",
+    "is_active",
+    "created_at",
+    "updated_at",
+    "is_pending"
+  )
+values
   (
-    'Caneta Esferográfica Azul',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  (
-    'Papel Sulfite A4',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  (
-    'Clipes de Papel',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  (
-    'Caderno Universitário',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  (
-    'Lápis Preto HB',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  (
-    'Borracha Branca',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Papelaria'
-    ),
-    true
-  ),
-  -- Escritório
-  (
-    'Grampeador',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Escritório'
-    ),
-    true
-  ),
-  (
-    'Cadeira de Escritório',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Escritório'
-    ),
-    true
-  ),
-  (
-    'Teclado sem fio',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Escritório'
-    ),
-    true
-  ),
-  (
-    'Mouse óptico',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Escritório'
-    ),
-    true
-  ),
-  (
-    'Organizador de Mesa',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Escritório'
-    ),
-    true
-  ),
-  -- Limpeza
-  (
-    'Desinfetante Pinho',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Limpeza'
-    ),
-    true
-  ),
-  (
-    'Detergente Líquido',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Limpeza'
-    ),
-    true
-  ),
-  (
-    'Sabão em Pó',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Limpeza'
-    ),
-    true
-  ),
-  (
-    'Álcool 70% Líquido',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Limpeza'
-    ),
-    true
-  ),
-  (
-    'Vassoura',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Limpeza'
-    ),
-    true
-  ),
-  -- Higiene Pessoal
-  (
-    'Sabonete Líquido',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Higiene Pessoal'
-    ),
-    true
-  ),
-  (
-    'Papel Higiênico',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Higiene Pessoal'
-    ),
-    true
-  ),
-  (
-    'Álcool em Gel',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Higiene Pessoal'
-    ),
-    true
-  ),
-  (
-    'Creme Dental',
-    (
-      SELECT
-        id
-      FROM
-        public.product_categories
-      WHERE
-        name = 'Higiene Pessoal'
-    ),
-    true
-  );
+    '538d5e23-244b-42a9-b1f2-beb160d96375',
+    'Unidade',
+    true,
+    '2026-09-28 18:00:02.703051+00',
+    '2026-09-28 18:00:02.703051+00',
+    false
+  )
+ON CONFLICT (name) DO UPDATE SET is_active = true;

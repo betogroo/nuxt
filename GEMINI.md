@@ -9,11 +9,66 @@ Whenever a new feature is implemented, use the `logAction` function to record th
 # Database Naming
 
 All database table names, column names, functions, triggers, and any other database artifacts MUST be written in English. Use English for enum types and values as well (e.g., use 'consumption' instead of 'consumo').
+Furthermore, all Route names, URL parameters and their programmatic mappings (e.g. /status/in-progress instead of /status/em-andamento) MUST ALWAYS be in English.
 
-# Planning
+# Database & Backup Synchronization (CRITICAL / MANDATORY)
 
-Always show what will be done before applying changes. Create an implementation plan and wait for the user's approval before executing modifications or creating new features.
+**STOP AND READ THIS**: Whenever any database schema modification is made (creating, altering, or dropping tables, columns, constraints, foreign keys, enums, or triggers):
+
+1. **Backup Generation (`generate_system_backup`)**: Verify and ensure that new tables and modified columns are properly included in the exported backup payload and summary count.
+2. **Backup Restoration (`restore_system_backup`)**: You MUST ALWAYS update the `restore_system_backup` procedure to align with the new reality:
+   - Ensure table dependency levels and restoration order are respected.
+   - Column lists in `INSERT` and `ON CONFLICT` clauses MUST exactly match existing database columns (no non-existent columns, mismatched types, or invalid casts).
+   - Foreign keys and deletion checks (`DELETE FROM ... WHERE ...`) must avoid blocking restores or causing cascade/restrict violations.
+3. **Tests & Validation**: Corresponding backup tests (e.g. `tests/composables/useBackup.spec.ts`) and database migration tests MUST be updated and executed to prove backup generation and restoration work seamlessly with the new schema.
+
+# Planning (CRITICAL / MANDATORY)
+
+**STOP AND READ THIS**: YOU MUST ALWAYS show what will be done before applying changes. CREATE an implementation plan and WAIT FOR THE USER'S APPROVAL BEFORE executing modifications, creating new features, or writing code. Skipping this step is strictly forbidden.
 
 # TypeScript Types
 
 Always strictly type your variables and functions. Do NOT use the `any` type under any circumstances. If the exact type is complex or unknown, use `unknown` or define a precise interface/type.
+
+# Pending Items Feature
+
+When working on modals or pages where users can select Product Categories or Measurement Units (e.g. Demands or Products), ALWAYS preserve and implement the feature that allows users to type in a NEW category or unit that doesn't exist yet. The new item must be inserted into the database with `is_pending = true` and `is_active = false`, so that administrators can review them later. Do NOT force users to select only existing items via strict dropdowns.
+
+# File Encoding
+
+Always use and enforce UTF-8 encoding when creating or modifying files. This is particularly critical in Windows environments where tools like PowerShell might default to Windows-1252, ANSI, or UTF-16, leading to broken accents and special characters (mojibake like `ÃƒÂ£` instead of `Ã£`). When using terminal commands to pipe or write output to files (e.g., `Out-File`, `>`), ALWAYS explicitly specify `-Encoding utf8`.
+
+# Tests (CRITICAL / MANDATORY)
+
+**STOP AND READ THIS**: For every feature created, altered, or deleted, the corresponding unit and/or integration tests MUST be updated or created to reflect the changes. Code modifications are NOT considered complete until tests are written and passing. You MUST execute the tests and prove they pass before finalizing your turn. Skipping this step is strictly forbidden.
+
+# UI Layer & Decoupling (CRITICAL / MANDATORY)
+
+**STOP AND READ THIS**: O projeto implementa um desacoplamento total do Vuetify e de bibliotecas de ícones na sua camada de apresentação (Páginas e Layouts).
+É **ESTRITAMENTE PROIBIDO** utilizar tags brutas do Vuetify (e.g. <v-row>, <v-btn>, <v-card>) ou strings/classes de ícones nativos (e.g. mdi-home, <v-icon>) fora da pasta pp/components/.
+Você deve SEMPRE usar os componentes wrappers desacoplados com o prefixo genérico Ui (e.g. <UiRow>, <UiButton>, <UiCard>, <UiIcon>).
+Caso sinta a necessidade de um componente do Vuetify que ainda não possua wrapper, seu dever é **criar o wrapper** na pasta pp/components/ui/ e utilizar o wrapper.
+
+# Elections Module (Eleições)
+
+The system includes a dedicated Elections module accessible via the `/elections` route.
+
+## Access Control & Roles
+
+Access to the `/elections` route and its navigation links in the drawer and home page is strictly restricted to the following roles:
+
+- `admin`: Full system administrator with unrestricted access.
+- `user-election`: Standard user/voter for the election system.
+- `manager-election`: Election manager with operational oversight on elections and processes.
+- `admin-election`: Administrator dedicated to managing the election module.
+
+Users with other roles (`user`, `uge`, `iirgd_user`, `iirgd_manager`) MUST NOT see the election navigation link and MUST be blocked by the `elections` middleware (redirected to `/`).
+
+## Standard Seed Accounts
+
+The development seed (`supabase/seed.sql`) provides dedicated test accounts with password `123456`:
+
+- `user@election.com` (role: `user-election`)
+- `manager@election.com` (role: `manager-election`)
+- `admin@election.com` (role: `admin-election`)
+- `admin@admin.com` (role: `admin`)

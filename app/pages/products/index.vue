@@ -1,359 +1,508 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { ProductRow } from '~/composables/useProducts'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { productFormSchema } from '~/schemas/forms/product'
 
-  useHead({ title: 'Produtos' })
-
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
-  const { logAction } = useLogger()
-
-  type ProductRow = Database['public']['Tables']['products']['Row'] & {
-    product_categories?: { id: string; name: string } | null
-  }
-
-  // Pagination & Filter State
-  const currentPage = ref(1)
-  const itemsPerPage = ref(10)
-  const totalItems = ref(0)
-  // selectedCategory will now hold category_id instead of material_category string
-  const selectedCategory = ref<string | null>(null)
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
-
-  // Fetch unique categories for the filter
-  const { data: categories } = useAsyncData('product-categories', async () => {
-    const { data, error } = await supabase
-      .from('product_categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name')
-    if (error) return []
-    return data
+  definePageMeta({
+    icon: 'packageSolid',
+    middleware: ['uge'],
+    navLabel: 'Produtos',
+    navSubtitle: 'Catálogo de produtos e naturezas de despesa',
+    navColor: 'info',
+    navGroup: 'management',
+    navOrder: 20,
+    roles: ['admin', 'uge'],
+    showIn: ['drawer', 'home'],
   })
 
-  // Fetch Products with Pagination and Filter
+  useHead({ title: 'Gerenciar Produtos' })
+
+  const { fetchProducts, createProduct, updateProduct, toggleProductStatus } = useProducts()
+  const { getBecProductUrl } = useSystemSettings()
+
+  const { fetchAllActiveExpenseNatures, registerPendingExpenseNature } = useExpenseNatures()
+  const { fetchAllActiveProductClasses, registerPendingProductClass } = useProductClasses()
+
+  // Pagination & Filter State
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
+  const selectedExpenseNature = ref<string | null>(null)
+  const statusFilter = ref<string>('active')
+
+  const { data: expenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
+  const { data: productClasses } = useAsyncData('product-classes', fetchAllActiveProductClasses)
+
   const {
     data: products,
     pending,
     refresh,
   } = useAsyncData(
-    'products-list',
+    'products-admin',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      let query = supabase
-        .from('products')
-        .select('*, product_categories(id, name)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (selectedCategory.value) {
-        query = query.eq('category_id', selectedCategory.value)
-      }
-
-      const { data, count, error } = await query
-
-      if (error) {
-        console.error(error)
-        return []
-      }
-
-      totalItems.value = count || 0
-      return data
+      const result = await fetchProducts(
+        currentPage.value,
+        itemsPerPage.value,
+        selectedExpenseNature.value,
+        statusFilter.value,
+      )
+      totalItems.value = result.count
+      return result.data
     },
     {
-      watch: [currentPage, selectedCategory],
+      watch: [currentPage, selectedExpenseNature, statusFilter],
     },
   )
 
-  // When category changes, reset page to 1
-  watch(selectedCategory, () => {
-    currentPage.value = 1
+  watch([selectedExpenseNature, statusFilter], () => {
+    resetPage()
   })
 
-  // Modal State
-  const isModalOpen = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-  const isEditing = ref(false)
-
-  // Form State
-  const defaultForm = {
+  const modal = useModal()
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(productFormSchema, {
     id: '',
     name: '',
-    category_id: '',
-    suggested_category: '',
-    is_suggesting_category: false,
+    expense_nature_id: null,
+    is_suggesting_nature: false,
+    suggested_nature_id: '',
+    suggested_nature_name: '',
+    product_class_id: null,
+    is_suggesting_class: false,
+    suggested_class_id: '',
+    suggested_class_name: '',
+    cat_mat: null,
+    cat_bec: null,
     is_active: true,
-  }
-  const form = ref({ ...defaultForm })
-
-  const filteredCategories = computed(() => {
-    return categories.value?.filter((c) => c.name !== 'Outros') || []
   })
 
-  const outrosCategory = computed(() => {
-    return categories.value?.find((c) => c.name === 'Outros')
-  })
+  const [name, nameProps] = defineField('name')
+  const [expenseNatureId, expenseNatureIdProps] = defineField('expense_nature_id')
+  const [productClassId, productClassIdProps] = defineField('product_class_id')
+  const [isSuggestingNature, isSuggestingNatureProps] = defineField('is_suggesting_nature')
+  const [suggestedNatureId, suggestedNatureIdProps] = defineField('suggested_nature_id')
+  const [suggestedNatureName, suggestedNatureNameProps] = defineField('suggested_nature_name')
+  const [isSuggestingClass, isSuggestingClassProps] = defineField('is_suggesting_class')
+  const [suggestedClassId, suggestedClassIdProps] = defineField('suggested_class_id')
+  const [suggestedClassName, suggestedClassNameProps] = defineField('suggested_class_name')
+  const [catMat, catMatProps] = defineField('cat_mat')
+  const [catBec, catBecProps] = defineField('cat_bec')
+  const [isActive, isActiveProps] = defineField('is_active')
+  const editingId = ref('')
+
+  const isEditing = computed(() => !!editingId.value)
 
   const openAddModal = () => {
-    form.value = { ...defaultForm }
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
+    resetForm({
+      values: {
+        id: '',
+        name: '',
+        expense_nature_id: null,
+        is_suggesting_nature: false,
+        suggested_nature_id: '',
+        suggested_nature_name: '',
+        product_class_id: null,
+        is_suggesting_class: false,
+        suggested_class_id: '',
+        suggested_class_name: '',
+        cat_mat: null,
+        cat_bec: null,
+        is_active: true,
+      },
+    })
+    editingId.value = ''
+    modal.open()
   }
 
   const openEditModal = (product: ProductRow) => {
-    const isOutros =
-      product.product_categories?.name === 'Outros' ||
-      product.category_id === outrosCategory.value?.id
-
-    form.value = {
-      ...product,
-      suggested_category: product.suggested_category || '',
-      is_suggesting_category: isOutros,
-    }
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
+    resetForm({
+      values: {
+        ...product,
+        expense_nature_id: product.expense_nature_id || null,
+        is_suggesting_nature: false,
+        suggested_nature_id: '',
+        suggested_nature_name: '',
+        product_class_id: product.product_class_id || null,
+        is_suggesting_class: false,
+        suggested_class_id: '',
+        suggested_class_name: '',
+        cat_mat: product.cat_mat ?? null,
+        cat_bec: product.cat_bec ?? null,
+        is_active: product.is_active,
+      },
+    })
+    editingId.value = product.id
+    modal.open()
   }
 
-  const closeModal = () => {
-    isModalOpen.value = false
-  }
-
-  const saveProduct = async () => {
-    if (form.value.is_suggesting_category) {
-      if (!form.value.name || !form.value.suggested_category) {
-        saveError.value = 'Nome e Sugestão de Categoria são obrigatórios.'
-        return
-      }
-      form.value.category_id = outrosCategory.value?.id || ''
-    } else {
-      if (!form.value.name || !form.value.category_id) {
-        saveError.value = 'Nome e Categoria são obrigatórios.'
-        return
-      }
-      form.value.suggested_category = '' // Limpa se desmarcou
-    }
-
-    isSaving.value = true
-    saveError.value = ''
-
+  const saveProduct = handleSubmit(async (values) => {
+    modal.startSaving()
+    modal.error.value = ''
     try {
+      let finalExpenseNatureId = values.expense_nature_id
+      let finalProductClassId = values.product_class_id
+
+      if (
+        values.is_suggesting_nature &&
+        values.suggested_nature_id &&
+        values.suggested_nature_name
+      ) {
+        const expenseNature = await registerPendingExpenseNature({
+          id: values.suggested_nature_id,
+          name: values.suggested_nature_name,
+        })
+        finalExpenseNatureId = expenseNature.id
+      }
+
+      if (values.is_suggesting_class && values.suggested_class_id && values.suggested_class_name) {
+        const pClass = await registerPendingProductClass({
+          id: values.suggested_class_id,
+          name: values.suggested_class_name,
+        })
+        finalProductClassId = pClass.id
+      }
+
       const payload = {
-        name: form.value.name,
-        category_id: form.value.category_id,
-        suggested_category: form.value.is_suggesting_category
-          ? form.value.suggested_category
-          : null,
-        is_active: form.value.is_active,
+        name: values.name,
+        expense_nature_id: finalExpenseNatureId,
+        product_class_id: finalProductClassId,
+        cat_mat: values.cat_mat ?? null,
+        cat_bec: values.cat_bec ?? null,
+        is_active: values.is_active,
       }
 
-      if (isEditing.value) {
-        // Edit Product
-        const { error } = await supabase.from('products').update(payload).eq('id', form.value.id)
-
-        if (error) throw error
-
-        await logAction('UPDATE_PRODUCT', `Produto atualizado: ${form.value.name}`, user.value?.id)
+      if (isEditing.value && editingId.value) {
+        await updateProduct(editingId.value, payload)
       } else {
-        // Create Product
-        const { error } = await supabase.from('products').insert(payload)
-
-        if (error) throw error
-
-        await logAction('CREATE_PRODUCT', `Novo produto criado: ${form.value.name}`, user.value?.id)
+        await createProduct(payload)
       }
 
       await refresh()
-      closeModal()
-    } catch (err: unknown) {
-      const e = err as Error
-      saveError.value = e.message
+      modal.close()
+    } catch (err) {
+      modal.error.value = err instanceof Error ? err.message : String(err)
     } finally {
-      isSaving.value = false
+      modal.stopSaving()
     }
-  }
+  })
 
-  const toggleStatus = async (product: ProductRow) => {
+  const toggleStatus = async (item: ProductRow) => {
     try {
-      const newStatus = !product.is_active
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: newStatus })
-        .eq('id', product.id)
-
-      if (error) throw error
-
-      await logAction(
-        'TOGGLE_PRODUCT_STATUS',
-        `Produto ${product.name} alterado para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
-        user.value?.id,
-      )
+      await toggleProductStatus(item)
       await refresh()
-    } catch (err: unknown) {
-      const e = err as Error
-      alert(`Erro ao alterar status: ${e.message}`)
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : String(e))
     }
   }
 </script>
 
 <template>
   <div>
-    <PageHeader subtitle="Catálogo centralizado de produtos e materiais" title="Produtos" />
+    <UiPageHeader subtitle="Cadastre e gerencie os produtos do sistema" title="Produtos">
+    </UiPageHeader>
 
-    <v-row>
-      <v-col cols="12">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Lista de Produtos</span>
-            <v-spacer />
-            <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="mdi-refresh"
+    <UiCard>
+      <template #header>
+        <UiIcon class="mr-2" color="primary" name="product" />
+        Lista de Produtos
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
+          {{ totalItems }}
+        </UiChip>
+        <UiSpacer />
+        <!-- Filtros inline -->
+        <div class="d-flex gap-2 align-center">
+          <div class="d-flex gap-2 align-center">
+            <UiSelect
+              v-model="selectedExpenseNature"
+              clearable
+              hide-details
+              item-title="name"
+              item-value="id"
+              :items="expenseNatures || []"
+              label="Natureza de Despesa"
+              rounded="lg"
+              size="sm"
+              style="min-width: 200px; max-width: 260px"
+              variant="outline"
+            />
+            <UiSelect
+              v-model="statusFilter"
+              hide-details
+              item-title="title"
+              item-value="value"
+              :items="[
+                { title: 'Ativos', value: 'active' },
+                { title: 'Inativos', value: 'inactive' },
+                { title: 'Todos', value: 'all' },
+              ]"
+              label="Status"
+              rounded="lg"
+              size="sm"
+              style="min-width: 130px; max-width: 160px"
+              variant="outline"
+            />
+          </div>
+          <UiDivider class="mx-2" vertical />
+          <div class="d-flex align-center gap-3">
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="small"
-              variant="tonal"
+              tooltip="Atualizar lista"
+              variant="soft"
               @click="refresh"
             />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="openAddModal">
+            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
               Novo Produto
             </UiButton>
-          </template>
-
-          <!-- Barra de Filtro -->
-          <div class="bg-grey-lighten-4 py-3 px-4 border-bottom">
-            <v-row align="center" no-gutters>
-              <v-col cols="12" md="4" sm="6">
-                <UiSelect
-                  v-model="selectedCategory"
-                  class="mb-0"
-                  clearable
-                  hide-details
-                  item-title="name"
-                  item-value="id"
-                  :items="filteredCategories"
-                  label="Filtrar por Categoria"
-                />
-              </v-col>
-            </v-row>
           </div>
+        </div>
+      </template>
 
-          <v-divider />
-
-          <UiTable
-            :headers="[
-              { text: 'Nome', value: 'name' },
-              { text: 'Categoria (Material)', value: 'category' },
-              { text: 'Status', value: 'is_active' },
-              { text: 'Ações', value: 'actions', align: 'right' },
-            ]"
-            :items="products || []"
+      <UiTable
+        :headers="[
+          { text: 'Nome', value: 'name' },
+          { text: 'CATMAT', value: 'cat_mat', align: 'center' },
+          { text: 'CATBEC', value: 'cat_bec', align: 'center' },
+          { text: 'Natureza de Despesa', value: 'expense_nature', align: 'center' },
+          { text: 'Classe', value: 'product_class' },
+          { text: 'Status', value: 'is_active', align: 'center' },
+          { text: 'Ações', value: 'actions', align: 'right' },
+        ]"
+        :items="products || []"
+        :loading="pending"
+      >
+        <template #item-name="{ item }">
+          <NuxtLink
+            class="font-weight-medium text-primary text-decoration-none"
+            :to="`/products/${item.id}`"
           >
-            <template v-if="!products?.length && !pending" #empty>
-              Nenhum produto encontrado.
-            </template>
-            <template #item-name="{ item }">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/products/${item.id}`"
+            {{ item.name }}
+          </NuxtLink>
+        </template>
+        <template #item-cat_mat="{ item }">
+          <UiChip v-if="item.cat_mat" color="primary" label size="xs" variant="soft">
+            {{ item.cat_mat }}
+          </UiChip>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-cat_bec="{ item }">
+          <UiChip
+            v-if="item.cat_bec"
+            append-icon="externalLink"
+            color="secondary"
+            :href="getBecProductUrl(item.cat_bec)"
+            label
+            rel="noopener noreferrer"
+            size="xs"
+            target="_blank"
+            title="Abrir página do item no catálogo BEC"
+            variant="soft"
+          >
+            {{ item.cat_bec }}
+          </UiChip>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-expense_nature="{ item }">
+          <UiTooltip v-if="item.expense_natures" :text="item.expense_natures.name">
+            <template #activator="{ props }">
+              <UiChip
+                v-bind="props"
+                color="blue-grey"
+                label
+                size="sm"
+                :title="item.expense_natures.name"
+                variant="soft"
               >
-                {{ item.name }}
-              </NuxtLink>
+                {{ item.expense_natures.id }}
+              </UiChip>
             </template>
-            <template #item-category="{ item }">
-              {{ item.product_categories?.name || '-' }}
-              <span
-                v-if="item.product_categories?.name === 'Outros' && item.suggested_category"
-                class="text-caption text-grey ml-1"
-              >
-                (Sugestão: {{ item.suggested_category }})
-              </span>
-            </template>
-            <template #item-is_active="{ item }">
-              <v-chip
-                class="cursor-pointer"
-                :color="item.is_active ? 'success' : 'error'"
-                size="small"
-                variant="flat"
-                @click="toggleStatus(item)"
-              >
-                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="openEditModal(item)"
-              />
-            </template>
-          </UiTable>
-
-          <!-- Paginação -->
-          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-            <v-pagination
-              v-model="currentPage"
-              density="comfortable"
-              :length="totalPages"
-              :total-visible="7"
+          </UiTooltip>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-product_class="{ item }">
+          <div v-if="item.product_classes" class="d-flex align-center gap-2">
+            <UiChip color="teal" label size="sm" variant="soft">
+              {{ item.product_classes.id }}
+            </UiChip>
+            <span class="text-body-2">{{ item.product_classes.name }}</span>
+          </div>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+        <template #item-is_active="{ item }">
+          <UiSwitch
+            color="success"
+            hide-details
+            :model-value="item.is_active"
+            size="sm"
+            @update:model-value="toggleStatus(item)"
+          />
+        </template>
+        <template #item-actions="{ item }">
+          <div class="d-flex justify-end gap-2">
+            <UiActionButton
+              action="view"
+              :to="`/products/${item.id}`"
+              tooltip="Ver detalhes do produto"
+            />
+            <UiActionButton
+              action="edit"
+              color="default"
+              tooltip="Editar produto"
+              @click="openEditModal(item)"
             />
           </div>
-        </UiCard>
-      </v-col>
-    </v-row>
-
-    <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="isEditing ? 'Editar Produto' : 'Novo Produto'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
-
-        <UiInput v-model="form.name" label="Nome do Produto" />
-
-        <v-switch
-          v-model="form.is_suggesting_category"
-          color="primary"
-          label="Não encontrou a categoria? Sugerir nova"
-        />
-
-        <UiSelect
-          v-if="!form.is_suggesting_category"
-          v-model="form.category_id"
-          item-title="name"
-          item-value="id"
-          :items="filteredCategories"
-          label="Categoria de Material"
-        />
-
-        <UiInput
-          v-if="form.is_suggesting_category"
-          v-model="form.suggested_category"
-          class="mb-4"
-          hint="Digite a categoria desejada para que o administrador possa cadastrá-la futuramente."
-          label="Qual categoria você sugere?"
-          persistent-hint
-        />
-
-        <v-switch
-          v-model="form.is_active"
-          color="success"
-          hint="Indica se o produto está disponível para uso"
-          label="Produto Ativo"
-          persistent-hint
-        />
-
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveProduct"> Salvar </UiButton>
         </template>
-      </UiCard>
-    </v-dialog>
+      </UiTable>
+
+      <div v-if="totalPages > 1" class="d-flex justify-center pa-4">
+        <UiPagination
+          v-model="currentPage"
+          active-color="primary"
+          :length="totalPages"
+          rounded="lg"
+          total-visible="7"
+        />
+      </div>
+    </UiCard>
+
+    <!-- Add/Edit Modal -->
+    <UiModal
+      v-model="modal.isOpen.value"
+      max-width="500px"
+      :title="isEditing ? 'Editar Produto' : 'Novo Produto'"
+    >
+      <UiAlert v-if="modal.error.value" class="mb-4" size="sm" type="error" variant="soft">
+        {{ modal.error.value }}
+      </UiAlert>
+
+      <UiInput
+        v-model="name"
+        v-bind="nameProps"
+        class="mb-3"
+        :error-messages="errors.name"
+        label="Nome do Produto *"
+      />
+
+      <div class="d-flex ga-3 mb-3">
+        <UiInput
+          v-model.number="catMat"
+          v-bind="catMatProps"
+          :error-messages="errors.cat_mat"
+          label="CATMAT (opcional)"
+          placeholder="Ex: 123456"
+          type="number"
+        />
+        <UiInput
+          v-model.number="catBec"
+          v-bind="catBecProps"
+          :error-messages="errors.cat_bec"
+          label="CATBEC (opcional)"
+          placeholder="Ex: 78910"
+          type="number"
+        />
+      </div>
+
+      <UiSwitch
+        v-model="isSuggestingNature"
+        v-bind="isSuggestingNatureProps"
+        class="mb-3"
+        color="primary"
+        :error-messages="errors.is_suggesting_nature"
+        label="Não encontrou a natureza? Sugerir nova"
+      />
+
+      <UiAutocomplete
+        v-if="!isSuggestingNature"
+        v-model="expenseNatureId"
+        v-bind="expenseNatureIdProps"
+        class="mb-3"
+        :error-messages="errors.expense_nature_id"
+        :item-title="
+          (item: Record<string, unknown>) =>
+            typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
+        "
+        item-value="id"
+        :items="expenseNatures || []"
+        label="Natureza de Despesa *"
+        rounded="lg"
+        size="md"
+        variant="outline"
+      />
+
+      <div v-else class="d-flex gap-3 mb-3">
+        <UiInput
+          v-model="suggestedNatureId"
+          v-bind="suggestedNatureIdProps"
+          :error-messages="errors.suggested_nature_id"
+          label="Código (Ex: 33903000)"
+        />
+        <UiInput
+          v-model="suggestedNatureName"
+          v-bind="suggestedNatureNameProps"
+          :error-messages="errors.suggested_nature_name"
+          label="Nome da Natureza"
+        />
+      </div>
+
+      <UiSwitch
+        v-model="isSuggestingClass"
+        v-bind="isSuggestingClassProps"
+        class="mb-3"
+        color="primary"
+        :error-messages="errors.is_suggesting_class"
+        label="Não encontrou a classe? Sugerir nova"
+      />
+
+      <UiAutocomplete
+        v-if="!isSuggestingClass"
+        v-model="productClassId"
+        v-bind="productClassIdProps"
+        class="mb-3"
+        clearable
+        :error-messages="errors.product_class_id"
+        :item-title="
+          (item: Record<string, unknown>) =>
+            typeof item === 'object' && item !== null ? `${item.id} - ${item.name}` : ''
+        "
+        item-value="id"
+        :items="productClasses || []"
+        label="Classe de Produto"
+        rounded="lg"
+        size="md"
+        variant="outline"
+      />
+
+      <div v-else class="d-flex gap-3 mb-3">
+        <UiInput
+          v-model="suggestedClassId"
+          v-bind="suggestedClassIdProps"
+          :error-messages="errors.suggested_class_id"
+          label="Código (Ex: 5915)"
+        />
+        <UiInput
+          v-model="suggestedClassName"
+          v-bind="suggestedClassNameProps"
+          :error-messages="errors.suggested_class_name"
+          label="Nome da Classe"
+        />
+      </div>
+
+      <UiSwitch
+        v-model="isActive"
+        v-bind="isActiveProps"
+        color="success"
+        :error-messages="errors.is_active"
+        label="Produto ativo no sistema"
+      />
+
+      <template #actions>
+        <UiButton variant="ghost" @click="modal.close()">Cancelar</UiButton>
+        <UiButton
+          color="primary"
+          :loading="modal.isSaving.value"
+          variant="solid"
+          @click="saveProduct"
+        >
+          Salvar
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

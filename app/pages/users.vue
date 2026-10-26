@@ -1,43 +1,75 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import { useToast } from '~/composables/useToast'
+  import type { ProfileRow } from '~/composables/useUsers'
+  import { useZodForm } from '~/composables/useZodForm'
+  import {
+    adminUserEditSchema,
+    adminUserCreateSchema,
+    type AdminUserEditInput,
+    type AdminUserCreateInput,
+  } from '~/schemas/forms/user'
+  const toast = useToast()
 
   // 1. Aplica a Regra (Middleware) criada
   definePageMeta({
+    icon: 'usersGroup',
     middleware: ['admin'],
+    navLabel: 'Usuários',
+    navSubtitle: 'Gerenciar contas e permissões',
+    navColor: 'primary',
+    navGroup: 'admin',
+    navOrder: 20,
+    roles: ['admin'],
+    showIn: ['drawer', 'home', 'admin-shortcuts'],
   })
   useHead({ title: 'Gerenciar Usuários' })
 
-  const supabase = useSupabaseClient<Database>()
+  const { fetchUsers, updateUser, toggleUserStatus: toggleStatus } = useUsers()
+  const { logAction } = useLogger()
+  const { profile: loggedProfile } = useProfile()
 
   // 2. Busca todos os usuários no banco
-  const {
-    data: users,
-    pending,
-    refresh,
-  } = useAsyncData('admin-users', async () => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+  const { data: users, pending, refresh } = useAsyncData('admin-users', fetchUsers)
 
-    if (error) throw error
-    return data
+  // Filtro de busca
+  const searchQuery = ref('')
+
+  const filteredActiveUsers = computed(() => {
+    const q = searchQuery.value.toLowerCase()
+    return (
+      users.value
+        ?.filter((u) => u.is_active)
+        .filter((u) => !q || u.name?.toLowerCase().includes(q) || u.id.toLowerCase().includes(q)) ||
+      []
+    )
   })
 
-  // 3. Lógica de Edição de Usuário
-  type ProfileRow = Database['public']['Tables']['profiles']['Row']
+  const inactiveUsers = computed(() => users.value?.filter((u) => !u.is_active) || [])
 
+  // 3. Lógica de Edição de Usuário
   const isEditModalOpen = ref(false)
   const editingUser = ref<ProfileRow | null>(null)
+  const {
+    errors: editErrors,
+    defineField: defineEditField,
+    handleSubmit: handleEditSubmit,
+    resetForm: resetEditForm,
+  } = useZodForm(adminUserEditSchema, { id: '', name: '', role: 'user', is_active: true })
+
+  const [editName, editNameProps] = defineEditField('name')
+  const [editRole, editRoleProps] = defineEditField('role')
+  const [editIsActive, editIsActiveProps] = defineEditField('is_active')
   const isSaving = ref(false)
   const saveError = ref('')
 
-  const { profile: loggedProfile } = useProfile()
   const isSelf = computed(() => editingUser.value?.id === loggedProfile.value?.id)
 
   const openEditModal = (user: ProfileRow) => {
     // Clonamos o objeto para não alterar a tabela antes de salvar
     editingUser.value = { ...user }
+    resetEditForm({
+      values: { id: user.id, name: user.name, role: user.role as never, is_active: user.is_active },
+    })
     saveError.value = ''
     isEditModalOpen.value = true
   }
@@ -47,34 +79,52 @@
     editingUser.value = null
   }
 
-  const { logAction } = useLogger()
-
-  const saveUser = async () => {
+  const saveUser = handleEditSubmit(async (values: AdminUserEditInput) => {
     if (!editingUser.value) return
     isSaving.value = true
     saveError.value = ''
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        name: editingUser.value.name,
-        role: editingUser.value.role,
-        is_active: editingUser.value.is_active,
+    try {
+      await updateUser(values.id, {
+        name: values.name,
+        role: values.role,
+        is_active: values.is_active,
       })
-      .eq('id', editingUser.value.id)
 
-    if (error) {
-      saveError.value = error.message
-    } else {
       await logAction(
         'ADMIN_UPDATE_USER',
-        `Administrador atualizou o usuário: ${editingUser.value.id}`,
+        `Administrador atualizou o usuário: ${values.id}`,
         loggedProfile.value?.id,
       )
-      await refresh() // Recarrega a tabela para mostrar os novos dados
+      await refresh()
       closeEditModal()
+    } catch (e: unknown) {
+      saveError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      isSaving.value = false
     }
-    isSaving.value = false
+  })
+
+  const toggleUserStatus = async (user: ProfileRow) => {
+    if (user.id === loggedProfile.value?.id) {
+      toast.warning('Você não pode desativar seu próprio usuário.')
+      return
+    }
+
+    try {
+      const newStatus = !user.is_active
+      await toggleStatus(user.id, newStatus)
+
+      await logAction(
+        'ADMIN_TOGGLE_USER_STATUS',
+        `Administrador alterou status do usuário ${user.id} para ${newStatus ? 'ATIVO' : 'INATIVO'}`,
+        loggedProfile.value?.id,
+      )
+      await refresh()
+    } catch (e: unknown) {
+      const err = e as Error
+      toast.error(`Erro ao alterar status: ${err.message}`)
+    }
   }
 
   // 4. Lógica de Criação de Novo Usuário (Admin)
@@ -82,16 +132,20 @@
   const isCreating = ref(false)
   const createError = ref('')
 
-  const defaultNewUserForm = {
-    name: '',
-    email: '',
-    password: '',
-    role: 'user',
-  }
-  const newUserForm = ref({ ...defaultNewUserForm })
+  const {
+    errors: createErrors,
+    defineField: defineCreateField,
+    handleSubmit: handleCreateSubmit,
+    resetForm: resetCreateForm,
+  } = useZodForm(adminUserCreateSchema, { name: '', email: '', password: '', role: 'user' })
+
+  const [createName, createNameProps] = defineCreateField('name')
+  const [createEmail, createEmailProps] = defineCreateField('email')
+  const [createPassword, createPasswordProps] = defineCreateField('password')
+  const [createRole, createRoleProps] = defineCreateField('role')
 
   const openAddModal = () => {
-    newUserForm.value = { ...defaultNewUserForm }
+    resetCreateForm({ values: { name: '', email: '', password: '', role: 'user' } })
     createError.value = ''
     isAddModalOpen.value = true
   }
@@ -100,24 +154,23 @@
     isAddModalOpen.value = false
   }
 
-  const createUser = async () => {
+  const createUser = handleCreateSubmit(async (values: AdminUserCreateInput) => {
     isCreating.value = true
     createError.value = ''
 
     try {
-      // Faz o POST para a nossa rota segura backend
       await $fetch('/api/admin/users', {
         method: 'POST',
-        body: newUserForm.value,
+        body: values,
       })
 
       await logAction(
         'ADMIN_CREATE_USER',
-        `Administrador criou novo usuário: ${newUserForm.value.email}`,
+        `Administrador criou novo usuário: ${values.email}`,
         loggedProfile.value?.id,
       )
 
-      await refresh() // Atualiza a tabela
+      await refresh()
       closeAddModal()
     } catch (err: unknown) {
       const fetchErr = err as { data?: { statusMessage?: string }; message?: string }
@@ -126,169 +179,345 @@
     } finally {
       isCreating.value = false
     }
+  })
+
+  const roleConfig: Record<
+    string,
+    { color: string; label: string; variant: 'flat' | 'tonal' | 'outlined' }
+  > = {
+    admin: { color: 'primary', label: 'Admin', variant: 'flat' },
+    uge: { color: 'warning', label: 'UGE', variant: 'tonal' },
+    iirgd_user: { color: 'info', label: 'IIRGD', variant: 'tonal' },
+    iirgd_manager: { color: 'info', label: 'Gestor IIRGD', variant: 'solid' },
+    user: { color: 'default', label: 'Usuário', variant: 'outlined' },
   }
 </script>
 
 <template>
   <div>
-    <PageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários" />
+    <UiPageHeader subtitle="Administração de acesso e contas" title="Gerenciar Usuários">
+    </UiPageHeader>
 
-    <v-row>
-      <v-col cols="12">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Lista de Usuários</span>
-            <v-spacer />
-            <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="mdi-refresh"
-              :loading="pending"
-              size="small"
-              variant="tonal"
-              @click="refresh"
-            />
-            <UiButton color="primary" prepend-icon="mdi-account-plus" @click="openAddModal">
-              Novo Usuário
-            </UiButton>
-          </template>
-
-          <UiTable
-            :headers="[
-              { text: 'ID', value: 'id' },
-              { text: 'Usuário', value: 'name' },
-              { text: 'Cargo', value: 'role' },
-              { text: 'Membro desde', value: 'created_at' },
-              { text: 'Status', value: 'is_active' },
-              { text: 'Ações', value: 'actions', align: 'right' },
-            ]"
-            :items="users || []"
+    <!-- Card de usuários ativos -->
+    <UiCard class="mb-6">
+      <template #header>
+        <UiIcon class="mr-2" color="primary" name="usersGroup" />
+        Usuários Ativos
+        <UiChip class="ml-2" color="primary" label size="xs" variant="soft">
+          {{ filteredActiveUsers.length }}
+        </UiChip>
+        <UiSpacer />
+        <!-- Busca inline -->
+        <UiInput
+          v-model="searchQuery"
+          class="mt-0 mb-0"
+          clearable
+          hide-details
+          label="Buscar..."
+          prepend-inner-icon="search"
+          rounded="lg"
+          size="sm"
+          style="max-width: 260px"
+          variant="outline"
+        />
+        <div class="d-flex align-center gap-3 ml-4">
+          <UiActionButton
+            action="refresh"
+            :loading="pending"
+            tooltip="Atualizar lista"
+            variant="soft"
+            @click="refresh"
+          />
+          <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
+            >Novo Usuário</UiButton
           >
-            <template v-if="!users?.length && !pending" #empty>
-              Nenhum usuário encontrado.
-            </template>
-            <template #item-id="{ item }">
-              <span class="text-grey text-caption font-weight-mono">
-                {{ item.id.split('-')[0] }}
-              </span>
-            </template>
-            <template #item-name="{ item }">
-              <div class="d-flex align-center py-2">
-                <v-avatar class="mr-3" color="surface-variant" size="32">
-                  <v-img v-if="item.avatar_url" :src="item.avatar_url" />
-                  <v-icon v-else>mdi-account</v-icon>
-                </v-avatar>
-                <span>{{ item.name || 'Sem nome' }}</span>
-              </div>
-            </template>
-            <template #item-role="{ item }">
-              <v-chip
-                :color="item.role === 'admin' ? 'primary' : 'grey'"
-                size="small"
-                :variant="item.role === 'admin' ? 'flat' : 'outlined'"
-              >
-                {{ item.role.toUpperCase() }}
-              </v-chip>
-            </template>
-            <template #item-created_at="{ item }">
-              {{ new Date(item.created_at).toLocaleDateString() }}
-            </template>
-            <template #item-is_active="{ item }">
-              <v-chip :color="item.is_active ? 'success' : 'error'" size="small" variant="flat">
-                {{ item.is_active ? 'ATIVO' : 'INATIVO' }}
-              </v-chip>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="openEditModal(item)"
+        </div>
+      </template>
+
+      <UiTable
+        :headers="[
+          { text: 'Usuário', value: 'name' },
+          { text: 'Cargo', value: 'role' },
+          { text: 'Membro desde', value: 'created_at' },
+          { text: 'Status', value: 'is_active', align: 'center' },
+          { text: 'Ações', value: 'actions', align: 'right' },
+        ]"
+        :items="filteredActiveUsers"
+        :loading="pending"
+      >
+        <template v-if="!filteredActiveUsers?.length && !pending" #empty>
+          Nenhum usuário ativo encontrado.
+        </template>
+        <template #item-name="{ item }">
+          <div class="d-flex align-center gap-3">
+            <UiAvatar color="primary" size="30" variant="soft">
+              <UiImg
+                v-if="item.avatar_url"
+                :alt="item.name || 'Avatar'"
+                class="rounded-circle"
+                cover
+                :src="item.avatar_url"
               />
-            </template>
-          </UiTable>
-        </UiCard>
-      </v-col>
-    </v-row>
+              <span v-else class="text-caption font-weight-bold">
+                {{ (item.name || 'U').charAt(0).toUpperCase() }}
+              </span>
+            </UiAvatar>
+            <div>
+              <div class="text-body-2 font-weight-medium">{{ item.name || 'Sem nome' }}</div>
+              <div class="text-caption text-medium-emphasis font-weight-mono">
+                {{ item.id.split('-')[0] }}
+              </div>
+            </div>
+          </div>
+        </template>
+        <template #item-role="{ item }">
+          <UiChip
+            :color="roleConfig[item.role]?.color || 'default'"
+            label
+            size="sm"
+            :variant="roleConfig[item.role]?.variant || 'outlined'"
+          >
+            {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
+          </UiChip>
+        </template>
+        <template #item-created_at="{ item }">
+          <span class="text-body-2 text-medium-emphasis">
+            {{ new Date(item.created_at).toLocaleDateString('pt-BR') }}
+          </span>
+        </template>
+        <template #item-is_active="{ item }">
+          <UiSwitch
+            color="success"
+            :disabled="item.id === loggedProfile?.id"
+            hide-details
+            :model-value="item.is_active"
+            size="sm"
+            @update:model-value="toggleUserStatus(item)"
+          />
+        </template>
+        <template #item-actions="{ item }">
+          <UiActionButton action="edit" tooltip="Editar usuário" @click="openEditModal(item)" />
+        </template>
+      </UiTable>
+    </UiCard>
+
+    <!-- Card de usuários desativados (colapsável) -->
+    <UiExpandTransition>
+      <UiCard v-if="inactiveUsers.length > 0">
+        <template #header>
+          <UiIcon class="mr-2" color="error" name="disableUser" />
+          <span class="text-medium-emphasis">Usuários Desativados</span>
+          <UiChip class="ml-2" color="error" label size="xs" variant="soft">
+            {{ inactiveUsers.length }}
+          </UiChip>
+        </template>
+
+        <UiTable
+          :headers="[
+            { text: 'Usuário', value: 'name' },
+            { text: 'Cargo', value: 'role' },
+            { text: 'Membro desde', value: 'created_at' },
+            { text: 'Status', value: 'is_active', align: 'center' },
+            { text: 'Ações', value: 'actions', align: 'right' },
+          ]"
+          :items="inactiveUsers"
+        >
+          <template #item-name="{ item }">
+            <div class="d-flex align-center gap-3">
+              <UiAvatar color="default" size="30" variant="soft">
+                <UiImg
+                  v-if="item.avatar_url"
+                  :alt="item.name || 'Avatar'"
+                  class="rounded-circle"
+                  cover
+                  :src="item.avatar_url"
+                />
+                <span v-else class="text-caption font-weight-bold text-medium-emphasis">
+                  {{ (item.name || 'U').charAt(0).toUpperCase() }}
+                </span>
+              </UiAvatar>
+              <div>
+                <div class="text-body-2 font-weight-medium text-medium-emphasis">
+                  {{ item.name || 'Sem nome' }}
+                </div>
+                <div class="text-caption text-medium-emphasis font-weight-mono">
+                  {{ item.id.split('-')[0] }}
+                </div>
+              </div>
+            </div>
+          </template>
+          <template #item-role="{ item }">
+            <UiChip
+              :color="roleConfig[item.role]?.color || 'default'"
+              disabled
+              label
+              size="sm"
+              variant="outline"
+            >
+              {{ roleConfig[item.role]?.label || item.role.toUpperCase() }}
+            </UiChip>
+          </template>
+          <template #item-created_at="{ item }">
+            <span class="text-body-2 text-medium-emphasis">
+              {{ new Date(item.created_at).toLocaleDateString('pt-BR') }}
+            </span>
+          </template>
+          <template #item-is_active="{ item }">
+            <UiSwitch
+              color="success"
+              hide-details
+              :model-value="item.is_active"
+              size="sm"
+              @update:model-value="toggleUserStatus(item)"
+            />
+          </template>
+          <template #item-actions="{ item }">
+            <UiActionButton action="edit" tooltip="Editar usuário" @click="openEditModal(item)" />
+          </template>
+        </UiTable>
+      </UiCard>
+    </UiExpandTransition>
 
     <!-- Modal de Edição -->
-    <v-dialog v-model="isEditModalOpen" max-width="500px">
-      <UiCard v-if="editingUser" title="Editar Usuário" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal v-if="editingUser" v-model="isEditModalOpen" max-width="500px" title="Editar Usuário">
+      <template #header>
+        <div class="d-flex align-center gap-3">
+          <UiAvatar color="primary" size="36" variant="soft">
+            <span class="text-caption font-weight-bold">
+              {{ (editingUser.name || 'U').charAt(0).toUpperCase() }}
+            </span>
+          </UiAvatar>
+          <div>
+            <div class="text-subtitle-2 font-weight-bold">{{ editingUser.name || 'Usuário' }}</div>
+          </div>
+        </div>
+      </template>
 
-        <UiInput v-model="editingUser.name" label="Nome" placeholder="Nome do usuário" />
+      <UiAlert v-if="saveError" class="mb-4" size="sm" type="error" variant="soft">
+        {{ saveError }}
+      </UiAlert>
 
-        <!-- Using native v-select for disabled prop since UiSelect doesnt have it yet, actually I should add it -->
-        <v-select
-          v-model="editingUser.role"
-          class="mb-3"
-          density="comfortable"
-          :disabled="isSelf"
-          :hint="
-            isSelf
-              ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
-              : 'Cuidado ao promover usuários a Administrador. Eles terão acesso a este painel.'
-          "
-          :items="['user', 'admin']"
-          label="Cargo (Role)"
-          persistent-hint
-          variant="outlined"
-        />
+      <UiInput
+        v-model="editName"
+        v-bind="editNameProps"
+        :error-messages="editErrors.name"
+        label="Nome"
+        placeholder="Nome do usuário"
+      />
 
-        <v-switch
-          v-model="editingUser.is_active"
-          class="mt-3"
-          color="success"
-          :disabled="isSelf"
-          hint="Se desmarcado, o usuário não poderá acessar o sistema"
-          label="Usuário Ativo"
-          persistent-hint
-        />
+      <UiSelect
+        v-model="editRole"
+        v-bind="editRoleProps"
+        class="mb-3"
+        :disabled="isSelf"
+        :error-messages="editErrors.role"
+        :hint="
+          isSelf
+            ? 'Por medida de segurança, você não pode rebaixar a si mesmo.'
+            : 'Cuidado ao promover usuários a Administrador.'
+        "
+        item-title="title"
+        item-value="value"
+        :items="[
+          { title: 'Usuário', value: 'user' },
+          { title: 'UGE', value: 'uge' },
+          { title: 'Administrador', value: 'admin' },
+          { title: 'Usuário IIRGD', value: 'iirgd_user' },
+          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
+          { title: 'Usuário Eleições', value: 'user-election' },
+          { title: 'Gestor Eleições', value: 'manager-election' },
+          { title: 'Administrador Eleições', value: 'admin-election' },
+        ]"
+        label="Cargo (Role)"
+        persistent-hint
+        rounded="lg"
+        size="md"
+        variant="outline"
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeEditModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveUser">
-            Salvar Alterações
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <UiSwitch
+        v-model="editIsActive"
+        v-bind="editIsActiveProps"
+        class="mt-3"
+        color="success"
+        :disabled="isSelf"
+        :error-messages="editErrors.is_active"
+        hint="Se desmarcado, o usuário não poderá acessar o sistema"
+        label="Usuário Ativo"
+        persistent-hint
+      />
+
+      <template #actions>
+        <UiButton :disabled="isSaving" variant="ghost" @click="closeEditModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isSaving" variant="solid" @click="saveUser">
+          Salvar Alterações
+        </UiButton>
+      </template>
+    </UiModal>
 
     <!-- Modal de Adição (Novo Usuário) -->
-    <v-dialog v-model="isAddModalOpen" max-width="500px">
-      <UiCard title="Criar Novo Usuário" transparent-header>
-        <v-alert v-if="createError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ createError }}
-        </v-alert>
+    <UiModal v-model="isAddModalOpen" max-width="500px" title="Criar Novo Usuário">
+      <UiAlert v-if="createError" class="mb-4" size="sm" type="error" variant="soft">
+        {{ createError }}
+      </UiAlert>
 
-        <UiInput v-model="newUserForm.name" label="Nome Completo" placeholder="Nome do usuário" />
+      <UiInput
+        v-model="createName"
+        v-bind="createNameProps"
+        :error-messages="createErrors.name"
+        label="Nome Completo"
+        placeholder="Nome do usuário"
+      />
 
-        <UiInput
-          v-model="newUserForm.email"
-          label="E-mail"
-          placeholder="email@exemplo.com"
-          type="email"
-        />
+      <UiInput
+        v-model="createEmail"
+        v-bind="createEmailProps"
+        :error-messages="createErrors.email"
+        label="E-mail"
+        placeholder="email@exemplo.com"
+        prepend-inner-icon="emailAlt"
+        type="email"
+      />
 
-        <UiInput
-          v-model="newUserForm.password"
-          label="Senha (Inicial)"
-          placeholder="Pelo menos 6 caracteres"
-          type="password"
-        />
+      <UiInput
+        v-model="createPassword"
+        v-bind="createPasswordProps"
+        :error-messages="createErrors.password"
+        label="Senha (Inicial)"
+        placeholder="Pelo menos 6 caracteres"
+        prepend-inner-icon="security"
+        type="password"
+      />
 
-        <UiSelect v-model="newUserForm.role" :items="['user', 'admin']" label="Cargo (Role)" />
+      <UiSelect
+        v-model="createRole"
+        v-bind="createRoleProps"
+        class="mb-3"
+        :error-messages="createErrors.role"
+        item-title="title"
+        item-value="value"
+        :items="[
+          { title: 'Usuário', value: 'user' },
+          { title: 'UGE', value: 'uge' },
+          { title: 'Administrador', value: 'admin' },
+          { title: 'Usuário IIRGD', value: 'iirgd_user' },
+          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
+          { title: 'Usuário Eleições', value: 'user-election' },
+          { title: 'Gestor Eleições', value: 'manager-election' },
+          { title: 'Administrador Eleições', value: 'admin-election' },
+        ]"
+        label="Cargo (Role)"
+        rounded="lg"
+        size="md"
+        variant="outline"
+      />
 
-        <template #actions>
-          <UiButton :disabled="isCreating" variant="text" @click="closeAddModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isCreating" @click="createUser">
-            Criar Usuário
-          </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <template #actions>
+        <UiButton :disabled="isCreating" variant="ghost" @click="closeAddModal">Cancelar</UiButton>
+        <UiButton color="primary" :loading="isCreating" variant="solid" @click="createUser">
+          Criar Usuário
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>

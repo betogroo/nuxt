@@ -1,18 +1,22 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
-
   definePageMeta({
+    icon: 'history',
     middleware: ['admin'],
+    navLabel: 'Auditoria & Logs',
+    navSubtitle: 'Auditoria de ações do sistema',
+    navColor: 'blue-grey',
+    navGroup: 'admin',
+    navOrder: 30,
+    roles: ['admin'],
+    showIn: ['drawer', 'admin-shortcuts'],
   })
   useHead({ title: 'Registros de Acessos e Ações' })
 
-  const supabase = useSupabaseClient<Database>()
+  const { fetchLogs } = useLogger()
 
-  const currentPage = ref(1)
-  const itemsPerPage = ref(15)
-  const totalItems = ref(0)
-
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
+  const { currentPage, itemsPerPage, totalItems, totalPages } = usePagination({
+    defaultItemsPerPage: 15,
+  })
 
   const {
     data: logs,
@@ -21,35 +25,14 @@
   } = useAsyncData(
     'admin-logs',
     async () => {
-      const from = (currentPage.value - 1) * itemsPerPage.value
-      const to = from + itemsPerPage.value - 1
-
-      const { data, count, error } = await supabase
-        .from('logs')
-        .select(
-          `
-        id,
-        action,
-        description,
-        created_at,
-        profiles (
-          id,
-          name,
-          avatar_url
-        )
-      `,
-          { count: 'exact' },
-        )
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (error) {
-        console.error(error)
+      try {
+        const result = await fetchLogs(currentPage.value, itemsPerPage.value)
+        totalItems.value = result.count
+        return result.data
+      } catch (e) {
+        console.error(e)
         return []
       }
-
-      totalItems.value = count || 0
-      return data
     },
     {
       watch: [currentPage],
@@ -59,67 +42,75 @@
 
 <template>
   <div>
-    <PageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
+    <UiPageHeader subtitle="Trilha de auditoria e atividades no sistema" title="Registros (Logs)">
       <template #actions>
-        <UiButton
-          color="secondary"
-          icon="mdi-refresh"
+        <UiActionButton
+          action="refresh"
           :loading="pending"
-          variant="tonal"
+          tooltip="Atualizar lista"
+          variant="soft"
           @click="refresh"
         />
       </template>
-    </PageHeader>
+    </UiPageHeader>
 
-    <v-row>
-      <v-col cols="12">
-        <UiCard>
-          <UiTable
-            :headers="[
-              { text: 'Data/Hora', value: 'created_at' },
-              { text: 'Usuário', value: 'user' },
-              { text: 'Ação', value: 'action' },
-              { text: 'Descrição', value: 'description' },
-            ]"
-            :items="logs || []"
-          >
-            <template v-if="!logs?.length && !pending" #empty>
-              Nenhum registro encontrado.
-            </template>
-            <template #item-created_at="{ item }">
-              {{ new Date(item.created_at).toLocaleString() }}
-            </template>
-            <template #item-user="{ item }">
-              <div v-if="item.profiles" class="d-flex align-center py-2">
-                <v-avatar class="mr-3" color="surface-variant" size="32">
-                  <v-img v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
-                  <v-icon v-else>mdi-account</v-icon>
-                </v-avatar>
-                <span>{{ item.profiles.name || 'Sem nome' }}</span>
-              </div>
-              <span v-else class="text-grey text-caption">Sistema / Desconhecido</span>
-            </template>
-            <template #item-action="{ item }">
-              <v-chip color="primary" size="small" variant="outlined">
-                {{ item.action }}
-              </v-chip>
-            </template>
-            <template #item-description="{ item }">
-              {{ item.description || '-' }}
-            </template>
-          </UiTable>
+    <UiCard>
+      <template #header>
+        <UiIcon class="mr-2" color="primary" name="searchDocument" />
+        Auditoria de Logs
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
+          {{ totalItems }}
+        </UiChip>
+      </template>
 
-          <!-- Paginação -->
-          <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
-            <v-pagination
-              v-model="currentPage"
-              density="comfortable"
-              :length="totalPages"
-              :total-visible="7"
-            />
+      <UiTable
+        :headers="[
+          { text: 'Data/Hora', value: 'created_at' },
+          { text: 'Usuário', value: 'user' },
+          { text: 'Ação', value: 'action' },
+          { text: 'Descrição', value: 'description' },
+        ]"
+        :items="logs || []"
+        :loading="pending"
+      >
+        <template v-if="!logs?.length && !pending" #empty> Nenhum registro encontrado. </template>
+        <template #item-created_at="{ item }">
+          <span class="text-body-2 text-medium-emphasis">
+            {{ new Date(item.created_at).toLocaleString('pt-BR') }}
+          </span>
+        </template>
+        <template #item-user="{ item }">
+          <div v-if="item.profiles" class="d-flex align-center gap-3">
+            <UiAvatar color="primary" size="30" variant="soft">
+              <UiImg v-if="item.profiles.avatar_url" :src="item.profiles.avatar_url" />
+              <span v-else class="text-caption font-weight-bold">
+                {{ (item.profiles.name || 'U').charAt(0).toUpperCase() }}
+              </span>
+            </UiAvatar>
+            <span class="text-body-2">{{ item.profiles.name || 'Sem nome' }}</span>
           </div>
-        </UiCard>
-      </v-col>
-    </v-row>
+          <span v-else class="text-medium-emphasis text-caption">Sistema</span>
+        </template>
+        <template #item-action="{ item }">
+          <UiChip color="primary" label size="sm" variant="soft">
+            {{ item.action.replace(/_/g, ' ') }}
+          </UiChip>
+        </template>
+        <template #item-description="{ item }">
+          <span class="text-body-2">{{ item.description || '—' }}</span>
+        </template>
+      </UiTable>
+
+      <!-- Paginação -->
+      <div v-if="totalPages > 1" class="d-flex justify-center py-4 w-100">
+        <UiPagination
+          v-model="currentPage"
+          :length="totalPages"
+          rounded="lg"
+          size="md"
+          :total-visible="7"
+        />
+      </div>
+    </UiCard>
   </div>
 </template>

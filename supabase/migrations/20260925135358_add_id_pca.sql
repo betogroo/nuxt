@@ -1,0 +1,1 @@
+ALTER TABLE demands ADD COLUMN id_pca VARCHAR(50);

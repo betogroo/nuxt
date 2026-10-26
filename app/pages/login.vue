@@ -1,140 +1,250 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { loginPasswordSchema, loginMagicLinkSchema, loginOtpSchema } from '~/schemas/forms/auth'
   definePageMeta({ layout: 'auth' })
-  const supabase = useSupabaseClient()
-  const user = useSupabaseUser()
+  const {
+    user,
+    signInWithPassword: loginWithPassword,
+    sendOtp,
+    verifyOtpCode,
+    getRedirectUrl,
+  } = useAuth()
 
-  // Redireciona se já estiver logado
+  const route = useRoute()
+  const inactiveError = computed(() => route.query.error === 'inactive')
+
+  // Redireciona se já estiver logado e não for erro de usuário inativo
+  let isRedirecting = false
   watchEffect(() => {
-    if (user.value) {
-      navigateTo('/')
+    if (user.value && !inactiveError.value && !isRedirecting) {
+      isRedirecting = true
+      navigateTo(getRedirectUrl(), { replace: true })
+    } else if (!user.value) {
+      isRedirecting = false
     }
   })
 
   const tab = ref<'password' | 'magic'>('password')
   useHead({ title: 'Entrar' })
 
-  const route = useRoute()
-  const inactiveError = computed(() => route.query.error === 'inactive')
-
   // Login com senha
-  const emailPassword = ref('')
-  const password = ref('')
   const loadingPassword = ref(false)
   const errorPassword = ref('')
 
-  const { logAction } = useLogger()
+  const {
+    errors: passErrors,
+    defineField: passDefine,
+    handleSubmit: passSubmit,
+  } = useZodForm(loginPasswordSchema, {
+    email: '',
+    password: '',
+  })
+  const [emailPassword, emailPasswordProps] = passDefine('email')
+  const [password, passwordProps] = passDefine('password')
 
-  const signInWithPassword = async () => {
+  const signInWithPassword = passSubmit(async (values) => {
     loadingPassword.value = true
     errorPassword.value = ''
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: emailPassword.value,
-      password: password.value,
-    })
-
+    const { error } = await loginWithPassword(values.email, values.password)
     if (error) {
       errorPassword.value = error.message
-    } else if (data.user) {
-      await logAction('LOGIN', 'Acesso via senha', data.user.id)
     }
     loadingPassword.value = false
-  }
+  })
 
   // Login com link mágico
-  const emailMagic = ref('')
-  const loadingMagic = ref(false)
-  const messageMagic = ref('')
-  const errorMagic = ref('')
+  const loadingOtp = ref(false)
+  const messageOtp = ref('')
+  const errorOtp = ref('')
+  const isOtpSent = ref(false)
 
-  const signInWithMagicLink = async () => {
-    loadingMagic.value = true
-    errorMagic.value = ''
-    messageMagic.value = ''
+  const {
+    errors: magicErrors,
+    defineField: magicDefine,
+    handleSubmit: magicSubmit,
+  } = useZodForm(loginMagicLinkSchema, { email: '' })
+  const [emailMagic, emailMagicProps] = magicDefine('email')
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: emailMagic.value,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: `${window.location.origin}/confirm`,
-      },
-    })
+  const {
+    errors: otpErrors,
+    defineField: otpDefine,
+    handleSubmit: otpSubmit,
+  } = useZodForm(loginOtpSchema, { email: '', otpCode: '' })
+  const [emailOtp] = otpDefine('email')
+  const [otpCode, otpCodeProps] = otpDefine('otpCode')
 
-    if (error) {
-      errorMagic.value = error.message
-    } else {
-      messageMagic.value = 'Verifique seu e-mail para o link de acesso.'
+  watchEffect(() => {
+    // Keep emails in sync for UX
+    if (!isOtpSent.value) {
+      emailOtp.value = emailMagic.value
     }
-    loadingMagic.value = false
-  }
+  })
+
+  const handleSendOtp = magicSubmit(async (values) => {
+    loadingOtp.value = true
+    errorOtp.value = ''
+    messageOtp.value = ''
+    const requestUrl = useRequestURL()
+    const { error } = await sendOtp(values.email, `${requestUrl.origin}/confirm`)
+    if (error) {
+      errorOtp.value = error.message
+    } else {
+      messageOtp.value =
+        'Código enviado para o e-mail (você também pode clicar no link que enviamos).'
+      isOtpSent.value = true
+      emailOtp.value = values.email
+    }
+    loadingOtp.value = false
+  })
+
+  const handleVerifyOtp = otpSubmit(async (values) => {
+    loadingOtp.value = true
+    errorOtp.value = ''
+    const { error } = await verifyOtpCode(values.email, values.otpCode)
+    if (error) {
+      errorOtp.value = error.message
+    }
+    loadingOtp.value = false
+  })
 </script>
 
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center">
-      <v-col cols="12" md="5" sm="8">
-        <UiCard>
-          <template #header>
-            <div class="text-center w-100">Entrar</div>
-          </template>
+  <UiCard class="w-100" rounded="xl">
+    <template #header>
+      <span class="text-subtitle-1 font-weight-bold">
+        {{ tab === 'password' ? 'Acesse sua conta' : 'Acesso por código' }}
+      </span>
+    </template>
 
-          <v-tabs v-model="tab" align-tabs="center">
-            <v-tab value="password">Email e Senha</v-tab>
-            <v-tab value="magic">Link Mágico</v-tab>
-          </v-tabs>
+    <UiAlert v-if="inactiveError" class="mb-4" type="error" variant="soft">
+      Sua conta foi desativada por um administrador.
+    </UiAlert>
 
-          <v-alert v-if="inactiveError" class="mx-4 mt-4" type="error" variant="tonal">
-            Sua conta foi desativada por um administrador.
-          </v-alert>
+    <!-- Seletor de método de login -->
+    <UiBtnToggle
+      v-model="tab"
+      class="mb-5 w-100"
+      divided
+      mandatory
+      rounded="lg"
+      size="sm"
+      variant="outline"
+    >
+      <UiButton class="flex-1-1" size="sm" value="password">
+        <UiIcon class="mr-2" name="security" size="16" />
+        Senha
+      </UiButton>
+      <UiButton class="flex-1-1" size="sm" value="magic">
+        <UiIcon class="mr-2" name="emailAlt" size="16" />
+        Código por E-mail
+      </UiButton>
+    </UiBtnToggle>
 
-          <!-- ABA: SENHA -->
-          <template v-if="tab === 'password'">
-            <v-alert v-if="errorPassword" class="mb-4" type="error">
-              {{ errorPassword }}
-            </v-alert>
+    <!-- ABA: SENHA -->
+    <template v-if="tab === 'password'">
+      <UiAlert v-if="errorPassword" class="mb-4" type="error">
+        {{ errorPassword }}
+      </UiAlert>
 
-            <UiInput v-model="emailPassword" label="E-mail" type="email" />
+      <UiInput
+        v-model="emailPassword"
+        v-bind="emailPasswordProps"
+        :error-messages="passErrors.email"
+        label="E-mail"
+        prepend-inner-icon="emailAlt"
+        type="email"
+      />
 
-            <UiInput
-              v-model="password"
-              label="Senha"
-              type="password"
-              @keyup.enter="signInWithPassword"
-            />
+      <UiInput
+        v-model="password"
+        v-bind="passwordProps"
+        :error-messages="passErrors.password"
+        label="Senha"
+        prepend-inner-icon="lock"
+        type="password"
+        @keyup.enter="signInWithPassword"
+      />
 
-            <UiButton block color="primary" :loading="loadingPassword" @click="signInWithPassword">
-              Entrar
-            </UiButton>
-          </template>
+      <UiButton
+        block
+        color="primary"
+        :loading="loadingPassword"
+        rounded="lg"
+        size="lg"
+        variant="solid"
+        @click="signInWithPassword"
+      >
+        Entrar
+      </UiButton>
+    </template>
 
-          <!-- ABA: LINK MÁGICO -->
-          <template v-else>
-            <v-alert v-if="errorMagic" class="mb-4" type="error">
-              {{ errorMagic }}
-            </v-alert>
+    <!-- ABA: CÓDIGO OTP -->
+    <template v-else>
+      <UiAlert v-if="errorOtp" class="mb-4" type="error">
+        {{ errorOtp }}
+      </UiAlert>
 
-            <v-alert v-if="messageMagic" class="mb-4" type="success">
-              {{ messageMagic }}
-            </v-alert>
+      <UiAlert v-if="messageOtp" class="mb-4" type="success">
+        {{ messageOtp }}
+      </UiAlert>
 
-            <UiInput
-              v-model="emailMagic"
-              label="E-mail"
-              type="email"
-              @keyup.enter="signInWithMagicLink"
-            />
+      <template v-if="!isOtpSent">
+        <UiInput
+          v-model="emailMagic"
+          v-bind="emailMagicProps"
+          :error-messages="magicErrors.email"
+          label="E-mail"
+          prepend-inner-icon="emailAlt"
+          type="email"
+          @keyup.enter="handleSendOtp"
+        />
 
-            <UiButton block color="primary" :loading="loadingMagic" @click="signInWithMagicLink">
-              Enviar Link de Acesso
-            </UiButton>
-          </template>
-        </UiCard>
+        <UiButton
+          block
+          color="primary"
+          :loading="loadingOtp"
+          rounded="lg"
+          size="lg"
+          variant="solid"
+          @click="handleSendOtp"
+        >
+          Enviar Código
+        </UiButton>
+      </template>
 
-        <p class="text-center mt-4">
-          Não tem uma conta?
-          <NuxtLink to="/register">Registre-se</NuxtLink>
+      <template v-else>
+        <p class="text-body-2 text-medium-emphasis text-center mb-4">
+          Digite o código de 6 dígitos enviado para <strong>{{ emailOtp }}</strong>
         </p>
-      </v-col>
-    </v-row>
-  </v-container>
+        <UiOtpInput v-model="otpCode" v-bind="otpCodeProps" @finish="handleVerifyOtp" />
+        <div v-if="otpErrors.otpCode" class="text-error text-caption text-center mt-2">
+          {{ otpErrors.otpCode }}
+        </div>
+
+        <UiButton
+          block
+          class="mt-4"
+          color="primary"
+          :loading="loadingOtp"
+          rounded="lg"
+          size="lg"
+          variant="solid"
+          @click="handleVerifyOtp"
+        >
+          Verificar e Acessar
+        </UiButton>
+
+        <UiButton block class="mt-2" size="sm" variant="ghost" @click="isOtpSent = false">
+          Usar outro e-mail
+        </UiButton>
+      </template>
+    </template>
+
+    <p class="text-center text-body-2 text-medium-emphasis mt-5 mb-0">
+      Não tem uma conta?
+      <NuxtLink class="text-primary font-weight-medium text-decoration-none" to="/register">
+        Registre-se
+      </NuxtLink>
+    </p>
+  </UiCard>
 </template>

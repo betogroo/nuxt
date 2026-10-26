@@ -1,18 +1,22 @@
 <script setup lang="ts">
   useHead({ title: 'Confirmando...' })
-  const user = useSupabaseUser()
+  const { user, getRedirectUrl } = useAuth()
 
   const { logAction } = useLogger()
 
   // Vigia o estado do usuário. Assim que ele for preenchido (login concluído),
   // redireciona para a Home. O `immediate: true` faz a checagem rodar
   // assim que a página carrega, caso o usuário já esteja logado.
+  let isRedirecting = false
   watch(
     user,
     async () => {
-      if (user.value) {
+      if (user.value && !isRedirecting) {
+        isRedirecting = true
         await logAction('LOGIN', 'Acesso via link mágico ou confirmação', user.value.id)
-        return navigateTo('/')
+        return navigateTo(getRedirectUrl(), { replace: true })
+      } else if (!user.value) {
+        isRedirecting = false
       }
     },
     { immediate: true },
@@ -21,7 +25,7 @@
 
 <template>
   <div>
-    <v-progress-circular indeterminate />
+    <UiProgressCircular indeterminate />
     <p>Autenticando...</p>
   </div>
 </template>

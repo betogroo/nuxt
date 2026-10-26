@@ -1,3 +1,5 @@
+import { useAuthSession } from '~/composables/useAuthSession'
+
 export default defineNuxtRouteMiddleware(async (to) => {
   // Ignora rotas públicas
   const publicRoutes = ['/login', '/register', '/about']
@@ -5,8 +7,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     return
   }
 
-  const user = useSupabaseUser()
-  if (!user.value) return
+  const { ensureUser } = useAuthSession()
+  const user = await ensureUser()
+  if (!user) return
 
   const { profile, fetchProfile } = useProfile()
 
@@ -16,10 +19,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Se o usuário estiver inativo, faz o logout e redireciona
   if (profile.value && profile.value.is_active === false) {
-    const supabase = useSupabaseClient()
-    await supabase.auth.signOut()
-
-    // Mostramos uma mensagem ou só redirecionamos
-    return navigateTo('/login?error=inactive')
+    const { signOut } = useAuth()
+    return await signOut('/login?error=inactive')
   }
 })

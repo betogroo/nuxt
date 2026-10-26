@@ -1,42 +1,125 @@
-<script setup lang="ts">
-  defineProps<{
-    headers: Array<{ text: string; value: string; align?: 'left' | 'center' | 'right' }>
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    items: Array<any>
-  }>()
+<script setup lang="ts" generic="T extends Record<string, unknown> = Record<string, unknown>">
+  withDefaults(
+    defineProps<{
+      headers?: Array<{
+        text: string
+        value: string
+        align?: 'left' | 'center' | 'right'
+        sortable?: boolean
+        nowrap?: boolean
+        width?: string | number
+      }>
+      items?: Array<T>
+      loading?: boolean
+      density?: 'default' | 'comfortable' | 'compact'
+    }>(),
+    {
+      headers: () => [],
+      items: () => [],
+      loading: false,
+      density: 'compact',
+    },
+  )
 </script>
 
 <template>
-  <v-table hover>
-    <thead>
-      <tr>
-        <th
-          v-for="header in headers"
-          :key="header.value"
-          :class="header.align ? `text-${header.align}` : 'text-left'"
-        >
-          {{ header.text }}
-        </th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="item in items" :key="item.id || Math.random()">
-        <td
-          v-for="header in headers"
-          :key="header.value"
-          :class="header.align ? `text-${header.align}` : 'text-left'"
-        >
-          <!-- Dynamic slot for custom cell rendering -->
-          <slot :item="item" :name="`item-${header.value}`">
-            {{ item[header.value] }}
-          </slot>
-        </td>
-      </tr>
-      <tr v-if="!items || items.length === 0">
-        <td class="text-center text-grey py-4" :colspan="headers.length">
-          <slot name="empty"> Nenhum registro encontrado. </slot>
-        </td>
-      </tr>
-    </tbody>
+  <v-table class="ui-table" :density="density" hover>
+    <template v-if="headers.length === 0 && $slots.default">
+      <slot />
+    </template>
+    <template v-else>
+      <thead>
+        <tr>
+          <th
+            v-for="header in headers"
+            :key="header.value"
+            :class="[
+              'text-caption text-uppercase font-weight-bold text-medium-emphasis py-1',
+              header.align ? `text-${header.align}` : 'text-left',
+              { 'text-no-wrap': header.nowrap },
+            ]"
+            :style="
+              header.width
+                ? { width: typeof header.width === 'number' ? `${header.width}px` : header.width }
+                : undefined
+            "
+          >
+            <slot :header="header" :name="`header-${header.value}`">
+              {{ header.text }}
+            </slot>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Loading skeleton rows -->
+        <template v-if="loading">
+          <tr v-for="n in 5" :key="`skel-${n}`">
+            <td v-for="header in headers" :key="header.value" class="py-1">
+              <v-skeleton-loader type="text" width="80%" />
+            </td>
+          </tr>
+        </template>
+
+        <template v-else>
+          <tr v-for="(item, index) in items" :key="String(item.id ?? index)" class="ui-table__row">
+            <td
+              v-for="header in headers"
+              :key="header.value"
+              :class="[
+                'py-1',
+                header.align ? `text-${header.align}` : 'text-left',
+                { 'text-no-wrap': header.nowrap },
+              ]"
+            >
+              <slot :index="index" :item="item" :name="`item-${header.value}`">
+                {{ item[header.value] }}
+              </slot>
+            </td>
+          </tr>
+
+          <!-- Empty state -->
+          <tr v-if="!items || items.length === 0">
+            <td class="py-8" :colspan="Math.max(headers.length, 1)">
+              <div class="d-flex flex-column align-center text-medium-emphasis">
+                <UiIcon class="mb-3" name="databaseSearch" size="36" />
+                <slot name="empty">Nenhum registro encontrado.</slot>
+              </div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </template>
   </v-table>
 </template>
+
+<style scoped>
+  .ui-table thead tr {
+    border-bottom: 2px solid rgba(var(--v-border-color), 0.12);
+  }
+
+  .ui-table th {
+    font-size: 0.75rem !important;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  .ui-table td {
+    font-size: 0.8125rem;
+    vertical-align: middle;
+  }
+
+  .ui-table :deep(.v-selection-control) {
+    min-height: unset !important;
+  }
+
+  .ui-table :deep(.v-switch),
+  .ui-table :deep(.v-checkbox) {
+    display: inline-flex;
+    justify-content: center;
+  }
+
+  .ui-table__row {
+    transition: background-color 0.15s ease;
+  }
+</style>

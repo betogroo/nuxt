@@ -1,8 +1,50 @@
-export function formatCurrency(value: number): string {
+export function formatCurrency(
+  value: number | string | null | undefined,
+  options?: { minimumFractionDigits?: number; maximumFractionDigits?: number; fallback?: string },
+): string {
+  if (value == null || value === '' || isNaN(Number(value))) {
+    return options?.fallback ?? '-'
+  }
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value)
+    minimumFractionDigits: options?.minimumFractionDigits ?? 2,
+    maximumFractionDigits: options?.maximumFractionDigits ?? 2,
+  }).format(Number(value))
+}
+
+export function formatReferencePrice(value: number | string | null | undefined): string {
+  return formatCurrency(value, {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  })
+}
+
+export function formatDate(
+  date: string | Date | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  if (!date) return '-'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(d.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', options ?? { dateStyle: 'short' }).format(d)
+}
+
+export function formatDateTime(date: string | Date | null | undefined): string {
+  if (!date) return '-'
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (isNaN(d.getTime())) return '-'
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(d)
+}
+
+export function formatCnpj(value: string | null | undefined): string {
+  if (!value) return '-'
+  const v = value.replace(/\D/g, '')
+  if (v.length !== 14) return value
+  return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`
 }
 
 export function slugify(text: string): string {
@@ -15,4 +57,221 @@ export function slugify(text: string): string {
     .replace(/\s+/g, '-') // espaços por hífen
     .replace(/[^\w-]+/g, '') // remove caracteres não-palavra
     .replace(/--+/g, '-') // múltiplos hifens por um só
+}
+
+export const formatDemandType = (type: string) => {
+  return type === 'consumption' ? 'Consumo' : 'Permanente'
+}
+
+export function formatCpf(value: string): string {
+  let v = value.replace(/\D/g, '')
+  if (v.length > 11) v = v.slice(0, 11)
+
+  if (v.length <= 3) return v
+  if (v.length <= 6) return `${v.slice(0, 3)}.${v.slice(3)}`
+  if (v.length <= 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`
+  return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`
+}
+
+export function padAndFormatRg(value: string, pad: boolean = false): string {
+  let v = value.replace(/[^0-9xX]/g, '').toUpperCase()
+  if (v.length > 9) v = v.slice(0, 9)
+
+  if (pad && v.length > 0) {
+    v = v.padStart(9, '0')
+  }
+
+  if (v.length === 9) {
+    return `${v.slice(0, 8)}-${v.slice(8)}`
+  }
+
+  // se ainda estiver digitando e nao pediu padding (pad=false)
+  if (v.length > 8) {
+    return `${v.slice(0, 8)}-${v.slice(8)}`
+  }
+
+  return v
+}
+
+export function formatCitizenName(name: string | null | undefined): string {
+  if (!name) return ''
+  return name.trim().toUpperCase()
+}
+
+export function isValidRgSP(value: string | null | undefined): boolean {
+  if (!value) return false
+  const v = value.replace(/[^0-9xX]/g, '').toUpperCase()
+
+  if (v.length !== 9) return false
+
+  const base = v.slice(0, 8)
+  const checkDigit = v.charAt(8)
+
+  const weights = [2, 3, 4, 5, 6, 7, 8, 9]
+  let sum = 0
+
+  for (let i = 0; i < 8; i++) {
+    sum += parseInt(base.charAt(i), 10) * weights[i]
+  }
+
+  const mod = sum % 11
+  let expectedDigit = (11 - mod).toString()
+
+  if (expectedDigit === '10') {
+    expectedDigit = 'X'
+  } else if (expectedDigit === '11') {
+    expectedDigit = '0'
+  }
+
+  return checkDigit === expectedDigit
+}
+
+export function isValidCpf(cpf: string): boolean {
+  if (!cpf) return false
+  const cleanCpf = cpf.replace(/\D/g, '')
+  if (cleanCpf.length !== 11) return false
+
+  if (/^(\d)\1+$/.test(cleanCpf)) return false
+
+  let sum = 0
+  let rest
+  for (let i = 1; i <= 9; i++) sum = sum + parseInt(cleanCpf.substring(i - 1, i)) * (11 - i)
+  rest = (sum * 10) % 11
+  if (rest === 10 || rest === 11) rest = 0
+  if (rest !== parseInt(cleanCpf.substring(9, 10))) return false
+
+  sum = 0
+  for (let i = 1; i <= 10; i++) sum = sum + parseInt(cleanCpf.substring(i - 1, i)) * (12 - i)
+  rest = (sum * 10) % 11
+  if (rest === 10 || rest === 11) rest = 0
+  if (rest !== parseInt(cleanCpf.substring(10, 11))) return false
+
+  return true
+}
+
+export function isValidCnpj(cnpj: string | null | undefined): boolean {
+  if (!cnpj) return false
+  const cleanCnpj = cnpj.replace(/[^\d]+/g, '')
+  if (cleanCnpj.length !== 14) return false
+
+  if (/^(\d)\1+$/.test(cleanCnpj)) return false
+
+  let tamanho = cleanCnpj.length - 2
+  let numeros = cleanCnpj.substring(0, tamanho)
+  const digitos = cleanCnpj.substring(tamanho)
+  let soma = 0
+  let pos = tamanho - 7
+
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i), 10) * pos--
+    if (pos < 2) pos = 9
+  }
+
+  let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11)
+  if (resultado !== parseInt(digitos.charAt(0), 10)) return false
+
+  tamanho = tamanho + 1
+  numeros = cleanCnpj.substring(0, tamanho)
+  soma = 0
+  pos = tamanho - 7
+
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i), 10) * pos--
+    if (pos < 2) pos = 9
+  }
+
+  resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11)
+  if (resultado !== parseInt(digitos.charAt(1), 10)) return false
+
+  return true
+}
+
+/**
+ * Splits an ISO string or Date into local date ('YYYY-MM-DD') and time ('HH:mm') strings
+ * for HTML5 inputs.
+ */
+export function splitDateTime(value: string | Date | null | undefined): {
+  date: string
+  time: string
+} {
+  if (!value) return { date: '', time: '' }
+  const d = typeof value === 'string' ? new Date(value) : value
+  if (isNaN(d.getTime())) return { date: '', time: '' }
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hours = String(d.getHours()).padStart(2, '0')
+  const minutes = String(d.getMinutes()).padStart(2, '0')
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hours}:${minutes}`,
+  }
+}
+
+/**
+ * Combines date ('YYYY-MM-DD') and optional time ('HH:mm') into an ISO string.
+ * Returns null if date is not provided or invalid.
+ */
+export function combineDateTime(dateStr?: string | null, timeStr?: string | null): string | null {
+  if (!dateStr || !dateStr.trim()) return null
+  const cleanDate = dateStr.trim()
+  const cleanTime = timeStr?.trim() || '00:00'
+  const dateObj = new Date(`${cleanDate}T${cleanTime}`)
+  if (isNaN(dateObj.getTime())) return null
+  return dateObj.toISOString()
+}
+
+/**
+ * Validates offer opening date, time, and relationship with dispute date and today.
+ * Returns null if valid, or an error message string if invalid.
+ */
+export function validateOfferOpeningRules(
+  offerDateStr?: string | null,
+  offerTimeStr?: string | null,
+  disputeDateStr?: string | null,
+  now = new Date(),
+): string | null {
+  if (!offerDateStr || !offerDateStr.trim()) {
+    return 'A data de abertura das ofertas é obrigatória.'
+  }
+  if (!offerTimeStr || !offerTimeStr.trim()) {
+    return 'A hora de abertura das ofertas é obrigatória.'
+  }
+
+  const time = offerTimeStr.trim()
+  if (time < '08:00' || time > '18:00') {
+    return 'A hora de abertura das ofertas deve estar entre 08:00 e 18:00.'
+  }
+
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayDate = new Date(`${todayStr}T00:00:00`)
+  const offerDate = new Date(`${offerDateStr.trim()}T00:00:00`)
+
+  if (isNaN(offerDate.getTime())) {
+    return 'A data de abertura das ofertas é inválida.'
+  }
+
+  const diffDaysFromToday = Math.round(
+    (offerDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+  )
+  if (diffDaysFromToday < 5) {
+    return 'A data de abertura das ofertas deve ser pelo menos 5 dias após hoje.'
+  }
+
+  if (disputeDateStr && disputeDateStr.trim()) {
+    const disputeOnlyDate = disputeDateStr.includes('T')
+      ? disputeDateStr.split('T')[0]
+      : disputeDateStr.trim()
+    const disputeDate = new Date(`${disputeOnlyDate}T00:00:00`)
+    if (!isNaN(disputeDate.getTime())) {
+      const diffDaysBeforeDispute = Math.round(
+        (disputeDate.getTime() - offerDate.getTime()) / (1000 * 60 * 60 * 24),
+      )
+      if (diffDaysBeforeDispute < 3) {
+        return 'A data de abertura das ofertas deve ser pelo menos 3 dias antes da data da disputa.'
+      }
+    }
+  }
+
+  return null
 }

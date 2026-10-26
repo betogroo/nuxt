@@ -1,0 +1,53 @@
+import { z } from 'zod'
+import { isValidCpf, isValidRgSP, isValidCnpj } from '~/utils/formatters'
+
+/** RG obrigatório no formato SP com dígito verificador válido. */
+export const rgSpValidator = z
+  .string({ required_error: 'O RG é obrigatório.' })
+  .trim()
+  .min(1, 'O RG é obrigatório.')
+  .refine(isValidRgSP, {
+    message: 'O RG informado é inválido ou seu dígito verificador não confere.',
+  })
+
+/** RG opcional no formato SP (00000000-X) com dígito verificador válido. */
+export const optionalRgSp = z
+  .string()
+  .optional()
+  .refine((value) => !value || isValidRgSP(value), {
+    message: 'O RG informado é inválido ou seu dígito verificador não confere.',
+  })
+
+/** CPF opcional com dígitos verificadores válidos. */
+export const optionalCpf = z
+  .string()
+  .optional()
+  .refine((value) => !value || isValidCpf(value), {
+    message: 'O CPF informado é inválido.',
+  })
+
+/** CPF obrigatório com dígitos verificadores válidos. */
+export const cpfValidator = z
+  .string({ required_error: 'O CPF é obrigatório.' })
+  .trim()
+  .min(1, 'O CPF é obrigatório.')
+  .refine(isValidCpf, {
+    message: 'O CPF informado é inválido.',
+  })
+
+/** CNPJ obrigatório com dígitos verificadores válidos. */
+export const cnpjValidator = z
+  .string({ required_error: 'O CNPJ é obrigatório.' })
+  .trim()
+  .min(1, 'O CNPJ é obrigatório.')
+  .refine(isValidCnpj, {
+    message: 'O CNPJ informado é inválido.',
+  })
+
+/** CNPJ opcional com dígitos verificadores válidos. */
+export const optionalCnpj = z
+  .string()
+  .optional()
+  .refine((value) => !value || isValidCnpj(value), {
+    message: 'O CNPJ informado é inválido.',
+  })

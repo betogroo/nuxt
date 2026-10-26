@@ -1,71 +1,94 @@
 <script setup lang="ts">
+  import { useZodForm } from '~/composables/useZodForm'
+  import { registerSchema } from '~/schemas/forms/auth'
   definePageMeta({ layout: 'auth' })
-  const supabase = useSupabaseClient()
-  const user = useSupabaseUser()
-  const email = ref('')
-  const password = ref('')
+  const { user, signUp: register, getRedirectUrl } = useAuth()
   const loading = ref(false)
   const message = ref('')
+
+  const { errors, defineField, handleSubmit } = useZodForm(registerSchema, {
+    email: '',
+    password: '',
+  })
+  const [email, emailProps] = defineField('email')
+  const [password, passwordProps] = defineField('password')
   useHead({ title: 'Registrar' })
 
   // Redireciona se já estiver logado
   watchEffect(() => {
     if (user.value) {
-      navigateTo('/')
+      navigateTo(getRedirectUrl(), { replace: true })
     }
   })
 
-  const { logAction } = useLogger()
-
-  const signUp = async () => {
+  const signUp = handleSubmit(async (values) => {
     loading.value = true
     message.value = ''
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
-      options: {
-        // Endereço de callback após o usuário clicar no link de confirmação
-        emailRedirectTo: `${window.location.origin}/confirm`,
-      },
-    })
+    const requestUrl = useRequestURL()
+    const { data, error } = await register(
+      values.email,
+      values.password,
+      `${requestUrl.origin}/confirm`,
+    )
 
     if (error) {
       message.value = error.message
     } else if (data.session) {
-      // Ambiente local: confirmação de e-mail desligada, session existe → login automático
-      await logAction(
-        'REGISTER',
-        'Novo usuário registrado no sistema (login automático)',
-        data.session.user.id,
-      )
-      return navigateTo('/')
+      return navigateTo(getRedirectUrl(), { replace: true })
     } else {
-      // Produção: confirmação de e-mail ligada, usuário precisa clicar no link
       message.value = 'Cadastro bem-sucedido! Verifique seu e-mail para confirmar.'
     }
     loading.value = false
-  }
+  })
 </script>
 
 <template>
-  <v-container class="fill-height">
-    <v-row justify="center">
-      <v-col cols="12" md="5" sm="8">
-        <UiCard title="Registrar" transparent-header>
-          <v-alert v-if="message" class="mb-4" type="info">{{ message }}</v-alert>
+  <UiCard class="w-100" rounded="xl">
+    <template #header>
+      <UiIcon class="mr-2" color="primary" name="addUser" />
+      Criar sua conta
+    </template>
 
-          <UiInput v-model="email" label="E-mail" type="email" />
-          <UiInput v-model="password" label="Senha" type="password" />
+    <UiAlert v-if="message" class="mb-4" type="info">{{ message }}</UiAlert>
 
-          <UiButton block color="primary" :loading="loading" @click="signUp"> Registrar </UiButton>
-        </UiCard>
+    <UiInput
+      v-model="email"
+      v-bind="emailProps"
+      :error-messages="errors.email"
+      label="E-mail"
+      prepend-inner-icon="emailAlt"
+      required
+      type="email"
+    />
+    <UiInput
+      v-model="password"
+      v-bind="passwordProps"
+      :error-messages="errors.password"
+      label="Senha"
+      prepend-inner-icon="lock"
+      required
+      type="password"
+      @keyup.enter="signUp"
+    />
 
-        <p class="text-center mt-4">
-          Já tem uma conta?
-          <NuxtLink to="/login">Entrar</NuxtLink>
-        </p>
-      </v-col>
-    </v-row>
-  </v-container>
+    <UiButton
+      block
+      color="primary"
+      :loading="loading"
+      rounded="lg"
+      size="lg"
+      variant="solid"
+      @click="signUp"
+    >
+      Criar Conta
+    </UiButton>
+
+    <p class="text-center text-body-2 text-medium-emphasis mt-5 mb-0">
+      Já tem uma conta?
+      <NuxtLink class="text-primary font-weight-medium text-decoration-none" to="/login">
+        Entrar
+      </NuxtLink>
+    </p>
+  </UiCard>
 </template>

@@ -1,290 +1,477 @@
 <script setup lang="ts">
-  import type { Database } from '~/types/database.types'
+  import type { DemandRow } from '~/composables/useDemands'
+  import { useZodForm } from '~/composables/useZodForm'
+  import { demandFormSchema } from '~/schemas/forms/demand'
+  import { ROLES } from '~/constants/roles'
 
   definePageMeta({
-    // O @nuxtjs/supabase já protege todas as rotas globalmente por padrão.
+    icon: 'recordsList',
+    middleware: ['uge'],
+    navLabel: 'Demandas',
+    navSubtitle: 'Gerencie processos e demandas de compras',
+    navColor: 'primary',
+    navGroup: 'management',
+    navOrder: 10,
+    roles: ['admin', 'uge'],
+    showIn: ['drawer', 'home'],
   })
   useHead({ title: 'Demandas' })
 
-  const supabase = useSupabaseClient<Database>()
-  const user = useSupabaseUser()
   const { profile } = useProfile()
-  const { logAction } = useLogger()
+  const { canEditDemand, canDeleteDemand } = usePermissions()
+  const toast = useToast()
 
-  type DemandRow = Database['public']['Tables']['demands']['Row']
+  const { fetchDemands, createDemand, updateDemand, deleteDemand } = useDemands()
+  const route = useRoute()
+
+  const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
+  const statusFilter = ref<string | null>((route.query.filter as string) || null)
+  const searchQuery = ref('')
+
+  const isDeleteModalOpen = ref(false)
+  const demandToDelete = ref<DemandRow | null>(null)
+  const isDeleting = ref(false)
+
+  const openDeleteModal = (demand: DemandRow) => {
+    demandToDelete.value = demand
+    isDeleteModalOpen.value = true
+  }
+
+  const closeDeleteModal = () => {
+    if (isDeleting.value) return
+    isDeleteModalOpen.value = false
+    demandToDelete.value = null
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!demandToDelete.value) return
+    isDeleting.value = true
+    try {
+      await deleteDemand(demandToDelete.value.id)
+      toast.success(`Demanda "${demandToDelete.value.name}" excluída com sucesso!`)
+      isDeleteModalOpen.value = false
+      demandToDelete.value = null
+      await refresh()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao excluir demanda.'
+      toast.error(msg)
+    } finally {
+      isDeleting.value = false
+    }
+  }
 
   const {
     data: demands,
     pending,
     refresh,
-  } = useAsyncData('demands-list', async () => {
-    const { data, error } = await supabase
-      .from('demands')
-      .select('*, profiles(name)')
-      .order('created_at', { ascending: false })
+  } = useAsyncData(
+    'demands-list',
+    async () => {
+      const result = await fetchDemands(
+        currentPage.value,
+        itemsPerPage.value,
+        statusFilter.value,
+        searchQuery.value,
+      )
+      totalItems.value = result.count
+      return result.data
+    },
+    {
+      watch: [currentPage, statusFilter, searchQuery],
+    },
+  )
 
-    if (error) throw error
-    return data
+  watch([statusFilter, searchQuery], () => {
+    resetPage()
   })
 
-  const isModalOpen = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
-
-  const defaultDemand = {
-    id: '',
+  const { errors, defineField, resetForm, handleSubmit } = useZodForm(demandFormSchema, {
     name: '',
-    type: 'consumption' as const,
-    dispute_date: '',
-    offer_opening_date: null as string | null,
-  }
+    type: 'consumption',
+    internal_process_number: '',
+    process_number: '',
+    id_pca: '',
+    contract_number: '',
+    siafem_number: '',
+  })
 
-  const editingDemand = ref<Partial<DemandRow>>({ ...defaultDemand })
-  const offerOpeningDate = ref('')
-  const offerOpeningTime = ref('')
+  const [name, nameProps] = defineField('name')
+  const [type, typeProps] = defineField('type')
+  const [internalProcessNumber, internalProcessNumberProps] = defineField('internal_process_number')
+  const [processNumber, processNumberProps] = defineField('process_number')
+  const [idPca, idPcaProps] = defineField('id_pca')
+  const [contractNumber, contractNumberProps] = defineField('contract_number')
+  const [siafemNumber, siafemNumberProps] = defineField('siafem_number')
 
-  const openModal = (demand?: DemandRow) => {
-    if (demand) {
-      editingDemand.value = { ...demand }
-      if (editingDemand.value.offer_opening_date) {
-        const dt = editingDemand.value.offer_opening_date.slice(0, 16).split('T')
-        offerOpeningDate.value = dt[0] || ''
-        offerOpeningTime.value = dt[1] || ''
-      } else {
-        offerOpeningDate.value = ''
-        offerOpeningTime.value = ''
-      }
-      // Convert timestamptz/date to YYYY-MM-DD for date input
-      if (editingDemand.value.dispute_date) {
-        editingDemand.value.dispute_date = editingDemand.value.dispute_date.slice(0, 10)
-      }
+  const modal = useModal<{ id?: string }>({})
+
+  const originalOpen = modal.open.bind(modal)
+  modal.open = (item?: Partial<DemandRow>) => {
+    if (item) {
+      resetForm({
+        values: {
+          id: item.id,
+          name: item.name || '',
+          type: item.type || 'consumption',
+          internal_process_number: item.internal_process_number || '',
+          process_number: item.process_number || '',
+          id_pca: item.id_pca || '',
+          contract_number: item.contract_number ? String(item.contract_number) : '',
+          siafem_number: item.siafem_number || '',
+        },
+      })
+      originalOpen({ id: item.id })
     } else {
-      editingDemand.value = { ...defaultDemand }
-      offerOpeningDate.value = ''
-      offerOpeningTime.value = ''
+      resetForm()
+      originalOpen({})
     }
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const closeModal = () => {
-    isModalOpen.value = false
-    editingDemand.value = { ...defaultDemand }
-    offerOpeningDate.value = ''
-    offerOpeningTime.value = ''
   }
 
   const canEdit = (demand: DemandRow) => {
-    const currentUserId = user.value?.id || profile.value?.id
-    return profile.value?.role === 'admin' || demand.user_id === currentUserId
+    return canEditDemand(demand)
   }
 
-  const formatType = (type: string) => {
-    return type === 'consumption' ? 'Consumo' : 'Permanente'
+  const canDelete = (demand: DemandRow) => {
+    return canDeleteDemand(demand)
   }
 
-  const saveDemand = async () => {
-    isSaving.value = true
-    saveError.value = ''
-
+  const saveDemand = handleSubmit(async (values) => {
+    modal.startSaving()
+    modal.error.value = ''
     try {
-      if (!editingDemand.value.dispute_date) {
-        throw new Error('A data da disputa é obrigatória.')
+      const payload: {
+        name: string
+        type: 'consumption' | 'permanent'
+        internal_process_number?: string
+        process_number: string | null
+        id_pca: string | null
+        contract_number: string | null
+        siafem_number: string | null
+      } = {
+        name: values.name,
+        type: values.type,
+        process_number: values.process_number || null,
+        id_pca: values.id_pca || null,
+        contract_number: values.contract_number ? String(values.contract_number) : null,
+        siafem_number: values.siafem_number || null,
       }
 
-      const isEditing = !!editingDemand.value.id
-
-      // Formatar date-time-local string to ISO para o Supabase (timestamptz)
-      let offerOpening = null
-      if (offerOpeningDate.value || offerOpeningTime.value) {
-        if (!offerOpeningDate.value || !offerOpeningTime.value) {
-          throw new Error('Para a abertura de ofertas, informe tanto a data quanto a hora.')
-        }
-        offerOpening = new Date(`${offerOpeningDate.value}T${offerOpeningTime.value}`).toISOString()
+      if (profile.value?.role === ROLES.ADMIN && values.internal_process_number) {
+        payload.internal_process_number = values.internal_process_number.trim()
       }
 
-      const payload = {
-        name: editingDemand.value.name!,
-        type: editingDemand.value.type!,
-        dispute_date: editingDemand.value.dispute_date!,
-        offer_opening_date: offerOpening,
-        user_id: profile.value!.id,
-      }
-
-      if (isEditing) {
-        const { error } = await supabase
-          .from('demands')
-          .update(payload)
-          .eq('id', editingDemand.value.id!)
-
-        if (error) throw error
-
-        await logAction(
-          'UPDATE_DEMAND',
-          `Usuário atualizou a demanda: ${editingDemand.value.id}`,
-          user.value?.id,
-        )
+      if (values.id) {
+        await updateDemand(values.id, payload)
       } else {
-        const { data, error } = await supabase.from('demands').insert([payload]).select().single()
-
-        if (error) throw error
-
-        await logAction('CREATE_DEMAND', `Usuário criou nova demanda: ${data.id}`, user.value?.id)
+        await createDemand({ ...payload, user_id: profile.value!.id })
       }
 
       await refresh()
-      closeModal()
+      modal.close()
     } catch (err: unknown) {
       if (err instanceof Error) {
-        saveError.value = err.message
+        modal.error.value = err.message
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        saveError.value = String((err as Record<string, unknown>).message)
+        modal.error.value = String((err as Record<string, unknown>).message)
       } else {
-        saveError.value = 'Ocorreu um erro desconhecido.'
+        modal.error.value = 'Ocorreu um erro desconhecido.'
       }
     } finally {
-      isSaving.value = false
+      modal.stopSaving()
     }
-  }
+  })
+
+  const statusOptions = getDemandStatusFilterOptions()
 </script>
 
 <template>
   <div>
-    <PageHeader subtitle="Gerencie as demandas e processos" title="Demandas" />
+    <UiPageHeader subtitle="Gerencie as demandas e processos" title="Demandas"> </UiPageHeader>
 
-    <v-row>
-      <v-col cols="12">
-        <UiCard>
-          <template #header>
-            <span class="text-subtitle-1 font-weight-bold">Lista de Demandas</span>
-            <v-spacer />
-            <UiButton
-              class="mr-2"
-              color="secondary"
-              icon="mdi-refresh"
+    <UiCard>
+      <template #header>
+        <UiIcon class="mr-2" color="primary" name="recordsList" />
+        Lista de Demandas
+        <UiChip v-if="totalItems > 0" class="ml-2" label size="xs" variant="soft">
+          {{ totalItems }}
+        </UiChip>
+        <UiSpacer />
+        <!-- Filtros inline -->
+        <div class="d-flex gap-2 align-center">
+          <UiInput
+            v-model="searchQuery"
+            clearable
+            hide-details
+            label="Buscar..."
+            prepend-inner-icon="search"
+            rounded="lg"
+            size="sm"
+            style="min-width: 200px; max-width: 260px"
+            variant="outline"
+          />
+          <UiSelect
+            v-model="statusFilter"
+            clearable
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="statusOptions"
+            label="Status"
+            rounded="lg"
+            size="sm"
+            style="min-width: 180px; max-width: 220px"
+            variant="outline"
+          />
+          <UiDivider class="mx-2" vertical />
+          <div class="d-flex align-center gap-3">
+            <UiActionButton
+              action="refresh"
               :loading="pending"
-              size="small"
-              variant="tonal"
+              tooltip="Atualizar lista"
+              variant="soft"
               @click="refresh"
             />
-            <UiButton color="primary" prepend-icon="mdi-plus" @click="openModal()">
+            <UiButton color="primary" prepend-icon="add" @click="modal.open()">
               Nova Demanda
             </UiButton>
-          </template>
+          </div>
+        </div>
+      </template>
 
-          <UiTable
-            :headers="[
-              { text: 'Nome', value: 'name' },
-              { text: 'Tipo', value: 'type' },
-              { text: 'Data da Disputa', value: 'dispute_date' },
-              { text: 'Criado por', value: 'creator' },
-              { text: 'Ações', value: 'actions', align: 'right' },
-            ]"
-            :items="demands || []"
+      <UiTable
+        :headers="[
+          { text: 'Nº Processo', value: 'internal_process_number' },
+          { text: 'Nome', value: 'name' },
+          { text: 'Tipo', value: 'type' },
+          { text: 'Status', value: 'status' },
+          { text: 'Criado por', value: 'creator' },
+          { text: 'Ações', value: 'actions', align: 'right' },
+        ]"
+        :items="demands || []"
+        :loading="pending"
+      >
+        <template v-if="!demands?.length && !pending" #empty>
+          Nenhuma demanda encontrada.
+        </template>
+        <template #item-internal_process_number="{ item }">
+          <div class="d-flex flex-column" style="line-height: 1.25">
+            <span v-if="item.process_number" class="font-weight-bold text-primary">
+              {{ item.process_number }}
+            </span>
+            <span v-else class="text-caption text-medium-emphasis font-italic">Sem nº oficial</span>
+            <span class="text-caption text-medium-emphasis">
+              Interno: {{ item.internal_process_number || '-' }}
+            </span>
+          </div>
+        </template>
+        <template #item-name="{ item }">
+          <NuxtLink
+            class="text-decoration-none text-primary font-weight-medium"
+            :to="`/demands/${item.id}`"
           >
-            <template v-if="!demands?.length && !pending" #empty>
-              Nenhuma demanda encontrada.
-            </template>
-            <template #item-name="{ item }">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/demands/${item.id}`"
-              >
-                {{ item.name }}
-              </NuxtLink>
-            </template>
-            <template #item-type="{ item }">
-              <v-chip
-                :color="item.type === 'consumption' ? 'info' : 'warning'"
-                size="small"
-                variant="flat"
-              >
-                {{ formatType(item.type) }}
-              </v-chip>
-            </template>
-            <template #item-dispute_date="{ item }">
-              {{
-                item.dispute_date
-                  ? new Date(item.dispute_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
-                  : '-'
-              }}
-            </template>
-            <template #item-creator="{ item }">
-              <span class="text-caption text-grey">
-                {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
-              </span>
-            </template>
-            <template #item-actions="{ item }">
-              <UiButton
-                color="primary"
-                icon="mdi-arrow-right"
-                size="small"
-                :to="`/demands/${item.id}`"
-                variant="text"
-              />
-              <UiButton
-                v-if="canEdit(item)"
-                color="grey"
-                icon="mdi-pencil"
-                size="small"
-                variant="text"
-                @click="openModal(item)"
-              />
-            </template>
-          </UiTable>
-        </UiCard>
-      </v-col>
-    </v-row>
+            {{ item.name }}
+          </NuxtLink>
+        </template>
+        <template #item-type="{ item }">
+          <UiChip
+            :color="item.type === 'consumption' ? 'info' : 'warning'"
+            label
+            size="sm"
+            variant="soft"
+          >
+            {{ formatDemandType(item.type) }}
+          </UiChip>
+        </template>
+        <template #item-status="{ item }">
+          <div class="d-flex align-center gap-1 flex-wrap">
+            <UiChip :color="getDemandStatusColor(item.status)" label size="sm" variant="soft">
+              {{ formatDemandStatus(item.status) }}
+            </UiChip>
+            <UiChip
+              v-if="item.is_return_requested"
+              color="warning"
+              label
+              size="sm"
+              variant="outline"
+            >
+              <UiIcon name="back" size="12" start />
+              Retorno
+            </UiChip>
+          </div>
+        </template>
+        <template #item-creator="{ item }">
+          <span class="text-body-2 text-medium-emphasis">
+            {{ item.profiles?.name || `Usuário (${item.user_id.split('-')[0]})` }}
+          </span>
+        </template>
+        <template #item-actions="{ item }">
+          <div class="d-flex justify-end gap-2">
+            <UiActionButton
+              action="view"
+              :to="`/demands/${item.id}`"
+              tooltip="Ver detalhes da demanda"
+            />
+            <UiActionButton
+              v-if="canEdit(item)"
+              action="edit"
+              color="default"
+              tooltip="Editar demanda"
+              @click="modal.open(item)"
+            />
+            <UiActionButton
+              v-if="canDelete(item)"
+              action="delete"
+              tooltip="Excluir demanda"
+              @click="openDeleteModal(item)"
+            />
+          </div>
+        </template>
+      </UiTable>
+
+      <!-- Paginação -->
+      <div v-if="totalPages > 1" class="d-flex justify-center py-4">
+        <UiPagination
+          v-model="currentPage"
+          :length="totalPages"
+          rounded="lg"
+          size="md"
+          :total-visible="7"
+        />
+      </div>
+    </UiCard>
 
     <!-- Modal Form -->
-    <v-dialog v-model="isModalOpen" max-width="500px">
-      <UiCard :title="editingDemand.id ? 'Editar Demanda' : 'Nova Demanda'" transparent-header>
-        <v-alert v-if="saveError" class="mb-4" density="compact" type="error" variant="tonal">
-          {{ saveError }}
-        </v-alert>
+    <UiModal
+      v-model="modal.isOpen.value"
+      max-width="520px"
+      :title="modal.payload.value?.id ? 'Editar Demanda' : 'Nova Demanda'"
+    >
+      <UiAlert v-if="modal.error.value" class="mb-4" size="sm" type="error" variant="soft">
+        {{ modal.error.value }}
+      </UiAlert>
 
-        <UiInput v-model="editingDemand.name" label="Nome da Demanda" />
+      <UiInput
+        v-model="name"
+        v-bind="nameProps"
+        :error-messages="errors.name"
+        label="Nome da Demanda *"
+        required
+      />
 
-        <UiSelect
-          v-model="editingDemand.type"
-          item-title="title"
-          item-value="value"
-          :items="[
-            { title: 'Consumo', value: 'consumption' },
-            { title: 'Permanente', value: 'permanent' },
-          ]"
-          label="Tipo"
-        />
+      <UiInput
+        v-if="profile?.role === ROLES.ADMIN"
+        v-model="internalProcessNumber"
+        v-bind="internalProcessNumberProps"
+        :error-messages="errors.internal_process_number"
+        hint="Exclusivo Administrador. Formato: AAAA-XXXX (ex: 2026-0001)"
+        label="Nº do Processo Interno"
+        placeholder="Ex: 2026-0001"
+      />
 
-        <UiInput
-          v-model="editingDemand.dispute_date"
-          clearable
-          label="Data da Disputa *"
-          type="date"
-          @update:model-value="
-            () => {
-              if (isModalOpen && editingDemand.id) {
-                offerOpeningDate = ''
-                offerOpeningTime = ''
-              }
-            }
-          "
-        />
+      <UiSelect
+        v-model="type"
+        v-bind="typeProps"
+        :error-messages="errors.type"
+        item-title="title"
+        item-value="value"
+        :items="[
+          { title: 'Consumo', value: 'consumption' },
+          { title: 'Permanente', value: 'permanent' },
+        ]"
+        label="Tipo *"
+        required
+      />
 
-        <v-row class="mt-2">
-          <v-col class="py-0" cols="12" sm="6">
-            <UiInput v-model="offerOpeningDate" clearable label="Data de Abertura" type="date" />
-          </v-col>
-          <v-col class="py-0" cols="12" sm="6">
-            <UiInput v-model="offerOpeningTime" clearable label="Hora de Abertura" type="time" />
-          </v-col>
-        </v-row>
+      <UiInput
+        v-model="processNumber"
+        v-bind="processNumberProps"
+        :error-messages="errors.process_number"
+        hint="Opcional. Padrão: XXX.XXXXXXXX/YYYY-ZZ"
+        label="Nº do Processo (Oficial)"
+        placeholder="Ex: 058.00100793/2026-21"
+      />
 
-        <template #actions>
-          <UiButton :disabled="isSaving" variant="text" @click="closeModal">Cancelar</UiButton>
-          <UiButton color="primary" :loading="isSaving" @click="saveDemand"> Salvar </UiButton>
-        </template>
-      </UiCard>
-    </v-dialog>
+      <UiInput
+        v-model="idPca"
+        v-bind="idPcaProps"
+        :error-messages="errors.id_pca"
+        hint="Opcional. ID do Plano de Contratações Anual"
+        label="ID PCA"
+        placeholder="Ex: 46377800000127-0-000132/2026"
+      />
+
+      <UiInput
+        v-model="contractNumber"
+        v-bind="contractNumberProps"
+        :error-messages="errors.contract_number"
+        hint="Opcional. Número da contratação."
+        label="Nº da Contratação"
+        placeholder="Apenas números"
+        type="number"
+      />
+
+      <UiInput
+        v-model="siafemNumber"
+        v-bind="siafemNumberProps"
+        :error-messages="errors.siafem_number"
+        hint="Opcional. Número SIAFEM."
+        label="Nº SIAFEM"
+        placeholder="Ex: 2026NE000123 ou número SIAFEM"
+      />
+
+      <template #actions>
+        <UiButton :disabled="modal.isSaving.value" variant="ghost" @click="modal.close">
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :loading="modal.isSaving.value"
+          variant="solid"
+          @click="saveDemand"
+        >
+          Salvar
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal de Confirmação de Exclusão (Safe Delete) -->
+    <UiModal v-model="isDeleteModalOpen" max-width="480px" title="Excluir Demanda">
+      <div v-if="demandToDelete" class="pa-1">
+        <UiAlert class="mb-4" color="warning" size="sm" variant="soft">
+          Esta demanda será movida para a lixeira (safe delete) e não aparecerá mais nas listagens
+          ativas.
+        </UiAlert>
+
+        <p class="text-body-2 mb-2">
+          Tem certeza de que deseja excluir a demanda <strong>{{ demandToDelete.name }}</strong
+          >?
+        </p>
+
+        <div v-if="demandToDelete.process_number" class="text-caption text-medium-emphasis mb-1">
+          <strong>Processo Oficial:</strong> {{ demandToDelete.process_number }}
+        </div>
+        <div
+          v-if="demandToDelete.internal_process_number"
+          class="text-caption text-medium-emphasis mb-1"
+        >
+          <strong>Processo Interno:</strong> {{ demandToDelete.internal_process_number }}
+        </div>
+      </div>
+
+      <template #actions>
+        <UiButton :disabled="isDeleting" variant="ghost" @click="closeDeleteModal">
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="error"
+          :loading="isDeleting"
+          prepend-icon="delete"
+          variant="solid"
+          @click="handleConfirmDelete"
+        >
+          Sim, Excluir
+        </UiButton>
+      </template>
+    </UiModal>
   </div>
 </template>
