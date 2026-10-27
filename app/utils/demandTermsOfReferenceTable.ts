@@ -20,6 +20,8 @@ export interface DemandTermsItem {
     name?: string | null
     cat_mat?: number | null
     cat_bec?: number | null
+    product_class_id?: string | null
+    product_classes?: { id: string; name: string } | null
     product_characteristics?: DemandTermsCharacteristic[] | null
   } | null
   measurement_units?: { name: string } | null
@@ -42,19 +44,23 @@ function escapeHtml(str: string | null | undefined): string {
     .replace(/'/g, '&#039;')
 }
 
+/**
+ * Retorna exclusivamente a unidade de medida padrão (não alternativa)
+ */
 export function formatSupplyUnit(item: DemandTermsItem): string {
-  const unit = item.unit_name_snapshot || item.measurement_units?.name || ''
-  const alias = item.alias_name_snapshot || item.measurement_unit_aliases?.name || ''
-  const aliasCode = item.alias_code_snapshot ?? item.measurement_unit_aliases?.code ?? null
+  return item.unit_name_snapshot || item.measurement_units?.name || '-'
+}
 
-  if (unit && alias) {
-    const aliasFormatted = aliasCode ? `${aliasCode} - ${alias}` : alias
-    return `${unit} (${aliasFormatted})`
+/**
+ * Retorna a classe do produto (id e nome)
+ */
+export function formatProductClass(item: DemandTermsItem): string {
+  const pc = item.product?.product_classes
+  if (!pc) return '-'
+  if (pc.id && pc.name) {
+    return `${pc.id} - ${pc.name}`
   }
-  if (alias) {
-    return aliasCode ? `${aliasCode} - ${alias}` : alias
-  }
-  return unit || '-'
+  return pc.name || pc.id || '-'
 }
 
 export function formatItemCodes(
@@ -124,6 +130,7 @@ export function generateTermsOfReferenceTableHtml(
 
       const productName =
         item.product_name_snapshot || item.product?.name || 'Produto não identificado'
+      const productClass = formatProductClass(item)
       const codeHtml = formatItemCodes(item, codeDisplay)
       const supplyUnit = formatSupplyUnit(item)
       const quantity = item.quantity || 0
@@ -160,8 +167,11 @@ export function generateTermsOfReferenceTableHtml(
 
       return `
       <tr style="${rowBg}">
-        <td style="${tdBaseStyle} text-align: center; font-weight: bold; vertical-align: top; width: 38px;">
+        <td style="${tdBaseStyle} text-align: center; font-weight: bold; vertical-align: top; width: 35px;">
           ${itemNumber}
+        </td>
+        <td style="${tdBaseStyle} text-align: left; vertical-align: top; width: 85px; font-size: 9pt;">
+          ${escapeHtml(productClass)}
         </td>
         <td style="${tdBaseStyle} text-align: center; vertical-align: top; width: 75px; font-size: 9pt;">
           ${codeHtml}
@@ -170,10 +180,10 @@ export function generateTermsOfReferenceTableHtml(
           <div style="font-weight: 600; color: #0f172a;">${escapeHtml(productName)}</div>
           ${characteristicsHtml}
         </td>
-        <td style="${tdBaseStyle} text-align: center; vertical-align: top; width: 90px; font-size: 9.5pt;">
+        <td style="${tdBaseStyle} text-align: center; vertical-align: top; width: 75px; font-size: 9.5pt;">
           ${escapeHtml(supplyUnit)}
         </td>
-        <td style="${tdBaseStyle} text-align: center; vertical-align: top; width: 50px;">
+        <td style="${tdBaseStyle} text-align: center; vertical-align: top; width: 45px;">
           ${quantity}
         </td>
         ${pricesCells}
@@ -187,7 +197,7 @@ export function generateTermsOfReferenceTableHtml(
       <th style="${thStyle} text-align: right; width: 105px;">Valor Total (R$)</th>`
     : ''
 
-  const baseColSpan = 5
+  const baseColSpan = 6
   const footerHtml = includePrices
     ? `
     <tfoot>
@@ -205,11 +215,12 @@ export function generateTermsOfReferenceTableHtml(
   return `<table style="${tableStyle}">
   <thead>
     <tr>
-      <th style="${thStyle} text-align: center; width: 38px;">Item</th>
+      <th style="${thStyle} text-align: center; width: 35px;">Item</th>
+      <th style="${thStyle} text-align: left; width: 85px;">Classe</th>
       <th style="${thStyle} text-align: center; width: 75px;">Código</th>
       <th style="${thStyle} text-align: left;">Descrição do Objeto / Especificação Técnica</th>
-      <th style="${thStyle} text-align: center; width: 90px;">Unidade</th>
-      <th style="${thStyle} text-align: center; width: 50px;">Qtd.</th>
+      <th style="${thStyle} text-align: center; width: 75px;">Unidade</th>
+      <th style="${thStyle} text-align: center; width: 45px;">Qtd.</th>
       ${priceHeaderCols}
     </tr>
   </thead>
@@ -231,6 +242,7 @@ export function generateTermsOfReferenceTableText(
 
   const headers = [
     'Item',
+    'Classe',
     'Código',
     'Descrição do Objeto / Especificação Técnica',
     'Unidade',
@@ -247,6 +259,7 @@ export function generateTermsOfReferenceTableText(
     const itemNumber = index + 1
     const productName =
       item.product_name_snapshot || item.product?.name || 'Produto não identificado'
+    const productClass = formatProductClass(item)
     const codeText = formatItemCodesPlainText(item, codeDisplay)
     const supplyUnit = formatSupplyUnit(item)
     const quantity = item.quantity || 0
@@ -266,7 +279,7 @@ export function generateTermsOfReferenceTableText(
       }
     }
 
-    const row = [String(itemNumber), codeText, desc, supplyUnit, String(quantity)]
+    const row = [String(itemNumber), productClass, codeText, desc, supplyUnit, String(quantity)]
     if (includePrices) {
       row.push(formatCurrency(unitPrice), formatCurrency(subtotal))
     }
@@ -274,7 +287,7 @@ export function generateTermsOfReferenceTableText(
   })
 
   if (includePrices) {
-    lines.push(`\t\t\t\tTotal Estimado:\t\t${formatCurrency(totalAmount)}`)
+    lines.push(`\t\t\t\t\tTotal Estimado:\t\t${formatCurrency(totalAmount)}`)
   }
 
   return lines.join('\n')

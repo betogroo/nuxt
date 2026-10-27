@@ -3,6 +3,7 @@ import {
   generateTermsOfReferenceTableHtml,
   generateTermsOfReferenceTableText,
   formatSupplyUnit,
+  formatProductClass,
   formatItemCodes,
   formatItemCodesPlainText,
   type DemandTermsItem,
@@ -23,6 +24,10 @@ describe('demandTermsOfReferenceTable utility', () => {
         name: 'Caneta Esferográfica Azul',
         cat_mat: 123456,
         cat_bec: 78910,
+        product_classes: {
+          id: '7520',
+          name: 'Artigos para Escritório',
+        },
         product_characteristics: [
           { value: 'Média 1.0mm', key: { name: 'Ponta' } },
           { value: 'Azul', key: { name: 'Cor' } },
@@ -42,28 +47,66 @@ describe('demandTermsOfReferenceTable utility', () => {
         name: 'Papel A4 Sulfite 75g',
         cat_mat: 654321,
         cat_bec: null,
+        product_classes: null,
         product_characteristics: [],
       },
     },
   ]
 
   describe('formatSupplyUnit', () => {
-    it('formats unit and alias with code correctly', () => {
+    it('returns only the standard unit and ignores alias/alternative unit', () => {
       const formatted = formatSupplyUnit(sampleItems[0])
-      expect(formatted).toBe('Caixa (38 - Caixa 100 UN)')
+      expect(formatted).toBe('Caixa')
+      expect(formatted).not.toContain('Caixa 100 UN')
+      expect(formatted).not.toContain('38')
     })
 
-    it('formats unit without alias correctly', () => {
+    it('formats unit correctly when no alias exists', () => {
       const formatted = formatSupplyUnit(sampleItems[1])
       expect(formatted).toBe('Resma')
     })
 
-    it('handles fallback when unit and alias are missing', () => {
+    it('falls back to measurement_units relation if unit_name_snapshot is empty', () => {
+      const formatted = formatSupplyUnit({
+        id: 'item-unit-rel',
+        quantity: 1,
+        measurement_units: { name: 'Unidade' },
+      })
+      expect(formatted).toBe('Unidade')
+    })
+
+    it('handles fallback when unit is missing', () => {
       const formatted = formatSupplyUnit({
         id: 'item-empty',
         quantity: 1,
       })
       expect(formatted).toBe('-')
+    })
+  })
+
+  describe('formatProductClass', () => {
+    it('formats class with id and name', () => {
+      expect(formatProductClass(sampleItems[0])).toBe('7520 - Artigos para Escritório')
+    })
+
+    it('returns "-" when product has no class', () => {
+      expect(formatProductClass(sampleItems[1])).toBe('-')
+    })
+
+    it('handles partial class info gracefully', () => {
+      const partial1: DemandTermsItem = {
+        id: 'partial-1',
+        quantity: 1,
+        product: { product_classes: { id: '', name: 'Sem Código' } },
+      }
+      expect(formatProductClass(partial1)).toBe('Sem Código')
+
+      const partial2: DemandTermsItem = {
+        id: 'partial-2',
+        quantity: 1,
+        product: { product_classes: { id: '9999', name: '' } },
+      }
+      expect(formatProductClass(partial2)).toBe('9999')
     })
   })
 
@@ -90,19 +133,27 @@ describe('demandTermsOfReferenceTable utility', () => {
   })
 
   describe('generateTermsOfReferenceTableHtml', () => {
-    it('generates HTML table with dark header, zebra rows, and prices', () => {
+    it('generates HTML table with class column, standard unit, dark header, zebra rows, and prices', () => {
       const html = generateTermsOfReferenceTableHtml(sampleItems)
 
       expect(html).toContain('<table')
       expect(html).toContain('background-color: #1e3a5f')
       expect(html).toContain('color: #ffffff')
       expect(html).toContain('Item')
+      expect(html).toContain('Classe')
       expect(html).toContain('Código')
       expect(html).toContain('Descrição do Objeto / Especificação Técnica')
       expect(html).toContain('Unidade')
       expect(html).toContain('Qtd.')
       expect(html).toContain('Valor Unit. (R$)')
       expect(html).toContain('Valor Total (R$)')
+
+      // Class rendered
+      expect(html).toContain('7520 - Artigos para Escritório')
+
+      // Standard unit only
+      expect(html).toContain('Caixa')
+      expect(html).not.toContain('Caixa (38 - Caixa 100 UN)')
 
       // First row (white bg)
       expect(html).toContain('background-color: #ffffff')
@@ -114,7 +165,8 @@ describe('demandTermsOfReferenceTable utility', () => {
       expect(html).toContain('background-color: #f8fafc')
       expect(html).toContain('Papel A4 Sulfite 75g')
 
-      // Total calculation: (10 * 25.50 = 255.00) + (50 * 30.00 = 1500.00) = 1755.00
+      // Footer has colspan="6" for base columns
+      expect(html).toContain('colspan="6"')
       expect(html).toContain('Valor Total Estimado da Contratação:')
       expect(html).toContain('1.755,00')
     })
@@ -138,7 +190,7 @@ describe('demandTermsOfReferenceTable utility', () => {
       expect(html).not.toContain('<tfoot>')
     })
 
-    it('escapes dangerous HTML characters in product names and characteristics', () => {
+    it('escapes dangerous HTML characters in product names, classes, and characteristics', () => {
       const xssItems: DemandTermsItem[] = [
         {
           id: 'xss-1',
@@ -146,6 +198,7 @@ describe('demandTermsOfReferenceTable utility', () => {
           quantity: 1,
           product: {
             name: '<script>alert("hack")</script>',
+            product_classes: { id: '<tag>', name: 'Classe & "Perigosa"' },
             product_characteristics: [{ value: 'Value & <tag>', key: { name: 'Key & "Test"' } }],
           },
         },
@@ -153,19 +206,29 @@ describe('demandTermsOfReferenceTable utility', () => {
       const html = generateTermsOfReferenceTableHtml(xssItems)
       expect(html).not.toContain('<script>')
       expect(html).toContain('&lt;script&gt;alert(&quot;hack&quot;)&lt;/script&gt;')
+      expect(html).toContain('&lt;tag&gt; - Classe &amp; &quot;Perigosa&quot;')
       expect(html).toContain('Key &amp; &quot;Test&quot;')
       expect(html).toContain('Value &amp; &lt;tag&gt;')
     })
   })
 
   describe('generateTermsOfReferenceTableText', () => {
-    it('generates tab-separated text representation', () => {
+    it('generates tab-separated text representation including class and standard unit', () => {
       const text = generateTermsOfReferenceTableText(sampleItems)
       expect(text).toContain(
-        'Item\tCódigo\tDescrição do Objeto / Especificação Técnica\tUnidade\tQtd.\tValor Unit. (R$)\tValor Total (R$)',
+        [
+          'Item',
+          'Classe',
+          'Código',
+          'Descrição do Objeto / Especificação Técnica',
+          'Unidade',
+          'Qtd.',
+          'Valor Unit. (R$)',
+          'Valor Total (R$)',
+        ].join('\t'),
       )
       expect(text).toContain(
-        '1\tCATMAT: 123456 / BEC: 78910\tCaneta Esferográfica Azul (Ponta: Média 1.0mm; Cor: Azul)\tCaixa (38 - Caixa 100 UN)\t10\t',
+        '1\t7520 - Artigos para Escritório\tCATMAT: 123456 / BEC: 78910\tCaneta Esferográfica Azul (Ponta: Média 1.0mm; Cor: Azul)\tCaixa\t10\t',
       )
       expect(text).toContain('Total Estimado:')
     })

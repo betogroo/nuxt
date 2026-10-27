@@ -62,6 +62,7 @@ describe('useDemandProducts', () => {
     await fetchDemandProducts('demand-1')
 
     expect(selectMock).toHaveBeenCalledWith(expect.stringContaining('product_characteristics'))
+    expect(selectMock).toHaveBeenCalledWith(expect.stringContaining('product_classes(id, name)'))
     expect(item?.product?.product_characteristics).toHaveLength(1)
     expect(item?.product?.product_characteristics?.[0]?.value).toBe('1.0mm')
   })

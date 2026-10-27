@@ -17,6 +17,7 @@ export type DemandProductCharacteristic = {
 export type DemandProductRow = Database['public']['Tables']['demand_products']['Row'] & {
   product?:
     | (Database['public']['Tables']['products']['Row'] & {
+        product_classes?: Database['public']['Tables']['product_classes']['Row'] | null
         expense_natures?: Database['public']['Tables']['expense_natures']['Row'] | null
         product_characteristics?: DemandProductCharacteristic[]
       })
@@ -42,7 +43,7 @@ export const useDemandProducts = () => {
     const { data, error } = await supabase
       .from('demand_products')
       .select(
-        '*, product:products(*, expense_natures(id, name), product_characteristics(id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active))), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
+        '*, product:products(*, product_classes(id, name), expense_natures(id, name), product_characteristics(id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active))), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
       )
       .eq('demand_id', demandId)
       .order('sort_order', { ascending: true })

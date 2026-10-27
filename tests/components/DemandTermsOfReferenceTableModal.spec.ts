@@ -102,6 +102,7 @@ describe('DemandTermsOfReferenceTableModal', () => {
         name: 'Caneta Esferográfica Azul',
         cat_mat: 123456,
         cat_bec: 78910,
+        product_classes: { id: '7520', name: 'Material de Escritório' },
         product_characteristics: [{ value: 'Média 1.0mm', key: { name: 'Ponta' } }],
       },
     },
@@ -120,8 +121,12 @@ describe('DemandTermsOfReferenceTableModal', () => {
 
     expect(wrapper.find('.modal-title').text()).toContain('Tabela para Termo de Referência')
     expect(wrapper.text()).toContain('PRÉ-VISUALIZAÇÃO DA TABELA (1 item)')
+    expect(wrapper.html()).toContain('Classe')
+    expect(wrapper.html()).toContain('7520 - Material de Escritório')
     expect(wrapper.html()).toContain('Caneta Esferográfica Azul')
     expect(wrapper.html()).toContain('Ponta: </strong>Média 1.0mm')
+    expect(wrapper.html()).toContain('Caixa')
+    expect(wrapper.html()).not.toContain('Caixa 100 UN')
   })
 
   it('displays warning alert when items list is empty', () => {
