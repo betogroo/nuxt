@@ -8,6 +8,9 @@ describe('iirgdStatusChangeFormSchema', () => {
     expect(
       iirgdStatusChangeFormSchema.safeParse({ status: 'issued', observation: '' }).success,
     ).toBe(true)
+    expect(
+      iirgdStatusChangeFormSchema.safeParse({ status: 'unknown_error', observation: '' }).success,
+    ).toBe(true)
   })
 
   it('exige observação para other_pending', () => {

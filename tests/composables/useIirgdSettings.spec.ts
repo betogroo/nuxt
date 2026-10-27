@@ -169,6 +169,9 @@ describe('useIirgdSettings', () => {
       expect(computePriority({ status: 'protocol_cancelled', created_at: oldDate }, settings)).toBe(
         'none',
       )
+      expect(computePriority({ status: 'unknown_error', created_at: oldDate }, settings)).toBe(
+        'none',
+      )
     })
 
     it('returns "delay" when elapsed days >= delay_days', () => {

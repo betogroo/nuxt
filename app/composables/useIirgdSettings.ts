@@ -71,6 +71,7 @@ export const useIirgdSettings = () => {
       'awaiting_collection',
       'confrontation_failed',
       'protocol_cancelled',
+      'unknown_error',
     ]
     if (ignoreStatuses.includes(demand.status)) return 'none'
 

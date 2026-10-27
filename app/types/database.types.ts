@@ -1015,6 +1015,7 @@ export type Database = {
         | 'protocol_cancelled'
         | 'awaiting_collection'
         | 'confrontation_failed'
+        | 'unknown_error'
       user_role: 'user' | 'admin' | 'iirgd_user' | 'uge' | 'iirgd_manager'
     }
     CompositeTypes: {
@@ -1174,6 +1175,7 @@ export const Constants = {
         'protocol_cancelled',
         'awaiting_collection',
         'confrontation_failed',
+        'unknown_error',
       ],
       user_role: ['user', 'admin', 'iirgd_user', 'uge', 'iirgd_manager'],
     },

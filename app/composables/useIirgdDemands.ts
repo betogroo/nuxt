@@ -68,7 +68,12 @@ export const useIirgdDemands = () => {
             counts.issued++
           }
         } else if (
-          ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'].includes(d.status)
+          [
+            'protocol_cancelled',
+            'awaiting_collection',
+            'confrontation_failed',
+            'unknown_error',
+          ].includes(d.status)
         ) {
           counts.errors++
         }
@@ -105,7 +110,12 @@ export const useIirgdDemands = () => {
         released: ['released'],
         issued: ['issued'],
         'issued-antecedents': ['issued'],
-        errors: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed'],
+        errors: [
+          'protocol_cancelled',
+          'awaiting_collection',
+          'confrontation_failed',
+          'unknown_error',
+        ],
       }
       if (statusMap[statusGroup]) {
         query = query.in('status', statusMap[statusGroup])

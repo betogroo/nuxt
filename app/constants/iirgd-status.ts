@@ -10,6 +10,7 @@ export type IirgdDemandStatus =
   | 'protocol_cancelled'
   | 'awaiting_collection'
   | 'confrontation_failed'
+  | 'unknown_error'
 
 export const IIRGD_STATUS_LABELS: Record<IirgdDemandStatus, string> = {
   new: 'Novo',
@@ -23,6 +24,7 @@ export const IIRGD_STATUS_LABELS: Record<IirgdDemandStatus, string> = {
   protocol_cancelled: 'Protocolo Cancelado',
   awaiting_collection: 'Aguardando Nova Coleta',
   confrontation_failed: 'Confronto Fracassado',
+  unknown_error: 'Erro Desconhecido',
 }
 
 export const IIRGD_STATUS_COLORS: Record<IirgdDemandStatus, string> = {
@@ -42,6 +44,7 @@ export const IIRGD_STATUS_COLORS: Record<IirgdDemandStatus, string> = {
   protocol_cancelled: 'error',
   awaiting_collection: 'error',
   confrontation_failed: 'error',
+  unknown_error: 'error',
 }
 
 export const IIRGD_STATUS_GROUPS = [
@@ -59,6 +62,7 @@ export const IIRGD_STATUS_GROUPS = [
       'protocol_cancelled',
       'awaiting_collection',
       'confrontation_failed',
+      'unknown_error',
     ] as IirgdDemandStatus[],
   },
 ]

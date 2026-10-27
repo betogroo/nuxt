@@ -78,6 +78,11 @@ describe('useIirgdDemands', () => {
           document_type_id: '1',
           iirgd_document_types: { name: '1ª Via RG' },
         },
+        {
+          status: 'unknown_error',
+          document_type_id: '1',
+          iirgd_document_types: { name: '1ª Via RG' },
+        },
       ],
       error: null,
     })
@@ -91,7 +96,7 @@ describe('useIirgdDemands', () => {
       released: 1,
       issued: 1,
       issuedAntecedents: 2,
-      errors: 1,
+      errors: 2,
     })
   })
 
@@ -131,6 +136,18 @@ describe('useIirgdDemands', () => {
     const result = await fetchDemands({ statusGroup: 'issued-antecedents' })
 
     expect(result).toEqual({ data: [], count: 0 })
+  })
+
+  it('fetchDemands should filter error statuses including unknown_error when statusGroup is errors', async () => {
+    const { fetchDemands } = useIirgdDemands()
+    await fetchDemands({ statusGroup: 'errors' })
+
+    expect(supabaseFromMock.in).toHaveBeenCalledWith('status', [
+      'protocol_cancelled',
+      'awaiting_collection',
+      'confrontation_failed',
+      'unknown_error',
+    ])
   })
 
   it('createDemand should check citizen, create citizen if not exists, create demand and log action', async () => {

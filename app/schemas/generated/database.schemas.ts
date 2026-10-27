@@ -31,6 +31,7 @@ export const publicIirgdDemandStatusSchema = z.enum([
   'protocol_cancelled',
   'awaiting_collection',
   'confrontation_failed',
+  'unknown_error',
 ])
 
 export const publicUserRoleSchema = z.enum(['user', 'admin', 'iirgd_user', 'uge', 'iirgd_manager'])
