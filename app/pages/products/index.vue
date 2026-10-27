@@ -27,6 +27,7 @@
   const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const selectedExpenseNature = ref<string | null>(null)
   const statusFilter = ref<string>('active')
+  const searchQuery = ref<string>('')
 
   const { data: expenseNatures } = useAsyncData('expense-natures', fetchAllActiveExpenseNatures)
   const { data: productClasses } = useAsyncData('product-classes', fetchAllActiveProductClasses)
@@ -43,16 +44,17 @@
         itemsPerPage.value,
         selectedExpenseNature.value,
         statusFilter.value,
+        searchQuery.value,
       )
       totalItems.value = result.count
       return result.data
     },
     {
-      watch: [currentPage, selectedExpenseNature, statusFilter],
+      watch: [currentPage, selectedExpenseNature, statusFilter, searchQuery],
     },
   )
 
-  watch([selectedExpenseNature, statusFilter], () => {
+  watch([selectedExpenseNature, statusFilter, searchQuery], () => {
     resetPage()
   })
 
@@ -207,7 +209,18 @@
         </UiChip>
         <UiSpacer />
         <!-- Filtros inline -->
-        <div class="d-flex gap-2 align-center">
+        <div class="d-flex flex-wrap gap-2 align-center">
+          <UiInput
+            v-model="searchQuery"
+            clearable
+            hide-details
+            label="Buscar por nome, CATMAT ou BEC..."
+            prepend-inner-icon="search"
+            rounded="lg"
+            size="sm"
+            style="min-width: 220px; max-width: 320px"
+            variant="outline"
+          />
           <div class="d-flex gap-2 align-center">
             <UiSelect
               v-model="selectedExpenseNature"
@@ -219,7 +232,7 @@
               label="Natureza de Despesa"
               rounded="lg"
               size="sm"
-              style="min-width: 200px; max-width: 260px"
+              style="min-width: 180px; max-width: 240px"
               variant="outline"
             />
             <UiSelect
@@ -235,7 +248,7 @@
               label="Status"
               rounded="lg"
               size="sm"
-              style="min-width: 130px; max-width: 160px"
+              style="min-width: 120px; max-width: 150px"
               variant="outline"
             />
           </div>

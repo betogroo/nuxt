@@ -71,6 +71,67 @@ describe('useProducts', () => {
     expect(result.data[0]?.name).toBe('Caneta Azul')
   })
 
+  it('fetchProducts should apply ilike filter when text searchQuery is provided', async () => {
+    const ilikeMock = vi.fn().mockResolvedValue({
+      data: [{ id: 'prod-1', name: 'Caneta Esferográfica', is_active: true }],
+      count: 1,
+      error: null,
+    })
+    const eqMock = vi.fn().mockReturnValue({
+      ilike: ilikeMock,
+    })
+    const rangeMock = vi.fn().mockReturnValue({
+      eq: eqMock,
+    })
+    const orderMock = vi.fn().mockReturnValue({
+      range: rangeMock,
+    })
+    const selectMock = vi.fn().mockReturnValue({
+      order: orderMock,
+    })
+
+    mockSupabase.from.mockReturnValue({
+      select: selectMock,
+    })
+
+    const { fetchProducts } = useProducts()
+    const result = await fetchProducts(1, 10, null, 'active', 'Caneta')
+
+    expect(eqMock).toHaveBeenCalledWith('is_active', true)
+    expect(ilikeMock).toHaveBeenCalledWith('name', '%Caneta%')
+    expect(result.data).toHaveLength(1)
+  })
+
+  it('fetchProducts should apply or filter across name, cat_mat, and cat_bec when numeric searchQuery is provided', async () => {
+    const orMock = vi.fn().mockResolvedValue({
+      data: [{ id: 'prod-1', name: 'Papel A4', cat_mat: 12345, is_active: true }],
+      count: 1,
+      error: null,
+    })
+    const eqMock = vi.fn().mockReturnValue({
+      or: orMock,
+    })
+    const rangeMock = vi.fn().mockReturnValue({
+      eq: eqMock,
+    })
+    const orderMock = vi.fn().mockReturnValue({
+      range: rangeMock,
+    })
+    const selectMock = vi.fn().mockReturnValue({
+      order: orderMock,
+    })
+
+    mockSupabase.from.mockReturnValue({
+      select: selectMock,
+    })
+
+    const { fetchProducts } = useProducts()
+    const result = await fetchProducts(1, 10, null, 'active', '12345')
+
+    expect(orMock).toHaveBeenCalledWith('name.ilike.%12345%,cat_mat.eq.12345,cat_bec.eq.12345')
+    expect(result.data).toHaveLength(1)
+  })
+
   it('fetchProductById should fetch product with relations', async () => {
     const mockProduct = { id: 'prod-1', name: 'Product A' }
     mockSupabase.from.mockReturnValue({

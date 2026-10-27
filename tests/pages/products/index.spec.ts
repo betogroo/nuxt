@@ -61,6 +61,18 @@ describe('Products Admin Page', () => {
     vi.clearAllMocks()
   })
 
+  it('initializes searchQuery with empty string and resets page when searchQuery changes', async () => {
+    const wrapper = shallowMount(ProductsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.searchQuery).toBe('')
+    vm.currentPage = 3
+    vm.searchQuery = 'Monitor'
+    await wrapper.vm.$nextTick()
+    expect(vm.currentPage).toBe(1)
+  })
+
   it('initializes add modal with empty CATMAT and CATBEC and saves new product', async () => {
     const wrapper = shallowMount(ProductsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

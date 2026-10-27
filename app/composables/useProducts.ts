@@ -58,6 +58,7 @@ export const useProducts = () => {
     itemsPerPage: number,
     expenseNatureId: string | null,
     statusFilter: string | null = 'active',
+    searchQuery: string | null = '',
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -76,6 +77,17 @@ export const useProducts = () => {
       query = query.eq('is_active', true)
     } else if (statusFilter === 'inactive') {
       query = query.eq('is_active', false)
+    }
+
+    if (searchQuery) {
+      const term = searchQuery.trim()
+      if (term) {
+        if (/^\d+$/.test(term)) {
+          query = query.or(`name.ilike.%${term}%,cat_mat.eq.${term},cat_bec.eq.${term}`)
+        } else {
+          query = query.ilike('name', `%${term}%`)
+        }
+      }
     }
 
     const { data, count, error } = await query
