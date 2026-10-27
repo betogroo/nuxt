@@ -68,6 +68,9 @@
       { text: 'RG', value: 'rg' },
       { text: 'CPF', value: 'cpf' },
       { text: 'Status', value: 'status', align: 'center' as const },
+      ...(group === 'errors' || group === 'in-progress'
+        ? [{ text: 'Observações', value: 'observation' }]
+        : []),
       { text: 'Data', value: 'created_at', align: 'right' as const },
     ]
     if (canBatchEdit.value) {
@@ -221,17 +224,23 @@
     isSaving: false,
     demand: null as IirgdDemand | null,
     newStatus: '' as string,
+    observation: '',
     error: '',
   })
 
-  const statusOptions = Object.entries(IIRGD_STATUS_LABELS).map(([value, title]) => ({
-    title,
-    value,
-  }))
+  const statusOptions = computed(() => {
+    return IIRGD_STATUS_GROUPS.flatMap((g) =>
+      g.options.map((opt) => ({
+        title: `${IIRGD_STATUS_LABELS[opt]} (${g.label})`,
+        value: opt,
+      })),
+    )
+  })
 
   const openStatusModal = (demand: IirgdDemand) => {
     statusModal.value.demand = demand
     statusModal.value.newStatus = demand.status as string
+    statusModal.value.observation = demand.observation || ''
     statusModal.value.isOpen = true
     statusModal.value.error = ''
   }
@@ -244,6 +253,7 @@
     try {
       await updateDemand(statusModal.value.demand.id, {
         status: statusModal.value.newStatus as IirgdDemandStatus,
+        observation: statusModal.value.observation,
       })
       toast.success('Status atualizado!')
       statusModal.value.isOpen = false
@@ -515,6 +525,17 @@
               <UiIcon v-if="canEditStatus" class="ml-1" name="edit" size="xs" />
             </UiChip>
           </template>
+          <template #item-observation="{ item }">
+            <span
+              v-if="item.observation"
+              class="text-body-2 text-truncate d-inline-block"
+              style="max-width: 250px"
+              :title="item.observation"
+            >
+              {{ item.observation }}
+            </span>
+            <span v-else class="text-medium-emphasis">-</span>
+          </template>
           <template #item-created_at="{ item }">
             <span class="text-caption text-medium-emphasis">
               {{ new Date(item.created_at).toLocaleString('pt-BR') }}
@@ -616,7 +637,7 @@
       </UiModal>
 
       <!-- Modal de Mudança de Status Inline -->
-      <UiModal v-model="statusModal.isOpen" max-width="400px" title="Alterar Status">
+      <UiModal v-model="statusModal.isOpen" max-width="480px" title="Alterar Status">
         <UiAlert v-if="statusModal.error" class="mb-4" size="sm" type="error" variant="soft">
           {{ statusModal.error }}
         </UiAlert>
@@ -629,10 +650,24 @@
         </p>
         <UiSelect
           v-model="statusModal.newStatus"
+          class="mb-3"
           item-title="title"
           item-value="value"
           :items="statusOptions"
           label="Novo Status"
+        />
+
+        <UiTextarea
+          v-model="statusModal.observation"
+          :hint="
+            statusModal.newStatus === 'unknown_error'
+              ? 'Descreva o motivo do erro desconhecido.'
+              : 'Opcional. Registre observações sobre este status.'
+          "
+          label="Observação"
+          persistent-hint
+          placeholder="Ex: Motivo do erro ou observações sobre a solicitação..."
+          :rows="3"
         />
         <template #actions>
           <UiButton variant="ghost" @click="statusModal.isOpen = false">Cancelar</UiButton>

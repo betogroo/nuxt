@@ -237,4 +237,55 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
     expect(vm.titles['issued']).toBe('RGs Emitidos')
     expect(vm.currentTab).toBe('issued-antecedents')
   })
+
+  it('should include observation column in tableHeaders when group is errors', async () => {
+    mockRoute.value = { params: { group: 'errors' } }
+    mockProfile.value = { role: 'admin' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.tableHeaders.some((h: { value: string }) => h.value === 'observation')).toBe(true)
+  })
+
+  it('should open status modal with observation and pass it to updateDemand on confirmStatusChange', async () => {
+    mockRoute.value = { params: { group: 'errors' } }
+    mockProfile.value = { role: 'admin' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    const sampleDemand = {
+      id: 'dem-99',
+      status: 'new',
+      observation: 'Observação anterior',
+      iirgd_citizens: { name: 'CARLOS SILVA' },
+    }
+
+    vm.openStatusModal(sampleDemand)
+    expect(vm.statusModal.isOpen).toBe(true)
+    expect(vm.statusModal.newStatus).toBe('new')
+    expect(vm.statusModal.observation).toBe('Observação anterior')
+
+    // Alterar para unknown_error e atualizar a observação
+    vm.statusModal.newStatus = 'unknown_error'
+    vm.statusModal.observation = 'Erro desconhecido na verificação biométrica'
+
+    await vm.confirmStatusChange()
+
+    expect(updateDemandMock).toHaveBeenCalledWith('dem-99', {
+      status: 'unknown_error',
+      observation: 'Erro desconhecido na verificação biométrica',
+    })
+    expect(toastSuccessMock).toHaveBeenCalledWith('Status atualizado!')
+    expect(vm.statusModal.isOpen).toBe(false)
+  })
 })
