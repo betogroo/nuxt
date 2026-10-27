@@ -56,4 +56,49 @@ describe('composables/useCopyToClipboard', () => {
     expect(result).toBe(false)
     expect(mockToast.error).toHaveBeenCalledWith('Falha ao copiar.')
   })
+
+  it('copies HTML with ClipboardItem when supported', async () => {
+    const mockWrite = vi.fn().mockResolvedValueOnce(undefined)
+    class MockClipboardItem {
+      data: Record<string, Blob>
+      constructor(data: Record<string, Blob>) {
+        this.data = data
+      }
+    }
+    vi.stubGlobal('ClipboardItem', MockClipboardItem)
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        write: mockWrite,
+        writeText: mockWriteText,
+      },
+    })
+
+    const { copyHtml } = useCopyToClipboard()
+    const result = await copyHtml(
+      '<table><tr><td>Item</td></tr></table>',
+      'Item',
+      'Tabela copiada!',
+    )
+
+    expect(result).toBe(true)
+    expect(mockWrite).toHaveBeenCalledTimes(1)
+    expect(mockToast.success).toHaveBeenCalledWith('Tabela copiada!')
+  })
+
+  it('falls back to writeText when ClipboardItem is not available for copyHtml', async () => {
+    vi.stubGlobal('ClipboardItem', undefined)
+    mockWriteText.mockResolvedValueOnce(undefined)
+    vi.stubGlobal('navigator', {
+      clipboard: {
+        writeText: mockWriteText,
+      },
+    })
+
+    const { copyHtml } = useCopyToClipboard()
+    const result = await copyHtml('<table><tr><td>Item</td></tr></table>', 'Item')
+
+    expect(result).toBe(true)
+    expect(mockWriteText).toHaveBeenCalledWith('Item')
+    expect(mockToast.success).toHaveBeenCalledWith('Copiado para a área de transferência!')
+  })
 })

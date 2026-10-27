@@ -597,7 +597,10 @@ describe('Demand Items Page', () => {
     expect(typeof vm.handleGenerateInfoTable).toBe('function')
     expect(typeof vm.handleGenerateTermsTable).toBe('function')
     expect(() => vm.handleGenerateInfoTable()).not.toThrow()
-    expect(() => vm.handleGenerateTermsTable()).not.toThrow()
+
+    expect(vm.isTermsTableModalOpen).toBe(false)
+    vm.handleGenerateTermsTable()
+    expect(vm.isTermsTableModalOpen).toBe(true)
   })
 
   it('handles loading state gracefully without crashing', () => {

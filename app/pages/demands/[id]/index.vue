@@ -19,6 +19,7 @@
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
+  import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -740,8 +741,9 @@
     toast.info('Geração de tabela para informação em desenvolvimento.')
   }
 
+  const isTermsTableModalOpen = ref(false)
   const handleGenerateTermsTable = () => {
-    toast.info('Geração de tabela para termo de referência em desenvolvimento.')
+    isTermsTableModalOpen.value = true
   }
 
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
@@ -2522,6 +2524,13 @@
       v-model="isConvocationEmailModalOpen"
       :demand="demand"
       :supplier="selectedSupplierForConvocationEmail"
+    />
+
+    <!-- Modal de Tabela para Termo de Referência (Compras.gov.br) -->
+    <DemandTermsOfReferenceTableModal
+      v-model="isTermsTableModalOpen"
+      :demand-title="demand?.name"
+      :items="items || []"
     />
   </UiContainer>
 </template>
