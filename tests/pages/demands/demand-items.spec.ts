@@ -618,4 +618,28 @@ describe('Demand Items Page', () => {
       expect(vm.activeTab).toBe('planning')
     }).not.toThrow()
   })
+
+  it('does not include characteristics column in demandProductHeaders and keeps product table clean', () => {
+    mockDemandPending.value = false
+    mockDemandData.value = {
+      id: 'demand-123',
+      status: 'quotation',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers = vm.demandProductHeaders as any[]
+    expect(headers.some((h) => h.value === 'characteristics')).toBe(false)
+    expect(headers.some((h) => h.value === 'product_characteristics')).toBe(false)
+    expect(headers.map((h) => h.value)).toEqual([
+      'order',
+      'product',
+      'expense_nature',
+      'quantity',
+      'reference_values',
+      'actions',
+    ])
+  })
 })

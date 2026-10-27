@@ -1142,24 +1142,6 @@
                     BEC: {{ item.product.cat_bec }}
                   </UiChip>
                 </div>
-                <div
-                  v-if="
-                    item.product?.product_characteristics &&
-                    item.product.product_characteristics.length > 0
-                  "
-                  class="d-flex flex-wrap ga-1 pb-1"
-                >
-                  <UiChip
-                    v-for="char in item.product.product_characteristics"
-                    :key="char.id"
-                    :color="char.key?.is_pending ? 'warning' : 'teal'"
-                    label
-                    size="xs"
-                    variant="soft"
-                  >
-                    <strong>{{ char.key?.name || 'Chave' }}:</strong>&nbsp;{{ char.value }}
-                  </UiChip>
-                </div>
               </template>
 
               <!-- Natureza -->
