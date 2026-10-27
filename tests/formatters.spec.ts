@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   formatCurrency,
   formatReferencePrice,
+  formatUnitPrice,
   formatDate,
   formatDateTime,
   formatCnpj,
@@ -50,14 +51,18 @@ describe('Formatadores (utils/formatters.ts)', () => {
     })
   })
 
-  describe('formatReferencePrice', () => {
-    it('deve formatar com 4 casas decimais', () => {
-      const resultado = formatReferencePrice(12.3456)
+  describe('formatReferencePrice and formatUnitPrice', () => {
+    it('deve formatar com 4 casas decimais sem arredondar para 2 casas', () => {
+      const resultado = formatUnitPrice(12.3456)
       expect(resultado.replace(/\s/g, ' ')).toContain('12,3456')
+      expect(formatUnitPrice(25.5).replace(/\s/g, ' ')).toContain('25,5000')
+      expect(formatUnitPrice(0.005).replace(/\s/g, ' ')).toContain('0,0050')
     })
 
-    it('deve retornar "-" quando nulo', () => {
+    it('deve retornar "-" quando nulo ou inválido', () => {
+      expect(formatUnitPrice(null)).toBe('-')
       expect(formatReferencePrice(null)).toBe('-')
+      expect(formatUnitPrice('')).toBe('-')
     })
   })
 

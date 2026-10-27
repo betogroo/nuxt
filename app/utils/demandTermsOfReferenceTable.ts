@@ -1,4 +1,4 @@
-import { formatCurrency } from '~/utils/formatters'
+import { formatCurrency, formatUnitPrice } from '~/utils/formatters'
 
 export interface DemandTermsCharacteristic {
   value: string
@@ -158,7 +158,7 @@ export function generateTermsOfReferenceTableHtml(
       const pricesCells = includePrices
         ? `
         <td style="${tdBaseStyle} text-align: right; white-space: nowrap; vertical-align: top;">
-          ${formatCurrency(unitPrice)}
+          ${formatUnitPrice(unitPrice)}
         </td>
         <td style="${tdBaseStyle} text-align: right; white-space: nowrap; font-weight: 500; vertical-align: top;">
           ${formatCurrency(subtotal)}
@@ -281,7 +281,7 @@ export function generateTermsOfReferenceTableText(
 
     const row = [String(itemNumber), productClass, codeText, desc, supplyUnit, String(quantity)]
     if (includePrices) {
-      row.push(formatCurrency(unitPrice), formatCurrency(subtotal))
+      row.push(formatUnitPrice(unitPrice), formatCurrency(subtotal))
     }
     lines.push(row.join('\t'))
   })

@@ -3,7 +3,7 @@
   import type { DemandRow } from '~/composables/useDemands'
   import type { DemandProductRow } from '~/composables/useDemandProducts'
   import { useDemandReports } from '~/composables/useDemandReports'
-  import { formatCurrency } from '~/utils/formatters'
+  import { formatCurrency, formatUnitPrice } from '~/utils/formatters'
 
   const props = defineProps<{
     demand: DemandRow | null | undefined
@@ -292,7 +292,7 @@
                   <td class="pa-2 text-right font-weight-medium">{{ item.qtd }}</td>
                   <td class="pa-2 text-right">
                     <span v-if="item.valorOfertado != null">
-                      {{ formatCurrency(item.valorOfertado) }}
+                      {{ formatUnitPrice(item.valorOfertado) }}
                     </span>
                     <span v-else class="text-medium-emphasis text-caption"> - </span>
                   </td>

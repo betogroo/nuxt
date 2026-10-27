@@ -12,6 +12,7 @@
     type DemandItemExecutionStatus,
   } from '~/constants/demand-item-status'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+  import { formatUnitPrice } from '~/utils/formatters'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -751,7 +752,7 @@
                     'text-decoration-line-through text-grey': bid.status === 'disqualified',
                   }"
                 >
-                  {{ formatCurrency(bid.amount) }}
+                  {{ formatUnitPrice(bid.amount) }}
                 </div>
               </template>
 
@@ -805,7 +806,7 @@
               </template>
               <UiListItemTitle>Valor Referencial</UiListItemTitle>
               <UiListItemSubtitle>
-                {{ formatCurrency(item.reference_price) }}
+                {{ formatUnitPrice(item.reference_price) }}
               </UiListItemSubtitle>
             </UiListItem>
             <UiListItem>
@@ -817,7 +818,7 @@
                 {{
                   item.bid_interval_type === 'percentage'
                     ? `${item.bid_interval}%`
-                    : formatCurrency(item.bid_interval || 0)
+                    : formatUnitPrice(item.bid_interval || 0)
                 }}
               </UiListItemSubtitle>
             </UiListItem>
@@ -1025,7 +1026,7 @@
         <div class="text-body-1 font-weight-bold">{{ selectedBidForStatus.supplierName }}</div>
         <div class="text-caption text-grey mt-2">Valor do Lance</div>
         <div class="text-body-1 font-weight-bold">
-          {{ formatCurrency(selectedBidForStatus.amount) }}
+          {{ formatUnitPrice(selectedBidForStatus.amount) }}
         </div>
       </div>
 

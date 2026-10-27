@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { formatCnpj } from '~/utils/formatters'
+  import { formatCnpj, formatUnitPrice } from '~/utils/formatters'
 
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -145,7 +145,7 @@
             </template>
             <template #item-unit_price="{ item }">
               <span class="font-weight-bold">
-                {{ formatCurrency(item.winning_bid_amount) }}
+                {{ formatUnitPrice(item.winning_bid_amount) }}
               </span>
             </template>
             <template #item-subtotal="{ item }">

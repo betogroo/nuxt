@@ -119,6 +119,7 @@ describe('DemandDisputeReportModal', () => {
     expect(text).toContain('Rua das Flores, 100')
     expect(text).toContain('Papel A4 Sulfite')
     expect(text).toContain('12345')
+    expect(text.replace(/\s/g, ' ')).toContain('25,5000')
   })
 
   it('triggers CSV export when clicking the export CSV button', async () => {

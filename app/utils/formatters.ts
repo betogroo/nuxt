@@ -13,12 +13,14 @@ export function formatCurrency(
   }).format(Number(value))
 }
 
-export function formatReferencePrice(value: number | string | null | undefined): string {
+export function formatUnitPrice(value: number | string | null | undefined): string {
   return formatCurrency(value, {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
   })
 }
+
+export const formatReferencePrice = formatUnitPrice
 
 export function formatDate(
   date: string | Date | null | undefined,

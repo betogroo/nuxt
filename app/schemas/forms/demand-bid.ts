@@ -28,7 +28,7 @@ export const demandBidFormSchema = z
           required_error: 'O valor do lance é obrigatório.',
           invalid_type_error: 'Valor inválido.',
         })
-        .min(0.01, 'O valor deve ser maior que zero.'),
+        .min(0.0001, 'O valor deve ser maior que zero.'),
     ),
   })
   .superRefine((data, ctx) => {

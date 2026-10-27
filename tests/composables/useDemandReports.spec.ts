@@ -26,7 +26,9 @@ describe('useDemandReports', () => {
   describe('helper functions', () => {
     it('formatDecimalBr formats numbers to Brazilian decimal style', () => {
       expect(formatDecimalBr(1234.56)).toBe('1234,56')
+      expect(formatDecimalBr(1234.5678, 4)).toBe('1234,5678')
       expect(formatDecimalBr(10)).toBe('10,00')
+      expect(formatDecimalBr(10, 4)).toBe('10,0000')
       expect(formatDecimalBr(0)).toBe('0,00')
       expect(formatDecimalBr(null)).toBe('-')
       expect(formatDecimalBr(undefined)).toBe('-')
@@ -444,8 +446,8 @@ describe('useDemandReports', () => {
         '"NATUREZA";"ITEM BEC";"ESPECIFICAÇÃO";"Unidade BEC";"QTD";"Valor Ofertado";"Valor Final"',
       )
 
-      // Check data row
-      expect(csv).toContain('"339030";"1234";"Produto A";"UN";"10";"25,00";"250,00"')
+      // Check data row (unit bid formatted with 4 decimals, subtotal with 2 decimals)
+      expect(csv).toContain('"339030";"1234";"Produto A";"UN";"10";"25,0000";"250,00"')
 
       // Check subtotal row
       expect(csv).toContain('"SUBTOTAL (Alfa Comércio)";"";"";"";"";"";"250,00"')

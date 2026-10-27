@@ -5,6 +5,7 @@
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
   import {
     formatCnpj,
+    formatUnitPrice,
     splitDateTime,
     combineDateTime,
     validateOfferOpeningRules,
@@ -1460,7 +1461,7 @@
                       {{ formatCurrency(getItemDisputeResult(item).totalFinal) }}
                     </div>
                     <div class="text-caption text-medium-emphasis">
-                      Lance: {{ formatCurrency(getItemDisputeResult(item).winningAmount) }}
+                      Lance: {{ formatUnitPrice(getItemDisputeResult(item).winningAmount) }}
                     </div>
                   </template>
 

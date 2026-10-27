@@ -165,6 +165,10 @@ describe('demandTermsOfReferenceTable utility', () => {
       expect(html).toContain('background-color: #f8fafc')
       expect(html).toContain('Papel A4 Sulfite 75g')
 
+      // Unit price formatted with 4 decimals
+      expect(html.replace(/\s/g, ' ')).toContain('25,5000')
+      expect(html.replace(/\s/g, ' ')).toContain('30,0000')
+
       // Footer has colspan="6" for base columns
       expect(html).toContain('colspan="6"')
       expect(html).toContain('Valor Total Estimado da Contratação:')
@@ -230,6 +234,8 @@ describe('demandTermsOfReferenceTable utility', () => {
       expect(text).toContain(
         '1\t7520 - Artigos para Escritório\tCATMAT: 123456 / BEC: 78910\tCaneta Esferográfica Azul (Ponta: Média 1.0mm; Cor: Azul)\tCaixa\t10\t',
       )
+      expect(text.replace(/\s/g, ' ')).toContain('25,5000')
+      expect(text.replace(/\s/g, ' ')).toContain('30,0000')
       expect(text).toContain('Total Estimado:')
     })
 

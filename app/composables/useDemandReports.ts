@@ -8,6 +8,7 @@ import {
   formatDate,
   formatDateTime,
   formatCurrency,
+  formatUnitPrice,
   formatDemandType,
 } from '~/utils/formatters'
 import { formatDemandStatus } from '~/utils/demandStatus'
@@ -79,9 +80,9 @@ export interface DisputeReportData {
 /**
  * Formats a numeric value into a Brazilian decimal string (e.g., "1234,56") for CSV.
  */
-export function formatDecimalBr(value: number | null | undefined): string {
+export function formatDecimalBr(value: number | null | undefined, decimals = 2): string {
   if (value == null || Number.isNaN(Number(value))) return '-'
-  return Number(value).toFixed(2).replace('.', ',')
+  return Number(value).toFixed(decimals).replace('.', ',')
 }
 
 /**
@@ -402,7 +403,7 @@ export function buildDisputeReportCsv(reportData: DisputeReportData): string {
     // Items
     for (const item of group.items) {
       const valorOfertadoStr =
-        item.valorOfertado != null ? formatDecimalBr(item.valorOfertado) : item.outcomeLabel
+        item.valorOfertado != null ? formatDecimalBr(item.valorOfertado, 4) : item.outcomeLabel
       const valorFinalStr =
         item.valorFinal != null ? formatDecimalBr(item.valorFinal) : item.outcomeLabel
 
@@ -482,7 +483,7 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
             <td>${escapeHtml(item.especificacao)}</td>
             <td>${escapeHtml(item.unidadeBec)}</td>
             <td class="text-right" style="font-weight: 600;">${item.qtd}</td>
-            <td class="text-right">${item.valorOfertado != null ? formatCurrency(item.valorOfertado) : '-'}</td>
+            <td class="text-right">${item.valorOfertado != null ? formatUnitPrice(item.valorOfertado) : '-'}</td>
             <td class="text-right" style="font-weight: 600;">${item.valorFinal != null ? formatCurrency(item.valorFinal) : '-'}</td>
           </tr>
         `,
@@ -1159,7 +1160,7 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
         item.especificacao || '-',
         item.unidadeBec || '-',
         String(item.qtd),
-        formatCurrency(item.valorOfertado),
+        formatUnitPrice(item.valorOfertado),
         formatCurrency(item.valorFinal),
       ])
 
