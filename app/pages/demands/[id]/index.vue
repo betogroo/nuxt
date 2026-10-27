@@ -736,8 +736,16 @@
     isReportModalOpen.value = true
   }
 
+  const handleGenerateInfoTable = () => {
+    toast.info('Geração de tabela para informação em desenvolvimento.')
+  }
+
+  const handleGenerateTermsTable = () => {
+    toast.info('Geração de tabela para termo de referência em desenvolvimento.')
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
-  const activeTab = ref<'items' | 'suppliers' | 'planning'>('items')
+  const activeTab = ref<'planning' | 'items' | 'suppliers'>('planning')
 
   const totalEstimatedAmount = computed(() => {
     if (!items.value) return 0
@@ -969,6 +977,13 @@
 
       <!-- Navegação por Abas -->
       <UiTabs v-model="activeTab" class="mb-4" color="primary">
+        <UiTab value="planning">
+          <UiIcon class="mr-2" name="searchDocument" size="18" />
+          Processo & Planejamento
+          <UiChip v-if="isPlanningIncomplete" class="ml-2" color="warning" size="xs" variant="flat">
+            Pendente
+          </UiChip>
+        </UiTab>
         <UiTab value="items">
           <UiIcon class="mr-2" name="recordsList" size="18" />
           Itens da Demanda
@@ -989,16 +1004,245 @@
             {{ winningSuppliersSummary.length }}
           </UiChip>
         </UiTab>
-        <UiTab value="planning">
-          <UiIcon class="mr-2" name="searchDocument" size="18" />
-          Processo & Planejamento
-          <UiChip v-if="isPlanningIncomplete" class="ml-2" color="warning" size="xs" variant="flat">
-            Pendente
-          </UiChip>
-        </UiTab>
       </UiTabs>
 
-      <!-- ABA 1: ITENS DA DEMANDA -->
+      <!-- ABA 1: PROCESSO & PLANEJAMENTO -->
+      <div v-show="activeTab === 'planning'">
+        <!-- Card: Geração de Modelos & Documentos -->
+        <UiCard class="mb-4" variant="outline">
+          <template #header>
+            <div class="d-flex align-center w-100">
+              <UiIcon class="mr-2 text-primary" left name="document" />
+              <span class="font-weight-semibold">Geração de Modelos & Documentos</span>
+            </div>
+          </template>
+          <div class="pa-4">
+            <div class="text-caption text-grey mb-3">
+              Gere tabelas e modelos padronizados a partir dos dados e itens desta demanda.
+            </div>
+            <div class="d-flex flex-wrap ga-3">
+              <UiButton
+                color="primary"
+                prepend-icon="recordsList"
+                variant="soft"
+                @click="handleGenerateInfoTable"
+              >
+                Gerar Tabela para Informação
+              </UiButton>
+              <UiButton
+                color="primary"
+                prepend-icon="searchDocument"
+                variant="soft"
+                @click="handleGenerateTermsTable"
+              >
+                Gerar Tabela para Termo de Referência
+              </UiButton>
+            </div>
+          </div>
+        </UiCard>
+
+        <UiRow>
+          <UiCol cols="12" md="8">
+            <!-- Dados do Planejamento -->
+            <UiCard class="mb-4" variant="outline">
+              <template #header>
+                <div class="d-flex align-center w-100">
+                  <UiIcon class="mr-2 text-primary" left name="document" />
+                  <span>Dados do Planejamento</span>
+                  <UiSpacer />
+                  <UiButton
+                    v-if="
+                      demand &&
+                      canEditDemand(demand) &&
+                      demand.status !== 'completed' &&
+                      demand.status !== 'cancelled'
+                    "
+                    color="primary"
+                    prepend-icon="edit"
+                    size="sm"
+                    variant="ghost"
+                    @click="openEditPlanning"
+                  >
+                    Editar
+                  </UiButton>
+                </div>
+              </template>
+              <UiRow class="px-2 pb-2 mt-2">
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Processo Oficial</div>
+                  <div class="text-body-1 font-weight-bold text-primary">
+                    {{ demand?.process_number || 'Aguardando autuação' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Processo Interno</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.internal_process_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">ID PCA</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.id_pca || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Tipo</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.type === 'consumption' ? 'Consumo' : 'Permanente' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Nº da Contratação</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.contract_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Nº SIAFEM</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.siafem_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12">
+                  <UiAlert
+                    v-if="isPlanningIncomplete"
+                    class="mt-2 text-caption"
+                    size="sm"
+                    type="warning"
+                    variant="soft"
+                  >
+                    Para avançar para a Cotação, preencha os dados do planejamento (Processo
+                    Oficial, ID PCA, Nº Contratação e Nº SIAFEM).
+                    <br />
+                    <small>Você pode editar a demanda voltando à tela de listagem.</small>
+                  </UiAlert>
+                </UiCol>
+              </UiRow>
+            </UiCard>
+
+            <!-- Dados da Disputa -->
+            <UiCard
+              v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
+              class="mb-4"
+              variant="outline"
+            >
+              <template #header>
+                <div class="d-flex align-center w-100">
+                  <UiIcon class="mr-2 text-primary" left name="fileText" />
+                  <span>Dados do Aviso de Contratação e Disputa</span>
+                  <UiSpacer />
+                  <UiButton
+                    v-if="demand?.status === 'bidding_notice' || demand?.status === 'dispute'"
+                    color="primary"
+                    prepend-icon="edit"
+                    size="sm"
+                    variant="ghost"
+                    @click="openEditBiddingNoticeModal"
+                  >
+                    Editar
+                  </UiButton>
+                </div>
+              </template>
+              <UiRow class="px-2 pb-2 mt-2">
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Aviso de Contratação</div>
+                  <div class="text-body-1 font-weight-medium">
+                    {{ demand?.bidding_notice_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Nº Disputa</div>
+                  <div class="text-body-1">
+                    {{ demand?.dispute_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Data da Disputa</div>
+                  <div class="text-body-1">
+                    {{
+                      demand?.dispute_date
+                        ? new Date(demand.dispute_date).toLocaleDateString('pt-BR', {
+                            timeZone: 'UTC',
+                          })
+                        : '-'
+                    }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Abertura de Ofertas</div>
+                  <div class="text-body-1">
+                    {{
+                      demand?.offer_opening_date
+                        ? new Date(demand.offer_opening_date).toLocaleString([], {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })
+                        : '-'
+                    }}
+                  </div>
+                </UiCol>
+              </UiRow>
+            </UiCard>
+          </UiCol>
+
+          <!-- Responsáveis -->
+          <UiCol class="mt-4 mt-md-0" cols="12" md="4">
+            <UiCard class="mb-4" variant="outline">
+              <template #header>
+                <div class="d-flex align-center w-100">
+                  <UiIcon class="mr-2 text-primary" left name="userOutline" />
+                  <span class="font-weight-semibold">Responsáveis</span>
+                  <UiSpacer />
+                  <UiButton icon="add" size="xs" variant="ghost" @click="openResponsibleModal" />
+                </div>
+              </template>
+              <UiList class="bg-transparent pa-2" size="sm">
+                <UiListItem
+                  v-for="resp in responsibles"
+                  :key="resp?.user_id || Math.random()"
+                  class="px-0"
+                >
+                  <template #prepend>
+                    <UiAvatar class="text-caption text-white" color="primary" size="32">
+                      <UiImg
+                        v-if="resp?.profiles?.avatar_url"
+                        :alt="resp?.profiles?.name || 'Responsável'"
+                        class="rounded-circle"
+                        cover
+                        :src="resp.profiles.avatar_url"
+                      />
+                      <span v-else>{{
+                        (resp?.profiles?.name || 'U').charAt(0).toUpperCase()
+                      }}</span>
+                    </UiAvatar>
+                  </template>
+                  <UiListItemTitle class="text-body-2">{{
+                    resp?.profiles?.name || 'Usuário Desconhecido'
+                  }}</UiListItemTitle>
+                  <template #append>
+                    <UiButton
+                      v-if="profile?.role === ROLES.ADMIN"
+                      color="error"
+                      icon="close"
+                      size="xs"
+                      variant="ghost"
+                      @click="removeResponsible(resp?.user_id || '')"
+                    />
+                  </template>
+                </UiListItem>
+                <UiListItem v-if="!responsibles?.length" class="px-0">
+                  <UiListItemTitle class="text-caption text-grey"
+                    >Nenhum responsável definido.</UiListItemTitle
+                  >
+                </UiListItem>
+              </UiList>
+            </UiCard>
+          </UiCol>
+        </UiRow>
+      </div>
+
+      <!-- ABA 2: ITENS DA DEMANDA -->
       <div v-show="activeTab === 'items'">
         <!-- Lista de Produtos da Demanda -->
         <UiCard class="mb-4" variant="outline">
@@ -1311,7 +1555,7 @@
         </UiCard>
       </div>
 
-      <!-- ABA 2: FORNECEDORES & EMPENHOS -->
+      <!-- ABA 3: FORNECEDORES & EMPENHOS -->
       <div v-show="activeTab === 'suppliers'">
         <!-- Métricas rápidas quando houver vencedores -->
         <UiRow v-if="winningSuppliersSummary.length > 0" class="mb-4">
@@ -1482,209 +1726,6 @@
             </template>
           </UiTable>
         </UiCard>
-      </div>
-
-      <!-- ABA 3: PROCESSO & PLANEJAMENTO -->
-      <div v-show="activeTab === 'planning'">
-        <UiRow>
-          <UiCol cols="12" md="8">
-            <!-- Dados do Planejamento -->
-            <UiCard class="mb-4" variant="outline">
-              <template #header>
-                <div class="d-flex align-center w-100">
-                  <UiIcon class="mr-2 text-primary" left name="document" />
-                  <span>Dados do Planejamento</span>
-                  <UiSpacer />
-                  <UiButton
-                    v-if="
-                      demand &&
-                      canEditDemand(demand) &&
-                      demand.status !== 'completed' &&
-                      demand.status !== 'cancelled'
-                    "
-                    color="primary"
-                    prepend-icon="edit"
-                    size="sm"
-                    variant="ghost"
-                    @click="openEditPlanning"
-                  >
-                    Editar
-                  </UiButton>
-                </div>
-              </template>
-              <UiRow class="px-2 pb-2 mt-2">
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Processo Oficial</div>
-                  <div class="text-body-1 font-weight-bold text-primary">
-                    {{ demand?.process_number || 'Aguardando autuação' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Processo Interno</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.internal_process_number || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">ID PCA</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.id_pca || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Tipo</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.type === 'consumption' ? 'Consumo' : 'Permanente' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Nº da Contratação</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.contract_number || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Nº SIAFEM</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.siafem_number || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12">
-                  <UiAlert
-                    v-if="isPlanningIncomplete"
-                    class="mt-2 text-caption"
-                    size="sm"
-                    type="warning"
-                    variant="soft"
-                  >
-                    Para avançar para a Cotação, preencha os dados do planejamento (Processo
-                    Oficial, ID PCA, Nº Contratação e Nº SIAFEM).
-                    <br />
-                    <small>Você pode editar a demanda voltando à tela de listagem.</small>
-                  </UiAlert>
-                </UiCol>
-              </UiRow>
-            </UiCard>
-
-            <!-- Dados da Disputa -->
-            <UiCard
-              v-if="demand?.status !== 'planning' && demand?.status !== 'quotation'"
-              class="mb-4"
-              variant="outline"
-            >
-              <template #header>
-                <div class="d-flex align-center w-100">
-                  <UiIcon class="mr-2 text-primary" left name="fileText" />
-                  <span>Dados do Aviso de Contratação e Disputa</span>
-                  <UiSpacer />
-                  <UiButton
-                    v-if="demand?.status === 'bidding_notice' || demand?.status === 'dispute'"
-                    color="primary"
-                    prepend-icon="edit"
-                    size="sm"
-                    variant="ghost"
-                    @click="openEditBiddingNoticeModal"
-                  >
-                    Editar
-                  </UiButton>
-                </div>
-              </template>
-              <UiRow class="px-2 pb-2 mt-2">
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Aviso de Contratação</div>
-                  <div class="text-body-1 font-weight-medium">
-                    {{ demand?.bidding_notice_number || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Nº Disputa</div>
-                  <div class="text-body-1">
-                    {{ demand?.dispute_number || '-' }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Data da Disputa</div>
-                  <div class="text-body-1">
-                    {{
-                      demand?.dispute_date
-                        ? new Date(demand.dispute_date).toLocaleDateString('pt-BR', {
-                            timeZone: 'UTC',
-                          })
-                        : '-'
-                    }}
-                  </div>
-                </UiCol>
-                <UiCol cols="12" md="4" sm="6">
-                  <div class="text-caption text-grey">Abertura de Ofertas</div>
-                  <div class="text-body-1">
-                    {{
-                      demand?.offer_opening_date
-                        ? new Date(demand.offer_opening_date).toLocaleString([], {
-                            dateStyle: 'short',
-                            timeStyle: 'short',
-                          })
-                        : '-'
-                    }}
-                  </div>
-                </UiCol>
-              </UiRow>
-            </UiCard>
-          </UiCol>
-
-          <!-- Responsáveis -->
-          <UiCol class="mt-4 mt-md-0" cols="12" md="4">
-            <UiCard class="mb-4" variant="outline">
-              <template #header>
-                <div class="d-flex align-center w-100">
-                  <UiIcon class="mr-2 text-primary" left name="userOutline" />
-                  <span class="font-weight-semibold">Responsáveis</span>
-                  <UiSpacer />
-                  <UiButton icon="add" size="xs" variant="ghost" @click="openResponsibleModal" />
-                </div>
-              </template>
-              <UiList class="bg-transparent pa-2" size="sm">
-                <UiListItem
-                  v-for="resp in responsibles"
-                  :key="resp?.user_id || Math.random()"
-                  class="px-0"
-                >
-                  <template #prepend>
-                    <UiAvatar class="text-caption text-white" color="primary" size="32">
-                      <UiImg
-                        v-if="resp?.profiles?.avatar_url"
-                        :alt="resp?.profiles?.name || 'Responsável'"
-                        class="rounded-circle"
-                        cover
-                        :src="resp.profiles.avatar_url"
-                      />
-                      <span v-else>{{
-                        (resp?.profiles?.name || 'U').charAt(0).toUpperCase()
-                      }}</span>
-                    </UiAvatar>
-                  </template>
-                  <UiListItemTitle class="text-body-2">{{
-                    resp?.profiles?.name || 'Usuário Desconhecido'
-                  }}</UiListItemTitle>
-                  <template #append>
-                    <UiButton
-                      v-if="profile?.role === ROLES.ADMIN"
-                      color="error"
-                      icon="close"
-                      size="xs"
-                      variant="ghost"
-                      @click="removeResponsible(resp?.user_id || '')"
-                    />
-                  </template>
-                </UiListItem>
-                <UiListItem v-if="!responsibles?.length" class="px-0">
-                  <UiListItemTitle class="text-caption text-grey"
-                    >Nenhum responsável definido.</UiListItemTitle
-                  >
-                </UiListItem>
-              </UiList>
-            </UiCard>
-          </UiCol>
-        </UiRow>
       </div>
     </template>
 

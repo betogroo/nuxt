@@ -578,15 +578,26 @@ describe('Demand Items Page', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
 
-    expect(vm.activeTab).toBe('items')
+    expect(vm.activeTab).toBe('planning')
     // 10 * 25 + 5 * 40 = 250 + 200 = 450
     expect(vm.totalEstimatedAmount).toBe(450)
 
+    vm.activeTab = 'items'
+    expect(vm.activeTab).toBe('items')
+
     vm.activeTab = 'suppliers'
     expect(vm.activeTab).toBe('suppliers')
+  })
 
-    vm.activeTab = 'planning'
-    expect(vm.activeTab).toBe('planning')
+  it('provides handlers for generating tables in the planning tab', () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(typeof vm.handleGenerateInfoTable).toBe('function')
+    expect(typeof vm.handleGenerateTermsTable).toBe('function')
+    expect(() => vm.handleGenerateInfoTable()).not.toThrow()
+    expect(() => vm.handleGenerateTermsTable()).not.toThrow()
   })
 
   it('handles loading state gracefully without crashing', () => {
