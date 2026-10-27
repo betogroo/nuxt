@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref, defineComponent } from 'vue'
 import { mount } from '@vue/test-utils'
@@ -19,6 +19,13 @@ mockNuxtImport('useToast', () => {
   return () => ({
     error: vi.fn(),
     confirm: vi.fn().mockResolvedValue(true),
+  })
+})
+
+const mockRefreshPendingTasks = vi.fn().mockResolvedValue(undefined)
+mockNuxtImport('usePendingTasks', () => {
+  return () => ({
+    refreshAll: mockRefreshPendingTasks,
   })
 })
 
@@ -85,5 +92,20 @@ describe('useAdminCrud Composable', () => {
     crud.closeResolveModal()
     expect(crud.isResolveModalOpen.value).toBe(false)
     expect(crud.targetPendingItem.value).toBeNull()
+  })
+
+  it('should refresh pending tasks when resolving an item', async () => {
+    const [crud] = withSetup(() => useAdminCrud(mockConfig))
+
+    crud.openResolveModal({ id: '99', name: 'Pending Nature' })
+
+    await crud.submitResolveForm()
+
+    expect(mockConfig.approvePending).toHaveBeenCalledWith(
+      { id: '99', name: 'Pending Nature' },
+      'Pending Nature',
+    )
+    expect(mockRefreshPendingTasks).toHaveBeenCalled()
+    expect(crud.isResolveModalOpen.value).toBe(false)
   })
 })

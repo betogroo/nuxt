@@ -40,6 +40,7 @@ mockNuxtImport('usePendingTasks', () => () => ({
   pendingUnitsCount: ref(2),
   pendingExpenseNaturesCount: ref(1),
   pendingProductClassesCount: ref(0),
+  pendingCharacteristicKeysCount: ref(0),
   pendingIirgdDocumentTypesCount: ref(3),
   pendingReturnsCount: ref(0),
   totalPending: ref(6),

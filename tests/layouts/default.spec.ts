@@ -24,8 +24,10 @@ const mockPendingTasks = {
   pendingUnitsCount: ref(3),
   pendingExpenseNaturesCount: ref(2),
   pendingProductClassesCount: ref(1),
+  pendingCharacteristicKeysCount: ref(0),
   pendingReturnsCount: ref(0),
   totalPending: ref(6),
+  refreshAll: vi.fn().mockResolvedValue(undefined),
 }
 mockNuxtImport('usePendingTasks', () => () => mockPendingTasks)
 

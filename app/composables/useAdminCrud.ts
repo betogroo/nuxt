@@ -229,6 +229,8 @@ export function useAdminCrud<T extends AdminCrudItem>(config: AdminCrudConfig<T>
       await refreshPending()
       await refreshActive()
       if (config.fetchAllActive) await refreshAllActive()
+      const { refreshAll: refreshPendingTasks } = usePendingTasks()
+      await refreshPendingTasks()
       closeResolveModal()
     } catch (e: unknown) {
       resolveError.value = getErrorMessage(e, config.entityName)

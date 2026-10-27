@@ -25,8 +25,10 @@
     pendingUnitsCount,
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
+    pendingCharacteristicKeysCount,
     pendingReturnsCount,
     totalPending,
+    refreshAll: refreshPendingTasks,
   } = usePendingTasks()
 
   // Inicial do nome/email do usuário
@@ -48,6 +50,7 @@
     [APP_ROUTES.admin.units]: pendingUnitsCount.value,
     [APP_ROUTES.admin.expenseNatures]: pendingExpenseNaturesCount.value,
     [APP_ROUTES.admin.productClasses]: pendingProductClassesCount.value,
+    [APP_ROUTES.admin.productCharacteristics]: pendingCharacteristicKeysCount.value,
   }))
 
   const getSubgroupBadge = (subgroupLinks: { path: string }[]): number => {
@@ -56,10 +59,14 @@
 
   const openedGroups = ref<string[]>([])
 
-  // Watch route to open corresponding subgroup automatically
+  // Watch route to open corresponding subgroup automatically and refresh pending badges
   watch(
     () => route.path,
-    (currentPath) => {
+    async (currentPath) => {
+      if (profile.value?.role === ROLES.ADMIN) {
+        await refreshPendingTasks()
+      }
+
       for (const section of drawerSections.value) {
         for (const subgroup of section.subgroups) {
           if (subgroup.links.some((l) => l.path === currentPath)) {
@@ -268,6 +275,14 @@
               :subtitle="`${pendingProductClassesCount} classe(s) aguardando aprovação`"
               title="Classes de Produtos"
               to="/admin/product-classes"
+            />
+            <UiListItem
+              v-if="pendingCharacteristicKeysCount > 0"
+              :prepend-icon="getIcon('/admin/product-characteristics')"
+              rounded="lg"
+              :subtitle="`${pendingCharacteristicKeysCount} característica(s) aguardando aprovação`"
+              title="Características de Produtos"
+              to="/admin/product-characteristics"
             />
             <UiListItem
               v-if="pendingReturnsCount > 0"

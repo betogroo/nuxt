@@ -157,6 +157,9 @@ export const useDemands = () => {
 
     if (error) throw error
 
+    const { refreshPendingReturns } = usePendingTasks()
+    await refreshPendingReturns()
+
     await logAction(
       'REVERT_DEMAND_STATUS',
       `Demanda ${demandId} retornou para ${previousStatus}`,
@@ -173,6 +176,9 @@ export const useDemands = () => {
       .eq('id', demandId)
 
     if (error) throw error
+
+    const { refreshPendingReturns } = usePendingTasks()
+    await refreshPendingReturns()
 
     await logAction(
       'REQUEST_DEMAND_RETURN',

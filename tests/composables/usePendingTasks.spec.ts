@@ -34,6 +34,7 @@ describe('usePendingTasks', () => {
     const demandsMockEq = { count: 4, error: null }
     const productClassesMockEq = { count: 1, error: null }
     const docTypesMockEq = { count: 5, error: null }
+    const characteristicKeysMockEq = { count: 6, error: null }
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'expense_natures') {
@@ -67,12 +68,20 @@ describe('usePendingTasks', () => {
           eq: vi.fn().mockResolvedValue(docTypesMockEq),
         }
       }
+      if (table === 'product_characteristic_keys') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockResolvedValue(characteristicKeysMockEq),
+        }
+      }
     })
 
-    const { totalPending } = usePendingTasks()
+    const { totalPending, pendingCharacteristicKeysCount, refreshAll } = usePendingTasks()
 
     await new Promise((r) => setTimeout(r, 10))
 
-    expect(totalPending.value).toBe(15) // 3 + 2 + 4 + 1 + 5
+    expect(totalPending.value).toBe(21) // 3 + 2 + 4 + 1 + 5 + 6
+    expect(pendingCharacteristicKeysCount.value).toBe(6)
+    await expect(refreshAll()).resolves.not.toThrow()
   })
 })

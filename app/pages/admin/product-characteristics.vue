@@ -247,6 +247,8 @@
       }
 
       await refreshAll()
+      const { refreshAll: refreshPendingTasks } = usePendingTasks()
+      await refreshPendingTasks()
       closeResolveModal()
     } catch (e: unknown) {
       resolveError.value = getErrorMessage(e)

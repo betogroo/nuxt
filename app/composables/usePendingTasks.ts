@@ -90,13 +90,33 @@ export const usePendingTasks = () => {
       { default: () => 0 },
     )
 
+  const { data: pendingCharacteristicKeysCount, refresh: refreshPendingCharacteristicKeys } =
+    useAsyncData(
+      'pending-characteristic-keys-count',
+      async () => {
+        const { count, error } = await supabase
+          .from('product_characteristic_keys')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_pending', true)
+
+        if (error) {
+          console.error('Erro ao buscar características pendentes:', error)
+          return 0
+        }
+
+        return count || 0
+      },
+      { default: () => 0 },
+    )
+
   const totalPending = computed(() => {
     return (
       (pendingUnitsCount.value || 0) +
       (pendingReturnsCount.value || 0) +
       (pendingExpenseNaturesCount.value || 0) +
       (pendingProductClassesCount.value || 0) +
-      (pendingIirgdDocumentTypesCount.value || 0)
+      (pendingIirgdDocumentTypesCount.value || 0) +
+      (pendingCharacteristicKeysCount.value || 0)
     )
   })
 
@@ -107,6 +127,7 @@ export const usePendingTasks = () => {
       refreshPendingExpenseNatures(),
       refreshPendingProductClasses(),
       refreshPendingIirgdDocumentTypes(),
+      refreshPendingCharacteristicKeys(),
     ])
   }
 
@@ -114,6 +135,7 @@ export const usePendingTasks = () => {
     pendingUnitsCount,
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
+    pendingCharacteristicKeysCount,
     pendingReturnsCount,
     pendingIirgdDocumentTypesCount,
     totalPending,
@@ -121,6 +143,7 @@ export const usePendingTasks = () => {
     refreshPendingUnits,
     refreshPendingExpenseNatures,
     refreshPendingProductClasses,
+    refreshPendingCharacteristicKeys,
     refreshPendingReturns,
     refreshPendingIirgdDocumentTypes,
   }
