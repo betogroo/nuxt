@@ -1120,7 +1120,6 @@
                     size="xs"
                     variant="soft"
                   >
-                    Alias:
                     {{
                       item.alias_code_snapshot || item.measurement_unit_aliases?.code
                         ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `

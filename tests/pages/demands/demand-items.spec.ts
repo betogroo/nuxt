@@ -642,4 +642,12 @@ describe('Demand Items Page', () => {
       'actions',
     ])
   })
+
+  it('does not include "Alias:" prefix in the products table alias chip', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const filePath = path.resolve(process.cwd(), 'app/pages/demands/[id]/index.vue')
+    const pageContent = fs.readFileSync(filePath, 'utf-8')
+    expect(pageContent).not.toMatch(/<UiChip[^>]*>[\s\n]*Alias:/)
+  })
 })
