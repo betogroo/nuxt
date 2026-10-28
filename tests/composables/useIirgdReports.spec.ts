@@ -1,6 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { useIirgdReports } from '~/composables/useIirgdReports'
+import type { IirgdDemand } from '~/composables/useIirgdDemands'
+
+const { logActionMock, printHtmlViaIframeMock, downloadBlobMock } = vi.hoisted(() => ({
+  logActionMock: vi.fn(),
+  printHtmlViaIframeMock: vi.fn().mockResolvedValue(undefined),
+  downloadBlobMock: vi.fn(),
+}))
+
+vi.mock('~/utils/download', () => ({
+  downloadBlob: (...args: unknown[]) => downloadBlobMock(...args),
+}))
+
+vi.mock('~/utils/reportHtml', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('~/utils/reportHtml')>()
+  return {
+    ...actual,
+    printHtmlViaIframe: (...args: unknown[]) => printHtmlViaIframeMock(...args),
+  }
+})
+
+mockNuxtImport('downloadBlob', () => downloadBlobMock)
+mockNuxtImport('printHtmlViaIframe', () => printHtmlViaIframeMock)
 
 const supabaseFromMock: Record<string, unknown> = {}
 Object.assign(supabaseFromMock, {
@@ -18,7 +40,6 @@ const supabaseMock = {
 mockNuxtImport('useSupabaseClient', () => () => supabaseMock)
 mockNuxtImport('useSupabaseUser', () => () => ({ value: { id: 'test-user-id' } }))
 
-const logActionMock = vi.fn()
 mockNuxtImport('useLogger', () => () => ({
   logAction: logActionMock,
 }))
@@ -277,5 +298,162 @@ describe('useIirgdReports', () => {
       'EXPORT_IIRGD_REPORT',
       expect.stringContaining('2026-10-01 a 2026-10-05'),
     )
+  })
+
+  describe('Error Reports functionality', () => {
+    const mockErrorDemands: IirgdDemand[] = [
+      {
+        id: 'err-1',
+        station_code: '1342-5',
+        citizen_id: 'cit-1',
+        status: 'confrontation_failed',
+        observation: 'Digitais com baixa nitidez no polegar direito.',
+        created_at: '2026-10-15T14:30:00Z',
+        iirgd_citizens: {
+          name: 'JOAO DA SILVA',
+          rg: '123456789',
+          cpf: '12345678900',
+        },
+        iirgd_document_types: {
+          name: 'Segunda Via',
+        },
+      },
+      {
+        id: 'err-2',
+        station_code: '1062-9',
+        citizen_id: 'cit-2',
+        status: 'protocol_cancelled',
+        observation: 'Solicitação cancelada a pedido do cidadão.',
+        created_at: '2026-10-16T09:15:00Z',
+        iirgd_citizens: {
+          name: 'MARIA APARECIDA SOUZA',
+          other_document: 'RG RJ 987654',
+          cpf: null,
+          rg: null,
+        },
+        iirgd_document_types: {
+          name: 'Primeira Via',
+        },
+      },
+      {
+        id: 'err-3',
+        station_code: '1342-5',
+        citizen_id: 'cit-3',
+        status: 'awaiting_collection',
+        observation: 'Necessária nova coleta biométrica.',
+        created_at: '2026-10-17T11:00:00Z',
+        iirgd_citizens: {
+          name: 'CARLOS ALBERTO PEREIRA',
+          rg: '445556667',
+          cpf: '98765432100',
+        },
+        iirgd_document_types: {
+          name: 'Segunda Via',
+        },
+      },
+    ]
+
+    it('buildErrorReportData should correctly aggregate error items, summaries and filters', () => {
+      const { buildErrorReportData } = useIirgdReports()
+      const report = buildErrorReportData(mockErrorDemands, {
+        stationCode: '1342-5',
+        searchQuery: 'Silva',
+        isSelectionOnly: true,
+      })
+
+      expect(report.summary.totalErrors).toBe(3)
+      expect(report.filters.stationCode).toBe('1342-5')
+      expect(report.filters.searchQuery).toBe('Silva')
+      expect(report.filters.isSelectionOnly).toBe(true)
+
+      // Check status aggregation
+      expect(report.summary.byStatus['Confronto Fracassado']).toBe(1)
+      expect(report.summary.byStatus['Protocolo Cancelado']).toBe(1)
+      expect(report.summary.byStatus['Aguardando Nova Coleta']).toBe(1)
+
+      // Check station aggregation
+      expect(report.summary.byStation['1342-5']).toBe(2)
+      expect(report.summary.byStation['1062-9']).toBe(1)
+
+      // Check document type aggregation
+      expect(report.summary.byDocumentType['Segunda Via']).toBe(2)
+      expect(report.summary.byDocumentType['Primeira Via']).toBe(1)
+
+      // Check item properties
+      const item1 = report.items[0]
+      expect(item1.citizenName).toBe('JOAO DA SILVA')
+      expect(item1.stationCode).toBe('1342-5')
+      expect(item1.statusLabel).toBe('Confronto Fracassado')
+      expect(item1.observation).toBe('Digitais com baixa nitidez no polegar direito.')
+
+      const item2 = report.items[1]
+      expect(item2.citizenName).toBe('MARIA APARECIDA SOUZA')
+      expect(item2.otherDocument).toBe('RG RJ 987654')
+      expect(item2.statusLabel).toBe('Protocolo Cancelado')
+    })
+
+    it('generateErrorReportHtml should produce valid HTML with header, KPIs, table and escaped text', () => {
+      const { buildErrorReportData, generateErrorReportHtml } = useIirgdReports()
+      const report = buildErrorReportData(mockErrorDemands, {
+        stationCode: null,
+        isSelectionOnly: false,
+      })
+
+      const html = generateErrorReportHtml(report)
+
+      expect(html).toContain('<!DOCTYPE html>')
+      expect(html).toContain('Governo do Estado de São Paulo')
+      expect(html).toContain('IIRGD — Instituto de Identificação Ricardo Gumbleton Daunt')
+      expect(html).toContain('Relatório de Inconsistências e Erros em Demandas')
+      expect(html).toContain('JOAO DA SILVA')
+      expect(html).toContain('Digitais com baixa nitidez no polegar direito.')
+      expect(html).toContain('MARIA APARECIDA SOUZA')
+      expect(html).toContain('RG RJ 987654')
+      expect(html).toContain('Confronto Fracassado')
+      expect(html).toContain('Protocolo Cancelado')
+      expect(html).toContain('Aguardando Nova Coleta')
+    })
+
+    it('generateErrorReportHtml should handle empty report data gracefully', () => {
+      const { buildErrorReportData, generateErrorReportHtml } = useIirgdReports()
+      const report = buildErrorReportData([])
+      const html = generateErrorReportHtml(report)
+
+      expect(html).toContain('Nenhuma demanda com inconsistência registrada')
+      expect(html).toContain('0 registro(s)')
+    })
+
+    it('printErrorReport should call printHtmlViaIframe and logAction', async () => {
+      const { buildErrorReportData, printErrorReport } = useIirgdReports()
+      const report = buildErrorReportData(mockErrorDemands)
+
+      await printErrorReport(report)
+
+      expect(printHtmlViaIframeMock).toHaveBeenCalledTimes(1)
+      expect(printHtmlViaIframeMock).toHaveBeenCalledWith(
+        expect.stringContaining('<!DOCTYPE html>'),
+      )
+      expect(logActionMock).toHaveBeenCalledWith(
+        'PRINT_IIRGD_REPORT',
+        expect.stringContaining('3 registros'),
+      )
+    })
+
+    it('exportErrorReportToCsv should call downloadBlob and logAction', async () => {
+      const { buildErrorReportData, exportErrorReportToCsv } = useIirgdReports()
+      const report = buildErrorReportData(mockErrorDemands)
+
+      await exportErrorReportToCsv(report)
+
+      expect(downloadBlobMock).toHaveBeenCalledTimes(1)
+      expect(downloadBlobMock).toHaveBeenCalledWith(
+        expect.any(Blob),
+        expect.stringContaining('relatorio_erros_iirgd'),
+      )
+      expect(logActionMock).toHaveBeenCalledWith(
+        'EXPORT_IIRGD_REPORT',
+        expect.stringContaining('3 registros'),
+      )
+    })
   })
 })

@@ -2,14 +2,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import GroupPage from '~/pages/iirgd/status/[group].vue'
 
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('definePageMeta', () => vi.fn())
 
-const mockRoute = ref({ params: { group: 'in-progress' } })
-mockNuxtImport('useRoute', () => () => mockRoute.value)
+const mockRoute = reactive({ params: { group: 'in-progress' } })
+mockNuxtImport('useRoute', () => () => mockRoute)
 mockNuxtImport('useRouter', () => () => ({ push: vi.fn() }))
 mockNuxtImport('useSupabaseClient', () => () => ({}))
 mockNuxtImport('useSupabaseUser', () => () => ({ value: { id: 'test-user' } }))
@@ -105,12 +105,16 @@ const defaultStubs = {
     template:
       '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
   },
+  IirgdErrorReportModal: {
+    props: ['modelValue'],
+    template: '<div v-if="modelValue" class="mock-error-report-modal">Error Report Modal</div>',
+  },
 }
 
 describe('IIRGD Group Status Page - Batch Status Update', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockRoute.value = { params: { group: 'in-progress' } }
+    mockRoute.params.group = 'in-progress'
     mockProfile.value = { role: 'admin' }
   })
 
@@ -223,7 +227,7 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
   })
 
   it('should support issued-antecedents group for iirgd_user', async () => {
-    mockRoute.value = { params: { group: 'issued-antecedents' } }
+    mockRoute.params.group = 'issued-antecedents'
     mockProfile.value = { role: 'iirgd_user' }
     const wrapper = mount(GroupPage, {
       global: {
@@ -239,7 +243,7 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
   })
 
   it('should include observation column in tableHeaders when group is errors', async () => {
-    mockRoute.value = { params: { group: 'errors' } }
+    mockRoute.params.group = 'errors'
     mockProfile.value = { role: 'admin' }
     const wrapper = mount(GroupPage, {
       global: {
@@ -253,7 +257,7 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
   })
 
   it('should open status modal with observation and pass it to updateDemand on confirmStatusChange', async () => {
-    mockRoute.value = { params: { group: 'errors' } }
+    mockRoute.params.group = 'errors'
     mockProfile.value = { role: 'admin' }
     const wrapper = mount(GroupPage, {
       global: {
@@ -287,5 +291,50 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
     })
     expect(toastSuccessMock).toHaveBeenCalledWith('Status atualizado!')
     expect(vm.statusModal.isOpen).toBe(false)
+  })
+
+  it('should render error report button and update modal state when group is errors', async () => {
+    mockRoute.params.group = 'errors'
+    mockProfile.value = { role: 'admin' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.group).toBe('errors')
+    expect(wrapper.text()).toContain('Relatório de Erros')
+
+    expect(vm.isErrorReportModalOpen).toBe(false)
+    const reportBtn = wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Relatório de Erros'))
+    expect(reportBtn).toBeDefined()
+    await reportBtn?.trigger('click')
+    expect(vm.isErrorReportModalOpen).toBe(true)
+  })
+
+  it('should reactively show error report button when route group transitions to errors', async () => {
+    mockRoute.params.group = 'in-progress'
+    mockProfile.value = { role: 'admin' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.group).toBe('in-progress')
+    expect(wrapper.text()).not.toContain('Relatório de Erros')
+
+    // Simulate clicking the "errors" tab / route parameter transition
+    mockRoute.params.group = 'errors'
+    await flushPromises()
+
+    expect(vm.group).toBe('errors')
+    expect(wrapper.text()).toContain('Relatório de Erros')
   })
 })

@@ -26,23 +26,25 @@
     canEditIirgdStatus: canEditStatus,
     canManageIirgd: canBatchEdit,
   } = usePermissions()
-  const group = route.params.group as string
+  const group = computed(() => (route.params.group as string) || '')
 
   // Restringir acesso para iirgd_user
-  if (isIirgdUser.value && ['consulted', 'released'].includes(group)) {
-    throw createError({ statusCode: 403, message: 'Acesso negado' })
-  }
+  watchEffect(() => {
+    if (isIirgdUser.value && ['consulted', 'released'].includes(group.value)) {
+      throw createError({ statusCode: 403, message: 'Acesso negado' })
+    }
+  })
 
   // Para o UiTabs e navegação
   const currentTab = computed({
-    get: () => group,
+    get: () => group.value,
     set: (val) => navigateTo(`/iirgd/status/${val}`),
   })
 
   const titles: Record<string, string> = IIRGD_STATUS_GROUP_TITLES
 
   useHead({
-    title: `${titles[group] || 'Demandas'} - IIRGD`,
+    title: computed(() => `${titles[group.value] || 'Demandas'} - IIRGD`),
   })
 
   const { fetchDemands, updateDemand, updateDemandsBatch } = useIirgdDemands()
@@ -53,7 +55,7 @@
   const searchQuery = ref('')
   const stationCode = ref<string | null>(null)
 
-  const isUnpaginated = group === 'consulted'
+  const isUnpaginated = computed(() => group.value === 'consulted')
 
   const tableHeaders = computed(() => {
     const headers = [
@@ -63,7 +65,7 @@
       { text: 'RG', value: 'rg' },
       { text: 'CPF', value: 'cpf' },
       { text: 'Status', value: 'status', align: 'center' as const },
-      ...(group === 'errors' || group === 'in-progress'
+      ...(group.value === 'errors' || group.value === 'in-progress'
         ? [{ text: 'Observações', value: 'observation' }]
         : []),
       { text: 'Data', value: 'created_at', align: 'right' as const },
@@ -82,22 +84,22 @@
     pending,
     refresh,
   } = useAsyncData(
-    `iirgd-demands-${group}`,
+    () => `iirgd-demands-${group.value}`,
     async () => {
       const res = await fetchDemands({
         page: currentPage.value,
         itemsPerPage: itemsPerPage.value,
-        statusGroup: group,
+        statusGroup: group.value,
         searchQuery: searchQuery.value,
         stationCode:
           stationCode.value === 'Todos' || !stationCode.value ? undefined : stationCode.value,
-        noPagination: isUnpaginated,
+        noPagination: isUnpaginated.value,
       })
       totalItems.value = res.count
       return res.data as IirgdDemand[]
     },
     {
-      watch: [currentPage, searchQuery, stationCode],
+      watch: [currentPage, searchQuery, stationCode, group],
       default: () => [],
     },
   )
@@ -120,14 +122,14 @@
     clearSelection,
   } = useRowSelection(demands, (d) => d.id)
 
-  watch([searchQuery, stationCode, () => route.params.group], () => {
+  watch([searchQuery, stationCode, group], () => {
     clearSelection()
     resetPage()
   })
 
   // Chunk logic
   const consultadosRgsChunks = computed(() => {
-    if (group !== 'consulted') return []
+    if (group.value !== 'consulted') return []
     const validDemands = demands.value.filter((d) => d.iirgd_citizens?.rg)
     const chunks: Array<{ text: string; demands: IirgdDemand[] }> = []
     for (let i = 0; i < validDemands.length; i += 8) {
@@ -272,6 +274,7 @@
   }
 
   const isNewDemandModalOpen = ref(false)
+  const isErrorReportModalOpen = ref(false)
 </script>
 
 <template>
@@ -317,6 +320,16 @@
                 @click="openBatchModal"
               >
                 Alterar Status ({{ selectedDemandIds.length }})
+              </UiButton>
+              <UiButton
+                v-if="group === 'errors'"
+                color="error"
+                prepend-icon="printer"
+                size="sm"
+                variant="solid"
+                @click="isErrorReportModalOpen = true"
+              >
+                Relatório de Erros
               </UiButton>
               <UiActionButton
                 action="refresh"
@@ -375,6 +388,16 @@
           </div>
           <div class="d-flex align-center ga-2">
             <UiButton size="sm" variant="ghost" @click="clearSelection"> Limpar seleção </UiButton>
+            <UiButton
+              v-if="group === 'errors'"
+              color="error"
+              prepend-icon="printer"
+              size="sm"
+              variant="soft"
+              @click="isErrorReportModalOpen = true"
+            >
+              Relatório das Selecionadas
+            </UiButton>
             <UiButton
               color="primary"
               prepend-icon="edit"
@@ -542,6 +565,15 @@
       </UiCard>
 
       <!-- Modais -->
+      <IirgdErrorReportModal
+        v-if="group === 'errors'"
+        v-model="isErrorReportModalOpen"
+        :search-query="searchQuery"
+        :selected-demands="selectedDemandsPreview"
+        :station-filter="stationCode"
+        :total-filtered-count="totalItems"
+      />
+
       <IirgdNewDemandModal
         v-if="group === 'in-progress'"
         v-model="isNewDemandModalOpen"

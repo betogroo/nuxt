@@ -258,6 +258,15 @@
     >
       <template #actions>
         <UiButton
+          color="error"
+          prepend-icon="alertCircle"
+          size="sm"
+          to="/iirgd/status/errors"
+          variant="soft"
+        >
+          Relatório de Inconsistências / Erros
+        </UiButton>
+        <UiButton
           :disabled="!reportData || reportData.totalIssued === 0 || isExporting"
           prepend-icon="download"
           size="sm"
