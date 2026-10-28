@@ -21,3 +21,17 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   'manager-election': 'Gestor Eleições',
   'admin-election': 'Administrador Eleições',
 }
+
+export interface UserRoleChipConfig {
+  color: string
+  label: string
+  variant: 'flat' | 'tonal' | 'outlined' | 'solid'
+}
+
+export const USER_ROLE_CONFIG: Record<string, UserRoleChipConfig> = {
+  admin: { color: 'primary', label: 'Admin', variant: 'flat' },
+  uge: { color: 'warning', label: 'UGE', variant: 'tonal' },
+  iirgd_user: { color: 'info', label: 'IIRGD', variant: 'tonal' },
+  iirgd_manager: { color: 'info', label: 'Gestor IIRGD', variant: 'solid' },
+  user: { color: 'default', label: 'Usuário', variant: 'outlined' },
+}

@@ -10,10 +10,15 @@ interface UserTokenWithSub {
  * Resolve tanto a propriedade `id` direta quanto `sub` presente em alguns tokens JWT.
  */
 export function useCurrentUserId() {
-  const user = useSupabaseUser()
+  let user: ReturnType<typeof useSupabaseUser> | null = null
+  try {
+    user = useSupabaseUser()
+  } catch {
+    user = null
+  }
 
   const userId = computed<string | null>(() => {
-    if (!user.value) return null
+    if (!user?.value) return null
     if (user.value.id) return user.value.id
 
     const tokenObj = user.value as unknown as UserTokenWithSub

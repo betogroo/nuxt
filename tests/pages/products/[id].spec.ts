@@ -126,6 +126,8 @@ const stubs = {
   NuxtLink: { template: '<a><slot /></a>' },
   UiModal: { template: '<div class="ui-modal"><slot /><slot name="actions" /></div>' },
   UiInput: true,
+  UiTextarea: true,
+  UiDivider: true,
   UiSwitch: true,
   UiAutocomplete: { props: ['items'], template: '<div class="ui-autocomplete"><slot /></div>' },
   UiTable: {

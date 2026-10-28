@@ -1,6 +1,8 @@
 import { useSupabaseClient } from '#imports'
 import { useLogger } from './useLogger'
 
+import { IIRGD_SLA_IGNORED_STATUSES, type IirgdDemandStatus } from '~/constants/iirgd-status'
+
 export interface IirgdSettings {
   id: string
   alert_days: number
@@ -66,14 +68,7 @@ export const useIirgdSettings = () => {
     settings: IirgdSettings | null,
   ): 'alert' | 'delay' | 'normal' | 'none' => {
     if (!settings || !demand.status || !demand.created_at) return 'none'
-    const ignoreStatuses = [
-      'issued',
-      'awaiting_collection',
-      'confrontation_failed',
-      'protocol_cancelled',
-      'unknown_error',
-    ]
-    if (ignoreStatuses.includes(demand.status)) return 'none'
+    if (IIRGD_SLA_IGNORED_STATUSES.includes(demand.status as IirgdDemandStatus)) return 'none'
 
     const createdDate = new Date(demand.created_at)
     const today = new Date()

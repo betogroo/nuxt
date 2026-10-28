@@ -2,16 +2,18 @@
   import { ref, computed } from 'vue'
 
   import { usePagination } from '~/composables/usePagination'
+  import { useRowSelection } from '~/composables/useRowSelection'
   import { useIirgdDemands, type IirgdDemand } from '~/composables/useIirgdDemands'
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
-    IIRGD_STATUS_GROUPS,
+    IIRGD_STATUS_GROUP_TITLES,
+    getIirgdStatusSelectOptions,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
   import { padAndFormatRg, formatCitizenName } from '~/utils/formatters'
-  import { ROLES } from '~/constants/roles'
+  import { usePermissions } from '~/composables/usePermissions'
 
   definePageMeta({
     middleware: ['iirgd'],
@@ -19,11 +21,15 @@
   })
 
   const route = useRoute()
-  const { profile } = useProfile()
+  const {
+    isIirgdUser,
+    canEditIirgdStatus: canEditStatus,
+    canManageIirgd: canBatchEdit,
+  } = usePermissions()
   const group = route.params.group as string
 
   // Restringir acesso para iirgd_user
-  if (profile.value?.role === ROLES.IIRGD_USER && ['consulted', 'released'].includes(group)) {
+  if (isIirgdUser.value && ['consulted', 'released'].includes(group)) {
     throw createError({ statusCode: 403, message: 'Acesso negado' })
   }
 
@@ -33,14 +39,7 @@
     set: (val) => navigateTo(`/iirgd/status/${val}`),
   })
 
-  const titles: Record<string, string> = {
-    'in-progress': 'Em Andamento',
-    consulted: 'Consultados',
-    released: 'Liberados',
-    issued: 'RGs Emitidos',
-    'issued-antecedents': 'Antecedentes Emitidos',
-    errors: 'Erros e Pendências',
-  }
+  const titles: Record<string, string> = IIRGD_STATUS_GROUP_TITLES
 
   useHead({
     title: `${titles[group] || 'Demandas'} - IIRGD`,
@@ -55,10 +54,6 @@
   const stationCode = ref<string | null>(null)
 
   const isUnpaginated = group === 'consulted'
-  const canEditStatus = computed(() => profile.value?.role !== ROLES.IIRGD_USER)
-  const canBatchEdit = computed(() => {
-    return profile.value?.role === ROLES.ADMIN || profile.value?.role === ROLES.IIRGD_MANAGER
-  })
 
   const tableHeaders = computed(() => {
     const headers = [
@@ -78,9 +73,6 @@
     }
     return headers
   })
-
-  // Selection state for batch operations
-  const selectedDemandIds = ref<string[]>([])
 
   const { fetchSettings, computePriority } = useIirgdSettings()
   const { data: slaSettings } = useAsyncData('iirgd-settings', fetchSettings)
@@ -117,46 +109,16 @@
     }))
   })
 
-  const isAllPageSelected = computed(() => {
-    if (!demands.value || demands.value.length === 0) return false
-    return demands.value.every((d) => d.id && selectedDemandIds.value.includes(d.id))
-  })
-
-  const isSomePageSelected = computed(() => {
-    if (!demands.value || demands.value.length === 0) return false
-    const selectedCount = demands.value.filter(
-      (d) => d.id && selectedDemandIds.value.includes(d.id),
-    ).length
-    return selectedCount > 0 && selectedCount < demands.value.length
-  })
-
-  const toggleSelectAllPage = (value: boolean | null) => {
-    const pageIds = demands.value.map((d) => d.id).filter((id): id is string => Boolean(id))
-    if (value) {
-      const set = new Set([...selectedDemandIds.value, ...pageIds])
-      selectedDemandIds.value = Array.from(set)
-    } else {
-      selectedDemandIds.value = selectedDemandIds.value.filter((id) => !pageIds.includes(id))
-    }
-  }
-
-  const toggleSelectRow = (id?: string) => {
-    if (!id) return
-    const idx = selectedDemandIds.value.indexOf(id)
-    if (idx > -1) {
-      selectedDemandIds.value.splice(idx, 1)
-    } else {
-      selectedDemandIds.value.push(id)
-    }
-  }
-
-  const isRowSelected = (id?: string) => {
-    return id ? selectedDemandIds.value.includes(id) : false
-  }
-
-  const clearSelection = () => {
-    selectedDemandIds.value = []
-  }
+  // Selection state for batch operations
+  const {
+    selectedIds: selectedDemandIds,
+    isAllPageSelected,
+    isSomePageSelected,
+    isRowSelected,
+    toggleSelectRow,
+    toggleSelectAllPage,
+    clearSelection,
+  } = useRowSelection(demands, (d) => d.id)
 
   watch([searchQuery, stationCode, () => route.params.group], () => {
     clearSelection()
@@ -228,14 +190,7 @@
     error: '',
   })
 
-  const statusOptions = computed(() => {
-    return IIRGD_STATUS_GROUPS.flatMap((g) =>
-      g.options.map((opt) => ({
-        title: `${IIRGD_STATUS_LABELS[opt]} (${g.label})`,
-        value: opt,
-      })),
-    )
-  })
+  const statusOptions = computed(() => getIirgdStatusSelectOptions())
 
   const openStatusModal = (demand: IirgdDemand) => {
     statusModal.value.demand = demand
@@ -274,14 +229,7 @@
     error: '',
   })
 
-  const batchStatusOptions = computed(() => {
-    return IIRGD_STATUS_GROUPS.flatMap((g) =>
-      g.options.map((opt) => ({
-        title: `${IIRGD_STATUS_LABELS[opt]} (${g.label})`,
-        value: opt,
-      })),
-    )
-  })
+  const batchStatusOptions = statusOptions
 
   const selectedDemandsPreview = computed(() => {
     const map = new Map(demands.value.map((d) => [d.id, d]))
@@ -343,8 +291,8 @@
       <!-- Navegação Facilitada entre status -->
       <UiTabs v-model="currentTab" class="mb-4">
         <UiTab value="in-progress">Em Andamento</UiTab>
-        <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="consulted">Consultados</UiTab>
-        <UiTab v-if="profile?.role !== ROLES.IIRGD_USER" value="released">Liberados</UiTab>
+        <UiTab v-if="canEditStatus" value="consulted">Consultados</UiTab>
+        <UiTab v-if="canEditStatus" value="released">Liberados</UiTab>
         <UiTab value="issued">RGs Emitidos</UiTab>
         <UiTab value="issued-antecedents">Antecedentes Emitidos</UiTab>
         <UiTab value="errors">Erros</UiTab>

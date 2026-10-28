@@ -66,3 +66,47 @@ export const IIRGD_STATUS_GROUPS = [
     ] as IirgdDemandStatus[],
   },
 ]
+
+export type IirgdStatusGroup =
+  'in-progress' | 'consulted' | 'released' | 'issued' | 'issued-antecedents' | 'errors'
+
+export const IIRGD_STATUS_GROUP_TITLES: Record<IirgdStatusGroup, string> = {
+  'in-progress': 'Em Andamento',
+  consulted: 'Consultados',
+  released: 'Liberados',
+  issued: 'RGs Emitidos',
+  'issued-antecedents': 'Antecedentes Emitidos',
+  errors: 'Erros e Pendências',
+}
+
+export const IIRGD_STATUS_BY_GROUP: Record<IirgdStatusGroup, IirgdDemandStatus[]> = {
+  'in-progress': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
+  consulted: ['confronted'],
+  released: ['released'],
+  issued: ['issued'],
+  'issued-antecedents': ['issued'],
+  errors: ['protocol_cancelled', 'awaiting_collection', 'confrontation_failed', 'unknown_error'],
+}
+
+export const IIRGD_ACTIVE_STATUSES: IirgdDemandStatus[] = [
+  ...IIRGD_STATUS_BY_GROUP['in-progress'],
+  ...IIRGD_STATUS_BY_GROUP.consulted,
+  ...IIRGD_STATUS_BY_GROUP.released,
+]
+
+export const IIRGD_SLA_IGNORED_STATUSES: IirgdDemandStatus[] = [
+  ...IIRGD_STATUS_BY_GROUP.issued,
+  ...IIRGD_STATUS_BY_GROUP.errors,
+]
+
+export function getIirgdStatusSelectOptions(): Array<{
+  title: string
+  value: IirgdDemandStatus
+}> {
+  return IIRGD_STATUS_GROUPS.flatMap((group) =>
+    group.options.map((opt) => ({
+      title: `${IIRGD_STATUS_LABELS[opt]} (${group.label})`,
+      value: opt,
+    })),
+  )
+}

@@ -1,6 +1,5 @@
 <script setup lang="ts">
   import { useIirgdDemands } from '~/composables/useIirgdDemands'
-  import { ROLES } from '~/constants/roles'
 
   definePageMeta({
     icon: 'userBadge',
@@ -109,7 +108,7 @@
     { name: 'Demandas Emitidas', data: trendData.value?.series || [] },
   ])
 
-  const { profile } = useProfile()
+  const { isIirgdUser, canManageIirgd } = usePermissions()
   const isModalOpen = ref(false)
 
   const cards = computed(() => {
@@ -158,7 +157,7 @@
       },
     ]
 
-    if (profile.value?.role === ROLES.IIRGD_USER) {
+    if (isIirgdUser.value) {
       return all.filter((c) =>
         ['in-progress', 'issued', 'issued-antecedents', 'errors'].includes(c.group),
       )
@@ -200,10 +199,7 @@
           </UiCard>
         </UiCol>
       </UiRow>
-      <UiRow
-        v-if="profile?.role === ROLES.ADMIN || profile?.role === ROLES.IIRGD_MANAGER"
-        class="mt-6"
-      >
+      <UiRow v-if="canManageIirgd" class="mt-6">
         <UiCol cols="12">
           <UiCard
             class="cursor-pointer transition-swing"

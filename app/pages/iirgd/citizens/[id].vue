@@ -7,14 +7,12 @@
     IIRGD_STATUS_COLORS,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
-  import { ROLES } from '~/constants/roles'
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
   const router = useRouter()
 
-  const { profile } = useProfile()
-  const isAdmin = computed(() => profile.value?.role === ROLES.ADMIN)
+  const { isAdmin } = usePermissions()
 
   const { fetchCitizenById, updateCitizen } = useIirgdCitizens()
 

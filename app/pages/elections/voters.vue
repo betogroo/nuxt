@@ -3,7 +3,9 @@
   import { useElectionVoters } from '~/composables/useElectionVoters'
   import { usePagination } from '~/composables/usePagination'
   import { usePermissions } from '~/composables/usePermissions'
+  import { useRowSelection } from '~/composables/useRowSelection'
   import { useToast } from '~/composables/useToast'
+  import { ELECTION_VOTER_STATUS_OPTIONS } from '~/constants/elections'
   import { formatDate } from '~/utils/formatters'
   import type { ElectionVoterRow } from '~/types/election-voter'
   import ElectionVoterFormModal from '~/components/elections/ElectionVoterFormModal.vue'
@@ -40,21 +42,13 @@
   const formModalRef = ref<InstanceType<typeof ElectionVoterFormModal> | null>(null)
   const cardModalRef = ref<InstanceType<typeof ElectionVoterCardModal> | null>(null)
 
-  // Selection state for batch operations
-  const selectedVoterIds = ref<Set<string>>(new Set())
-  const selectedVotersMap = ref<Map<string, ElectionVoterRow>>(new Map())
-
   // Safe delete modal state
   const isDeleteModalOpen = ref(false)
   const voterToDelete = ref<ElectionVoterRow | null>(null)
   const isDeleting = ref(false)
 
   // Status options for select
-  const statusOptions = [
-    { title: 'Todas as Situações', value: 'all' },
-    { title: 'Apenas Ativos (Aptos)', value: 'active' },
-    { title: 'Apenas Inativos', value: 'inactive' },
-  ]
+  const statusOptions = ELECTION_VOTER_STATUS_OPTIONS
 
   // Data fetching
   const {
@@ -85,6 +79,18 @@
 
   const voters = computed(() => votersResponse.value?.data || [])
 
+  // Selection state for batch operations
+  const {
+    selectedIdSet: selectedVoterIds,
+    selectedItemsMap: selectedVotersMap,
+    isAllPageSelected,
+    isSomePageSelected,
+    deselectRow: deselectVoter,
+    toggleSelectItem: toggleSelectVoter,
+    toggleSelectAllPage,
+    clearSelection,
+  } = useRowSelection<ElectionVoterRow>(voters, (v) => v.id)
+
   watch(
     () => votersResponse.value?.count,
     (cnt) => {
@@ -98,61 +104,6 @@
   watch([activeFilter, searchQuery], () => {
     resetPage()
   })
-
-  // Selection helpers
-  const isAllPageSelected = computed(() => {
-    const list = voters.value
-    if (list.length === 0) return false
-    return list.every((v) => selectedVoterIds.value.has(v.id))
-  })
-
-  const isSomePageSelected = computed(() => {
-    const list = voters.value
-    if (list.length === 0) return false
-    const some = list.some((v) => selectedVoterIds.value.has(v.id))
-    return some && !isAllPageSelected.value
-  })
-
-  const toggleSelectVoter = (voter: ElectionVoterRow) => {
-    const nextSet = new Set(selectedVoterIds.value)
-    const nextMap = new Map(selectedVotersMap.value)
-
-    if (nextSet.has(voter.id)) {
-      nextSet.delete(voter.id)
-      nextMap.delete(voter.id)
-    } else {
-      nextSet.add(voter.id)
-      nextMap.set(voter.id, voter)
-    }
-
-    selectedVoterIds.value = nextSet
-    selectedVotersMap.value = nextMap
-  }
-
-  const toggleSelectAllPage = () => {
-    const nextSet = new Set(selectedVoterIds.value)
-    const nextMap = new Map(selectedVotersMap.value)
-
-    if (isAllPageSelected.value) {
-      for (const v of voters.value) {
-        nextSet.delete(v.id)
-        nextMap.delete(v.id)
-      }
-    } else {
-      for (const v of voters.value) {
-        nextSet.add(v.id)
-        nextMap.set(v.id, v)
-      }
-    }
-
-    selectedVoterIds.value = nextSet
-    selectedVotersMap.value = nextMap
-  }
-
-  const clearSelection = () => {
-    selectedVoterIds.value = new Set()
-    selectedVotersMap.value = new Map()
-  }
 
   // Modals actions
   const openCreateModal = () => {
@@ -207,10 +158,7 @@
       await deleteVoter(voterToDelete.value.id)
       toast.success(`Eleitor "${voterToDelete.value.name}" removido com sucesso.`)
       // remove from selection if present
-      if (selectedVoterIds.value.has(voterToDelete.value.id)) {
-        selectedVoterIds.value.delete(voterToDelete.value.id)
-        selectedVotersMap.value.delete(voterToDelete.value.id)
-      }
+      deselectVoter(voterToDelete.value.id)
       isDeleteModalOpen.value = false
       voterToDelete.value = null
       await refresh()

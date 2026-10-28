@@ -137,4 +137,28 @@ describe('composables/usePermissions', () => {
       expect(canDeleteElections()).toBe(false)
     })
   })
+
+  describe('IIRGD & Admin computed permissions', () => {
+    it('evaluates isAdmin, isIirgdUser, canManageIirgd, and canEditIirgdStatus per role', () => {
+      const { isAdmin, isIirgdUser, canManageIirgd, canEditIirgdStatus } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(isAdmin.value).toBe(true)
+      expect(isIirgdUser.value).toBe(false)
+      expect(canManageIirgd.value).toBe(true)
+      expect(canEditIirgdStatus.value).toBe(true)
+
+      mockProfile.value = { id: 'm1', role: ROLES.IIRGD_MANAGER }
+      expect(isAdmin.value).toBe(false)
+      expect(isIirgdUser.value).toBe(false)
+      expect(canManageIirgd.value).toBe(true)
+      expect(canEditIirgdStatus.value).toBe(true)
+
+      mockProfile.value = { id: 'u1', role: ROLES.IIRGD_USER }
+      expect(isAdmin.value).toBe(false)
+      expect(isIirgdUser.value).toBe(true)
+      expect(canManageIirgd.value).toBe(false)
+      expect(canEditIirgdStatus.value).toBe(false)
+    })
+  })
 })

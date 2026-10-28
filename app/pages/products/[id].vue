@@ -4,7 +4,6 @@
     ProductCharacteristicDetail,
     ProductDemandUsage,
   } from '~/composables/useProducts'
-  import { ROLES } from '~/constants/roles'
   import { formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
 
@@ -17,7 +16,6 @@
   const router = useRouter()
   const toast = useToast()
   const { copy } = useCopyToClipboard()
-  const { profile } = useProfile()
 
   const {
     fetchProductById,
@@ -38,7 +36,7 @@
 
   const productId = route.params.id as string
 
-  const isAdmin = computed(() => profile.value?.role === ROLES.ADMIN)
+  const { isAdmin } = usePermissions()
 
   const {
     data: product,

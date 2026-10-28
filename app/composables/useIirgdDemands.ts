@@ -1,4 +1,10 @@
-import { IIRGD_STATUS_LABELS, type IirgdDemandStatus } from '~/constants/iirgd-status'
+import {
+  IIRGD_ACTIVE_STATUSES,
+  IIRGD_STATUS_BY_GROUP,
+  IIRGD_STATUS_LABELS,
+  type IirgdDemandStatus,
+  type IirgdStatusGroup,
+} from '~/constants/iirgd-status'
 
 export interface IirgdCitizen {
   id?: string
@@ -54,27 +60,21 @@ export const useIirgdDemands = () => {
 
     if (data) {
       data.forEach((d) => {
-        if (['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'].includes(d.status)) {
+        const status = d.status as IirgdDemandStatus
+        if (IIRGD_STATUS_BY_GROUP['in-progress'].includes(status)) {
           counts.inProgress++
-        } else if (d.status === 'confronted') {
+        } else if (IIRGD_STATUS_BY_GROUP.consulted.includes(status)) {
           counts.consulted++
-        } else if (d.status === 'released') {
+        } else if (IIRGD_STATUS_BY_GROUP.released.includes(status)) {
           counts.released++
-        } else if (d.status === 'issued') {
+        } else if (IIRGD_STATUS_BY_GROUP.issued.includes(status)) {
           const docName = (d.iirgd_document_types as { name?: string } | null)?.name || ''
           if (docName.toLowerCase().includes('antecedentes')) {
             counts.issuedAntecedents++
           } else {
             counts.issued++
           }
-        } else if (
-          [
-            'protocol_cancelled',
-            'awaiting_collection',
-            'confrontation_failed',
-            'unknown_error',
-          ].includes(d.status)
-        ) {
+        } else if (IIRGD_STATUS_BY_GROUP.errors.includes(status)) {
           counts.errors++
         }
       })
@@ -104,21 +104,9 @@ export const useIirgdDemands = () => {
       .select('*, iirgd_citizens!inner(*), iirgd_document_types(name)', { count: 'exact' })
 
     if (statusGroup) {
-      const statusMap: Record<string, string[]> = {
-        'in-progress': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
-        consulted: ['confronted'],
-        released: ['released'],
-        issued: ['issued'],
-        'issued-antecedents': ['issued'],
-        errors: [
-          'protocol_cancelled',
-          'awaiting_collection',
-          'confrontation_failed',
-          'unknown_error',
-        ],
-      }
-      if (statusMap[statusGroup]) {
-        query = query.in('status', statusMap[statusGroup])
+      const groupStatuses = IIRGD_STATUS_BY_GROUP[statusGroup as IirgdStatusGroup]
+      if (groupStatuses) {
+        query = query.in('status', groupStatuses)
       }
 
       if (statusGroup === 'issued' || statusGroup === 'issued-antecedents') {
@@ -242,15 +230,7 @@ export const useIirgdDemands = () => {
         .from('iirgd_demands')
         .select('id, status')
         .eq('citizen_id', citizenId)
-        .in('status', [
-          'new',
-          'confronted',
-          'released',
-          'mailbag',
-          'cegaf',
-          'no_data',
-          'other_pending',
-        ])
+        .in('status', IIRGD_ACTIVE_STATUSES)
 
       if (activeDemands && activeDemands.length > 0) {
         throw new Error('Este cidadão já possui uma solicitação em andamento.')

@@ -1,3 +1,4 @@
+import { computed } from 'vue'
 import type { DemandRow } from '~/composables/useDemands'
 import { ROLES } from '~/constants/roles'
 
@@ -8,29 +9,42 @@ export function usePermissions() {
   const { profile } = useProfile()
   const { userId } = useCurrentUserId()
 
+  const isAdmin = computed(() => profile.value?.role === ROLES.ADMIN)
+  const isIirgdUser = computed(() => profile.value?.role === ROLES.IIRGD_USER)
+
+  /**
+   * Determina se o usuário logado tem perfil de gestão no módulo IIRGD (admin ou iirgd_manager).
+   */
+  const canManageIirgd = computed(
+    () => profile.value?.role === ROLES.ADMIN || profile.value?.role === ROLES.IIRGD_MANAGER,
+  )
+
+  /**
+   * Determina se o usuário logado pode editar status na listagem do IIRGD.
+   */
+  const canEditIirgdStatus = computed(() => profile.value?.role !== ROLES.IIRGD_USER)
+
+  const isOwnerOrAdmin = (entity: Pick<DemandRow, 'user_id'> | null | undefined): boolean => {
+    if (!entity) return false
+    if (isAdmin.value) return true
+
+    const currentId = userId.value || profile.value?.id
+    return !!currentId && entity.user_id === currentId
+  }
+
   /**
    * Determina se o usuário logado tem permissão para editar uma demanda.
    * Regra: administrador ou o próprio criador da demanda.
    */
-  const canEditDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean => {
-    if (!demand) return false
-    if (profile.value?.role === ROLES.ADMIN) return true
-
-    const currentId = userId.value || profile.value?.id
-    return !!currentId && demand.user_id === currentId
-  }
+  const canEditDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean =>
+    isOwnerOrAdmin(demand)
 
   /**
    * Determina se o usuário logado tem permissão para excluir uma demanda.
    * Regra: administrador ou o próprio criador da demanda.
    */
-  const canDeleteDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean => {
-    if (!demand) return false
-    if (profile.value?.role === ROLES.ADMIN) return true
-
-    const currentId = userId.value || profile.value?.id
-    return !!currentId && demand.user_id === currentId
-  }
+  const canDeleteDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean =>
+    isOwnerOrAdmin(demand)
 
   /**
    * Determina se o usuário logado tem permissão para gerenciar (criar/editar) eleições.
@@ -56,6 +70,10 @@ export function usePermissions() {
   }
 
   return {
+    isAdmin,
+    isIirgdUser,
+    canManageIirgd,
+    canEditIirgdStatus,
     canEditDemand,
     canDeleteDemand,
     canManageElections,

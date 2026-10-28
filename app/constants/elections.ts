@@ -30,3 +30,9 @@ export const ELECTION_VOTING_MODE_COLORS: Record<ElectionVotingMode, string> = {
   simple: 'teal',
   monitored: 'indigo',
 }
+
+export const ELECTION_VOTER_STATUS_OPTIONS = [
+  { title: 'Todas as Situações', value: 'all' },
+  { title: 'Apenas Ativos (Aptos)', value: 'active' },
+  { title: 'Apenas Inativos', value: 'inactive' },
+]

@@ -2,6 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import type { ProfileRow } from '~/composables/useUsers'
   import { useZodForm } from '~/composables/useZodForm'
+  import { USER_ROLE_CONFIG } from '~/constants/roles'
   import {
     adminUserEditSchema,
     adminUserCreateSchema,
@@ -181,16 +182,7 @@
     }
   })
 
-  const roleConfig: Record<
-    string,
-    { color: string; label: string; variant: 'flat' | 'tonal' | 'outlined' }
-  > = {
-    admin: { color: 'primary', label: 'Admin', variant: 'flat' },
-    uge: { color: 'warning', label: 'UGE', variant: 'tonal' },
-    iirgd_user: { color: 'info', label: 'IIRGD', variant: 'tonal' },
-    iirgd_manager: { color: 'info', label: 'Gestor IIRGD', variant: 'solid' },
-    user: { color: 'default', label: 'Usuário', variant: 'outlined' },
-  }
+  const roleConfig = USER_ROLE_CONFIG
 </script>
 
 <template>

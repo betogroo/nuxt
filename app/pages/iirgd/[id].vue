@@ -3,14 +3,13 @@
   import {
     IIRGD_STATUS_LABELS,
     IIRGD_STATUS_COLORS,
-    IIRGD_STATUS_GROUPS,
+    getIirgdStatusSelectOptions,
     type IirgdDemandStatus,
   } from '~/constants/iirgd-status'
   import { IIRGD_STATION_CODES } from '~/constants/iirgd-stations'
   import { iirgdStatusChangeFormSchema } from '~/schemas/forms/iirgd-status-change'
-  import { ROLES } from '~/constants/roles'
   const stationCodes = IIRGD_STATION_CODES
-  const { profile } = useProfile()
+  const { canManageIirgd: canEditStatus } = usePermissions()
 
   definePageMeta({ middleware: ['iirgd'] })
   const route = useRoute()
@@ -74,10 +73,6 @@
   }
 
   // Modal State para Editar Observação/Status
-  const canEditStatus = computed(() => {
-    return profile.value?.role === ROLES.ADMIN || profile.value?.role === ROLES.IIRGD_MANAGER
-  })
-
   const canEditData = computed(() => {
     return canEditStatus.value || demand.value?.status === 'new'
   })
@@ -98,14 +93,7 @@
   const [documentTypeId] = defineField('document_type_id')
 
   // Achatar os grupos para o UiSelect formatando com o nome do grupo
-  const statusOptions = computed(() => {
-    return IIRGD_STATUS_GROUPS.flatMap((group) =>
-      group.options.map((opt) => ({
-        title: `${IIRGD_STATUS_LABELS[opt]} (${group.label})`,
-        value: opt,
-      })),
-    )
-  })
+  const statusOptions = computed(() => getIirgdStatusSelectOptions())
 
   const openEditModal = () => {
     if (demand.value) {
