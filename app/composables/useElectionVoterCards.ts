@@ -1,6 +1,7 @@
 import type { jsPDF } from 'jspdf'
 import { useLogger } from '~/composables/useLogger'
-import { printHtmlViaIframe, escapeHtml } from '~/composables/useDemandReports'
+import { printHtmlViaIframe, escapeHtml } from '~/utils/reportHtml'
+import { createA4Doc } from '~/utils/reportPdf'
 import { downloadBlob } from '~/utils/download'
 import { formatDate } from '~/utils/formatters'
 import type { VoterCardItem, VoterCardEmissionOptions } from '~/types/election-voter'
@@ -362,12 +363,7 @@ export function buildBatchVoterCardsHtml(options: VoterCardEmissionOptions): str
 }
 
 export async function buildVoterCardsPdfDoc(options: VoterCardEmissionOptions): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
+  const doc = await createA4Doc()
 
   const voters = options.voters || []
   if (voters.length === 0) {

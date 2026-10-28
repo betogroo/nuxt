@@ -6,9 +6,9 @@ import {
   buildDisputeReportHtml,
   buildDisputeReportPdfDoc,
   formatDecimalBr,
-  escapeCsvField,
   useDemandReports,
 } from '~/composables/useDemandReports'
+import { escapeCsvField } from '~/utils/reportCsv'
 import { formatDemandType } from '~/utils/formatters'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'

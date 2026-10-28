@@ -1,4 +1,5 @@
 import { formatCurrency, formatUnitPrice } from '~/utils/formatters'
+import { escapeHtml } from '~/utils/reportHtml'
 
 export interface DemandTermsCharacteristic {
   value: string
@@ -32,16 +33,6 @@ export interface TermsOfReferenceTableOptions {
   includeCharacteristics?: boolean
   includePrices?: boolean
   codeDisplay?: 'both' | 'catmat' | 'catbec'
-}
-
-function escapeHtml(str: string | null | undefined): string {
-  if (!str) return ''
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }
 
 /**

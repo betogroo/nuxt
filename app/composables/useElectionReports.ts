@@ -1,6 +1,13 @@
 import type { jsPDF } from 'jspdf'
 import { useLogger } from '~/composables/useLogger'
-import { printHtmlViaIframe, escapeHtml } from '~/composables/useDemandReports'
+import { printHtmlViaIframe, escapeHtml } from '~/utils/reportHtml'
+import { toSafeFilename } from '~/utils/reportFilename'
+import {
+  PDF_MARGIN_X_MM,
+  PDF_PAGE_WIDTH_MM,
+  appendPageFooters,
+  createA4Doc,
+} from '~/utils/reportPdf'
 import { downloadBlob } from '~/utils/download'
 import { formatDateTime } from '~/utils/formatters'
 import { ELECTION_STATUS_LABELS, ELECTION_VOTING_MODE_LABELS } from '~/constants/elections'
@@ -721,38 +728,18 @@ function appendCommitteeSignaturesToPdf(
 }
 
 function appendPdfFooters(doc: jsPDF, reportTitle: string, generatedAtStr: string): void {
-  const pageWidth = 210
-  const marginX = 14
-  const totalPages = doc.getNumberOfPages()
-
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    doc.setTextColor(148, 163, 184)
-    doc.setDrawColor(226, 232, 240)
-    doc.setLineWidth(0.3)
-    doc.line(marginX, 287, pageWidth - marginX, 287)
-    doc.text(reportTitle, marginX, 291)
-    doc.text(`Gerado em: ${generatedAtStr}`, 105, 291, { align: 'center' })
-    doc.text(`Página ${i} de ${totalPages}`, pageWidth - marginX, 291, { align: 'right' })
-  }
+  appendPageFooters(doc, reportTitle, `Gerado em: ${generatedAtStr}`)
 }
 
 export async function buildInitialElectionReportPdfDoc(
   params: InitialElectionReportParams,
 ): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
+  const doc = await createA4Doc()
 
-  const pageWidth = 210
-  const marginX = 14
+  const pageWidth = PDF_PAGE_WIDTH_MM
+  const marginX = PDF_MARGIN_X_MM
   const usableWidth = pageWidth - marginX * 2
   const generatedAtStr = formatDateTime(params.generatedAt || new Date())
   const electionDateStr = formatDateTime(params.election.election_date)
@@ -888,17 +875,12 @@ export async function buildInitialElectionReportPdfDoc(
 export async function buildFinalElectionReportPdfDoc(
   params: FinalElectionReportParams,
 ): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
+  const doc = await createA4Doc()
 
-  const pageWidth = 210
-  const marginX = 14
+  const pageWidth = PDF_PAGE_WIDTH_MM
+  const marginX = PDF_MARGIN_X_MM
   const usableWidth = pageWidth - marginX * 2
   const generatedAtStr = formatDateTime(params.generatedAt || new Date())
   const electionDateStr = formatDateTime(params.election.election_date)
@@ -1083,7 +1065,7 @@ export const useElectionReports = () => {
   ): Promise<void> => {
     const doc = await buildInitialElectionReportPdfDoc(params)
     const blob = doc.output('blob')
-    const safeName = (params.election.name || 'eleicao').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    const safeName = toSafeFilename(params.election.name, 'eleicao')
     const filename = customFilename || `relatorio_inicial_zeresima_${safeName}.pdf`
     downloadBlob(blob, filename)
     await logAction(
@@ -1107,7 +1089,7 @@ export const useElectionReports = () => {
   ): Promise<void> => {
     const doc = await buildFinalElectionReportPdfDoc(params)
     const blob = doc.output('blob')
-    const safeName = (params.election.name || 'eleicao').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    const safeName = toSafeFilename(params.election.name, 'eleicao')
     const filename = customFilename || `relatorio_final_apuracao_${safeName}.pdf`
     downloadBlob(blob, filename)
     await logAction(

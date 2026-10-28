@@ -3,6 +3,15 @@ import type { DemandProductRow } from '~/composables/useDemandProducts'
 import type { jsPDF } from 'jspdf'
 import { getItemDisputeResult } from '~/utils/bids'
 import { downloadBlob } from '~/utils/download'
+import { escapeCsvField } from '~/utils/reportCsv'
+import { escapeHtml, printHtmlViaIframe } from '~/utils/reportHtml'
+import { toSafeFilename } from '~/utils/reportFilename'
+import {
+  PDF_MARGIN_X_MM,
+  PDF_PAGE_WIDTH_MM,
+  appendPageFooters,
+  createA4Doc,
+} from '~/utils/reportPdf'
 import {
   formatCnpj,
   formatDate,
@@ -83,28 +92,6 @@ export interface DisputeReportData {
 export function formatDecimalBr(value: number | null | undefined, decimals = 2): string {
   if (value == null || Number.isNaN(Number(value))) return '-'
   return Number(value).toFixed(decimals).replace('.', ',')
-}
-
-/**
- * Escapes a text string for CSV field compliance (RFC 4180).
- */
-export function escapeCsvField(value: string | number | null | undefined): string {
-  if (value == null) return '""'
-  const stringValue = String(value)
-  return `"${stringValue.replace(/"/g, '""')}"`
-}
-
-/**
- * Escapes special characters for safe HTML injection.
- */
-export function escapeHtml(str: string | number | null | undefined): string {
-  if (str == null) return ''
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
 }
 
 /**
@@ -819,59 +806,6 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
 </html>`
 }
 
-/**
- * Triggers native printing using an invisible iframe to prevent any dialog/modal scroll clipping.
- */
-export function printHtmlViaIframe(html: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (typeof document === 'undefined') {
-      resolve()
-      return
-    }
-
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-    iframe.setAttribute('aria-hidden', 'true')
-    iframe.setAttribute('tabindex', '-1')
-
-    document.body.appendChild(iframe)
-
-    const doc = iframe.contentWindow?.document || iframe.contentDocument
-    if (!doc) {
-      document.body.removeChild(iframe)
-      resolve()
-      return
-    }
-
-    doc.open()
-    doc.write(html)
-    doc.close()
-
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus?.()
-        if (typeof iframe.contentWindow?.print === 'function') {
-          iframe.contentWindow.print()
-        }
-      } catch {
-        // Safe fallback in test environments
-      } finally {
-        setTimeout(() => {
-          if (iframe.parentNode) {
-            document.body.removeChild(iframe)
-          }
-          resolve()
-        }, 500)
-      }
-    }, 150)
-  })
-}
-
 export const useDemandReports = () => {
   const { logAction } = useLogger()
 
@@ -882,7 +816,7 @@ export const useDemandReports = () => {
     const csvContent = buildDisputeReportCsv(reportData)
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
 
-    const safeName = (reportData.demandName || 'demanda').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    const safeName = toSafeFilename(reportData.demandName, 'demanda')
     const filename = customFilename || `relatorio_disputa_${safeName}.csv`
 
     downloadBlob(blob, filename)
@@ -908,7 +842,7 @@ export const useDemandReports = () => {
   ): Promise<void> => {
     const doc = await buildDisputeReportPdfDoc(reportData)
     const blob = doc.output('blob')
-    const safeName = (reportData.demandName || 'demanda').toLowerCase().replace(/[^a-z0-9_-]/g, '_')
+    const safeName = toSafeFilename(reportData.demandName, 'demanda')
     const filename = customFilename || `relatorio_disputa_${safeName}.pdf`
 
     downloadBlob(blob, filename)
@@ -943,17 +877,12 @@ export const useDemandReports = () => {
  * Every piece of text is rendered as selectable/searchable native PDF text vectors.
  */
 export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): Promise<jsPDF> {
-  const { jsPDF } = await import('jspdf')
   const { default: autoTable } = await import('jspdf-autotable')
 
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-  })
+  const doc = await createA4Doc()
 
-  const pageWidth = 210
-  const marginX = 14
+  const pageWidth = PDF_PAGE_WIDTH_MM
+  const marginX = PDF_MARGIN_X_MM
   const usableWidth = pageWidth - marginX * 2
 
   // 1. Accent header bar
@@ -1323,20 +1252,11 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
   }
 
   // 7. Footers on every page
-  const totalPages = doc.getNumberOfPages()
-  const nowFormatted = formatDateTime(new Date())
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(7.5)
-    doc.setTextColor(148, 163, 184)
-    doc.setDrawColor(226, 232, 240)
-    doc.setLineWidth(0.3)
-    doc.line(marginX, 287, pageWidth - marginX, 287)
-    doc.text('Sistema de Gestão de Contratações - Relatório Oficial de Homologação', marginX, 291)
-    doc.text(`Emissão: ${nowFormatted}`, 105, 291, { align: 'center' })
-    doc.text(`Página ${i} de ${totalPages}`, pageWidth - marginX, 291, { align: 'right' })
-  }
+  appendPageFooters(
+    doc,
+    'Sistema de Gestão de Contratações - Relatório Oficial de Homologação',
+    `Emissão: ${formatDateTime(new Date())}`,
+  )
 
   return doc
 }
