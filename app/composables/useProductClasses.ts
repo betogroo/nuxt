@@ -1,4 +1,9 @@
 import type { Database } from '~/types/database.types'
+import {
+  PENDING_ITEM_FLAGS,
+  buildApprovePayload,
+  registerPendingItem,
+} from '~/utils/pendingCatalog'
 
 export type ProductClassRow = Database['public']['Tables']['product_classes']['Row']
 export type ProductClassInsert = Database['public']['Tables']['product_classes']['Insert']
@@ -99,35 +104,29 @@ export const useProductClasses = () => {
   }
 
   const registerPendingProductClass = async (payload: { id: string; name: string }) => {
-    const { data, error } = await supabase
-      .from('product_classes')
-      .insert({
-        id: payload.id,
-        name: payload.name,
-        is_pending: true,
-        is_active: false,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    await logAction(
-      'CREATE_PENDING_PRODUCT_CLASS',
-      `Usuário sugeriu nova classe de produto: ${payload.name} (${payload.id})`,
-      user.value?.id,
+    return registerPendingItem<ProductClassRow>(
+      () =>
+        supabase
+          .from('product_classes')
+          .insert({
+            id: payload.id,
+            name: payload.name,
+            ...PENDING_ITEM_FLAGS,
+          })
+          .select()
+          .single(),
+      async () => {
+        await logAction(
+          'CREATE_PENDING_PRODUCT_CLASS',
+          `Usuário sugeriu nova classe de produto: ${payload.name} (${payload.id})`,
+          user.value?.id,
+        )
+      },
     )
-    return data as ProductClassRow
   }
 
   const approvePendingProductClass = async (targetClass: ProductClassRow, newName?: string) => {
-    const updatePayload: Partial<ProductClassInsert> = {
-      is_pending: false,
-      is_active: true,
-    }
-    if (newName && newName.trim() !== '') {
-      updatePayload.name = newName.trim()
-    }
+    const updatePayload: Partial<ProductClassInsert> = buildApprovePayload(newName)
 
     const { error } = await supabase
       .from('product_classes')

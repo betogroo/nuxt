@@ -1,6 +1,14 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import { getWinningBid } from '~/utils/bids'
+import {
+  type AddDemandItemWithDependenciesParams,
+  createProductForDemand,
+  ensureProductDefaultAndFinalUnits,
+  ensureUnitAliasLink,
+  resolveDemandUnitAlias,
+  upsertDemandProductItem,
+} from '~/utils/demandItemDependencies'
 
 export type DemandProductCharacteristic = {
   id: string
@@ -76,277 +84,29 @@ export const useDemandProducts = () => {
   }
 
   // Complex operation that orchestrates Product creation, Unit creation, and linking
-  const addDemandItemWithDependencies = async (params: {
-    demandId: string
-    isNewProductMode: boolean
-    newProductName?: string | null
-    newProductExpenseNatureId?: string | null
-    isSuggestingNature?: boolean
-    suggestedNatureId?: string
-    suggestedNatureName?: string
-    newProductClassId?: string | null
-    isSuggestingClass?: boolean
-    suggestedClassId?: string
-    suggestedClassName?: string
-    newProductCatMat?: number | null
-    newProductCatBec?: number | null
-    selectedProductId?: string | null
-    finalUnitId: string
-    selectedAliasId?: string | null
-    isSuggestingAlias?: boolean
-    suggestedAliasCode?: number | null
-    suggestedAliasName?: string | null
-    itemQuantity: number
-    itemReferencePrice: number
-  }) => {
+  const addDemandItemWithDependencies = async (params: AddDemandItemWithDependenciesParams) => {
+    const ctx = { supabase, userId: user.value?.id, logAction }
     let finalProductId = params.selectedProductId || ''
     const finalUnitId = params.finalUnitId
 
     if (params.isNewProductMode) {
-      let expenseNatureId = params.newProductExpenseNatureId
-      let productClassId = params.newProductClassId || null
-
-      if (params.isSuggestingNature) {
-        if (!params.suggestedNatureId || !params.suggestedNatureName) {
-          throw new Error('Código e Nome da nova natureza são obrigatórios.')
-        }
-
-        // Register pending nature if it doesn't exist
-        const { data: existing } = await supabase
-          .from('expense_natures')
-          .select('id')
-          .eq('id', params.suggestedNatureId)
-          .maybeSingle()
-
-        if (!existing) {
-          const { error: insErr } = await supabase.from('expense_natures').insert({
-            id: params.suggestedNatureId,
-            name: params.suggestedNatureName,
-            is_pending: true,
-            is_active: false,
-          })
-          if (insErr) throw insErr
-          await logAction(
-            'CREATE_PENDING_EXPENSE_NATURE',
-            `Sugerida via Demanda: ${params.suggestedNatureName}`,
-            user.value?.id,
-          )
-        }
-        expenseNatureId = params.suggestedNatureId
-      }
-
-      if (params.isSuggestingClass) {
-        if (!params.suggestedClassId || !params.suggestedClassName) {
-          throw new Error('Código e Nome da nova classe são obrigatórios.')
-        }
-
-        // Register pending product class if it doesn't exist
-        const { data: existingClass } = await supabase
-          .from('product_classes')
-          .select('id')
-          .eq('id', params.suggestedClassId)
-          .maybeSingle()
-
-        if (!existingClass) {
-          const { error: insClassErr } = await supabase.from('product_classes').insert({
-            id: params.suggestedClassId,
-            name: params.suggestedClassName,
-            is_pending: true,
-            is_active: false,
-          })
-          if (insClassErr) throw insClassErr
-          await logAction(
-            'CREATE_PENDING_PRODUCT_CLASS',
-            `Sugerida via Demanda: ${params.suggestedClassName}`,
-            user.value?.id,
-          )
-        }
-        productClassId = params.suggestedClassId
-      }
-
-      if (!params.newProductName || !expenseNatureId) {
-        throw new Error('Nome e Natureza de Despesa são obrigatórios para novo produto.')
-      }
-
-      const { data: newProd, error: prodError } = await supabase
-        .from('products')
-        .insert({
-          name: params.newProductName,
-          expense_nature_id: expenseNatureId,
-          product_class_id: productClassId,
-          cat_mat: params.newProductCatMat || null,
-          cat_bec: params.newProductCatBec || null,
-        })
-        .select()
-        .single()
-
-      if (prodError) {
-        if (prodError.code === '23505') {
-          const detail = `${prodError.message || ''} ${prodError.details || ''}`
-          if (detail.includes('cat_mat')) {
-            throw new Error('Já existe um produto cadastrado com este código CATMAT.')
-          }
-          if (detail.includes('cat_bec')) {
-            throw new Error('Já existe um produto cadastrado com este código CATBEC.')
-          }
-          throw new Error('Já existe um produto cadastrado com este código identificador.')
-        }
-        throw prodError
-      }
-      await logAction(
-        'CREATE_PRODUCT',
-        `Novo produto criado via demanda: ${newProd.name}`,
-        user.value?.id,
-      )
-      finalProductId = newProd.id
+      finalProductId = await createProductForDemand(ctx, params)
     }
 
     if (!finalUnitId) throw new Error('Unidade de medida inválida.')
 
-    // 2. Resolve alternative record (alias)
-    let finalAliasId: string | null = null
+    const finalAliasId = await resolveDemandUnitAlias(ctx, params)
 
-    if (params.isSuggestingAlias) {
-      if (!params.suggestedAliasCode || !params.suggestedAliasName?.trim()) {
-        throw new Error('Código e Nome do registro alternativo (alias) são obrigatórios.')
-      }
+    await ensureProductDefaultAndFinalUnits(supabase, finalProductId, finalUnitId)
 
-      const { data: existingAlias } = await supabase
-        .from('measurement_unit_aliases')
-        .select('id, name')
-        .eq('code', params.suggestedAliasCode)
-        .maybeSingle()
-
-      if (existingAlias) {
-        finalAliasId = existingAlias.id
-      } else {
-        const { data: newAlias, error: aliasErr } = await supabase
-          .from('measurement_unit_aliases')
-          .insert({
-            code: params.suggestedAliasCode,
-            name: params.suggestedAliasName.trim(),
-            is_pending: true,
-          })
-          .select('id')
-          .single()
-
-        if (aliasErr) throw aliasErr
-        finalAliasId = newAlias.id
-        await logAction(
-          'CREATE_PENDING_ALIAS',
-          `Registro alternativo sugerido via Demanda: ${params.suggestedAliasName} (${params.suggestedAliasCode})`,
-          user.value?.id,
-        )
-      }
-
-      if (finalAliasId && finalUnitId) {
-        const { data: existingLink } = await supabase
-          .from('measurement_unit_alias_links')
-          .select('id')
-          .eq('unit_id', finalUnitId)
-          .eq('alias_id', finalAliasId)
-          .maybeSingle()
-
-        if (!existingLink) {
-          const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
-            unit_id: finalUnitId,
-            alias_id: finalAliasId,
-          })
-          if (linkErr && linkErr.code !== '23505') throw linkErr
-        }
-      }
-    } else if (params.selectedAliasId) {
-      finalAliasId = params.selectedAliasId
-
-      if (finalAliasId && finalUnitId) {
-        const { data: existingLink } = await supabase
-          .from('measurement_unit_alias_links')
-          .select('id')
-          .eq('unit_id', finalUnitId)
-          .eq('alias_id', finalAliasId)
-          .maybeSingle()
-
-        if (!existingLink) {
-          const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
-            unit_id: finalUnitId,
-            alias_id: finalAliasId,
-          })
-          if (linkErr && linkErr.code !== '23505') throw linkErr
-        }
-      }
-    }
-
-    // 3. Ensure standard 'Unidade' is linked to product
-    const { data: defaultUnit } = await supabase
-      .from('measurement_units')
-      .select('id')
-      .ilike('name', 'unidade')
-      .maybeSingle()
-
-    if (defaultUnit) {
-      const { data: existingDefaultLink } = await supabase
-        .from('product_units')
-        .select('id')
-        .eq('product_id', finalProductId)
-        .eq('unit_id', defaultUnit.id)
-        .maybeSingle()
-
-      if (!existingDefaultLink) {
-        const { error: defLinkErr } = await supabase
-          .from('product_units')
-          .insert({ product_id: finalProductId, unit_id: defaultUnit.id })
-        if (defLinkErr && defLinkErr.code !== '23505') throw defLinkErr
-      }
-    }
-
-    // Ensure finalUnitId is linked to product (if different from default Unidade)
-    if (finalUnitId && (!defaultUnit || finalUnitId !== defaultUnit.id)) {
-      const { data: existingLink } = await supabase
-        .from('product_units')
-        .select('id')
-        .eq('product_id', finalProductId)
-        .eq('unit_id', finalUnitId)
-        .maybeSingle()
-
-      if (!existingLink) {
-        const { error: linkError } = await supabase
-          .from('product_units')
-          .insert({ product_id: finalProductId, unit_id: finalUnitId })
-        if (linkError && linkError.code !== '23505') throw linkError
-      }
-    }
-
-    // 4. Check if item already exists in demand
-    const { data: existingItems } = await supabase
-      .from('demand_products')
-      .select('id, quantity')
-      .eq('demand_id', params.demandId)
-      .eq('product_id', finalProductId)
-
-    const alreadyExists = existingItems?.length ? existingItems[0] : null
-
-    if (alreadyExists) {
-      const { error } = await supabase
-        .from('demand_products')
-        .update({ quantity: Number(alreadyExists.quantity) + Number(params.itemQuantity) })
-        .eq('id', alreadyExists.id)
-      if (error) throw error
-    } else {
-      const { error } = await supabase.from('demand_products').insert({
-        demand_id: params.demandId,
-        product_id: finalProductId,
-        unit_id: finalUnitId,
-        alias_id: finalAliasId,
-        quantity: params.itemQuantity,
-        reference_price: params.itemReferencePrice,
-      })
-      if (error) throw error
-      await logAction(
-        'ADD_DEMAND_PRODUCT',
-        `Produto adicionado à demanda ${params.demandId}`,
-        user.value?.id,
-      )
-    }
+    await upsertDemandProductItem(ctx, {
+      demandId: params.demandId,
+      productId: finalProductId,
+      unitId: finalUnitId,
+      aliasId: finalAliasId,
+      quantity: params.itemQuantity,
+      referencePrice: params.itemReferencePrice,
+    })
   }
 
   const fetchDemandItemDetails = async (itemId: string) => {
@@ -394,20 +154,7 @@ export const useDemandProducts = () => {
 
     // Link alias to unit if alias is provided
     if (params.finalAliasId && finalUnitId) {
-      const { data: existingLink } = await supabase
-        .from('measurement_unit_alias_links')
-        .select('id')
-        .eq('unit_id', finalUnitId)
-        .eq('alias_id', params.finalAliasId)
-        .maybeSingle()
-
-      if (!existingLink) {
-        const { error: linkErr } = await supabase.from('measurement_unit_alias_links').insert({
-          unit_id: finalUnitId,
-          alias_id: params.finalAliasId,
-        })
-        if (linkErr && linkErr.code !== '23505') throw linkErr
-      }
+      await ensureUnitAliasLink(supabase, finalUnitId, params.finalAliasId)
     }
 
     // Update the demand_product record

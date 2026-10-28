@@ -1,4 +1,9 @@
 import type { Database } from '~/types/database.types'
+import {
+  PENDING_ITEM_FLAGS,
+  buildApprovePayload,
+  registerPendingItem,
+} from '~/utils/pendingCatalog'
 
 export type IirgdDocumentTypeRow = Database['public']['Tables']['iirgd_document_types']['Row']
 export type IirgdDocumentTypeInsert = Database['public']['Tables']['iirgd_document_types']['Insert']
@@ -71,17 +76,20 @@ export const useIirgdDocumentTypes = () => {
    * It is stored as pending/inactive so an admin can review it later.
    */
   const createPendingDocumentType = async (name: string) => {
-    const { error, data } = await supabase
-      .from('iirgd_document_types')
-      .insert({ name: name.trim(), is_pending: true, is_active: false })
-      .select()
-      .single()
-    if (error) throw error
-    await logAction(
-      'CREATE_PENDING_IIRGD_DOCUMENT_TYPE',
-      `Usuário sugeriu novo tipo de documento IIRGD: ${data.name}`,
+    return registerPendingItem<IirgdDocumentTypeRow>(
+      () =>
+        supabase
+          .from('iirgd_document_types')
+          .insert({ name: name.trim(), ...PENDING_ITEM_FLAGS })
+          .select()
+          .single(),
+      async (row) => {
+        await logAction(
+          'CREATE_PENDING_IIRGD_DOCUMENT_TYPE',
+          `Usuário sugeriu novo tipo de documento IIRGD: ${row.name}`,
+        )
+      },
     )
-    return data
   }
 
   const updateDocumentType = async (id: string, payload: { name: string; is_active: boolean }) => {
@@ -116,7 +124,7 @@ export const useIirgdDocumentTypes = () => {
   const approvePendingDocumentType = async (item: IirgdDocumentTypeRow, newName: string) => {
     const { error } = await supabase
       .from('iirgd_document_types')
-      .update({ name: newName, is_pending: false, is_active: true })
+      .update(buildApprovePayload(newName))
       .eq('id', item.id)
 
     if (error) throw error

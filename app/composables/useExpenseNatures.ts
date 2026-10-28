@@ -1,4 +1,9 @@
 import type { Database } from '~/types/database.types'
+import {
+  PENDING_ITEM_FLAGS,
+  buildApprovePayload,
+  registerPendingItem,
+} from '~/utils/pendingCatalog'
 
 export type ExpenseNatureRow = Database['public']['Tables']['expense_natures']['Row']
 export type ExpenseNatureInsert = Database['public']['Tables']['expense_natures']['Insert']
@@ -103,35 +108,29 @@ export const useExpenseNatures = () => {
   }
 
   const registerPendingExpenseNature = async (payload: { id: string; name: string }) => {
-    const { data, error } = await supabase
-      .from('expense_natures')
-      .insert({
-        id: payload.id,
-        name: payload.name,
-        is_pending: true,
-        is_active: false,
-      })
-      .select()
-      .single()
-
-    if (error) throw error
-
-    await logAction(
-      'CREATE_PENDING_EXPENSE_NATURE',
-      `Usuário sugeriu nova natureza de despesa: ${payload.name} (${payload.id})`,
-      user.value?.id,
+    return registerPendingItem(
+      () =>
+        supabase
+          .from('expense_natures')
+          .insert({
+            id: payload.id,
+            name: payload.name,
+            ...PENDING_ITEM_FLAGS,
+          })
+          .select()
+          .single(),
+      async () => {
+        await logAction(
+          'CREATE_PENDING_EXPENSE_NATURE',
+          `Usuário sugeriu nova natureza de despesa: ${payload.name} (${payload.id})`,
+          user.value?.id,
+        )
+      },
     )
-    return data
   }
 
   const approvePendingExpenseNature = async (targetNature: ExpenseNatureRow, newName?: string) => {
-    const updatePayload: Partial<ExpenseNatureInsert> = {
-      is_pending: false,
-      is_active: true,
-    }
-    if (newName && newName.trim() !== '') {
-      updatePayload.name = newName.trim()
-    }
+    const updatePayload: Partial<ExpenseNatureInsert> = buildApprovePayload(newName)
 
     const { error } = await supabase
       .from('expense_natures')
