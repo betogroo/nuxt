@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import type { UnitRow, UnitAliasRow } from '~/composables/useMeasurementUnits'
   import { useZodForm } from '~/composables/useZodForm'
+  import { useFormModal } from '~/composables/useFormModal'
   import {
     adminUnitFormSchema,
     adminUnitAliasFormSchema,
@@ -60,10 +61,17 @@
   const pendingUnits = computed(() => allUnits.value?.filter((u) => u.is_pending) || [])
 
   // --- Unit Modal ---
-  const isModalOpen = ref(false)
-  const isEditing = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
+  const {
+    isOpen: isModalOpen,
+    isEditing,
+    isSaving,
+    error: saveError,
+    openAdd: openAddUnitState,
+    openEdit: openEditUnitState,
+    close: closeModal,
+    executeSave: executeUnitSave,
+  } = useFormModal<UnitRow>()
+
   const {
     errors: saveErrors,
     defineField: defineSaveField,
@@ -75,36 +83,25 @@
   const [aliasIds, aliasIdsProps] = defineSaveField('aliasIds')
   const [isActive, isActiveProps] = defineSaveField('is_active')
 
-  const openAddModal = () => {
-    resetSaveForm({ values: { id: '', name: '', aliasIds: [], is_active: true } })
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const openEditModal = (unit: UnitRow) => {
-    resetSaveForm({
-      values: {
-        id: unit.id,
-        name: unit.name,
-        aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
-        is_active: unit.is_active,
-      },
+  const openAddModal = () =>
+    openAddUnitState(() => {
+      resetSaveForm({ values: { id: '', name: '', aliasIds: [], is_active: true } })
     })
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
-  }
 
-  const closeModal = () => {
-    isModalOpen.value = false
-  }
+  const openEditModal = (unit: UnitRow) =>
+    openEditUnitState(unit, () => {
+      resetSaveForm({
+        values: {
+          id: unit.id,
+          name: unit.name,
+          aliasIds: unit.measurement_unit_aliases?.map((a) => a.id) || [],
+          is_active: unit.is_active,
+        },
+      })
+    })
 
   const saveUnit = handleSaveSubmit(async (values: AdminUnitFormInput) => {
-    try {
-      isSaving.value = true
-      saveError.value = ''
-
+    await executeUnitSave(async () => {
       if (isEditing.value && values.id) {
         await updateUnit(values.id, {
           name: values.name,
@@ -122,11 +119,7 @@
       await refreshUnits()
       await refreshAliases()
       closeModal()
-    } catch (e: unknown) {
-      saveError.value = e instanceof Error ? e.message : String(e)
-    } finally {
-      isSaving.value = false
-    }
+    })
   })
 
   const toggleStatus = async (unit: UnitRow) => {
@@ -139,8 +132,14 @@
   }
 
   // --- Alias Modal ---
-  const isAliasModalOpen = ref(false)
-  const isAliasEditing = ref(false)
+  const {
+    isOpen: isAliasModalOpen,
+    isEditing: isAliasEditing,
+    openAdd: openAddAliasState,
+    openEdit: openEditAliasState,
+    close: closeAliasModal,
+  } = useFormModal<UnitAliasRow>()
+
   const {
     errors: aliasErrors,
     defineField: defineAliasField,
@@ -152,36 +151,27 @@
   const [aliasName, aliasNameProps] = defineAliasField('name')
   const [aliasUnitIds, aliasUnitIdsProps] = defineAliasField('unitIds')
 
-  const openAddAliasModal = () => {
-    resetAliasForm({ values: { id: '', name: '', code: undefined, unitIds: [] } })
-    isAliasEditing.value = false
-    saveError.value = ''
-    isAliasModalOpen.value = true
-  }
-
-  const openEditAliasModal = (alias: UnitAliasRow) => {
-    resetAliasForm({
-      values: {
-        id: alias.id,
-        code: alias.code,
-        name: alias.name,
-        unitIds: alias.measurement_units?.map((u) => u.id) || [],
-      },
+  const openAddAliasModal = () =>
+    openAddAliasState(() => {
+      resetAliasForm({ values: { id: '', name: '', code: undefined, unitIds: [] } })
+      saveError.value = ''
     })
-    isAliasEditing.value = true
-    saveError.value = ''
-    isAliasModalOpen.value = true
-  }
 
-  const closeAliasModal = () => {
-    isAliasModalOpen.value = false
-  }
+  const openEditAliasModal = (alias: UnitAliasRow) =>
+    openEditAliasState(alias, () => {
+      resetAliasForm({
+        values: {
+          id: alias.id,
+          code: alias.code,
+          name: alias.name,
+          unitIds: alias.measurement_units?.map((u) => u.id) || [],
+        },
+      })
+      saveError.value = ''
+    })
 
   const saveAlias = handleAliasSubmit(async (values: AdminUnitAliasFormInput) => {
-    try {
-      isSaving.value = true
-      saveError.value = ''
-
+    await executeUnitSave(async () => {
       if (isAliasEditing.value && values.id) {
         await updateAliasAsAdmin(values.id, {
           code: values.code,
@@ -199,11 +189,7 @@
       await refreshAliases()
       await refreshUnits()
       closeAliasModal()
-    } catch (e: unknown) {
-      saveError.value = e instanceof Error ? e.message : String(e)
-    } finally {
-      isSaving.value = false
-    }
+    })
   })
 
   const removeAlias = async (alias: UnitAliasRow) => {
@@ -218,9 +204,16 @@
   }
 
   // --- Resolve Pending Modal ---
-  const isResolveModalOpen = ref(false)
-  const isResolving = ref(false)
-  const resolveTarget = ref<UnitRow | null>(null)
+  const {
+    isOpen: isResolveModalOpen,
+    isSaving: isResolving,
+    error: resolveError,
+    target: resolveTarget,
+    openForTarget: openResolveTarget,
+    close: closeResolveModal,
+    executeSave: executeResolveSave,
+  } = useFormModal<UnitRow>()
+
   const {
     errors: resolveErrors,
     defineField: defineResolveField,
@@ -235,42 +228,27 @@
   const [resolveMode, resolveModeProps] = defineResolveField('resolveMode')
   const [resolveNewName, resolveNewNameProps] = defineResolveField('resolveNewName')
   const [resolveLinkUnitId, resolveLinkUnitIdProps] = defineResolveField('resolveLinkUnitId')
-  const resolveError = ref('')
 
-  const openResolveModal = (unit: UnitRow) => {
-    resolveTarget.value = unit
-    resetResolveForm({
-      values: { resolveMode: 'new', resolveNewName: unit.name, resolveLinkUnitId: '' },
+  const openResolveModal = (unit: UnitRow) =>
+    openResolveTarget(unit, () => {
+      resetResolveForm({
+        values: { resolveMode: 'new', resolveNewName: unit.name, resolveLinkUnitId: '' },
+      })
     })
-    resolveError.value = ''
-    isResolveModalOpen.value = true
-  }
-
-  const closeResolveModal = () => {
-    isResolveModalOpen.value = false
-    resolveTarget.value = null
-  }
 
   const submitResolve = handleResolveSubmit(async (values: AdminUnitResolveInput) => {
     if (!resolveTarget.value) return
 
-    try {
-      isResolving.value = true
-      resolveError.value = ''
-
-      if (values.resolveMode === 'new' && values.resolveNewName) {
+    await executeResolveSave(async () => {
+      if (values.resolveMode === 'new' && values.resolveNewName && resolveTarget.value) {
         await approvePendingUnit(resolveTarget.value, values.resolveNewName)
-      } else if (values.resolveMode === 'link' && values.resolveLinkUnitId) {
+      } else if (values.resolveMode === 'link' && values.resolveLinkUnitId && resolveTarget.value) {
         await mergePendingUnit(resolveTarget.value, values.resolveLinkUnitId)
       }
 
       await refreshUnits()
       closeResolveModal()
-    } catch (e: unknown) {
-      resolveError.value = e instanceof Error ? e.message : String(e)
-    } finally {
-      isResolving.value = false
-    }
+    })
   })
 </script>
 

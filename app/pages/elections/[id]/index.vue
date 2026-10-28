@@ -24,8 +24,8 @@
   import { useElectionCommittee } from '~/composables/useElectionCommittee'
   import { useElectionVotes } from '~/composables/useElectionVotes'
   import { useElectionVoters } from '~/composables/useElectionVoters'
+  import { useRealtimeChannel } from '~/composables/useRealtimeChannel'
   import { formatPercentageBr } from '~/composables/useElectionReports'
-  import { useSupabaseClient } from '#imports'
 
   definePageMeta({
     middleware: ['elections'],
@@ -48,7 +48,9 @@
     deleteCommitteeMember,
   } = useElectionCommittee()
   const { fetchElectionVotes, computeElectionTally } = useElectionVotes()
-  const { fetchVoters } = useElectionVoters()
+  const { fetchVoters, fetchElectionAttendance, subscribeToElectionAttendance } =
+    useElectionVoters()
+  const { removeRealtimeChannel } = useRealtimeChannel()
   const { canManageElections, canDeleteElections } = usePermissions()
 
   // Tab State
@@ -135,20 +137,7 @@
     pending: attendancePending,
     refresh: refreshAttendance,
   } = useAsyncData(`election-attendance-${electionId.value}`, async () => {
-    const supabase = useSupabaseClient()
-    const { data, error: attErr } = await supabase
-      .from('election_voter_attendance')
-      .select('id, voter_id, voter_registration_number, ballot_box_id, voted_at')
-      .eq('election_id', electionId.value)
-
-    if (attErr) throw attErr
-    return (data || []) as Array<{
-      id: string
-      voter_id: string | null
-      voter_registration_number: string
-      ballot_box_id: string | null
-      voted_at: string
-    }>
+    return await fetchElectionAttendance(electionId.value)
   })
 
   interface VoterWithAttendance extends ElectionVoterRow {
@@ -590,31 +579,14 @@
       refreshBallotBoxes()
     })
 
-    const supabase = useSupabaseClient()
-    attendanceChannel = supabase
-      .channel(`attendance_election_${electionId.value}_${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'election_voter_attendance',
-          filter: `election_id=eq.${electionId.value}`,
-        },
-        () => {
-          refreshAttendance()
-        },
-      )
-      .subscribe()
+    attendanceChannel = subscribeToElectionAttendance(electionId.value, () => {
+      refreshAttendance()
+    })
   })
 
   onUnmounted(() => {
-    if (ballotBoxesChannel) {
-      useSupabaseClient().removeChannel(ballotBoxesChannel)
-    }
-    if (attendanceChannel) {
-      useSupabaseClient().removeChannel(attendanceChannel)
-    }
+    removeRealtimeChannel(ballotBoxesChannel)
+    removeRealtimeChannel(attendanceChannel)
   })
 
   useHead({

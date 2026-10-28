@@ -1,17 +1,17 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue'
-  import { useSupabaseClient } from '#imports'
   import { useZodForm } from '~/composables/useZodForm'
   import { electionFormSchema, type ElectionFormInput } from '~/schemas/forms/election'
   import type { ElectionRow, ElectionStatus, ElectionVotingMode } from '~/types/election'
   import { ELECTION_STATUS_LABELS, ELECTION_VOTING_MODE_LABELS } from '~/constants/elections'
+  import { useCandidates } from '~/composables/useCandidates'
 
   const emit = defineEmits<{
     (e: 'saved', election: ElectionRow): void
   }>()
 
-  const supabase = useSupabaseClient()
   const { createElection, updateElection, loading } = useElections()
+  const { hasElectionCandidates } = useCandidates()
   const toast = useToast()
 
   const isOpen = ref(false)
@@ -97,16 +97,7 @@
       } else if (election.candidates_count !== undefined) {
         hasCandidates.value = election.candidates_count > 0
       } else if (election.id) {
-        try {
-          const { count } = await supabase
-            .from('candidates')
-            .select('id', { count: 'exact', head: true })
-            .eq('election_id', election.id)
-            .is('deleted_at', null)
-          hasCandidates.value = (count || 0) > 0
-        } catch {
-          hasCandidates.value = false
-        }
+        hasCandidates.value = await hasElectionCandidates(election.id)
       }
 
       resetForm({

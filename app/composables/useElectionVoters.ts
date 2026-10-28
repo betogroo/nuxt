@@ -284,6 +284,37 @@ export function useElectionVoters() {
     }
   }
 
+  const fetchElectionAttendance = async (electionId: string) => {
+    const { data, error: attErr } = await supabase
+      .from('election_voter_attendance')
+      .select('id, voter_id, voter_registration_number, ballot_box_id, voted_at')
+      .eq('election_id', electionId)
+
+    if (attErr) throw attErr
+    return (data || []) as Array<{
+      id: string
+      voter_id: string | null
+      voter_registration_number: string
+      ballot_box_id: string | null
+      voted_at: string
+    }>
+  }
+
+  const subscribeToElectionAttendance = (electionId: string, onUpdate: () => void) => {
+    const { subscribeToPostgresChanges } = useRealtimeChannel()
+    return subscribeToPostgresChanges(`attendance_election_${electionId}_${Date.now()}`, [
+      {
+        event: '*',
+        schema: 'public',
+        table: 'election_voter_attendance',
+        filter: `election_id=eq.${electionId}`,
+        callback: () => {
+          onUpdate()
+        },
+      },
+    ])
+  }
+
   return {
     isLoading,
     error,
@@ -296,5 +327,7 @@ export function useElectionVoters() {
     updateVoter,
     toggleVoterActive,
     deleteVoter,
+    fetchElectionAttendance,
+    subscribeToElectionAttendance,
   }
 }

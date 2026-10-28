@@ -344,24 +344,19 @@ export function useBallotBoxes() {
   }
 
   const subscribeToBallotBoxes = (electionId: string, onUpdate: () => void): RealtimeChannel => {
+    const { subscribeToPostgresChanges } = useRealtimeChannel()
     const channelName = `ballot_boxes_election_${electionId}_${Date.now()}`
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ballot_boxes',
-          filter: `election_id=eq.${electionId}`,
-        },
-        () => {
+    return subscribeToPostgresChanges(channelName, [
+      {
+        event: '*',
+        schema: 'public',
+        table: 'ballot_boxes',
+        filter: `election_id=eq.${electionId}`,
+        callback: () => {
           onUpdate()
         },
-      )
-      .subscribe()
-
-    return channel
+      },
+    ])
   }
 
   return {

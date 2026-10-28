@@ -1,9 +1,9 @@
 export const useLogger = () => {
   const supabase = useSupabaseClient()
-  const user = useSupabaseUser()
+  const { userId: currentUserId } = useCurrentUserId()
 
   const logAction = async (action: string, description?: string, customUserId?: string) => {
-    let userId = customUserId || user.value?.id
+    let userId = customUserId || currentUserId.value || undefined
 
     if (!userId) {
       const { data } = await supabase.auth.getSession()

@@ -235,6 +235,19 @@ export function useCandidates() {
     }
   }
 
+  const hasElectionCandidates = async (electionId: string): Promise<boolean> => {
+    try {
+      const { count } = await supabase
+        .from('candidates')
+        .select('id', { count: 'exact', head: true })
+        .eq('election_id', electionId)
+        .is('deleted_at', null)
+      return (count || 0) > 0
+    } catch {
+      return false
+    }
+  }
+
   return {
     loading,
     error,
@@ -242,6 +255,7 @@ export function useCandidates() {
     uploadCandidatePhoto,
     deleteCandidatePhoto,
     fetchCandidates,
+    hasElectionCandidates,
     createCandidate,
     updateCandidate,
     deleteCandidate,

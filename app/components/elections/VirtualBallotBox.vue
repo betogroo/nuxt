@@ -1,7 +1,8 @@
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { onMounted, onUnmounted } from 'vue'
   import type { ElectionRow } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
+  import { useVirtualBallot, type VoteConfirmedPayload } from '~/composables/useVirtualBallot'
 
   const props = withDefaults(
     defineProps<{
@@ -15,199 +16,32 @@
   )
 
   const emit = defineEmits<{
-    (
-      e: 'vote-confirmed',
-      payload: {
-        candidateId?: string | null
-        candidateNumber?: string | null
-        isBlank: boolean
-        isNull: boolean
-      },
-    ): void
+    (e: 'vote-confirmed', payload: VoteConfirmedPayload): void
     (e: 'vote-cycle-completed'): void
   }>()
 
-  // State
-  const digits = ref<string[]>([])
-  const isBlankVote = ref(false)
-  const isVoteFinished = ref(false)
-  const countdownTimer = ref<NodeJS.Timeout | null>(null)
-
-  // Calculations
-  const digitsCount = computed(() => props.election.digits_count || 2)
-  const enteredNumber = computed(() => digits.value.join(''))
-  const isDigitsComplete = computed(() => digits.value.length === digitsCount.value)
-
-  const cargoTitle = computed(() => {
-    if (!props.election) return 'CARGO'
-    return props.election.is_uppercase ? props.election.name.toUpperCase() : props.election.name
+  const {
+    digits,
+    isBlankVote,
+    isVoteFinished,
+    digitsCount,
+    cargoTitle,
+    matchedCandidate,
+    isNullVote,
+    pressDigit,
+    pressCorrige,
+    pressBranco,
+    pressConfirma,
+    resetUrna,
+    handleKeyDown,
+    cleanup,
+  } = useVirtualBallot({
+    election: () => props.election,
+    candidates: () => props.candidates,
+    disabled: () => props.disabled,
+    onVoteConfirmed: (payload) => emit('vote-confirmed', payload),
+    onVoteCycleCompleted: () => emit('vote-cycle-completed'),
   })
-
-  const matchedCandidate = computed<CandidateRow | null>(() => {
-    if (isBlankVote.value || !isDigitsComplete.value) return null
-    return (
-      props.candidates.find((candidate) => candidate.candidate_number === enteredNumber.value) ||
-      null
-    )
-  })
-
-  const isNullVote = computed(() => {
-    return isDigitsComplete.value && !isBlankVote.value && !matchedCandidate.value
-  })
-
-  // Sound Synthesizer (Web Audio API)
-  const playKeySound = () => {
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      if (!AudioCtx) return
-      const ctx = new AudioCtx()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(800, ctx.currentTime)
-      gain.gain.setValueAtTime(0.15, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08)
-
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-
-      osc.start()
-      osc.stop(ctx.currentTime + 0.08)
-    } catch {
-      // Audio playback might be restricted or unsupported
-    }
-  }
-
-  const playConfirmationSound = () => {
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-      if (!AudioCtx) return
-      const ctx = new AudioCtx()
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(950, ctx.currentTime)
-      osc.frequency.setValueAtTime(1400, ctx.currentTime + 0.15)
-      gain.gain.setValueAtTime(0.2, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8)
-
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-
-      osc.start()
-      osc.stop(ctx.currentTime + 0.8)
-    } catch {
-      // Audio playback might be restricted or unsupported
-    }
-  }
-
-  // Keypad Actions
-  const pressDigit = (digit: string) => {
-    if (props.disabled || isVoteFinished.value) return
-
-    if (isBlankVote.value) {
-      isBlankVote.value = false
-      digits.value = []
-    }
-
-    if (digits.value.length < digitsCount.value) {
-      digits.value.push(digit)
-      playKeySound()
-    }
-  }
-
-  const pressCorrige = () => {
-    if (props.disabled || isVoteFinished.value) return
-    digits.value = []
-    isBlankVote.value = false
-    playKeySound()
-  }
-
-  const pressBranco = () => {
-    if (props.disabled || isVoteFinished.value) return
-    digits.value = []
-    isBlankVote.value = true
-    playKeySound()
-  }
-
-  const pressConfirma = () => {
-    if (props.disabled || isVoteFinished.value) return
-
-    if (isBlankVote.value) {
-      playConfirmationSound()
-      isVoteFinished.value = true
-      emit('vote-confirmed', {
-        isBlank: true,
-        isNull: false,
-      })
-      startResetCountdown()
-      return
-    }
-
-    if (isDigitsComplete.value) {
-      playConfirmationSound()
-      isVoteFinished.value = true
-
-      if (matchedCandidate.value) {
-        emit('vote-confirmed', {
-          candidateId: matchedCandidate.value.id,
-          candidateNumber: enteredNumber.value,
-          isBlank: false,
-          isNull: false,
-        })
-      } else {
-        emit('vote-confirmed', {
-          candidateId: null,
-          candidateNumber: enteredNumber.value,
-          isBlank: false,
-          isNull: true,
-        })
-      }
-
-      startResetCountdown()
-    }
-  }
-
-  const resetUrna = () => {
-    if (countdownTimer.value) {
-      clearTimeout(countdownTimer.value)
-      countdownTimer.value = null
-    }
-    digits.value = []
-    isBlankVote.value = false
-    isVoteFinished.value = false
-  }
-
-  const startResetCountdown = () => {
-    if (countdownTimer.value) clearTimeout(countdownTimer.value)
-    countdownTimer.value = setTimeout(() => {
-      emit('vote-cycle-completed')
-      resetUrna()
-    }, 3000)
-  }
-
-  // Physical Keyboard Handler
-  const handleKeyDown = (event: KeyboardEvent) => {
-    if (props.disabled || isVoteFinished.value) return
-
-    if (event.key >= '0' && event.key <= '9') {
-      pressDigit(event.key)
-    } else if (event.key === 'Backspace' || event.key === 'Delete') {
-      event.preventDefault()
-      pressCorrige()
-    } else if (event.key === 'Enter') {
-      event.preventDefault()
-      pressConfirma()
-    } else if (event.key === 'b' || event.key === 'B') {
-      pressBranco()
-    }
-  }
 
   onMounted(() => {
     window.addEventListener('keydown', handleKeyDown)
@@ -215,9 +49,7 @@
 
   onUnmounted(() => {
     window.removeEventListener('keydown', handleKeyDown)
-    if (countdownTimer.value) {
-      clearTimeout(countdownTimer.value)
-    }
+    cleanup()
   })
 
   defineExpose({

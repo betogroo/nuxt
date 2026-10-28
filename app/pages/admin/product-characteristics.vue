@@ -4,6 +4,7 @@
     ProductCharacteristicKeyWithStats,
   } from '~/composables/useProductCharacteristics'
   import { useZodForm } from '~/composables/useZodForm'
+  import { useFormModal } from '~/composables/useFormModal'
   import {
     adminCharacteristicKeyFormSchema,
     adminCharacteristicKeyResolveSchema,
@@ -94,10 +95,16 @@
   }
 
   // --- Add / Edit Official Key Modal ---
-  const isModalOpen = ref(false)
-  const isEditing = ref(false)
-  const isSaving = ref(false)
-  const saveError = ref('')
+  const {
+    isOpen: isModalOpen,
+    isEditing,
+    isSaving,
+    error: saveError,
+    openAdd: openAddKeyState,
+    openEdit: openEditKeyState,
+    close: closeModal,
+    executeSave: executeKeySave,
+  } = useFormModal<ProductCharacteristicKeyRow>()
 
   const {
     errors: saveErrors,
@@ -113,36 +120,25 @@
   const [name, nameProps] = defineSaveField('name')
   const [isActive, isActiveProps] = defineSaveField('is_active')
 
-  const openAddModal = () => {
-    resetSaveForm({ values: { id: '', name: '', is_active: true } })
-    isEditing.value = false
-    saveError.value = ''
-    isModalOpen.value = true
-  }
-
-  const openEditModal = (item: ProductCharacteristicKeyRow) => {
-    resetSaveForm({
-      values: {
-        id: item.id,
-        name: item.name,
-        is_active: item.is_active,
-      },
+  const openAddModal = () =>
+    openAddKeyState(() => {
+      resetSaveForm({ values: { id: '', name: '', is_active: true } })
     })
-    isEditing.value = true
-    saveError.value = ''
-    isModalOpen.value = true
-  }
 
-  const closeModal = () => {
-    isModalOpen.value = false
-  }
+  const openEditModal = (item: ProductCharacteristicKeyRow) =>
+    openEditKeyState(item, () => {
+      resetSaveForm({
+        values: {
+          id: item.id,
+          name: item.name,
+          is_active: item.is_active,
+        },
+      })
+    })
 
   const saveCharacteristicKey = handleSaveSubmit(
     async (values: AdminCharacteristicKeyFormInput) => {
-      try {
-        isSaving.value = true
-        saveError.value = ''
-
+      await executeKeySave(async () => {
         if (isEditing.value && values.id) {
           await updateCharacteristicKey(values.id, {
             name: values.name,
@@ -159,11 +155,7 @@
 
         await refreshAll()
         closeModal()
-      } catch (e: unknown) {
-        saveError.value = getErrorMessage(e)
-      } finally {
-        isSaving.value = false
-      }
+      })
     },
   )
 
@@ -193,10 +185,15 @@
   }
 
   // --- Resolve Pending Key Modal (Approve or Merge) ---
-  const isResolveModalOpen = ref(false)
-  const isResolving = ref(false)
-  const resolveError = ref('')
-  const targetPendingKey = ref<ProductCharacteristicKeyWithStats | null>(null)
+  const {
+    isOpen: isResolveModalOpen,
+    isSaving: isResolving,
+    error: resolveError,
+    target: targetPendingKey,
+    openForTarget: openResolveTarget,
+    close: closeResolveModal,
+    executeSave: executeResolveSave,
+  } = useFormModal<ProductCharacteristicKeyWithStats>()
 
   const {
     errors: resolveErrors,
@@ -213,31 +210,22 @@
   const [newName, newNameProps] = defineResolveField('newName')
   const [targetKeyId, targetKeyIdProps] = defineResolveField('targetKeyId')
 
-  const openResolveModal = async (item: ProductCharacteristicKeyWithStats) => {
-    targetPendingKey.value = item
-    resetResolveForm({
-      values: {
-        resolveMode: 'approve',
-        newName: item.name,
-        targetKeyId: '',
-      },
+  const openResolveModal = async (item: ProductCharacteristicKeyWithStats) =>
+    await openResolveTarget(item, async () => {
+      resetResolveForm({
+        values: {
+          resolveMode: 'approve',
+          newName: item.name,
+          targetKeyId: '',
+        },
+      })
+      await refreshAllOfficial()
     })
-    resolveError.value = ''
-    await refreshAllOfficial()
-    isResolveModalOpen.value = true
-  }
-
-  const closeResolveModal = () => {
-    isResolveModalOpen.value = false
-    targetPendingKey.value = null
-  }
 
   const submitResolve = handleResolveSubmit(async (values: AdminCharacteristicKeyResolveInput) => {
     if (!targetPendingKey.value) return
-    try {
-      isResolving.value = true
-      resolveError.value = ''
-
+    await executeResolveSave(async () => {
+      if (!targetPendingKey.value) return
       if (values.resolveMode === 'approve') {
         await approvePendingCharacteristicKey(targetPendingKey.value, values.newName || '')
         toast.success('Chave padronizada e aprovada com sucesso!')
@@ -250,18 +238,19 @@
       const { refreshAll: refreshPendingTasks } = usePendingTasks()
       await refreshPendingTasks()
       closeResolveModal()
-    } catch (e: unknown) {
-      resolveError.value = getErrorMessage(e)
-    } finally {
-      isResolving.value = false
-    }
+    })
   })
 
   // --- Direct Unification Modal (Official Key -> Official Key) ---
-  const isMergeModalOpen = ref(false)
-  const isMerging = ref(false)
-  const mergeError = ref('')
-  const sourceMergeKey = ref<ProductCharacteristicKeyWithStats | null>(null)
+  const {
+    isOpen: isMergeModalOpen,
+    isSaving: isMerging,
+    error: mergeError,
+    target: sourceMergeKey,
+    openForTarget: openMergeTarget,
+    close: closeMergeModal,
+    executeSave: executeMergeSave,
+  } = useFormModal<ProductCharacteristicKeyWithStats>()
 
   const {
     errors: mergeErrors,
@@ -278,35 +267,22 @@
     (allOfficialKeys.value || []).filter((k) => k.id !== sourceMergeKey.value?.id),
   )
 
-  const openMergeModal = async (item: ProductCharacteristicKeyWithStats) => {
-    sourceMergeKey.value = item
-    resetMergeForm({ values: { targetKeyId: '' } })
-    mergeError.value = ''
-    await refreshAllOfficial()
-    isMergeModalOpen.value = true
-  }
-
-  const closeMergeModal = () => {
-    isMergeModalOpen.value = false
-    sourceMergeKey.value = null
-  }
+  const openMergeModal = async (item: ProductCharacteristicKeyWithStats) =>
+    await openMergeTarget(item, async () => {
+      resetMergeForm({ values: { targetKeyId: '' } })
+      await refreshAllOfficial()
+    })
 
   const submitDirectMerge = handleMergeSubmit(async (values: AdminCharacteristicKeyMergeInput) => {
     if (!sourceMergeKey.value) return
-    try {
-      isMerging.value = true
-      mergeError.value = ''
-
+    await executeMergeSave(async () => {
+      if (!sourceMergeKey.value) return
       await mergeCharacteristicKeys(sourceMergeKey.value, values.targetKeyId)
       toast.success(`Chave "${sourceMergeKey.value.name}" unificada com sucesso!`)
 
       await refreshAll()
       closeMergeModal()
-    } catch (e: unknown) {
-      mergeError.value = getErrorMessage(e)
-    } finally {
-      isMerging.value = false
-    }
+    })
   })
 </script>
 

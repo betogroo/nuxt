@@ -4,7 +4,7 @@
   import { useBallotBoxes } from '~/composables/useBallotBoxes'
   import { useCandidates } from '~/composables/useCandidates'
   import { useElectionVotes } from '~/composables/useElectionVotes'
-  import { useSupabaseClient } from '#imports'
+  import { useRealtimeChannel } from '~/composables/useRealtimeChannel'
   import type { BallotBoxRow } from '~/types/ballot-box'
   import type { ElectionRow } from '~/types/election'
   import type { CandidateRow } from '~/types/candidate'
@@ -19,7 +19,7 @@
 
   const route = useRoute()
   const router = useRouter()
-  const supabase = useSupabaseClient()
+  const { subscribeToPostgresChanges, removeRealtimeChannel } = useRealtimeChannel()
 
   const electionId = computed(() => route.params.id as string)
   const boxId = computed(() => route.params.boxId as string)
@@ -183,34 +183,27 @@
     await loadData()
 
     // Monitoramento Realtime do status desta urna específica e da eleição
-    realtimeChannel = supabase
-      .channel(`ballot_box_${boxId.value}_realtime`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ballot_boxes',
-          filter: `id=eq.${boxId.value}`,
-        },
-        (payload) => {
+    realtimeChannel = subscribeToPostgresChanges(`ballot_box_${boxId.value}_realtime`, [
+      {
+        event: '*',
+        schema: 'public',
+        table: 'ballot_boxes',
+        filter: `id=eq.${boxId.value}`,
+        callback: (payload) => {
           if (payload.eventType === 'DELETE') {
             errorMessage.value = 'Esta urna foi excluída pelo administrador.'
             ballotBox.value = null
           } else if (payload.new) {
-            ballotBox.value = payload.new as BallotBoxRow
+            ballotBox.value = payload.new as unknown as BallotBoxRow
           }
         },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'elections',
-          filter: `id=eq.${electionId.value}`,
-        },
-        (payload) => {
+      },
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'elections',
+        filter: `id=eq.${electionId.value}`,
+        callback: (payload) => {
           if (payload.new && election.value) {
             election.value = {
               ...election.value,
@@ -218,8 +211,8 @@
             }
           }
         },
-      )
-      .subscribe()
+      },
+    ])
 
     // Listener para tecla Esc e saída de fullscreen
     document.addEventListener('fullscreenchange', () => {
@@ -231,9 +224,7 @@
     if (cooldownTimer) {
       clearTimeout(cooldownTimer)
     }
-    if (realtimeChannel) {
-      supabase.removeChannel(realtimeChannel)
-    }
+    removeRealtimeChannel(realtimeChannel)
   })
 
   useHead({
