@@ -115,6 +115,11 @@ describe('useDemandProducts', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
             }),
           }),
           insert: mockDemandProductsInsert,
@@ -231,6 +236,11 @@ describe('useDemandProducts', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({ data: [] }),
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
             }),
           }),
           insert: vi.fn().mockResolvedValue({ error: null }),
@@ -344,6 +354,11 @@ describe('useDemandProducts', () => {
               eq: vi.fn().mockReturnValue({
                 maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
               }),
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
             }),
           }),
           insert: vi.fn().mockResolvedValue({ error: null }),
@@ -416,6 +431,11 @@ describe('useDemandProducts', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
             }),
           }),
           insert: mockDemandProductsInsert,
@@ -515,6 +535,11 @@ describe('useDemandProducts', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
             }),
           }),
           insert: mockDemandProductsInsert,
@@ -977,6 +1002,110 @@ describe('useDemandProducts', () => {
         'BATCH_UPDATE_DEMAND_COMMITMENTS',
         expect.stringContaining('sup-1'),
         'user-1',
+      )
+    })
+
+    it('addDemandItemWithDependencies should calculate next sort_order based on existing items', async () => {
+      const { addDemandItemWithDependencies } = useDemandProducts()
+      const mockDemandProductsInsert = vi.fn().mockResolvedValue({ error: null })
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'measurement_units') {
+          return {
+            select: vi.fn().mockReturnValue({
+              ilike: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: { id: 'unit-un-id' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'demand_products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { sort_order: 7 },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+            insert: mockDemandProductsInsert,
+          }
+        }
+        const chainable = {
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          eq: vi.fn(),
+        }
+        chainable.eq.mockReturnValue(chainable)
+        return {
+          select: vi.fn().mockReturnValue(chainable),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        }
+      })
+
+      await addDemandItemWithDependencies({
+        demandId: 'demand-sort-test',
+        selectedProductId: 'prod-existing',
+        finalUnitId: 'unit-cx-id',
+        itemQuantity: 10,
+        itemReferencePrice: 20,
+      })
+
+      expect(mockDemandProductsInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          demand_id: 'demand-sort-test',
+          product_id: 'prod-existing',
+          sort_order: 8,
+        }),
+      )
+    })
+
+    it('addDemandProduct should calculate next sort_order when payload.sort_order is not provided', async () => {
+      const { addDemandProduct } = useDemandProducts()
+      const mockInsert = vi.fn().mockResolvedValue({ error: null })
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'demand_products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { sort_order: 3 },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+            insert: mockInsert,
+          }
+        }
+        return {}
+      })
+
+      await addDemandProduct({
+        demand_id: 'demand-456',
+        product_id: 'prod-789',
+        unit_id: 'unit-1',
+        quantity: 2,
+      })
+
+      expect(mockInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          demand_id: 'demand-456',
+          product_id: 'prod-789',
+          sort_order: 4,
+        }),
       )
     })
   })

@@ -58,6 +58,8 @@ describe('useDemandWorkflow', () => {
         quantity: 10,
         unit_id: 'unit-1',
         reference_price: 5.5,
+        bid_interval: 3,
+        bid_interval_type: 'percentage',
       } as unknown as DemandProductRow,
     ])
   })
@@ -128,6 +130,81 @@ describe('useDemandWorkflow', () => {
     await workflow.confirmAdvanceStatus()
 
     expect(workflow.advanceModal.error.value).toContain('adicionar pelo menos um produto')
+    expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+  })
+
+  it('blocks advancing to bidding_notice when an item has no bid interval', async () => {
+    itemsRef.value = [
+      {
+        id: 'item-1',
+        product_name_snapshot: 'Caneta Azul',
+        quantity: 10,
+        unit_id: 'unit-1',
+        reference_price: 5.5,
+        bid_interval: null,
+        bid_interval_type: null,
+      } as unknown as DemandProductRow,
+      {
+        id: 'item-2',
+        product_name_snapshot: 'Papel A4',
+        quantity: 2,
+        unit_id: 'unit-1',
+        reference_price: 20,
+        bid_interval: 5,
+        bid_interval_type: 'monetary',
+      } as unknown as DemandProductRow,
+    ]
+    const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+    workflow.openAdvanceModal()
+
+    await workflow.confirmAdvanceStatus()
+
+    expect(workflow.advanceModal.error.value).toContain('intervalo de lances')
+    expect(workflow.advanceModal.error.value).toContain('Caneta Azul')
+    expect(workflow.advanceModal.error.value).not.toContain('Papel A4')
+    expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+  })
+
+  it('blocks advancing to bidding_notice when bid interval type or value is missing or zero', async () => {
+    itemsRef.value = [
+      {
+        id: 'item-1',
+        quantity: 1,
+        unit_id: 'unit-1',
+        reference_price: 1,
+        bid_interval: 3,
+        bid_interval_type: null,
+      } as unknown as DemandProductRow,
+    ]
+    const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+    workflow.openAdvanceModal()
+    await workflow.confirmAdvanceStatus()
+    expect(workflow.advanceModal.error.value).toContain('intervalo de lances')
+
+    itemsRef.value = [
+      {
+        id: 'item-1',
+        quantity: 1,
+        unit_id: 'unit-1',
+        reference_price: 1,
+        bid_interval: 0,
+        bid_interval_type: 'percentage',
+      } as unknown as DemandProductRow,
+    ]
+    await workflow.confirmAdvanceStatus()
+    expect(workflow.advanceModal.error.value).toContain('intervalo de lances')
+    expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
+  })
+
+  it('applies the bid interval requirement to historical demands as well', async () => {
+    demandRef.value!.is_historical = true
+    itemsRef.value![0]!.bid_interval = null
+    const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+    workflow.openAdvanceModal()
+
+    await workflow.confirmAdvanceStatus()
+
+    expect(workflow.advanceModal.error.value).toContain('intervalo de lances')
     expect(mockAdvanceDemandStatus).not.toHaveBeenCalled()
   })
 

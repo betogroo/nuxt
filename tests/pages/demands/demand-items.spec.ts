@@ -260,6 +260,36 @@ describe('Demand Items Page', () => {
     expect(vm.eiBidIntervalType).toBe('monetary')
   })
 
+  it('should leave bid interval empty (no 3% default) when item has no interval', () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openEditItemModal({
+      id: 'item-2',
+      quantity: 1,
+      reference_price: 10,
+      bid_interval: null,
+      bid_interval_type: null,
+      product_id: 'prod-2',
+      product: { id: 'prod-2', name: 'Mouse' },
+      unit_id: 'unit-1',
+      measurement_units: { id: 'unit-1', name: 'Unidade' },
+    })
+
+    expect(vm.eiBidInterval).toBeUndefined()
+    expect(vm.eiBidIntervalType).toBeUndefined()
+  })
+
+  it('should not hardcode a default bid interval in the add/edit item form', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const filePath = path.resolve(process.cwd(), 'app/pages/demands/[id]/index.vue')
+    const pageContent = fs.readFileSync(filePath, 'utf-8')
+    expect(pageContent).not.toMatch(/bid_interval:\s*3\b/)
+    expect(pageContent).not.toMatch(/bid_interval_type:\s*'percentage',\s*\n\s*searchUnitText/)
+  })
+
   it('should pass bid interval fields to updateDemandItemWithDependencies when saveEditItem is executed', async () => {
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -647,14 +677,40 @@ describe('Demand Items Page', () => {
     const headers = vm.demandProductHeaders as any[]
     expect(headers.some((h) => h.value === 'characteristics')).toBe(false)
     expect(headers.some((h) => h.value === 'product_characteristics')).toBe(false)
+    expect(headers.some((h) => h.value === 'expense_nature')).toBe(false)
     expect(headers.map((h) => h.value)).toEqual([
       'order',
       'product',
-      'expense_nature',
+      'cat_bec',
+      'units',
       'quantity',
       'reference_values',
       'actions',
     ])
+  })
+
+  it('configures cat_bec and units headers correctly', () => {
+    mockDemandPending.value = false
+    mockDemandData.value = {
+      id: 'demand-123',
+      status: 'planning',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const headers = vm.demandProductHeaders as any[]
+    const becHeader = headers.find((h) => h.value === 'cat_bec')
+    const unitsHeader = headers.find((h) => h.value === 'units')
+    const orderHeader = headers.find((h) => h.value === 'order')
+
+    expect(becHeader).toBeDefined()
+    expect(becHeader.text).toBe('BEC')
+    expect(unitsHeader).toBeDefined()
+    expect(unitsHeader.text).toBe('Unidade / Apresentação')
+    expect(orderHeader).toBeDefined()
+    expect(orderHeader.text).toBe('#')
   })
 
   it('does not include "Alias:" prefix in the products table alias chip', async () => {

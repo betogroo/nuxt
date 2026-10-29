@@ -68,7 +68,23 @@ export const useDemandProducts = () => {
   const addDemandProduct = async (
     payload: Database['public']['Tables']['demand_products']['Insert'],
   ) => {
-    const { error } = await supabase.from('demand_products').insert(payload)
+    let sortOrder = payload.sort_order
+    if (sortOrder === undefined) {
+      const { data: lastItem } = await supabase
+        .from('demand_products')
+        .select('sort_order')
+        .eq('demand_id', payload.demand_id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      sortOrder = (lastItem?.sort_order ?? 0) + 1
+    }
+
+    const { error } = await supabase.from('demand_products').insert({
+      ...payload,
+      sort_order: sortOrder,
+    })
     if (error) {
       if (error.code === '23505') {
         throw new Error('Este produto já foi adicionado a esta demanda.')
@@ -129,7 +145,7 @@ export const useDemandProducts = () => {
     quantity: number
     referencePrice: number | null
     bidInterval?: number | null
-    bidIntervalType?: 'percentage' | 'monetary'
+    bidIntervalType?: 'percentage' | 'monetary' | null
     finalUnitId: string
     finalAliasId?: string | null
   }) => {

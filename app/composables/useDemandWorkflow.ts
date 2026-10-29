@@ -167,6 +167,18 @@ export function useDemandWorkflow(
           )
         }
 
+        const itemsWithoutBidInterval = items.value.filter(
+          (i) => i.bid_interval == null || Number(i.bid_interval) <= 0 || !i.bid_interval_type,
+        )
+        if (itemsWithoutBidInterval.length > 0) {
+          const names = itemsWithoutBidInterval
+            .map((i) => i.product_name_snapshot || i.product?.name || 'Produto desconhecido')
+            .join(', ')
+          throw new Error(
+            `Informe o tipo e o valor do intervalo de lances de todos os produtos antes de avançar para o Aviso de Contratação. Pendentes: ${names}.`,
+          )
+        }
+
         // Bidding notice and dispute fields are optional when advancing to bidding_notice
         if (advanceModal.payload.value.bidding_notice_number?.trim()) {
           payload.bidding_notice_number = advanceModal.payload.value.bidding_notice_number.trim()

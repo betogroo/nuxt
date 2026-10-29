@@ -514,8 +514,8 @@
     productId: '',
     quantity: 1,
     reference_price: null,
-    bid_interval: 3,
-    bid_interval_type: 'percentage',
+    bid_interval: undefined,
+    bid_interval_type: undefined,
     searchUnitText: '',
     aliasId: null,
   })
@@ -569,8 +569,8 @@
         productId: item.product_id || item.product?.id || '',
         quantity: Number(item.quantity),
         reference_price: item.reference_price != null ? Number(item.reference_price) : null,
-        bid_interval: item.bid_interval ? Number(item.bid_interval) : 3,
-        bid_interval_type: item.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
+        bid_interval: item.bid_interval != null ? Number(item.bid_interval) : undefined,
+        bid_interval_type: item.bid_interval_type ?? undefined,
         searchUnitText:
           item.measurement_units?.name ||
           (item.unit_id
@@ -597,8 +597,8 @@
         productId: values.productId,
         quantity: values.quantity,
         referencePrice: values.reference_price,
-        bidInterval: values.bid_interval,
-        bidIntervalType: values.bid_interval_type,
+        bidInterval: values.bid_interval ?? null,
+        bidIntervalType: values.bid_interval_type ?? null,
         finalUnitId: await resolveOrCreateUnit(values.searchUnitText),
         finalAliasId: values.aliasId || null,
       })
@@ -662,10 +662,11 @@
         value: 'order',
         align: 'center' as const,
         sortable: false,
-        width: isQuotation ? 64 : 44,
+        width: isQuotation ? 88 : 50,
       },
       { text: 'Produto', value: 'product' },
-      { text: 'Natureza', value: 'expense_nature', width: 110 },
+      { text: 'BEC', value: 'cat_bec', align: 'center' as const, width: 110 },
+      { text: 'Unidade / Apresentação', value: 'units', width: 220 },
       { text: 'Qtd.', value: 'quantity', align: 'center' as const, width: 70 },
       {
         text: 'Referência',
@@ -1327,33 +1328,32 @@
 
               <!-- Ordem -->
               <template #item-order="{ index }">
-                <div
-                  v-if="demand?.status === 'quotation'"
-                  class="d-flex align-center justify-center ga-1"
-                >
-                  <UiActionButton
-                    action="moveUp"
-                    :disabled="index === 0 || isReordering"
-                    size="xs"
-                    tooltip="Mover para cima"
-                    @click="moveItemUp(index)"
-                  />
-                  <UiActionButton
-                    action="moveDown"
-                    :disabled="index === (items?.length || 0) - 1 || isReordering"
-                    size="xs"
-                    tooltip="Mover para baixo"
-                    @click="moveItemDown(index)"
-                  />
+                <div class="d-flex align-center justify-center ga-1">
+                  <span class="text-caption font-weight-bold text-medium-emphasis">
+                    {{ index + 1 }}
+                  </span>
+                  <div v-if="demand?.status === 'quotation'" class="d-flex align-center ga-1 ml-1">
+                    <UiActionButton
+                      action="moveUp"
+                      :disabled="index === 0 || isReordering"
+                      size="xs"
+                      tooltip="Mover para cima"
+                      @click="moveItemUp(index)"
+                    />
+                    <UiActionButton
+                      action="moveDown"
+                      :disabled="index === (items?.length || 0) - 1 || isReordering"
+                      size="xs"
+                      tooltip="Mover para baixo"
+                      @click="moveItemDown(index)"
+                    />
+                  </div>
                 </div>
-                <span v-else class="text-caption font-weight-bold text-medium-emphasis">
-                  {{ index + 1 }}
-                </span>
               </template>
 
-              <!-- Produto: Nome e chips na mesma linha fluida -->
+              <!-- Produto: Nome e link para cadastro -->
               <template #item-product="{ item }">
-                <div class="d-flex align-center flex-wrap ga-2 py-1">
+                <div class="d-flex align-center ga-2 py-1">
                   <NuxtLink
                     class="text-decoration-none text-primary font-weight-bold"
                     :to="`/demands/${demandId}/items/${item.id}`"
@@ -1368,13 +1368,50 @@
                     tooltip="Cadastro do Produto"
                   />
                   <UiChip
-                    v-if="item.measurement_units"
+                    v-if="
+                      (demand?.status === 'planning' || demand?.status === 'quotation') &&
+                      (item.bid_interval == null || !item.bid_interval_type)
+                    "
+                    class="flex-shrink-0"
+                    color="warning"
+                    size="xs"
+                    variant="soft"
+                  >
+                    Intervalo pendente
+                  </UiChip>
+                </div>
+              </template>
+
+              <!-- BEC -->
+              <template #item-cat_bec="{ item }">
+                <UiChip
+                  v-if="item.product?.cat_bec"
+                  append-icon="externalLink"
+                  class="flex-shrink-0"
+                  color="secondary"
+                  :href="getBecProductUrl(item.product.cat_bec)"
+                  rel="noopener noreferrer"
+                  size="xs"
+                  target="_blank"
+                  title="Abrir no catálogo BEC"
+                  variant="soft"
+                >
+                  {{ item.product.cat_bec }}
+                </UiChip>
+                <span v-else class="text-caption text-medium-emphasis">-</span>
+              </template>
+
+              <!-- Unidade e Apresentação (Alias) em linha -->
+              <template #item-units="{ item }">
+                <div class="d-flex align-center flex-nowrap ga-1">
+                  <UiChip
+                    v-if="item.unit_name_snapshot || item.measurement_units?.name"
                     class="flex-shrink-0"
                     color="secondary"
                     size="xs"
                     variant="solid"
                   >
-                    {{ item.unit_name_snapshot || item.measurement_units.name }}
+                    {{ item.unit_name_snapshot || item.measurement_units?.name }}
                   </UiChip>
                   <UiChip
                     v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
@@ -1389,41 +1426,18 @@
                         : ''
                     }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
                   </UiChip>
-                  <UiChip
-                    v-if="item.product?.cat_bec"
-                    append-icon="externalLink"
-                    class="flex-shrink-0"
-                    color="secondary"
-                    :href="getBecProductUrl(item.product.cat_bec)"
-                    rel="noopener noreferrer"
-                    size="xs"
-                    target="_blank"
-                    title="Abrir no catálogo BEC"
-                    variant="soft"
+                  <span
+                    v-if="
+                      !item.unit_name_snapshot &&
+                      !item.measurement_units?.name &&
+                      !item.alias_name_snapshot &&
+                      !item.measurement_unit_aliases?.name
+                    "
+                    class="text-caption text-medium-emphasis"
                   >
-                    BEC: {{ item.product.cat_bec }}
-                  </UiChip>
+                    -
+                  </span>
                 </div>
-              </template>
-
-              <!-- Natureza -->
-              <template #item-expense_nature="{ item }">
-                <span
-                  :title="
-                    item.expense_nature_name_snapshot ||
-                    (item.product as { expense_natures?: { name: string } })?.expense_natures
-                      ?.name ||
-                    ''
-                  "
-                >
-                  {{
-                    (item.product as { expense_natures?: { id: string } })?.expense_natures?.id ||
-                    item.expense_nature_name_snapshot ||
-                    (item.product as { expense_natures?: { name: string } })?.expense_natures
-                      ?.name ||
-                    '-'
-                  }}
-                </span>
               </template>
 
               <!-- Quantidade -->
@@ -1790,7 +1804,6 @@
           v-bind="eiBidIntervalTypeProps"
           class="mr-2 flex-grow-1"
           :error-messages="eiErrors.bid_interval_type"
-          hide-details
           :items="[
             { title: 'Percentual (%)', value: 'percentage' },
             { title: 'Monetário (R$)', value: 'monetary' },
@@ -1804,7 +1817,6 @@
           v-bind="eiBidIntervalProps"
           class="flex-grow-1"
           :error-messages="eiErrors.bid_interval"
-          hide-details
           label="Valor do Intervalo"
           step="0.01"
           type="number"

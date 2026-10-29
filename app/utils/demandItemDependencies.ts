@@ -338,6 +338,16 @@ export async function upsertDemandProductItem(
       .eq('id', alreadyExists.id)
     if (error) throw error
   } else {
+    const { data: lastItem } = await ctx.supabase
+      .from('demand_products')
+      .select('sort_order')
+      .eq('demand_id', params.demandId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    const nextSortOrder = (lastItem?.sort_order ?? 0) + 1
+
     const { error } = await ctx.supabase.from('demand_products').insert({
       demand_id: params.demandId,
       product_id: params.productId,
@@ -345,6 +355,7 @@ export async function upsertDemandProductItem(
       alias_id: params.aliasId,
       quantity: params.quantity,
       reference_price: params.referencePrice,
+      sort_order: nextSortOrder,
     })
     if (error) throw error
     await ctx.logAction(

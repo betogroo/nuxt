@@ -54,8 +54,8 @@
     searchUnitText: '',
     aliasId: null,
     reference_price: null,
-    bid_interval: 3,
-    bid_interval_type: 'percentage',
+    bid_interval: undefined,
+    bid_interval_type: undefined,
   })
 
   const [eiQuantity, eiQuantityProps] = eiDefine('quantity')
@@ -86,8 +86,9 @@
         searchUnitText: item.value.measurement_units?.name || '',
         aliasId: item.value.alias_id || null,
         reference_price: item.value.reference_price ? Number(item.value.reference_price) : null,
-        bid_interval: item.value.bid_interval ? Number(item.value.bid_interval) : 3,
-        bid_interval_type: item.value.bid_interval_type === 'monetary' ? 'monetary' : 'percentage',
+        bid_interval: item.value.bid_interval != null ? Number(item.value.bid_interval) : undefined,
+        bid_interval_type:
+          (item.value.bid_interval_type as 'percentage' | 'monetary' | null) ?? undefined,
       },
     })
 
@@ -120,8 +121,8 @@
         productId: item.value?.product_id || undefined,
         quantity: values.quantity,
         referencePrice: values.reference_price,
-        bidInterval: values.bid_interval,
-        bidIntervalType: values.bid_interval_type,
+        bidInterval: values.bid_interval ?? null,
+        bidIntervalType: values.bid_interval_type ?? null,
         finalUnitId: await resolveOrCreateUnit(values.searchUnitText || ''),
         finalAliasId: values.aliasId || null,
       })
@@ -815,11 +816,19 @@
               </template>
               <UiListItemTitle>Intervalo entre Lances</UiListItemTitle>
               <UiListItemSubtitle v-if="item">
-                {{
-                  item.bid_interval_type === 'percentage'
-                    ? `${item.bid_interval}%`
-                    : formatUnitPrice(item.bid_interval || 0)
-                }}
+                <span
+                  v-if="item.bid_interval == null || !item.bid_interval_type"
+                  class="text-error font-weight-medium"
+                >
+                  Não informado
+                </span>
+                <template v-else>
+                  {{
+                    item.bid_interval_type === 'percentage'
+                      ? `${item.bid_interval}%`
+                      : formatUnitPrice(item.bid_interval)
+                  }}
+                </template>
               </UiListItemSubtitle>
             </UiListItem>
             <UiDivider class="my-2" />
@@ -878,7 +887,6 @@
           v-bind="eiBidIntervalTypeProps"
           class="mr-2 flex-grow-1"
           :error-messages="eiErrors.bid_interval_type"
-          hide-details
           :items="[
             { title: 'Percentual (%)', value: 'percentage' },
             { title: 'Monetário (R$)', value: 'monetary' },
@@ -892,7 +900,6 @@
           v-bind="eiBidIntervalProps"
           class="flex-grow-1"
           :error-messages="eiErrors.bid_interval"
-          hide-details
           label="Valor do Intervalo"
           step="0.01"
           type="number"
