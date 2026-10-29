@@ -1,6 +1,84 @@
 import type { Database } from '~/types/database.types'
+import type { DemandStatus } from '~/utils/demandStatus'
 
 export type DemandRow = Database['public']['Tables']['demands']['Row']
+export type DemandType = Database['public']['Enums']['demand_type']
+
+export interface DemandDashboardSummary {
+  totalAll: number
+  totalActive: number
+  inPreparation: number
+  inExecution: number
+  completed: number
+  cancelled: number
+  returnsCount: number
+  byStatus: Record<DemandStatus, number>
+  byType: {
+    consumption: number
+    permanent: number
+  }
+}
+
+export function createEmptyDemandDashboardSummary(): DemandDashboardSummary {
+  return {
+    totalAll: 0,
+    totalActive: 0,
+    inPreparation: 0,
+    inExecution: 0,
+    completed: 0,
+    cancelled: 0,
+    returnsCount: 0,
+    byStatus: {
+      planning: 0,
+      bidding_notice: 0,
+      quotation: 0,
+      dispute: 0,
+      homologation: 0,
+      completed: 0,
+      cancelled: 0,
+    },
+    byType: {
+      consumption: 0,
+      permanent: 0,
+    },
+  }
+}
+
+export function calculateDemandDashboardSummary(
+  rows: Pick<DemandRow, 'status' | 'type' | 'is_return_requested'>[] | null | undefined,
+): DemandDashboardSummary {
+  const summary = createEmptyDemandDashboardSummary()
+  if (!rows || rows.length === 0) return summary
+
+  for (const row of rows) {
+    summary.totalAll++
+    const st = row.status
+    if (st && st in summary.byStatus) {
+      summary.byStatus[st]++
+    }
+
+    if (st !== 'cancelled') {
+      summary.totalActive++
+      if (row.type === 'consumption') {
+        summary.byType.consumption++
+      } else if (row.type === 'permanent') {
+        summary.byType.permanent++
+      }
+    }
+
+    if (row.is_return_requested) {
+      summary.returnsCount++
+    }
+  }
+
+  summary.inPreparation =
+    summary.byStatus.planning + summary.byStatus.bidding_notice + summary.byStatus.quotation
+  summary.inExecution = summary.byStatus.dispute + summary.byStatus.homologation
+  summary.completed = summary.byStatus.completed
+  summary.cancelled = summary.byStatus.cancelled
+
+  return summary
+}
 
 export const useDemands = () => {
   const supabase = useSupabaseClient<Database>()
@@ -12,6 +90,7 @@ export const useDemands = () => {
     itemsPerPage: number,
     statusFilter?: string | null,
     searchQuery?: string | null,
+    typeFilter?: DemandType | string | null,
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -26,13 +105,27 @@ export const useDemands = () => {
     if (statusFilter) {
       if (statusFilter === 'returns') {
         query = query.eq('is_return_requested', true)
+      } else if (statusFilter === 'preparation') {
+        query = query.in('status', ['planning', 'bidding_notice', 'quotation'])
+      } else if (statusFilter === 'execution') {
+        query = query.in('status', ['dispute', 'homologation'])
       } else {
-        query = query.eq('status', statusFilter as Database['public']['Enums']['demand_status'])
+        query = query.eq('status', statusFilter as DemandStatus)
       }
     }
 
-    if (searchQuery) {
-      query = query.ilike('name', `%${searchQuery}%`)
+    if (typeFilter === 'consumption' || typeFilter === 'permanent') {
+      query = query.eq('type', typeFilter)
+    }
+
+    const trimmedSearch = searchQuery?.trim()
+    if (trimmedSearch) {
+      const safeTerm = trimmedSearch.replace(/[,()]/g, ' ').trim()
+      if (safeTerm) {
+        query = query.or(
+          `name.ilike.%${safeTerm}%,process_number.ilike.%${safeTerm}%,internal_process_number.ilike.%${safeTerm}%`,
+        )
+      }
     }
 
     const { data, count, error } = await query
@@ -43,6 +136,22 @@ export const useDemands = () => {
     }
 
     return { data: (data as DemandRow[]) || [], count: count || 0 }
+  }
+
+  const fetchDemandDashboardSummary = async (): Promise<DemandDashboardSummary> => {
+    const { data, error } = await supabase
+      .from('demands')
+      .select('status, type, is_return_requested')
+      .is('deleted_at', null)
+
+    if (error) {
+      console.error(error)
+      throw error
+    }
+
+    return calculateDemandDashboardSummary(
+      (data as Pick<DemandRow, 'status' | 'type' | 'is_return_requested'>[]) || [],
+    )
   }
 
   const fetchDemandById = async (demandId: string) => {
@@ -189,6 +298,7 @@ export const useDemands = () => {
 
   return {
     fetchDemands,
+    fetchDemandDashboardSummary,
     fetchDemandById,
     fetchDemandResponsibles,
     createDemand,
