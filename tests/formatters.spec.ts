@@ -278,5 +278,17 @@ describe('Formatadores (utils/formatters.ts)', () => {
       // 22 é exatamente 3 dias antes (válido)
       expect(validateOfferOpeningRules('2026-10-22', '10:00', '2026-10-25', fixedNow)).toBeNull()
     })
+
+    it('quando isHistorical = true, deve permitir datas passadas e dispensar regra de 5 dias e horários estritos', () => {
+      // Data passada (2025-06-10) com disputa passada (2025-06-15) -> válido quando histórico
+      expect(
+        validateOfferOpeningRules('2025-06-10', '00:00', '2025-06-15', fixedNow, true),
+      ).toBeNull()
+
+      // Quando histórico, se abertura for posterior à disputa, deve rejeitar
+      expect(validateOfferOpeningRules('2025-06-20', '10:00', '2025-06-15', fixedNow, true)).toBe(
+        'A data de abertura das ofertas não pode ser posterior à data da disputa.',
+      )
+    })
   })
 })

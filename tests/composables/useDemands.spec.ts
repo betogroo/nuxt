@@ -104,4 +104,42 @@ describe('useDemands & Dashboard Summary', () => {
       'name.ilike.%2026-0001%,process_number.ilike.%2026-0001%,internal_process_number.ilike.%2026-0001%',
     )
   })
+
+  it('createDemand supports is_historical flag and direct status/dispute_date', async () => {
+    const singleMock = vi.fn().mockResolvedValue({
+      data: {
+        id: 'dem-hist-1',
+        name: 'Demanda Legada 2025',
+        type: 'consumption',
+        status: 'completed',
+        is_historical: true,
+        dispute_date: '2025-08-14',
+      },
+      error: null,
+    })
+    const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+    const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+    mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+    const { createDemand } = useDemands()
+    const result = await createDemand({
+      name: 'Demanda Legada 2025',
+      type: 'consumption',
+      user_id: 'user-123',
+      status: 'completed',
+      is_historical: true,
+      dispute_date: '2025-08-14',
+    })
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('demands')
+    expect(insertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        is_historical: true,
+        status: 'completed',
+        dispute_date: '2025-08-14',
+      }),
+    )
+    expect(result.is_historical).toBe(true)
+    expect(result.status).toBe('completed')
+  })
 })

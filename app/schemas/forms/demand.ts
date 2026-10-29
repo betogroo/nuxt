@@ -17,6 +17,13 @@ export const demandFormSchema = z.object({
   id_pca: z.string().trim().nullable().optional(),
   contract_number: z.string().trim().nullable().optional(),
   siafem_number: z.string().trim().nullable().optional(),
+  is_historical: z.boolean().default(false),
+  status: z
+    .enum(['planning', 'quotation', 'bidding_notice', 'dispute', 'homologation', 'completed'])
+    .optional(),
+  dispute_date: z.string().trim().nullable().optional(),
+  bidding_notice_number: z.string().trim().nullable().optional(),
+  dispute_number: z.string().trim().nullable().optional(),
 })
 
 export const demandResponsibleSchema = z.object({

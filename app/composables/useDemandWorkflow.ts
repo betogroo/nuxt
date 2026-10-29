@@ -190,6 +190,8 @@ export function useDemandWorkflow(
             offerDate,
             offerTime,
             advanceModal.payload.value.dispute_date,
+            undefined,
+            Boolean(demand.value?.is_historical),
           )
           if (dateError) {
             throw new Error(dateError)
@@ -228,7 +230,13 @@ export function useDemandWorkflow(
           )
         }
 
-        const dateError = validateOfferOpeningRules(offerDate, offerTime, disputeDate)
+        const dateError = validateOfferOpeningRules(
+          offerDate,
+          offerTime,
+          disputeDate,
+          undefined,
+          Boolean(demand.value?.is_historical),
+        )
         if (dateError) {
           throw new Error(dateError)
         }

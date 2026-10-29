@@ -268,6 +268,7 @@ export type Database = {
           id: string
           id_pca: string | null
           internal_process_number: string | null
+          is_historical: boolean
           is_return_requested: boolean | null
           name: string
           offer_opening_date: string | null
@@ -288,6 +289,7 @@ export type Database = {
           id?: string
           id_pca?: string | null
           internal_process_number?: string | null
+          is_historical?: boolean
           is_return_requested?: boolean | null
           name: string
           offer_opening_date?: string | null
@@ -308,6 +310,7 @@ export type Database = {
           id?: string
           id_pca?: string | null
           internal_process_number?: string | null
+          is_historical?: boolean
           is_return_requested?: boolean | null
           name?: string
           offer_opening_date?: string | null

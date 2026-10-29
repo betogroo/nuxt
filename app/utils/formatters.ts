@@ -232,6 +232,7 @@ export function validateOfferOpeningRules(
   offerTimeStr?: string | null,
   disputeDateStr?: string | null,
   now = new Date(),
+  isHistorical = false,
 ): string | null {
   if (!offerDateStr || !offerDateStr.trim()) {
     return 'A data de abertura das ofertas é obrigatória.'
@@ -241,7 +242,7 @@ export function validateOfferOpeningRules(
   }
 
   const time = offerTimeStr.trim()
-  if (time < '08:00' || time > '18:00') {
+  if (!isHistorical && (time < '08:00' || time > '18:00')) {
     return 'A hora de abertura das ofertas deve estar entre 08:00 e 18:00.'
   }
 
@@ -253,11 +254,13 @@ export function validateOfferOpeningRules(
     return 'A data de abertura das ofertas é inválida.'
   }
 
-  const diffDaysFromToday = Math.round(
-    (offerDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
-  )
-  if (diffDaysFromToday < 5) {
-    return 'A data de abertura das ofertas deve ser pelo menos 5 dias após hoje.'
+  if (!isHistorical) {
+    const diffDaysFromToday = Math.round(
+      (offerDate.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24),
+    )
+    if (diffDaysFromToday < 5) {
+      return 'A data de abertura das ofertas deve ser pelo menos 5 dias após hoje.'
+    }
   }
 
   if (disputeDateStr && disputeDateStr.trim()) {
@@ -266,11 +269,15 @@ export function validateOfferOpeningRules(
       : disputeDateStr.trim()
     const disputeDate = new Date(`${disputeOnlyDate}T00:00:00`)
     if (!isNaN(disputeDate.getTime())) {
-      const diffDaysBeforeDispute = Math.round(
-        (disputeDate.getTime() - offerDate.getTime()) / (1000 * 60 * 60 * 24),
-      )
-      if (diffDaysBeforeDispute < 3) {
-        return 'A data de abertura das ofertas deve ser pelo menos 3 dias antes da data da disputa.'
+      if (!isHistorical) {
+        const diffDaysBeforeDispute = Math.round(
+          (disputeDate.getTime() - offerDate.getTime()) / (1000 * 60 * 60 * 24),
+        )
+        if (diffDaysBeforeDispute < 3) {
+          return 'A data de abertura das ofertas deve ser pelo menos 3 dias antes da data da disputa.'
+        }
+      } else if (offerDate.getTime() > disputeDate.getTime()) {
+        return 'A data de abertura das ofertas não pode ser posterior à data da disputa.'
       }
     }
   }

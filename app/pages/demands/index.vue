@@ -210,6 +210,11 @@
     id_pca: '',
     contract_number: '',
     siafem_number: '',
+    is_historical: false,
+    status: 'planning',
+    dispute_date: '',
+    bidding_notice_number: '',
+    dispute_number: '',
   })
 
   const [name, nameProps] = defineField('name')
@@ -219,6 +224,12 @@
   const [idPca, idPcaProps] = defineField('id_pca')
   const [contractNumber, contractNumberProps] = defineField('contract_number')
   const [siafemNumber, siafemNumberProps] = defineField('siafem_number')
+  const [isHistorical, isHistoricalProps] = defineField('is_historical')
+  const [demandStatusInput, demandStatusInputProps] = defineField('status')
+  const [disputeDateInput, disputeDateInputProps] = defineField('dispute_date')
+  const [biddingNoticeNumberInput, biddingNoticeNumberInputProps] =
+    defineField('bidding_notice_number')
+  const [disputeNumberInput, disputeNumberInputProps] = defineField('dispute_number')
 
   const modal = useModal<{ id?: string }>({})
 
@@ -235,11 +246,31 @@
           id_pca: item.id_pca || '',
           contract_number: item.contract_number ? String(item.contract_number) : '',
           siafem_number: item.siafem_number || '',
+          is_historical: Boolean(item.is_historical),
+          status: item.status || 'planning',
+          dispute_date: item.dispute_date ? String(item.dispute_date).split('T')[0] : '',
+          bidding_notice_number: item.bidding_notice_number || '',
+          dispute_number: item.dispute_number || '',
         },
       })
       originalOpen({ id: item.id })
     } else {
-      resetForm()
+      resetForm({
+        values: {
+          name: '',
+          type: 'consumption',
+          internal_process_number: '',
+          process_number: '',
+          id_pca: '',
+          contract_number: '',
+          siafem_number: '',
+          is_historical: false,
+          status: 'planning',
+          dispute_date: '',
+          bidding_notice_number: '',
+          dispute_number: '',
+        },
+      })
       originalOpen({})
     }
   }
@@ -264,6 +295,11 @@
         id_pca: string | null
         contract_number: string | null
         siafem_number: string | null
+        is_historical: boolean
+        status?: DemandStatus
+        dispute_date?: string | null
+        bidding_notice_number?: string | null
+        dispute_number?: string | null
       } = {
         name: values.name,
         type: values.type,
@@ -271,6 +307,18 @@
         id_pca: values.id_pca || null,
         contract_number: values.contract_number ? String(values.contract_number) : null,
         siafem_number: values.siafem_number || null,
+        is_historical: Boolean(values.is_historical),
+      }
+
+      if (values.is_historical) {
+        if (values.status) payload.status = values.status as DemandStatus
+        if (values.dispute_date) payload.dispute_date = values.dispute_date
+        if (values.bidding_notice_number) {
+          payload.bidding_notice_number = values.bidding_notice_number.trim()
+        }
+        if (values.dispute_number) {
+          payload.dispute_number = values.dispute_number.trim()
+        }
       }
 
       if (isAdmin.value && values.internal_process_number) {
@@ -647,12 +695,17 @@
 
         <template #item-name="{ item }">
           <div class="d-flex flex-column py-1">
-            <NuxtLink
-              class="text-decoration-none text-primary font-weight-bold"
-              :to="`/demands/${item.id}`"
-            >
-              {{ item.name }}
-            </NuxtLink>
+            <div class="d-flex align-center ga-1 flex-wrap">
+              <NuxtLink
+                class="text-decoration-none text-primary font-weight-bold"
+                :to="`/demands/${item.id}`"
+              >
+                {{ item.name }}
+              </NuxtLink>
+              <UiChip v-if="item.is_historical" color="blue-grey" label size="xs" variant="soft">
+                Histórica
+              </UiChip>
+            </div>
             <span
               v-if="item.siafem_number || item.dispute_number"
               class="text-caption text-medium-emphasis"
@@ -760,6 +813,66 @@
       <UiAlert v-if="modal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ modal.error.value }}
       </UiAlert>
+
+      <UiSwitch
+        v-model="isHistorical"
+        v-bind="isHistoricalProps"
+        class="mb-3"
+        color="primary"
+        label="Demanda Histórica / Legada (Concluída em outro sistema)"
+      />
+
+      <UiAlert v-if="isHistorical" class="mb-4" size="sm" type="info" variant="soft">
+        Esta opção dispensa o prazo mínimo futuro de 5 dias e permite cadastrar a data real da
+        disputa (inclusive em anos anteriores ou meses passados) e definir o status diretamente como
+        Homologada ou Concluída.
+      </UiAlert>
+
+      <template v-if="isHistorical">
+        <UiInput
+          v-model="disputeDateInput"
+          v-bind="disputeDateInputProps"
+          class="mb-3"
+          hint="Data real em que o certame foi realizado (ex: 2025-06-15)"
+          label="Data da Disputa / Homologação"
+          type="date"
+        />
+
+        <UiRow dense>
+          <UiCol cols="12" sm="6">
+            <UiInput
+              v-model="biddingNoticeNumberInput"
+              v-bind="biddingNoticeNumberInputProps"
+              label="Nº Aviso de Contratação"
+              placeholder="Ex: 01/2025"
+            />
+          </UiCol>
+          <UiCol cols="12" sm="6">
+            <UiInput
+              v-model="disputeNumberInput"
+              v-bind="disputeNumberInputProps"
+              label="Nº da Disputa"
+              placeholder="Ex: 90001/2025"
+            />
+          </UiCol>
+        </UiRow>
+
+        <UiSelect
+          v-if="!modal.payload.value?.id"
+          v-model="demandStatusInput"
+          v-bind="demandStatusInputProps"
+          class="mb-3"
+          hint="Selecione a fase deste processo importado"
+          item-title="title"
+          item-value="value"
+          :items="[
+            { title: 'Concluído (100% finalizado com empenho emitido)', value: 'completed' },
+            { title: 'Homologação (Disputa vencida, empenhando itens)', value: 'homologation' },
+            { title: 'Planejamento Inicial', value: 'planning' },
+          ]"
+          label="Status Inicial da Demanda"
+        />
+      </template>
 
       <UiInput
         v-model="name"

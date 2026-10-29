@@ -184,7 +184,13 @@
         if (!offerDate || !offerTime) {
           throw new Error('Informe tanto a data quanto a hora de abertura de ofertas.')
         }
-        const dateError = validateOfferOpeningRules(offerDate, offerTime, p.dispute_date)
+        const dateError = validateOfferOpeningRules(
+          offerDate,
+          offerTime,
+          p.dispute_date,
+          undefined,
+          Boolean(demand.value?.is_historical),
+        )
         if (dateError) {
           throw new Error(dateError)
         }
@@ -795,6 +801,16 @@
             <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">{{
               formatDemandStatus(demand.status)
             }}</UiChip>
+            <UiChip
+              v-if="demand.is_historical"
+              class="flex-shrink-0"
+              color="blue-grey"
+              label
+              size="sm"
+              variant="soft"
+            >
+              Histórica
+            </UiChip>
 
             <div class="d-flex flex-wrap gap-2 ml-auto">
               <UiButton
