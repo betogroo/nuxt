@@ -6,7 +6,13 @@ import {
   buildDisputeReportHtml,
   buildDisputeReportPdfDoc,
   formatDecimalBr,
+  resolveDemandYear,
+  hasItemCommitmentIssued,
+  calculateClassSpendingByYear,
+  buildClassSpendingReportHtml,
+  buildClassSpendingReportCsv,
   useDemandReports,
+  type DemandWithClassProductsRow,
 } from '~/composables/useDemandReports'
 import { escapeCsvField } from '~/utils/reportCsv'
 import { formatDemandType } from '~/utils/formatters'
@@ -686,6 +692,325 @@ describe('useDemandReports', () => {
         'EXPORT_DEMAND_DISPUTE_REPORT_PDF',
         expect.stringContaining('Demanda Teste'),
       )
+    })
+  })
+
+  describe('Annual Product Class Spending (Empenhos Emitidos & Teto Anual)', () => {
+    it('resolveDemandYear prioritizes dispute_date, then internal_process_number prefix, then created_at', () => {
+      expect(
+        resolveDemandYear({
+          dispute_date: '2025-07-15',
+          internal_process_number: '2026-0010',
+          created_at: '2026-01-10T10:00:00Z',
+        }),
+      ).toBe(2025)
+
+      expect(
+        resolveDemandYear({
+          dispute_date: null,
+          internal_process_number: '2024-0098',
+          created_at: '2026-02-01T10:00:00Z',
+        }),
+      ).toBe(2024)
+
+      expect(
+        resolveDemandYear({
+          dispute_date: null,
+          internal_process_number: 'SEM-PADRAO',
+          created_at: '2026-05-12T10:00:00Z',
+        }),
+      ).toBe(2026)
+    })
+
+    it('hasItemCommitmentIssued returns true only when commitment_number is filled or execution_status is >= commitment_issued', () => {
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: null,
+          execution_status: 'homologated',
+        }),
+      ).toBe(false)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: '   ',
+          execution_status: null,
+        }),
+      ).toBe(false)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: '2026NE00045',
+          execution_status: 'homologated',
+        }),
+      ).toBe(true)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: null,
+          execution_status: 'commitment_issued',
+        }),
+      ).toBe(true)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: null,
+          execution_status: 'completed',
+        }),
+      ).toBe(true)
+    })
+
+    it('calculateClassSpendingByYear includes ONLY classes with issued commitments and uses dispute result totalFinal against 2026 ceiling (65492.11)', () => {
+      const mockDemands: DemandWithClassProductsRow[] = [
+        {
+          id: 'dem-2026-1',
+          name: 'Aquisição de Material de Escritório',
+          status: 'completed',
+          process_number: '058.0001/2026-11',
+          internal_process_number: '2026-0001',
+          dispute_date: '2026-03-10',
+          created_at: '2026-03-01T10:00:00Z',
+          deleted_at: null,
+          demand_products: [
+            // Item 1: Classe 7510 - Empenho Emitido - Vencedor R$ 15,00 * 100 = R$ 1.500,00
+            {
+              id: 'dp-1',
+              demand_id: 'dem-2026-1',
+              product_id: 'p-1',
+              quantity: 100,
+              commitment_number: '2026NE00100',
+              execution_status: 'commitment_issued',
+              product_name_snapshot: 'Caneta Azul',
+              product: {
+                id: 'p-1',
+                name: 'Caneta Azul',
+                cat_bec: 11111,
+                cat_mat: null,
+                product_class_id: '7510',
+                product_classes: {
+                  id: '7510',
+                  name: 'Artigos de Escritório',
+                  is_active: true,
+                  is_pending: false,
+                  created_at: '',
+                  updated_at: '',
+                },
+                expense_nature_id: '339030',
+                is_active: true,
+                created_at: '',
+                created_by: null,
+                updated_at: '',
+              },
+              demand_product_bids: [
+                {
+                  id: 'bid-1',
+                  demand_product_id: 'dp-1',
+                  supplier_id: 's-1',
+                  amount: 15.0,
+                  status: 'winner',
+                  created_at: '',
+                  updated_at: '',
+                  suppliers: {
+                    id: 's-1',
+                    company_name: 'Papelaria Alfa',
+                    cnpj: '11111111000111',
+                  } as never,
+                },
+              ],
+            } as unknown as DemandProductRow,
+
+            // Item 2: Classe 7510 - Empenho Concluído - Vencedor R$ 200,00 * 10 = R$ 2.000,00
+            {
+              id: 'dp-2',
+              demand_id: 'dem-2026-1',
+              product_id: 'p-2',
+              quantity: 10,
+              commitment_number: '2026NE00101',
+              execution_status: 'completed',
+              product_name_snapshot: 'Caixa Arquivo',
+              product: {
+                id: 'p-2',
+                name: 'Caixa Arquivo',
+                cat_bec: 22222,
+                cat_mat: null,
+                product_class_id: '7510',
+                product_classes: {
+                  id: '7510',
+                  name: 'Artigos de Escritório',
+                  is_active: true,
+                  is_pending: false,
+                  created_at: '',
+                  updated_at: '',
+                },
+                expense_nature_id: '339030',
+                is_active: true,
+                created_at: '',
+                created_by: null,
+                updated_at: '',
+              },
+              demand_product_bids: [
+                {
+                  id: 'bid-2',
+                  demand_product_id: 'dp-2',
+                  supplier_id: 's-1',
+                  amount: 200.0,
+                  status: 'winner',
+                  created_at: '',
+                  updated_at: '',
+                  suppliers: {
+                    id: 's-1',
+                    company_name: 'Papelaria Alfa',
+                    cnpj: '11111111000111',
+                  } as never,
+                },
+              ],
+            } as unknown as DemandProductRow,
+
+            // Item 3: Classe 9999 - SEM EMPENHO EMITIDO (apenas homologado) -> DEVE SER IGNORADO!
+            {
+              id: 'dp-3',
+              demand_id: 'dem-2026-1',
+              product_id: 'p-3',
+              quantity: 50,
+              commitment_number: null,
+              execution_status: 'homologated',
+              product_name_snapshot: 'Produto Sem Empenho',
+              product: {
+                id: 'p-3',
+                name: 'Produto Sem Empenho',
+                cat_bec: 33333,
+                cat_mat: null,
+                product_class_id: '9999',
+                product_classes: {
+                  id: '9999',
+                  name: 'Classe Sem Empenho',
+                  is_active: true,
+                  is_pending: false,
+                  created_at: '',
+                  updated_at: '',
+                },
+                expense_nature_id: '339030',
+                is_active: true,
+                created_at: '',
+                created_by: null,
+                updated_at: '',
+              },
+              demand_product_bids: [
+                {
+                  id: 'bid-3',
+                  demand_product_id: 'dp-3',
+                  supplier_id: 's-1',
+                  amount: 100.0,
+                  status: 'winner',
+                  created_at: '',
+                  updated_at: '',
+                },
+              ],
+            } as unknown as DemandProductRow,
+          ],
+        },
+        // Demanda de 2025 (ano anterior) -> não deve entrar no cálculo de 2026, mas deve entrar no de 2025
+        {
+          id: 'dem-2025-1',
+          name: 'Demanda Legada 2025',
+          status: 'completed',
+          process_number: '058.0099/2025-00',
+          internal_process_number: '2025-0050',
+          dispute_date: '2025-11-20',
+          created_at: '2026-01-05T10:00:00Z',
+          deleted_at: null,
+          demand_products: [
+            {
+              id: 'dp-2025',
+              demand_id: 'dem-2025-1',
+              product_id: 'p-2025',
+              quantity: 5,
+              commitment_number: '2025NE00999',
+              execution_status: 'completed',
+              product_name_snapshot: 'Equipamento 2025',
+              product: {
+                id: 'p-2025',
+                name: 'Equipamento 2025',
+                cat_bec: 44444,
+                cat_mat: null,
+                product_class_id: '5915',
+                product_classes: {
+                  id: '5915',
+                  name: 'Filtros e Redes',
+                  is_active: true,
+                  is_pending: false,
+                  created_at: '',
+                  updated_at: '',
+                },
+                expense_nature_id: '449052',
+                is_active: true,
+                created_at: '',
+                created_by: null,
+                updated_at: '',
+              },
+              demand_product_bids: [
+                {
+                  id: 'bid-2025',
+                  demand_product_id: 'dp-2025',
+                  supplier_id: 's-2',
+                  amount: 1000.0,
+                  status: 'winner',
+                  created_at: '',
+                  updated_at: '',
+                },
+              ],
+            } as unknown as DemandProductRow,
+          ],
+        },
+      ]
+
+      // 1. Cálculo para 2026 (Teto R$ 65.492,11)
+      const report2026 = calculateClassSpendingByYear({
+        demands: mockDemands,
+        year: 2026,
+        ceilingAmount: 65492.11,
+        isCeilingConfigured: true,
+      })
+
+      expect(report2026.year).toBe(2026)
+      expect(report2026.ceilingAmount).toBe(65492.11)
+      expect(report2026.totalClassesWithCommitment).toBe(1) // Apenas Classe 7510! Classe 9999 foi excluída por não ter empenho
+      expect(report2026.totalCommittedItems).toBe(2)
+      expect(report2026.grandTotalSpent).toBe(3500.0) // 1500 + 2000
+
+      const cls7510 = report2026.classes[0]!
+      expect(cls7510.classId).toBe('7510')
+      expect(cls7510.className).toBe('Artigos de Escritório')
+      expect(cls7510.accumulatedSpent).toBe(3500.0)
+      expect(cls7510.remainingBalance).toBe(61992.11) // 65492.11 - 3500.00 = 61992.11
+      expect(cls7510.isExceeded).toBe(false)
+
+      // 2. Cálculo para 2025 (Ano anterior cadastrado pelo admin)
+      const report2025 = calculateClassSpendingByYear({
+        demands: mockDemands,
+        year: 2025,
+        ceilingAmount: 59906.02,
+        isCeilingConfigured: true,
+      })
+
+      expect(report2025.year).toBe(2025)
+      expect(report2025.totalClassesWithCommitment).toBe(1)
+      expect(report2025.classes[0]!.classId).toBe('5915')
+      expect(report2025.classes[0]!.accumulatedSpent).toBe(5000.0)
+      expect(report2025.classes[0]!.remainingBalance).toBe(54906.02)
+
+      // 3. Geração de HTML e CSV do relatório
+      const html = buildClassSpendingReportHtml(report2026, true)
+      expect(html).toContain('Relatório de Gastos por Classe de Produtos — Exercício 2026')
+      expect(html).toContain('Artigos de Escritório')
+      expect(html).toContain('2026NE00100')
+      expect(html).not.toContain('Classe Sem Empenho')
+
+      const csv = buildClassSpendingReportCsv(report2026)
+      expect(csv).toContain('7510')
+      expect(csv).toContain('Artigos de Escritório')
+      expect(csv).toContain('65492,11')
+      expect(csv).toContain('3500,00')
+      expect(csv).toContain('61992,11')
     })
   })
 })

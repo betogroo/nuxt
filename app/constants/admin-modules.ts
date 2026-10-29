@@ -174,6 +174,18 @@ export function buildAdminModules(badges: AdminPendingBadges): AdminModule[] {
       ],
     },
     {
+      id: 'class-spending',
+      title: 'Gastos Anuais por Classe',
+      description:
+        'Cálculo de gasto acumulado, teto anual e saldo disponível por classe de produtos.',
+      icon: 'finances',
+      color: 'teal',
+      to: APP_ROUTES.demands.classSpending,
+      category: 'catalog',
+      categoryLabel: 'Catálogo & Suprimentos',
+      keywords: ['teto', 'classe', 'gasto', 'anual', 'saldo', 'empenho', 'dispensa', 'relatório'],
+    },
+    {
       id: 'suppliers',
       title: 'Fornecedores',
       description: 'Cadastro de fornecedores parceiros, CNPJ e contatos para cotações.',
@@ -253,13 +265,24 @@ export function buildAdminModules(badges: AdminPendingBadges): AdminModule[] {
     {
       id: 'system-settings',
       title: 'Configurações do Sistema',
-      description: 'URL base do catálogo BEC e integrações externas.',
+      description:
+        'Teto anual por classe de produtos, URL base do catálogo BEC e parâmetros globais.',
       icon: 'settings',
       color: 'blue-grey',
       to: APP_ROUTES.admin.settings,
       category: 'governance',
       categoryLabel: 'Governança & Segurança',
-      keywords: ['configurações', 'bec', 'url', 'sistema', 'catálogo', 'parâmetros'],
+      keywords: [
+        'configurações',
+        'bec',
+        'url',
+        'sistema',
+        'catálogo',
+        'parâmetros',
+        'teto',
+        'classe',
+        'anual',
+      ],
     },
     {
       id: 'logs',

@@ -15,6 +15,7 @@ export const APP_ROUTES = {
 
   demands: {
     index: '/demands',
+    classSpending: '/demands/class-spending',
     detail: (id: string) => `/demands/${id}`,
     item: (demandId: string, itemId: string) => `/demands/${demandId}/items/${itemId}`,
     supplier: (demandId: string, supplierId: string) =>

@@ -92,10 +92,30 @@
 
 <template>
   <div>
-    <UiPageHeader
-      subtitle="Gerencie as Classes de Produtos do sistema"
-      title="Classes de Produtos"
-    />
+    <UiPageHeader subtitle="Gerencie as Classes de Produtos do sistema" title="Classes de Produtos">
+      <template #actions>
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <UiButton
+            color="primary"
+            prepend-icon="settings"
+            size="sm"
+            to="/admin/settings"
+            variant="outline"
+          >
+            Configurar Teto Anual
+          </UiButton>
+          <UiButton
+            color="teal"
+            prepend-icon="chart"
+            size="sm"
+            to="/demands/class-spending"
+            variant="soft"
+          >
+            Gastos por Classe
+          </UiButton>
+        </div>
+      </template>
+    </UiPageHeader>
 
     <UiTabs v-model="activeTab" class="mb-5" color="primary" size="sm">
       <UiTab value="active">

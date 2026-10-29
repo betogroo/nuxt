@@ -186,7 +186,19 @@
 
 <template>
   <div>
-    <UiPageHeader subtitle="Gerencie as demandas e processos" title="Demandas"> </UiPageHeader>
+    <UiPageHeader subtitle="Gerencie as demandas e processos" title="Demandas">
+      <template #actions>
+        <UiButton
+          color="teal"
+          prepend-icon="chart"
+          size="sm"
+          to="/demands/class-spending"
+          variant="soft"
+        >
+          Gastos por Classe
+        </UiButton>
+      </template>
+    </UiPageHeader>
 
     <UiCard>
       <template #header>

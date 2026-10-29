@@ -1,5 +1,8 @@
+import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
+import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
+import { DEMAND_ITEM_EXECUTION_STATUS_LABELS } from '~/constants/demand-item-status'
 import type { jsPDF } from 'jspdf'
 import { getItemDisputeResult } from '~/utils/bids'
 import { downloadBlob } from '~/utils/download'
@@ -809,6 +812,24 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
 export const useDemandReports = () => {
   const { logAction } = useLogger()
 
+  const fetchDemandsForClassSpending = async (): Promise<DemandWithClassProductsRow[]> => {
+    const supabase = useSupabaseClient<Database>()
+    const { data, error } = await supabase
+      .from('demands')
+      .select(
+        'id, name, status, process_number, internal_process_number, dispute_date, created_at, deleted_at, demand_products(id, demand_id, product_id, quantity, commitment_number, execution_status, product_name_snapshot, product:products(id, name, cat_bec, cat_mat, product_class_id, product_classes(id, name), expense_nature_id, expense_natures(id, name)), demand_product_bids(id, supplier_id, amount, status, created_at, suppliers(id, company_name, cnpj)))',
+      )
+      .is('deleted_at', null)
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw error
+    }
+
+    return (data || []) as unknown as DemandWithClassProductsRow[]
+  }
+
   const exportDisputeReportToCsv = async (
     reportData: DisputeReportData,
     customFilename?: string,
@@ -860,7 +881,52 @@ export const useDemandReports = () => {
     )
   }
 
+  const printClassSpendingReport = async (
+    data: ClassSpendingReportData,
+    includeItemsDetail = true,
+  ): Promise<void> => {
+    const html = buildClassSpendingReportHtml(data, includeItemsDetail)
+    await printHtmlViaIframe(html)
+    await logAction(
+      'EXPORT_CLASS_SPENDING_REPORT_PDF',
+      `Relatório de gastos por classe de produtos (exercício ${data.year}) impresso/exportado para PDF.`,
+    )
+  }
+
+  const exportClassSpendingToPdf = async (
+    data: ClassSpendingReportData,
+    customFilename?: string,
+  ): Promise<void> => {
+    const doc = await buildClassSpendingReportPdfDoc(data)
+    const blob = doc.output('blob')
+    const filename = customFilename || `gastos_por_classe_${data.year}.pdf`
+
+    downloadBlob(blob, filename)
+
+    await logAction(
+      'EXPORT_CLASS_SPENDING_REPORT_PDF',
+      `Relatório de gastos por classe de produtos (exercício ${data.year}) exportado para PDF vetorial.`,
+    )
+  }
+
+  const exportClassSpendingToCsv = async (
+    data: ClassSpendingReportData,
+    customFilename?: string,
+  ): Promise<void> => {
+    const csvContent = buildClassSpendingReportCsv(data)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const filename = customFilename || `gastos_por_classe_${data.year}.csv`
+
+    downloadBlob(blob, filename)
+
+    await logAction(
+      'EXPORT_CLASS_SPENDING_REPORT_CSV',
+      `Relatório de gastos por classe de produtos (exercício ${data.year}) exportado para CSV.`,
+    )
+  }
+
   return {
+    fetchDemandsForClassSpending,
     generateDisputeReportData,
     buildDisputeReportCsv,
     buildDisputeReportHtml,
@@ -869,6 +935,15 @@ export const useDemandReports = () => {
     exportDisputeReportToPdf,
     printDisputeReport,
     logPdfExport,
+    resolveDemandYear,
+    hasItemCommitmentIssued,
+    calculateClassSpendingByYear,
+    buildClassSpendingReportHtml,
+    buildClassSpendingReportCsv,
+    buildClassSpendingReportPdfDoc,
+    printClassSpendingReport,
+    exportClassSpendingToPdf,
+    exportClassSpendingToCsv,
   }
 }
 
@@ -1256,6 +1331,818 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
     doc,
     'Sistema de Gestão de Contratações - Relatório Oficial de Homologação',
     `Emissão: ${formatDateTime(new Date())}`,
+  )
+
+  return doc
+}
+
+// ============================================================================
+// ANNUAL PRODUCT CLASS SPENDING CALCULATION & REPORTS
+// ============================================================================
+
+export interface ClassSpendingCommittedItem {
+  demandId: string
+  demandName: string
+  processNumber: string
+  internalProcessNumber: string
+  disputeDate: string
+  itemId: string
+  productName: string
+  catBec: string
+  quantity: number
+  winningUnitPrice: number
+  totalFinal: number
+  winnerSupplierName: string
+  commitmentNumber: string
+  executionStatus: string
+  executionStatusLabel: string
+}
+
+export interface ClassSpendingSummaryItem {
+  classId: string
+  className: string
+  itemsCount: number
+  demandsCount: number
+  accumulatedSpent: number
+  ceilingAmount: number
+  remainingBalance: number
+  usagePercentage: number
+  isExceeded: boolean
+  committedItems: ClassSpendingCommittedItem[]
+}
+
+export interface ClassSpendingReportData {
+  year: number
+  ceilingAmount: number
+  isCeilingConfigured: boolean
+  generatedAt: string
+  classes: ClassSpendingSummaryItem[]
+  totalClassesWithCommitment: number
+  totalCommittedItems: number
+  grandTotalSpent: number
+}
+
+export type DemandWithClassProductsRow = Pick<
+  DemandRow,
+  | 'id'
+  | 'name'
+  | 'status'
+  | 'process_number'
+  | 'internal_process_number'
+  | 'dispute_date'
+  | 'created_at'
+  | 'deleted_at'
+> & {
+  demand_products?: DemandProductRow[] | null
+}
+
+export const COMMITTED_EXECUTION_STATUSES: DemandItemExecutionStatus[] = [
+  'commitment_issued',
+  'commitment_sent',
+  'commitment_confirmed',
+  'shipped',
+  'delivered',
+  'received',
+  'completed',
+]
+
+/**
+ * Resolves the fiscal/budget year of a demand.
+ * Priority:
+ * 1. `dispute_date` (e.g. "2025-08-14" -> 2025)
+ * 2. `internal_process_number` prefix (e.g. "2025-0012" -> 2025)
+ * 3. `created_at` year
+ */
+export function resolveDemandYear(
+  demand: Pick<DemandRow, 'dispute_date' | 'internal_process_number' | 'created_at'>,
+): number {
+  if (demand.dispute_date) {
+    const matchDispute = String(demand.dispute_date)
+      .trim()
+      .match(/^(\d{4})/)
+    if (matchDispute) {
+      const yr = Number(matchDispute[1])
+      if (yr >= 1990 && yr <= 2100) return yr
+    }
+  }
+
+  if (demand.internal_process_number) {
+    const matchInternal = String(demand.internal_process_number)
+      .trim()
+      .match(/^(\d{4})-/)
+    if (matchInternal) {
+      const yr = Number(matchInternal[1])
+      if (yr >= 1990 && yr <= 2100) return yr
+    }
+  }
+
+  if (demand.created_at) {
+    const matchCreated = String(demand.created_at)
+      .trim()
+      .match(/^(\d{4})/)
+    if (matchCreated) {
+      const yr = Number(matchCreated[1])
+      if (yr >= 1990 && yr <= 2100) return yr
+    }
+    const parsedDate = new Date(demand.created_at)
+    if (!Number.isNaN(parsedDate.getTime())) {
+      return parsedDate.getFullYear()
+    }
+  }
+
+  return new Date().getFullYear()
+}
+
+/**
+ * Checks whether a demand item has an issued commitment ("empenho emitido").
+ * True when `commitment_number` is non-empty OR `execution_status` is at or past `commitment_issued`.
+ */
+export function hasItemCommitmentIssued(
+  item: Pick<DemandProductRow, 'commitment_number' | 'execution_status'>,
+): boolean {
+  if (item.commitment_number && String(item.commitment_number).trim().length > 0) {
+    return true
+  }
+  if (
+    item.execution_status &&
+    COMMITTED_EXECUTION_STATUSES.includes(item.execution_status as DemandItemExecutionStatus)
+  ) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Calculates the total spent per product class in a given year, considering:
+ * - Only active (non-deleted, non-cancelled) demands belonging to `year`
+ * - Only items with an issued commitment (`hasItemCommitmentIssued`)
+ * - The dispute result value (`getItemDisputeResult(item).totalFinal`)
+ * - Shows ONLY product classes that have at least one committed item with a winning dispute result
+ */
+export function calculateClassSpendingByYear(params: {
+  demands: DemandWithClassProductsRow[] | null | undefined
+  year: number
+  ceilingAmount: number
+  isCeilingConfigured?: boolean
+}): ClassSpendingReportData {
+  const { demands, year, ceilingAmount, isCeilingConfigured = true } = params
+
+  const normalizedCeiling = Number(Number(ceilingAmount || 0).toFixed(2))
+  const generatedAt = formatDateTime(new Date())
+
+  if (!demands || demands.length === 0) {
+    return {
+      year,
+      ceilingAmount: normalizedCeiling,
+      isCeilingConfigured,
+      generatedAt,
+      classes: [],
+      totalClassesWithCommitment: 0,
+      totalCommittedItems: 0,
+      grandTotalSpent: 0,
+    }
+  }
+
+  const classMap = new Map<
+    string,
+    {
+      classId: string
+      className: string
+      demandIds: Set<string>
+      accumulatedSpent: number
+      committedItems: ClassSpendingCommittedItem[]
+    }
+  >()
+
+  let totalCommittedItems = 0
+  let grandTotalSpent = 0
+
+  for (const demand of demands) {
+    if (demand.deleted_at || demand.status === 'cancelled') continue
+    if (resolveDemandYear(demand) !== year) continue
+
+    const items = demand.demand_products || []
+    for (const item of items) {
+      if (!hasItemCommitmentIssued(item)) continue
+
+      const disputeRes = getItemDisputeResult(item)
+      if (
+        disputeRes.outcome !== 'winner' ||
+        disputeRes.totalFinal == null ||
+        disputeRes.totalFinal <= 0
+      ) {
+        continue
+      }
+
+      const rawClassId =
+        item.product?.product_classes?.id || item.product?.product_class_id || 'SEM_CLASSE'
+      const classId = String(rawClassId).trim() || 'SEM_CLASSE'
+      const rawClassName = item.product?.product_classes?.name || 'Sem Classe Vinculada'
+      const className = String(rawClassName).trim() || 'Sem Classe Vinculada'
+
+      const quantity = Number(item.quantity) || 1
+      const winningUnitPrice = Number(disputeRes.winningAmount || 0)
+      const totalFinal = Number(disputeRes.totalFinal.toFixed(2))
+
+      const rawStatus = (item.execution_status || 'commitment_issued') as DemandItemExecutionStatus
+      const executionStatusLabel =
+        DEMAND_ITEM_EXECUTION_STATUS_LABELS[rawStatus] || 'Empenho Emitido'
+
+      const committedItem: ClassSpendingCommittedItem = {
+        demandId: demand.id,
+        demandName: demand.name || 'Demanda',
+        processNumber: demand.process_number || '-',
+        internalProcessNumber: demand.internal_process_number || '-',
+        disputeDate: formatDate(demand.dispute_date),
+        itemId: item.id,
+        productName: item.product_name_snapshot || item.product?.name || '-',
+        catBec: item.product?.cat_bec != null ? String(item.product.cat_bec) : '-',
+        quantity,
+        winningUnitPrice,
+        totalFinal,
+        winnerSupplierName:
+          disputeRes.winningBid?.suppliers?.company_name ||
+          disputeRes.winnerSupplierName ||
+          'Fornecedor Homologado',
+        commitmentNumber: item.commitment_number?.trim() || 'Emitido (S/N)',
+        executionStatus: rawStatus,
+        executionStatusLabel,
+      }
+
+      if (!classMap.has(classId)) {
+        classMap.set(classId, {
+          classId,
+          className,
+          demandIds: new Set<string>(),
+          accumulatedSpent: 0,
+          committedItems: [],
+        })
+      }
+
+      const entry = classMap.get(classId)!
+      entry.demandIds.add(demand.id)
+      entry.accumulatedSpent += totalFinal
+      entry.committedItems.push(committedItem)
+
+      totalCommittedItems++
+      grandTotalSpent += totalFinal
+    }
+  }
+
+  const classes: ClassSpendingSummaryItem[] = Array.from(classMap.values())
+    .filter((entry) => entry.committedItems.length > 0)
+    .map((entry) => {
+      const accumulatedSpent = Number(entry.accumulatedSpent.toFixed(2))
+      const remainingBalance = Number((normalizedCeiling - accumulatedSpent).toFixed(2))
+      const usagePercentage =
+        normalizedCeiling > 0
+          ? Number(((accumulatedSpent / normalizedCeiling) * 100).toFixed(2))
+          : 0
+
+      return {
+        classId: entry.classId,
+        className: entry.className,
+        itemsCount: entry.committedItems.length,
+        demandsCount: entry.demandIds.size,
+        accumulatedSpent,
+        ceilingAmount: normalizedCeiling,
+        remainingBalance,
+        usagePercentage,
+        isExceeded: remainingBalance < 0,
+        committedItems: entry.committedItems,
+      }
+    })
+    .sort((a, b) => {
+      if (b.accumulatedSpent !== a.accumulatedSpent) {
+        return b.accumulatedSpent - a.accumulatedSpent
+      }
+      return a.classId.localeCompare(b.classId, undefined, { numeric: true })
+    })
+
+  return {
+    year,
+    ceilingAmount: normalizedCeiling,
+    isCeilingConfigured,
+    generatedAt,
+    classes,
+    totalClassesWithCommitment: classes.length,
+    totalCommittedItems,
+    grandTotalSpent: Number(grandTotalSpent.toFixed(2)),
+  }
+}
+
+/**
+ * Generates CSV string for the Annual Product Class Spending report.
+ */
+export function buildClassSpendingReportCsv(data: ClassSpendingReportData): string {
+  const lines: string[] = []
+
+  lines.push(
+    [
+      escapeCsvField('RELATÓRIO ANUAL DE GASTOS POR CLASSE DE PRODUTOS (EMPENHOS EMITIDOS)'),
+      escapeCsvField(`Exercício ${data.year}`),
+    ].join(';'),
+  )
+  lines.push(
+    [
+      escapeCsvField('Teto Anual por Classe:'),
+      escapeCsvField(`R$ ${formatDecimalBr(data.ceilingAmount)}`),
+      escapeCsvField('Data de Apuração:'),
+      escapeCsvField(data.generatedAt),
+    ].join(';'),
+  )
+  lines.push(
+    [
+      escapeCsvField(`Classes com Empenho Emitido: ${data.totalClassesWithCommitment}`),
+      escapeCsvField(`Itens Empenhados: ${data.totalCommittedItems}`),
+      escapeCsvField(`Acumulado Geral no Ano: R$ ${formatDecimalBr(data.grandTotalSpent)}`),
+    ].join(';'),
+  )
+  lines.push('')
+
+  const headers = [
+    'Código da Classe',
+    'Nome da Classe',
+    'Qtd Demandas',
+    'Itens Empenhados',
+    'Teto Anual da Classe (R$)',
+    'Acumulado Gasto no Ano (R$)',
+    'Saldo até a Data (R$)',
+    '% Utilizado',
+  ]
+  lines.push(headers.map(escapeCsvField).join(';'))
+
+  for (const cls of data.classes) {
+    lines.push(
+      [
+        escapeCsvField(cls.classId),
+        escapeCsvField(cls.className),
+        escapeCsvField(cls.demandsCount),
+        escapeCsvField(cls.itemsCount),
+        escapeCsvField(formatDecimalBr(cls.ceilingAmount)),
+        escapeCsvField(formatDecimalBr(cls.accumulatedSpent)),
+        escapeCsvField(formatDecimalBr(cls.remainingBalance)),
+        escapeCsvField(`${formatDecimalBr(cls.usagePercentage)}%`),
+      ].join(';'),
+    )
+  }
+
+  lines.push('')
+  lines.push(
+    [
+      escapeCsvField('TOTAL ACUMULADO GASTO NO ANO'),
+      escapeCsvField(''),
+      escapeCsvField(''),
+      escapeCsvField(data.totalCommittedItems),
+      escapeCsvField(''),
+      escapeCsvField(formatDecimalBr(data.grandTotalSpent)),
+      escapeCsvField(''),
+      escapeCsvField(''),
+    ].join(';'),
+  )
+
+  return '\uFEFF' + lines.join('\r\n')
+}
+
+/**
+ * Generates standalone A4 HTML for printing the Annual Product Class Spending report.
+ */
+export function buildClassSpendingReportHtml(
+  data: ClassSpendingReportData,
+  includeItemsDetail = true,
+): string {
+  const summaryRowsHtml =
+    data.classes.length === 0
+      ? `<tr><td colspan="7" class="text-center" style="padding: 18px; color: #64748b;">Nenhuma classe com empenho emitido encontrada para o exercício de ${data.year}.</td></tr>`
+      : data.classes
+          .map((cls) => {
+            const balanceColor = cls.isExceeded
+              ? '#dc2626'
+              : cls.usagePercentage >= 80
+                ? '#d97706'
+                : '#15803d'
+            return `
+          <tr>
+            <td style="font-weight: 700; color: #1e3a8a;">${escapeHtml(cls.classId)}</td>
+            <td style="font-weight: 600;">${escapeHtml(cls.className)}</td>
+            <td class="text-center">${cls.itemsCount} (${cls.demandsCount} proc.)</td>
+            <td class="text-right">${formatCurrency(cls.ceilingAmount)}</td>
+            <td class="text-right" style="font-weight: 700;">${formatCurrency(cls.accumulatedSpent)}</td>
+            <td class="text-right" style="font-weight: 700; color: ${balanceColor};">${formatCurrency(cls.remainingBalance)}</td>
+            <td class="text-right" style="font-weight: 600; color: ${balanceColor};">${formatDecimalBr(cls.usagePercentage)}%</td>
+          </tr>
+        `
+          })
+          .join('')
+
+  const detailsHtml =
+    includeItemsDetail && data.classes.length > 0
+      ? `
+      <div style="margin-top: 18px;">
+        <div style="font-size: 12px; font-weight: 700; color: #1e3a8a; margin-bottom: 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">
+          Detalhamento dos Empenhos Emitidos por Classe (Resultado da Disputa)
+        </div>
+        ${data.classes
+          .map(
+            (cls) => `
+          <div class="class-block">
+            <div class="class-block-header">
+              <div>
+                <strong>Classe ${escapeHtml(cls.classId)}</strong> — ${escapeHtml(cls.className)}
+              </div>
+              <div>
+                Acumulado: <strong>${formatCurrency(cls.accumulatedSpent)}</strong> |
+                Saldo até a data: <strong style="color: ${cls.isExceeded ? '#dc2626' : '#15803d'};">${formatCurrency(cls.remainingBalance)}</strong>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 110px;">Processo / Demanda</th>
+                  <th style="width: 90px;">Nº Empenho</th>
+                  <th>Produto / Item BEC</th>
+                  <th style="width: 130px;">Fornecedor Vencedor</th>
+                  <th class="text-right" style="width: 45px;">Qtd</th>
+                  <th class="text-right" style="width: 80px;">Vl. Disputa</th>
+                  <th class="text-right" style="width: 90px;">Total Item</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${cls.committedItems
+                  .map(
+                    (it) => `
+                  <tr>
+                    <td>
+                      <div style="font-weight: 600;">${escapeHtml(it.processNumber !== '-' ? it.processNumber : it.internalProcessNumber)}</div>
+                      <div style="font-size: 8.5px; color: #64748b;">${escapeHtml(it.demandName)}</div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 600;">${escapeHtml(it.commitmentNumber)}</div>
+                      <div style="font-size: 8px; color: #475569;">${escapeHtml(it.executionStatusLabel)}</div>
+                    </td>
+                    <td>
+                      <div style="font-weight: 500;">${escapeHtml(it.productName)}</div>
+                      <div style="font-size: 8px; color: #64748b;">CATBEC: ${escapeHtml(it.catBec)}</div>
+                    </td>
+                    <td>${escapeHtml(it.winnerSupplierName)}</td>
+                    <td class="text-right">${it.quantity}</td>
+                    <td class="text-right">${formatUnitPrice(it.winningUnitPrice)}</td>
+                    <td class="text-right" style="font-weight: 600;">${formatCurrency(it.totalFinal)}</td>
+                  </tr>
+                `,
+                  )
+                  .join('')}
+              </tbody>
+            </table>
+          </div>
+        `,
+          )
+          .join('')}
+      </div>
+    `
+      : ''
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Relatório de Gastos por Classe de Produtos - Exercício ${data.year}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 12mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 10px;
+      line-height: 1.35;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+    }
+    .header-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      background: #f8fafc;
+    }
+    .report-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin: 0 0 4px 0;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .summary-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 8px;
+      text-align: center;
+      background: #f8fafc;
+    }
+    .summary-label {
+      font-size: 8.5px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .summary-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 2px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+    }
+    thead {
+      display: table-header-group;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8.5px;
+      color: #334155;
+      padding: 6px 8px;
+      border-bottom: 1px solid #cbd5e1;
+      text-align: left;
+    }
+    td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
+    .text-right {
+      text-align: right;
+    }
+    .text-center {
+      text-align: center;
+    }
+    .class-block {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      overflow: hidden;
+    }
+    .class-block-header {
+      background: #f8fafc;
+      padding: 6px 10px;
+      border-bottom: 1px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+    }
+    .footer {
+      margin-top: 16px;
+      font-size: 8.5px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+          Controle Orçamentário de Licitações e Dispensas
+        </div>
+        <h1 class="report-title">Relatório de Gastos por Classe de Produtos — Exercício ${data.year}</h1>
+        <div style="font-size: 9.5px; color: #475569;">
+          Critério: Classes com Empenho Emitido | Base de Cálculo: Resultado Homologado da Disputa
+        </div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: 600;">Apurado até a data</div>
+        <div style="font-size: 11px; font-weight: 700; color: #0f172a;">${escapeHtml(data.generatedAt)}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-label">Exercício</div>
+      <div class="summary-value">${data.year}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Teto Anual por Classe</div>
+      <div class="summary-value" style="color: #1e3a8a;">${formatCurrency(data.ceilingAmount)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Classes com Empenho</div>
+      <div class="summary-value">${data.totalClassesWithCommitment} (${data.totalCommittedItems} itens)</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-label">Acumulado Geral no Ano</div>
+      <div class="summary-value" style="color: #15803d;">${formatCurrency(data.grandTotalSpent)}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 75px;">Código</th>
+        <th>Classe de Produtos</th>
+        <th class="text-center" style="width: 100px;">Itens Empenhados</th>
+        <th class="text-right" style="width: 105px;">Teto no Ano</th>
+        <th class="text-right" style="width: 115px;">Acumulado Gasto</th>
+        <th class="text-right" style="width: 115px;">Saldo até a Data</th>
+        <th class="text-right" style="width: 75px;">% Uso</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${summaryRowsHtml}
+    </tbody>
+    <tfoot>
+      <tr style="background: #f8fafc; font-weight: 700;">
+        <td colspan="4" class="text-right">TOTAL ACUMULADO GASTO NO ANO (${data.year}):</td>
+        <td class="text-right" style="color: #1e3a8a;">${formatCurrency(data.grandTotalSpent)}</td>
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  ${detailsHtml}
+
+  <div class="footer">
+    <span>Sistema de Gestão de Contratações — Controle de Teto Anual por Classe</span>
+    <span>Emissão: ${escapeHtml(data.generatedAt)}</span>
+  </div>
+</body>
+</html>`
+}
+
+/**
+ * Generates vector A4 PDF for the Annual Product Class Spending report.
+ */
+export async function buildClassSpendingReportPdfDoc(
+  data: ClassSpendingReportData,
+): Promise<jsPDF> {
+  const { default: autoTable } = await import('jspdf-autotable')
+
+  const doc = await createA4Doc()
+  const pageWidth = PDF_PAGE_WIDTH_MM
+  const marginX = PDF_MARGIN_X_MM
+  const usableWidth = pageWidth - marginX * 2
+
+  doc.setFillColor(30, 58, 138)
+  doc.rect(marginX, 12, usableWidth, 2.5, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(12.5)
+  doc.setTextColor(30, 58, 138)
+  doc.text(`RELATÓRIO DE GASTOS POR CLASSE DE PRODUTOS — ${data.year}`, marginX, 20)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(71, 85, 105)
+  doc.text('Classes com Empenho Emitido | Valor Apurado pelo Resultado da Disputa', marginX, 25)
+
+  doc.setFontSize(8)
+  doc.text(`Saldo apurado em: ${data.generatedAt}`, pageWidth - marginX, 20, { align: 'right' })
+
+  autoTable(doc, {
+    startY: 28,
+    margin: { left: marginX, right: marginX },
+    theme: 'grid',
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      textColor: [31, 41, 55],
+      lineColor: [226, 232, 240],
+      lineWidth: 0.2,
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 42 },
+      1: { cellWidth: 49, fontStyle: 'bold', textColor: [30, 58, 138] },
+      2: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 45 },
+      3: { cellWidth: 46, fontStyle: 'bold', textColor: [21, 128, 61] },
+    },
+    body: [
+      [
+        'Exercício Financeiro:',
+        String(data.year),
+        'Teto Anual por Classe:',
+        formatCurrency(data.ceilingAmount),
+      ],
+      [
+        'Classes com Empenho:',
+        `${data.totalClassesWithCommitment} (${data.totalCommittedItems} itens)`,
+        'Acumulado Geral no Ano:',
+        formatCurrency(data.grandTotalSpent),
+      ],
+    ],
+  })
+
+  const tableStartY =
+    (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 4
+
+  autoTable(doc, {
+    startY: tableStartY,
+    margin: { left: marginX, right: marginX },
+    theme: 'striped',
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      textColor: [31, 41, 55],
+      lineColor: [226, 232, 240],
+      lineWidth: 0.15,
+    },
+    headStyles: {
+      fillColor: [30, 58, 138],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8,
+    },
+    columnStyles: {
+      0: { cellWidth: 20, fontStyle: 'bold' },
+      1: { cellWidth: 58 },
+      2: { cellWidth: 18, halign: 'center' },
+      3: { cellWidth: 24, halign: 'right' },
+      4: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
+      5: { cellWidth: 25, halign: 'right', fontStyle: 'bold' },
+      6: { cellWidth: 12, halign: 'right' },
+    },
+    head: [
+      [
+        'Código',
+        'Classe de Produtos',
+        'Itens',
+        'Teto no Ano',
+        'Acumulado Gasto',
+        'Saldo até a Data',
+        '% Uso',
+      ],
+    ],
+    body: data.classes.map((cls) => [
+      cls.classId,
+      cls.className,
+      String(cls.itemsCount),
+      formatCurrency(cls.ceilingAmount),
+      formatCurrency(cls.accumulatedSpent),
+      formatCurrency(cls.remainingBalance),
+      `${formatDecimalBr(cls.usagePercentage)}%`,
+    ]),
+    foot: [
+      [
+        {
+          content: `TOTAL GERAL ACUMULADO NO ANO (${data.year}):`,
+          colSpan: 4,
+          styles: {
+            halign: 'right',
+            fontStyle: 'bold',
+            fillColor: [241, 245, 249],
+            textColor: [15, 23, 42],
+          },
+        },
+        {
+          content: formatCurrency(data.grandTotalSpent),
+          styles: {
+            halign: 'right',
+            fontStyle: 'bold',
+            fillColor: [241, 245, 249],
+            textColor: [30, 58, 138],
+          },
+        },
+        {
+          content: '',
+          colSpan: 2,
+          styles: {
+            fillColor: [241, 245, 249],
+          },
+        },
+      ],
+    ],
+  })
+
+  appendPageFooters(
+    doc,
+    'Sistema de Gestão de Contratações - Relatório Anual de Gastos por Classe',
+    `Emissão: ${data.generatedAt}`,
   )
 
   return doc
