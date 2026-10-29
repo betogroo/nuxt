@@ -503,4 +503,187 @@ describe('useProducts', () => {
       'user-123',
     )
   })
+
+  describe('duplicateProduct', () => {
+    it('should throw an error if product name is empty or blank', async () => {
+      const { duplicateProduct } = useProducts()
+      await expect(
+        duplicateProduct({
+          sourceProductId: 'prod-source',
+          name: '   ',
+          expense_nature_id: '339030',
+          product_class_id: '7510',
+        }),
+      ).rejects.toThrow('O nome do produto é obrigatório.')
+    })
+
+    it('should insert product, clone units, insert characteristics, and log DUPLICATE_PRODUCT', async () => {
+      const insertedProduct = {
+        id: 'prod-new-999',
+        name: 'Colchete numero 9',
+        expense_nature_id: '339030',
+        product_class_id: '7510',
+        cat_mat: null,
+        cat_bec: null,
+        is_active: true,
+      }
+
+      const insertProductMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: insertedProduct,
+            error: null,
+          }),
+        }),
+      })
+
+      const deleteUnitsEqMock = vi.fn().mockResolvedValue({ error: null })
+      const deleteUnitsMock = vi.fn().mockReturnValue({ eq: deleteUnitsEqMock })
+      const insertUnitsMock = vi.fn().mockResolvedValue({ error: null })
+      const insertKeyMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: { id: 'key-tam', name: 'Tamanho' },
+            error: null,
+          }),
+        }),
+      })
+      const insertCharMock = vi.fn().mockResolvedValue({ error: null })
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'products') {
+          return { insert: insertProductMock }
+        }
+        if (table === 'product_units') {
+          return {
+            delete: deleteUnitsMock,
+            insert: insertUnitsMock,
+          }
+        }
+        if (table === 'product_characteristic_keys') {
+          return {
+            select: vi.fn().mockReturnValue({
+              ilike: vi.fn().mockReturnValue({
+                maybeSingle: vi
+                  .fn()
+                  .mockResolvedValue({ data: { id: 'key-tam', name: 'Tamanho' }, error: null }),
+              }),
+            }),
+            insert: insertKeyMock,
+          }
+        }
+        if (table === 'product_characteristics') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
+            }),
+            insert: insertCharMock,
+          }
+        }
+        return {}
+      })
+
+      const { duplicateProduct } = useProducts()
+      const result = await duplicateProduct({
+        sourceProductId: 'prod-source-4',
+        name: 'Colchete numero 9',
+        expense_nature_id: '339030',
+        product_class_id: '7510',
+        unitIds: ['unit-1', 'unit-2'],
+        characteristics: [
+          { key: 'Tamanho', value: '9' },
+          { key: 'Material', value: 'Aço' },
+        ],
+      })
+
+      expect(result.id).toBe('prod-new-999')
+      expect(insertProductMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Colchete numero 9',
+          expense_nature_id: '339030',
+          product_class_id: '7510',
+          created_by: 'user-123',
+        }),
+      )
+      expect(deleteUnitsMock).toHaveBeenCalled()
+      expect(deleteUnitsEqMock).toHaveBeenCalledWith('product_id', 'prod-new-999')
+      expect(insertUnitsMock).toHaveBeenCalledWith([
+        { product_id: 'prod-new-999', unit_id: 'unit-1' },
+        { product_id: 'prod-new-999', unit_id: 'unit-2' },
+      ])
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'DUPLICATE_PRODUCT',
+        expect.stringContaining('Colchete numero 9'),
+        'user-123',
+      )
+    })
+
+    it('should throw error when inserting product units fails', async () => {
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'products') {
+          return {
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { id: 'prod-err-1', name: 'Prod Fail' },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'product_units') {
+          return {
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+            insert: vi.fn().mockResolvedValue({
+              error: new Error('Failed to insert units'),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const { duplicateProduct } = useProducts()
+      await expect(
+        duplicateProduct({
+          sourceProductId: 'prod-source',
+          name: 'Prod Fail',
+          expense_nature_id: '339030',
+          unitIds: ['unit-fail'],
+        }),
+      ).rejects.toThrow('Failed to insert units')
+    })
+
+    it('should handle duplicate CATMAT error code 23505', async () => {
+      mockSupabase.from.mockReturnValue({
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: null,
+              error: {
+                code: '23505',
+                message: 'duplicate key value violates unique constraint "products_cat_mat_key"',
+                details: 'cat_mat',
+              },
+            }),
+          }),
+        }),
+      })
+
+      const { duplicateProduct } = useProducts()
+      await expect(
+        duplicateProduct({
+          sourceProductId: 'prod-source',
+          name: 'Colchete 9',
+          expense_nature_id: '339030',
+          product_class_id: '7510',
+          cat_mat: 12345,
+        }),
+      ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
+    })
+  })
 })

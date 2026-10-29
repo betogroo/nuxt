@@ -129,6 +129,7 @@ const stubs = {
   UiTextarea: true,
   UiDivider: true,
   UiSwitch: true,
+  ProductDuplicateModal: true,
   UiAutocomplete: { props: ['items'], template: '<div class="ui-autocomplete"><slot /></div>' },
   UiTable: {
     props: ['headers', 'items'],
@@ -408,5 +409,18 @@ describe('Product Detail Page', () => {
     expect(mockRemoveProductCharacteristic).toHaveBeenCalledWith('char-1', 'Cor: Preta')
     expect(mockToast.success).toHaveBeenCalledWith('Característica removida do produto.')
     expect(vm.isDeleteCharacteristicModalOpen).toBe(false)
+  })
+
+  it('renders duplicate product button and opens duplicate modal on click', async () => {
+    const wrapper = mountPage()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(wrapper.text()).toContain('Duplicar Produto')
+    expect(vm.isDuplicateModalOpen).toBe(false)
+
+    vm.isDuplicateModalOpen = true
+    await wrapper.vm.$nextTick()
+    expect(vm.isDuplicateModalOpen).toBe(true)
   })
 })

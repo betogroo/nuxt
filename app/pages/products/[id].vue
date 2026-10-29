@@ -10,6 +10,7 @@
   import { productFormSchema } from '~/schemas/forms/product'
   import { useZodForm } from '~/composables/useZodForm'
   import { parseCharacteristicsText } from '~/utils/parseCharacteristics'
+  import ProductDuplicateModal from '~/components/products/ProductDuplicateModal.vue'
 
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -37,6 +38,7 @@
   const productId = route.params.id as string
 
   const { isAdmin } = usePermissions()
+  const isDuplicateModalOpen = ref(false)
 
   const {
     data: product,
@@ -524,8 +526,18 @@
         </div>
       </div>
 
-      <div v-if="isAdmin && product" class="d-flex align-center ga-2">
+      <div v-if="product" class="d-flex align-center ga-2">
         <UiButton
+          color="info"
+          prepend-icon="copy"
+          size="sm"
+          variant="soft"
+          @click="isDuplicateModalOpen = true"
+        >
+          Duplicar Produto
+        </UiButton>
+        <UiButton
+          v-if="isAdmin"
           color="primary"
           prepend-icon="edit"
           size="sm"
@@ -535,6 +547,7 @@
           Editar Produto
         </UiButton>
         <UiButton
+          v-if="isAdmin"
           :color="product.is_active ? 'warning' : 'success'"
           :loading="isTogglingStatus"
           size="sm"
@@ -1316,5 +1329,8 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal Duplicar Produto -->
+    <ProductDuplicateModal v-model="isDuplicateModalOpen" :product-id="productId" />
   </UiContainer>
 </template>

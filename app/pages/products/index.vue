@@ -2,6 +2,7 @@
   import type { ProductRow } from '~/composables/useProducts'
   import { useZodForm } from '~/composables/useZodForm'
   import { productFormSchema } from '~/schemas/forms/product'
+  import ProductDuplicateModal from '~/components/products/ProductDuplicateModal.vue'
 
   definePageMeta({
     icon: 'packageSolid',
@@ -90,6 +91,15 @@
   const editingId = ref('')
 
   const isEditing = computed(() => !!editingId.value)
+
+  // Duplicate Product Modal State
+  const isDuplicateModalOpen = ref(false)
+  const selectedDuplicateProductId = ref<string | null>(null)
+
+  const openDuplicateModal = (productId: string) => {
+    selectedDuplicateProductId.value = productId
+    isDuplicateModalOpen.value = true
+  }
 
   const openAddModal = () => {
     resetForm({
@@ -355,6 +365,11 @@
               tooltip="Ver detalhes do produto"
             />
             <UiActionButton
+              action="copy"
+              tooltip="Duplicar produto"
+              @click="openDuplicateModal(item.id)"
+            />
+            <UiActionButton
               action="edit"
               color="default"
               tooltip="Editar produto"
@@ -517,5 +532,12 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal Duplicar Produto -->
+    <ProductDuplicateModal
+      v-model="isDuplicateModalOpen"
+      :product-id="selectedDuplicateProductId"
+      @saved="() => refresh()"
+    />
   </div>
 </template>

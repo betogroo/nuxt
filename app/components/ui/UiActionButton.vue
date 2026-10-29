@@ -40,6 +40,7 @@
     | 'edit'
     | 'delete'
     | 'view'
+    | 'copy'
     | 'refresh'
     | 'classify'
     | 'disqualify'
@@ -68,6 +69,11 @@
       icon: 'next',
       tooltip: 'Visualizar',
       color: 'primary',
+    },
+    copy: {
+      icon: 'copy',
+      tooltip: 'Duplicar',
+      color: 'info',
     },
     refresh: {
       icon: 'refresh',

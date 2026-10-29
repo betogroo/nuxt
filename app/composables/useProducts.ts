@@ -48,6 +48,18 @@ export type ProductDemandUsage = {
   dispute_date: string | null
 }
 
+export interface DuplicateProductPayload {
+  sourceProductId: string
+  name: string
+  expense_nature_id: string
+  product_class_id?: string | null
+  cat_mat?: number | null
+  cat_bec?: number | null
+  is_active?: boolean
+  unitIds?: string[]
+  characteristics?: Array<{ key: string; value: string }>
+}
+
 export const useProducts = () => {
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
@@ -423,6 +435,67 @@ export const useProducts = () => {
     )
   }
 
+  const duplicateProduct = async (payload: DuplicateProductPayload): Promise<ProductRow> => {
+    const cleanName = payload.name?.trim()
+    if (!cleanName) {
+      throw new Error('O nome do produto é obrigatório.')
+    }
+
+    const cleanNature = payload.expense_nature_id?.trim()
+    if (!cleanNature) {
+      throw new Error('A natureza de despesa é obrigatória.')
+    }
+
+    const insertPayload: Database['public']['Tables']['products']['Insert'] = {
+      name: cleanName,
+      expense_nature_id: cleanNature,
+      product_class_id: payload.product_class_id || null,
+      cat_mat: payload.cat_mat ?? null,
+      cat_bec: payload.cat_bec ?? null,
+      is_active: payload.is_active ?? true,
+      created_by: user.value?.id,
+    }
+
+    const { data: newProduct, error: insertError } = await supabase
+      .from('products')
+      .insert(insertPayload)
+      .select('*, expense_natures(id, name), product_classes(id, name)')
+      .single()
+
+    if (insertError) throw handleProductDbError(insertError)
+
+    // Remover unidade inserida automaticamente pela trigger on_product_created para evitar duplicidade ou manter selecao do usuario
+    await supabase.from('product_units').delete().eq('product_id', newProduct.id)
+
+    // Clonar unidades de apresentação selecionadas
+    if (payload.unitIds && payload.unitIds.length > 0) {
+      const unitsToInsert = payload.unitIds.map((unitId) => ({
+        product_id: newProduct.id,
+        unit_id: unitId,
+      }))
+      const { error: unitsError } = await supabase.from('product_units').insert(unitsToInsert)
+      if (unitsError) throw unitsError
+    }
+
+    // Clonar e inserir características com novos valores
+    if (payload.characteristics && payload.characteristics.length > 0) {
+      const validChars = payload.characteristics.filter(
+        (c) => c.key && c.key.trim() && c.value && c.value.trim(),
+      )
+      for (const char of validChars) {
+        await upsertProductCharacteristic(newProduct.id, char.key, char.value)
+      }
+    }
+
+    await logAction(
+      'DUPLICATE_PRODUCT',
+      `Produto duplicado: "${cleanName}" criado a partir do produto ID ${payload.sourceProductId}`,
+      user.value?.id,
+    )
+
+    return newProduct as ProductRow
+  }
+
   return {
     fetchProducts,
     fetchProductById,
@@ -430,6 +503,7 @@ export const useProducts = () => {
     fetchAllActiveProducts,
     createProduct,
     updateProduct,
+    duplicateProduct,
     toggleProductStatus,
     addProductUnit,
     removeProductUnit,

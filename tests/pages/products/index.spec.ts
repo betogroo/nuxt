@@ -223,6 +223,7 @@ describe('Products Admin Page', () => {
           UiInput: true,
           UiSwitch: true,
           UiAutocomplete: true,
+          ProductDuplicateModal: true,
         },
       },
     })
@@ -238,5 +239,18 @@ describe('Products Admin Page', () => {
       expect(cell.find('.ui-chip-stub').text()).toBe('33903000')
       expect(cell.text()).not.toContain('Material de Consumo')
     })
+  })
+
+  it('opens duplicate modal with selected product id when openDuplicateModal is called', () => {
+    const wrapper = shallowMount(ProductsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isDuplicateModalOpen).toBe(false)
+    expect(vm.selectedDuplicateProductId).toBeNull()
+
+    vm.openDuplicateModal('prod-42')
+    expect(vm.selectedDuplicateProductId).toBe('prod-42')
+    expect(vm.isDuplicateModalOpen).toBe(true)
   })
 })
