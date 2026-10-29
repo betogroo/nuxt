@@ -260,4 +260,73 @@ describe('useBackup Composable', () => {
     expect(result.success).toBe(true)
     expect(result.counts.iirgd_citizens).toBe(2)
   })
+
+  it('restoreBackup should send payload containing product_characteristic_keys, product_characteristics and historical demands to RPC', async () => {
+    const mockResult = {
+      success: true,
+      restored_at: new Date().toISOString(),
+      counts: {
+        profiles: 1,
+        suppliers: 0,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        measurement_unit_alias_links: 0,
+        product_characteristic_keys: 2,
+        products: 1,
+        product_units: 0,
+        product_characteristics: 2,
+        demands: 1,
+        demand_products: 0,
+        demand_product_bids: 0,
+        demand_responsibles: 0,
+        demand_item_status_history: 0,
+        iirgd_citizens: 0,
+        iirgd_document_types: 0,
+        iirgd_demands: 0,
+        iirgd_demand_status_history: 0,
+        iirgd_settings: 0,
+        system_settings: 0,
+        elections: 0,
+        candidates: 0,
+        ballot_boxes: 0,
+        election_committee_members: 0,
+        election_voters: 0,
+        election_voter_attendance: 0,
+        election_votes: 0,
+        logs: 0,
+      },
+    }
+
+    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
+
+    const { restoreBackup } = useBackup()
+    const payload: BackupFileStructure = {
+      system: 'Demandas, IIRGD & Eleições',
+      version: '1.8',
+      timestamp: '2026-10-29T20:49:29Z',
+      generated_by: { id: 'admin-id', name: 'Admin' },
+      summary: mockResult.counts,
+      data: {
+        product_characteristic_keys: [
+          { id: 'pck-1', name: 'Cor', is_active: true, is_pending: false },
+          { id: 'pck-2', name: 'Material', is_active: true, is_pending: false },
+        ],
+        products: [{ id: 'prod-1', name: 'Pasta Suspensa' }],
+        product_characteristics: [
+          { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Kraft' },
+          { id: 'pc-2', product_id: 'prod-1', key_id: 'pck-2', value: 'Papel Cartão' },
+        ],
+        demands: [{ id: 'dem-1', name: 'Demanda Legada', is_historical: true }],
+      },
+    }
+
+    const result = await restoreBackup(payload)
+    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
+    expect(result.success).toBe(true)
+    expect(result.counts.product_characteristic_keys).toBe(2)
+    expect(result.counts.product_characteristics).toBe(2)
+    expect(result.counts.demands).toBe(1)
+  })
 })
