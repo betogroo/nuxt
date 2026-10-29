@@ -873,12 +873,12 @@
       />
 
       <UiInput
-        v-model.number="eiReferencePrice"
+        v-model="eiReferencePrice"
         v-bind="eiReferencePriceProps"
         :error-messages="eiErrors.reference_price"
+        inputmode="decimal"
         label="Valor Referencial (R$)"
-        step="0.0001"
-        type="number"
+        placeholder="0,00"
       />
 
       <div class="d-flex align-center mt-2 mb-4">
@@ -896,13 +896,13 @@
           variant="outline"
         />
         <UiInput
-          v-model.number="eiBidInterval"
+          v-model="eiBidInterval"
           v-bind="eiBidIntervalProps"
           class="flex-grow-1"
           :error-messages="eiErrors.bid_interval"
+          inputmode="decimal"
           label="Valor do Intervalo"
-          step="0.01"
-          type="number"
+          placeholder="Ex: 0,05 ou 3"
         />
       </div>
 

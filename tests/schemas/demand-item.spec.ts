@@ -61,4 +61,79 @@ describe('schemas/forms/demand-item', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('accepts decimal interval values smaller than 0.1 as a number', () => {
+    const result = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: 0.05,
+      bid_interval_type: 'percentage',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.bid_interval).toBe(0.05)
+    }
+  })
+
+  it('accepts and normalizes decimal interval values with comma (pt-BR string)', () => {
+    const result = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: '0,05',
+      bid_interval_type: 'monetary',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.bid_interval).toBe(0.05)
+    }
+  })
+
+  it('accepts and normalizes decimal interval values with dot (string)', () => {
+    const result = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: '0.01',
+      bid_interval_type: 'percentage',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.bid_interval).toBe(0.01)
+    }
+  })
+
+  it('rejects zero and negative values provided as strings', () => {
+    const zeroResult = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: '0',
+      bid_interval_type: 'percentage',
+    })
+    expect(zeroResult.success).toBe(false)
+
+    const negResult = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: '-0,05',
+      bid_interval_type: 'percentage',
+    })
+    expect(negResult.success).toBe(false)
+  })
+
+  it('rejects non-numeric strings for bid_interval', () => {
+    const result = demandItemFormSchema.safeParse({
+      ...baseValues,
+      bid_interval: 'abc',
+      bid_interval_type: 'percentage',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path[0] === 'bid_interval')).toBe(true)
+    }
+  })
+
+  it('accepts and normalizes reference_price with comma and small decimals', () => {
+    const result = demandItemFormSchema.safeParse({
+      ...baseValues,
+      reference_price: '0,05',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.reference_price).toBe(0.05)
+    }
+  })
 })

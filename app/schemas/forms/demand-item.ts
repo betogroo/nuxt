@@ -1,10 +1,45 @@
 import { z } from 'zod'
 
 const optionalPositiveNumber = z.preprocess(
-  (value) => (value === '' || value === null ? undefined : value),
+  (val) => {
+    if (val === '' || val === null || val === undefined) return undefined
+    if (typeof val === 'number') return val
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (!trimmed) return undefined
+      const normalized = trimmed.includes(',')
+        ? trimmed.replace(/\./g, '').replace(',', '.')
+        : trimmed
+      const num = Number(normalized)
+      return isNaN(num) ? val : num
+    }
+    return val
+  },
   z
     .number({ invalid_type_error: 'Valor do intervalo inválido.' })
     .positive('O valor do intervalo deve ser maior que zero.')
+    .optional(),
+)
+
+const optionalPriceNumber = z.preprocess(
+  (val) => {
+    if (val === '' || val === null || val === undefined) return null
+    if (typeof val === 'number') return val
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (!trimmed) return null
+      const normalized = trimmed.includes(',')
+        ? trimmed.replace(/\./g, '').replace(',', '.')
+        : trimmed
+      const num = Number(normalized)
+      return isNaN(num) ? val : num
+    }
+    return val
+  },
+  z
+    .number({ invalid_type_error: 'Valor referencial inválido.' })
+    .min(0, 'O valor referencial não pode ser negativo.')
+    .nullable()
     .optional(),
 )
 
@@ -25,7 +60,7 @@ export const demandItemFormSchema = z
       .min(0.0001, 'A quantidade deve ser maior que zero.'),
     searchUnitText: z.string().trim().min(1, 'A unidade de medida é obrigatória.'),
     aliasId: z.string().nullable().optional(),
-    reference_price: z.number().nullable().optional(),
+    reference_price: optionalPriceNumber,
     bid_interval: optionalPositiveNumber,
     bid_interval_type: optionalBidIntervalType,
   })

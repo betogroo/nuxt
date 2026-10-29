@@ -322,6 +322,42 @@ describe('Demand Items Page', () => {
     )
   })
 
+  it('should accept and pass decimal bid interval smaller than 0.1 (0.05) when saved', async () => {
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.demandId = 'demand-123'
+    vm.openEditItemModal({
+      id: 'item-11',
+      quantity: 10,
+      reference_price: 100,
+      bid_interval: 2,
+      bid_interval_type: 'percentage',
+      product_id: 'prod-11',
+      product: { id: 'prod-11', name: 'Presilha' },
+      unit_id: 'unit-1',
+      measurement_units: { id: 'unit-1', name: 'Unidade' },
+    })
+
+    // Simulate user editing the inputs with pt-BR comma format and decimals < 0.1
+    vm.eiReferencePrice = '0,05'
+    vm.eiBidInterval = '0,05'
+
+    await vm.saveEditItem()
+
+    expect(mockUpdateDemandItemWithDependencies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemId: 'item-11',
+        demandId: 'demand-123',
+        quantity: 10,
+        referencePrice: 0.05,
+        bidInterval: 0.05,
+        bidIntervalType: 'percentage',
+      }),
+    )
+  })
+
   it('should open edit bidding notice modal and save updated notice data', async () => {
     mockDemandData.value = {
       id: 'demand-123',
