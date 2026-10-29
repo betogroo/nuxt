@@ -17,13 +17,63 @@
   const route = useRoute()
   const router = useRouter()
 
-  const { fetchDemandItemDetails, updateDemandItemWithDependencies, fetchDemandItemStatusHistory } =
-    useDemandProducts()
+  const {
+    fetchDemandProducts,
+    fetchDemandItemDetails,
+    updateDemandItemWithDependencies,
+    fetchDemandItemStatusHistory,
+  } = useDemandProducts()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
   const { getBecProductUrl } = useSystemSettings()
 
   const demandId = route.params.id as string
-  const itemId = route.params.itemId as string
+  const itemId = computed(() => route.params.itemId as string)
+
+  // Fetch Demand Products (Items List for Navigation)
+  const { data: demandItems } = useAsyncData(`demand-items-${demandId}`, async () => {
+    return await fetchDemandProducts(demandId)
+  })
+
+  // Navigation Computeds
+  const currentItemIndex = computed(() => {
+    if (!demandItems.value || !itemId.value) return -1
+    return demandItems.value.findIndex((it) => it.id === itemId.value)
+  })
+
+  const previousItem = computed(() => {
+    if (!demandItems.value || currentItemIndex.value <= 0) return null
+    return demandItems.value[currentItemIndex.value - 1] ?? null
+  })
+
+  const nextItem = computed(() => {
+    if (
+      !demandItems.value ||
+      currentItemIndex.value === -1 ||
+      currentItemIndex.value >= demandItems.value.length - 1
+    ) {
+      return null
+    }
+    return demandItems.value[currentItemIndex.value + 1] ?? null
+  })
+
+  const previousItemName = computed(() => {
+    if (!previousItem.value) return ''
+    return (
+      previousItem.value.product_name_snapshot ||
+      previousItem.value.product?.name ||
+      'Item Anterior'
+    )
+  })
+
+  const nextItemName = computed(() => {
+    if (!nextItem.value) return ''
+    return nextItem.value.product_name_snapshot || nextItem.value.product?.name || 'Próximo Item'
+  })
+
+  const goToItem = (targetItemId?: string) => {
+    if (!targetItemId) return
+    router.push(`/demands/${demandId}/items/${targetItemId}`)
+  }
 
   // Fetch Demand Product (Item) Details
   const {
@@ -31,9 +81,13 @@
     pending,
     error,
     refresh,
-  } = useAsyncData(`demand-item-${itemId}`, async () => {
-    return await fetchDemandItemDetails(itemId)
-  })
+  } = useAsyncData(
+    () => `demand-item-${itemId.value}`,
+    async () => {
+      return await fetchDemandItemDetails(itemId.value)
+    },
+    { watch: [itemId] },
+  )
 
   // Basic fallback
   if (error.value) {
@@ -116,7 +170,7 @@
     editError.value = ''
     try {
       await updateDemandItemWithDependencies({
-        itemId,
+        itemId: itemId.value,
         demandId,
         productId: item.value?.product_id || undefined,
         quantity: values.quantity,
@@ -143,9 +197,13 @@
     data: bids,
     refresh: refreshBids,
     pending: bidsPending,
-  } = useAsyncData(`item-bids-${itemId}`, async () => {
-    return await fetchBidsByProduct(itemId)
-  })
+  } = useAsyncData(
+    () => `item-bids-${itemId.value}`,
+    async () => {
+      return await fetchBidsByProduct(itemId.value)
+    },
+    { watch: [itemId] },
+  )
 
   const winningBid = computed(() => getWinningBid(bids.value))
 
@@ -178,10 +236,14 @@
     data: statusHistory,
     refresh: refreshStatusHistory,
     pending: statusHistoryPending,
-  } = useAsyncData(`item-status-history-${itemId}`, async () => {
-    if (!itemId) return []
-    return await fetchDemandItemStatusHistory(itemId)
-  })
+  } = useAsyncData(
+    () => `item-status-history-${itemId.value}`,
+    async () => {
+      if (!itemId.value) return []
+      return await fetchDemandItemStatusHistory(itemId.value)
+    },
+    { watch: [itemId] },
+  )
 
   const isExecutionStatusModalOpen = ref(false)
 
@@ -358,7 +420,7 @@
         finalSupplierId = sup.id
       }
 
-      await addBid(itemId, finalSupplierId!, values.amount)
+      await addBid(itemId.value, finalSupplierId!, values.amount)
       await refreshBids()
       invalidateParentDemandItems()
       closeBidModal()
@@ -387,13 +449,51 @@
       toast.error('Erro ao remover lance.')
     }
   }
+
+  watch(itemId, () => {
+    isEditing.value = false
+    isBidModalOpen.value = false
+    isDisqualifyModalOpen.value = false
+    isExecutionStatusModalOpen.value = false
+    editError.value = ''
+    bidError.value = ''
+  })
 </script>
 
 <template>
   <UiContainer>
-    <div class="mb-4 d-flex align-center">
-      <UiButton icon="arrowLeft" variant="ghost" @click="router.push(`/demands/${demandId}`)" />
-      <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
+    <div class="mb-4 d-flex align-center justify-space-between flex-wrap ga-2">
+      <div class="d-flex align-center">
+        <UiButton icon="arrowLeft" variant="ghost" @click="router.push(`/demands/${demandId}`)" />
+        <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
+      </div>
+
+      <!-- Navegação Entre Produtos da Demanda -->
+      <div v-if="demandItems && demandItems.length > 1" class="d-flex align-center ga-2">
+        <UiChip color="primary" size="sm" variant="soft">
+          Item {{ currentItemIndex + 1 }} de {{ demandItems.length }}
+        </UiChip>
+        <UiButton
+          :disabled="!previousItem"
+          prepend-icon="arrowLeft"
+          size="sm"
+          :title="previousItem ? `Anterior: ${previousItemName}` : 'Primeiro produto'"
+          variant="outline"
+          @click="goToItem(previousItem?.id)"
+        >
+          Anterior
+        </UiButton>
+        <UiButton
+          append-icon="arrowRight"
+          :disabled="!nextItem"
+          size="sm"
+          :title="nextItem ? `Próximo: ${nextItemName}` : 'Último produto'"
+          variant="outline"
+          @click="goToItem(nextItem?.id)"
+        >
+          Próximo
+        </UiButton>
+      </div>
     </div>
 
     <UiRow>
@@ -852,6 +952,38 @@
         </UiCard>
       </UiCol>
     </UiRow>
+
+    <!-- Navegação de Rodapé Entre Produtos -->
+    <div
+      v-if="demandItems && demandItems.length > 1"
+      class="mt-6 pt-4 d-flex justify-space-between align-center border-t"
+    >
+      <UiButton
+        :disabled="!previousItem"
+        prepend-icon="arrowLeft"
+        size="md"
+        variant="outline"
+        @click="goToItem(previousItem?.id)"
+      >
+        <span class="d-none d-sm-inline">{{ previousItem ? previousItemName : 'Anterior' }}</span>
+        <span class="d-inline d-sm-none">Anterior</span>
+      </UiButton>
+
+      <span class="text-caption text-medium-emphasis">
+        {{ currentItemIndex + 1 }} de {{ demandItems.length }} produtos
+      </span>
+
+      <UiButton
+        append-icon="arrowRight"
+        :disabled="!nextItem"
+        size="md"
+        variant="outline"
+        @click="goToItem(nextItem?.id)"
+      >
+        <span class="d-none d-sm-inline">{{ nextItem ? nextItemName : 'Próximo' }}</span>
+        <span class="d-inline d-sm-none">Próximo</span>
+      </UiButton>
+    </div>
 
     <!-- Modal Editar Item -->
     <UiModal
