@@ -328,4 +328,14 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     expect(vm.previousItem).toBeNull()
     expect(vm.nextItem).toBeNull()
   })
+
+  it('calculates totalReferenceAmount as quantity * reference_price', () => {
+    mockItemData.value.quantity = 15
+    mockItemData.value.reference_price = 20
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.totalReferenceAmount).toBe(300)
+  })
 })

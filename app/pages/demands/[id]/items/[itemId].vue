@@ -12,7 +12,7 @@
     type DemandItemExecutionStatus,
   } from '~/constants/demand-item-status'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
-  import { formatUnitPrice } from '~/utils/formatters'
+  import { formatUnitPrice, formatCurrency, formatCnpj } from '~/utils/formatters'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -93,6 +93,13 @@
   if (error.value) {
     console.error(error.value)
   }
+
+  const totalReferenceAmount = computed(() => {
+    if (!item.value) return 0
+    const qty = Number(item.value.quantity) || 0
+    const price = Number(item.value.reference_price) || 0
+    return qty * price
+  })
 
   // Edit logic
   const isEditing = ref(false)
@@ -462,11 +469,15 @@
 
 <template>
   <UiContainer>
+    <!-- Barra Superior de Navegação -->
     <div class="mb-4 d-flex align-center justify-space-between flex-wrap ga-2">
-      <div class="d-flex align-center">
-        <UiButton icon="arrowLeft" variant="ghost" @click="router.push(`/demands/${demandId}`)" />
-        <h2 class="text-h5 ml-2">Detalhes do Item na Demanda</h2>
-      </div>
+      <UiButton
+        prepend-icon="arrowLeft"
+        variant="ghost"
+        @click="router.push(`/demands/${demandId}`)"
+      >
+        Voltar para a Demanda
+      </UiButton>
 
       <!-- Navegação Entre Produtos da Demanda -->
       <div v-if="demandItems && demandItems.length > 1" class="d-flex align-center ga-2">
@@ -496,40 +507,29 @@
       </div>
     </div>
 
-    <UiRow>
-      <UiCol cols="12" md="8">
-        <UiCard v-if="!pending && item" transparent-header>
-          <template #header>
-            <div class="d-flex align-center">
-              {{ item.product_name_snapshot || item.product?.name }}
+    <!-- Indicador de Carregamento -->
+    <div v-if="pending" class="text-center py-10">
+      <UiProgressCircular color="primary" indeterminate size="48" width="3" />
+    </div>
+
+    <template v-else-if="item">
+      <!-- Card Principal de Identificação e Métricas do Item -->
+      <UiCard class="mb-4" transparent-header>
+        <template #header>
+          <div class="d-flex flex-wrap align-center justify-space-between w-100 ga-3">
+            <div class="d-flex flex-wrap align-center ga-2">
+              <span class="text-h6 font-weight-bold text-wrap">
+                {{ item.product_name_snapshot || item.product?.name || 'Produto' }}
+              </span>
               <UiActionButton
                 action="view"
-                class="ml-1"
                 icon="externalLink"
                 :to="`/products/${item.product?.id}`"
                 tooltip="Ver Cadastro Original do Produto"
               />
-              <UiChip class="ml-2" color="secondary" size="sm" variant="solid">
-                {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
-              </UiChip>
-              <UiChip
-                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
-                class="ml-2"
-                color="info"
-                size="sm"
-                variant="soft"
-              >
-                Alias:
-                {{
-                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
-                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
-                    : ''
-                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
-              </UiChip>
               <UiChip
                 v-if="item.product?.cat_bec"
                 append-icon="externalLink"
-                class="ml-2"
                 color="secondary"
                 :href="getBecProductUrl(item.product.cat_bec)"
                 rel="noopener noreferrer"
@@ -540,25 +540,134 @@
               >
                 BEC: {{ item.product.cat_bec }}
               </UiChip>
+              <UiChip v-if="item.product?.cat_mat" color="secondary" size="sm" variant="soft">
+                CATMAT: {{ item.product.cat_mat }}
+              </UiChip>
+              <UiChip color="primary" size="sm" variant="solid">
+                {{ item.unit_name_snapshot || item.measurement_units?.name || 'Unidade' }}
+              </UiChip>
+              <UiChip
+                v-if="item.alias_name_snapshot || item.measurement_unit_aliases?.name"
+                color="info"
+                size="sm"
+                variant="soft"
+              >
+                {{
+                  item.alias_code_snapshot || item.measurement_unit_aliases?.code
+                    ? `${item.alias_code_snapshot || item.measurement_unit_aliases?.code} - `
+                    : ''
+                }}{{ item.alias_name_snapshot || item.measurement_unit_aliases?.name }}
+              </UiChip>
+              <UiChip
+                v-if="item.product?.product_classes?.name"
+                color="blue-grey"
+                size="sm"
+                variant="soft"
+              >
+                Classe: {{ item.product.product_classes.name }}
+              </UiChip>
             </div>
-            <UiSpacer />
-            <div class="d-flex align-center">
-              <UiChip class="mr-2" color="info" variant="outline">Qtd: {{ item.quantity }}</UiChip>
-              <UiActionButton
+
+            <div>
+              <UiButton
                 v-if="item?.demand?.status === 'planning' || item?.demand?.status === 'quotation'"
-                action="edit"
-                tooltip="Editar item"
+                color="primary"
+                prepend-icon="edit"
+                size="sm"
+                variant="soft"
                 @click="openEditModal"
-              />
+              >
+                Editar Item
+              </UiButton>
             </div>
-          </template>
+          </div>
+        </template>
 
-          <UiAlert class="mb-4" size="sm" type="info" variant="soft">
-            Esta é a tela exclusiva deste produto dentro da demanda. Futuramente, lances e
-            documentos enviados pelos fornecedores aparecerão aqui.
-          </UiAlert>
+        <div class="pa-4">
+          <!-- Grid de Métricas Principais -->
+          <UiRow dense>
+            <!-- Métrica 1: Quantidade -->
+            <UiCol cols="6" sm="3">
+              <UiCard class="h-100" variant="outline">
+                <div class="pa-3">
+                  <div class="text-caption text-grey text-uppercase font-weight-medium">
+                    Quantidade
+                  </div>
+                  <div class="text-h6 font-weight-bold text-primary mt-1">
+                    {{ item.quantity }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{ item.unit_name_snapshot || item.measurement_units?.name || 'unidades' }}
+                  </div>
+                </div>
+              </UiCard>
+            </UiCol>
 
-          <!-- Características do Produto no Item da Demanda -->
+            <!-- Métrica 2: Preço de Referência Unitário -->
+            <UiCol cols="6" sm="3">
+              <UiCard class="h-100" variant="outline">
+                <div class="pa-3">
+                  <div class="text-caption text-grey text-uppercase font-weight-medium">
+                    Preço de Referência
+                  </div>
+                  <div class="text-h6 font-weight-bold text-high-emphasis mt-1">
+                    {{ item.reference_price ? formatUnitPrice(item.reference_price) : '-' }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">Valor unitário estimado</div>
+                </div>
+              </UiCard>
+            </UiCol>
+
+            <!-- Métrica 3: Total Estimado -->
+            <UiCol cols="6" sm="3">
+              <UiCard class="h-100" variant="outline">
+                <div class="pa-3">
+                  <div class="text-caption text-grey text-uppercase font-weight-medium">
+                    Total Estimado
+                  </div>
+                  <div class="text-h6 font-weight-bold text-teal mt-1">
+                    {{ totalReferenceAmount > 0 ? formatCurrency(totalReferenceAmount) : '-' }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">Qtd. × Preço unitário</div>
+                </div>
+              </UiCard>
+            </UiCol>
+
+            <!-- Métrica 4: Intervalo entre Lances -->
+            <UiCol cols="6" sm="3">
+              <UiCard class="h-100" variant="outline">
+                <div class="pa-3">
+                  <div class="text-caption text-grey text-uppercase font-weight-medium">
+                    Intervalo de Lances
+                  </div>
+                  <div
+                    v-if="item.bid_interval == null || !item.bid_interval_type"
+                    class="text-body-1 font-weight-bold text-error mt-1"
+                  >
+                    Não informado
+                  </div>
+                  <div v-else class="text-h6 font-weight-bold text-high-emphasis mt-1">
+                    {{
+                      item.bid_interval_type === 'percentage'
+                        ? `${item.bid_interval}%`
+                        : formatUnitPrice(item.bid_interval)
+                    }}
+                  </div>
+                  <div class="text-caption text-medium-emphasis">
+                    {{
+                      item.bid_interval_type === 'percentage'
+                        ? 'Decréscimo percentual'
+                        : item.bid_interval_type === 'monetary'
+                          ? 'Decréscimo em reais'
+                          : 'Obrigatório para disputa'
+                    }}
+                  </div>
+                </div>
+              </UiCard>
+            </UiCol>
+          </UiRow>
+
+          <!-- Características do Produto -->
           <div
             v-if="
               item.product &&
@@ -566,7 +675,7 @@
               Array.isArray(item.product.product_characteristics) &&
               item.product.product_characteristics.length > 0
             "
-            class="mb-4 pa-3 rounded-lg bg-surface-variant"
+            class="mt-4 pa-3 rounded-lg bg-surface-variant"
           >
             <div class="d-flex align-center ga-2 mb-2">
               <UiIcon color="teal" name="categories" size="16" />
@@ -588,370 +697,317 @@
             </div>
           </div>
 
-          <!-- Card de Acompanhamento da Execução (Pós-Homologação) -->
-          <UiCard v-if="hasExecution" class="mb-4" variant="outline">
-            <template #header>
-              <div class="d-flex justify-space-between align-center w-100 flex-wrap ga-2">
+          <!-- Metadados Discretos no Rodapé do Card -->
+          <div
+            class="d-flex align-center justify-space-between flex-wrap ga-2 mt-4 pt-3 border-t text-caption text-medium-emphasis"
+          >
+            <span>
+              Adicionado em:
+              {{ item.created_at ? new Date(item.created_at).toLocaleString('pt-BR') : '-' }}
+            </span>
+            <span class="font-monospace text-grey">ID: {{ item.id }}</span>
+          </div>
+        </div>
+      </UiCard>
+
+      <!-- Card de Acompanhamento da Execução (Pós-Homologação) -->
+      <UiCard v-if="hasExecution" class="mb-4" variant="outline">
+        <template #header>
+          <div class="d-flex justify-space-between align-center w-100 flex-wrap ga-2">
+            <div class="d-flex align-center flex-wrap ga-2">
+              <span class="font-weight-bold">Acompanhamento da Execução</span>
+              <UiChip
+                :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[currentExecutionStatus]"
+                size="sm"
+                variant="flat"
+              >
+                <UiIcon
+                  :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[currentExecutionStatus]"
+                  size="14"
+                  start
+                />
+                {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[currentExecutionStatus] }}
+              </UiChip>
+              <UiChip
+                v-if="item?.commitment_number"
+                class="font-weight-medium font-monospace"
+                color="purple"
+                size="sm"
+                variant="outlined"
+              >
+                <UiIcon name="document" size="14" start />
+                Empenho: {{ item.commitment_number }}
+              </UiChip>
+            </div>
+            <UiButton
+              color="primary"
+              prepend-icon="editOutline"
+              size="sm"
+              @click="openExecutionStatusModal"
+            >
+              Atualizar Status
+            </UiButton>
+          </div>
+        </template>
+
+        <!-- Alerta em caso de erro -->
+        <UiAlert
+          v-if="currentExecutionStatus === 'error'"
+          class="mb-4"
+          size="sm"
+          type="error"
+          variant="soft"
+        >
+          <div class="font-weight-bold mb-1">Pendência / Erro Registrado:</div>
+          <div>{{ item?.execution_error_details || 'Nenhum detalhe informado.' }}</div>
+        </UiAlert>
+
+        <!-- Fluxo Sequencial de Execução -->
+        <div class="mb-4 pa-3 rounded-lg bg-surface-variant">
+          <div class="text-caption font-weight-bold mb-2 text-medium-emphasis text-uppercase">
+            Fluxo de Execução
+          </div>
+          <div class="d-flex flex-wrap align-center ga-2">
+            <template v-for="(step, idx) in DEMAND_ITEM_EXECUTION_FLOW" :key="step">
+              <div class="d-flex align-center ga-1">
+                <UiChip
+                  :color="
+                    getStepStatus(step) === 'completed'
+                      ? 'success'
+                      : getStepStatus(step) === 'current'
+                        ? DEMAND_ITEM_EXECUTION_STATUS_COLORS[step]
+                        : 'default'
+                  "
+                  size="xs"
+                  :variant="getStepStatus(step) === 'current' ? 'solid' : 'soft'"
+                >
+                  <UiIcon v-if="getStepStatus(step) === 'completed'" name="check" size="12" start />
+                  <span class="font-weight-medium">
+                    {{ idx + 1 }}. {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[step] }}
+                  </span>
+                </UiChip>
+                <UiIcon
+                  v-if="idx < DEMAND_ITEM_EXECUTION_FLOW.length - 1"
+                  class="text-medium-emphasis"
+                  name="next"
+                  size="14"
+                />
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Histórico de Transições -->
+        <div class="mt-4">
+          <div class="text-subtitle-2 font-weight-bold mb-3">Histórico de Transições</div>
+
+          <div v-if="statusHistoryPending" class="text-center py-4">
+            <UiProgressCircular color="primary" indeterminate size="24" />
+          </div>
+
+          <div
+            v-else-if="!statusHistory || statusHistory.length === 0"
+            class="text-body-2 text-medium-emphasis text-center py-3"
+          >
+            Nenhuma alteração de status registrada no histórico ainda.
+          </div>
+
+          <UiTimeline v-else density="compact" side="end">
+            <UiTimelineItem
+              v-for="entry in statusHistory"
+              :key="entry.id"
+              :dot-color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
+              size="x-small"
+            >
+              <div class="d-flex flex-column ga-1">
                 <div class="d-flex align-center flex-wrap ga-2">
-                  <span class="font-weight-bold">Acompanhamento da Execução</span>
                   <UiChip
-                    :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[currentExecutionStatus]"
-                    size="sm"
+                    :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
+                    size="xs"
                     variant="flat"
                   >
                     <UiIcon
-                      :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[currentExecutionStatus]"
-                      size="14"
+                      :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[entry.status]"
+                      size="12"
                       start
                     />
-                    {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[currentExecutionStatus] }}
+                    {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[entry.status] }}
                   </UiChip>
                   <UiChip
-                    v-if="item?.commitment_number"
+                    v-if="entry.commitment_number"
                     class="font-weight-medium font-monospace"
                     color="purple"
-                    size="sm"
+                    size="xs"
                     variant="outlined"
                   >
-                    <UiIcon name="document" size="14" start />
-                    Empenho: {{ item.commitment_number }}
+                    <UiIcon name="document" size="10" start />
+                    Empenho: {{ entry.commitment_number }}
                   </UiChip>
+                  <span class="text-caption text-medium-emphasis">
+                    {{ new Date(entry.created_at).toLocaleString('pt-BR') }}
+                  </span>
+                  <span v-if="entry.profiles?.name" class="text-caption text-medium-emphasis">
+                    • por <strong>{{ entry.profiles.name }}</strong>
+                  </span>
                 </div>
-                <UiButton
-                  color="primary"
-                  prepend-icon="editOutline"
-                  size="sm"
-                  @click="openExecutionStatusModal"
-                >
-                  Atualizar Status
-                </UiButton>
-              </div>
-            </template>
 
-            <!-- Alerta em caso de erro -->
-            <UiAlert
-              v-if="currentExecutionStatus === 'error'"
-              class="mb-4"
-              size="sm"
-              type="error"
-              variant="soft"
-            >
-              <div class="font-weight-bold mb-1">Pendência / Erro Registrado:</div>
-              <div>{{ item?.execution_error_details || 'Nenhum detalhe informado.' }}</div>
-            </UiAlert>
-
-            <!-- Fluxo Sequencial de Execução -->
-            <div class="mb-4 pa-3 rounded-lg bg-surface-variant">
-              <div class="text-caption font-weight-bold mb-2 text-medium-emphasis text-uppercase">
-                Fluxo de Execução
-              </div>
-              <div class="d-flex flex-wrap align-center ga-2">
-                <template v-for="(step, idx) in DEMAND_ITEM_EXECUTION_FLOW" :key="step">
-                  <div class="d-flex align-center ga-1">
-                    <UiChip
-                      :color="
-                        getStepStatus(step) === 'completed'
-                          ? 'success'
-                          : getStepStatus(step) === 'current'
-                            ? DEMAND_ITEM_EXECUTION_STATUS_COLORS[step]
-                            : 'default'
-                      "
-                      size="xs"
-                      :variant="getStepStatus(step) === 'current' ? 'solid' : 'soft'"
-                    >
-                      <UiIcon
-                        v-if="getStepStatus(step) === 'completed'"
-                        name="check"
-                        size="12"
-                        start
-                      />
-                      <span class="font-weight-medium">
-                        {{ idx + 1 }}. {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[step] }}
-                      </span>
-                    </UiChip>
-                    <UiIcon
-                      v-if="idx < DEMAND_ITEM_EXECUTION_FLOW.length - 1"
-                      class="text-medium-emphasis"
-                      name="next"
-                      size="14"
-                    />
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <!-- Histórico de Transições -->
-            <div class="mt-4">
-              <div class="text-subtitle-2 font-weight-bold mb-3">Histórico de Transições</div>
-
-              <div v-if="statusHistoryPending" class="text-center py-4">
-                <UiProgressCircular color="primary" indeterminate size="24" />
-              </div>
-
-              <div
-                v-else-if="!statusHistory || statusHistory.length === 0"
-                class="text-body-2 text-medium-emphasis text-center py-3"
-              >
-                Nenhuma alteração de status registrada no histórico ainda.
-              </div>
-
-              <UiTimeline v-else density="compact" side="end">
-                <UiTimelineItem
-                  v-for="entry in statusHistory"
-                  :key="entry.id"
-                  :dot-color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
-                  size="x-small"
-                >
-                  <div class="d-flex flex-column ga-1">
-                    <div class="d-flex align-center flex-wrap ga-2">
-                      <UiChip
-                        :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[entry.status]"
-                        size="xs"
-                        variant="flat"
-                      >
-                        <UiIcon
-                          :name="DEMAND_ITEM_EXECUTION_STATUS_ICONS[entry.status]"
-                          size="12"
-                          start
-                        />
-                        {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[entry.status] }}
-                      </UiChip>
-                      <UiChip
-                        v-if="entry.commitment_number"
-                        class="font-weight-medium font-monospace"
-                        color="purple"
-                        size="xs"
-                        variant="outlined"
-                      >
-                        <UiIcon name="document" size="10" start />
-                        Empenho: {{ entry.commitment_number }}
-                      </UiChip>
-                      <span class="text-caption text-medium-emphasis">
-                        {{ new Date(entry.created_at).toLocaleString('pt-BR') }}
-                      </span>
-                      <span v-if="entry.profiles?.name" class="text-caption text-medium-emphasis">
-                        • por <strong>{{ entry.profiles.name }}</strong>
-                      </span>
-                    </div>
-
-                    <div
-                      v-if="entry.status === 'error' && entry.error_details"
-                      class="text-caption text-error font-weight-medium border rounded pa-2 mt-1"
-                    >
-                      <strong>Erro especificado:</strong> {{ entry.error_details }}
-                    </div>
-
-                    <div v-if="entry.observation" class="text-caption text-high-emphasis mt-1">
-                      {{ entry.observation }}
-                    </div>
-                  </div>
-                </UiTimelineItem>
-              </UiTimeline>
-            </div>
-          </UiCard>
-
-          <!-- Card de Lances -->
-          <UiCard class="mb-4" variant="outline">
-            <template #header>
-              <div class="d-flex justify-space-between align-center w-100">
-                <span>Lances Recebidos</span>
-                <UiButton
-                  v-if="canRegisterBids"
-                  color="primary"
-                  prepend-icon="add"
-                  size="sm"
-                  @click="openBidModal"
-                >
-                  Registrar Lance
-                </UiButton>
-                <UiChip
-                  v-else-if="item?.demand?.status === 'quotation'"
-                  color="warning"
-                  size="sm"
-                  variant="soft"
-                >
-                  Lances permitidos apenas na Disputa
-                </UiChip>
-                <UiChip
-                  v-else-if="item?.demand?.status !== 'dispute'"
-                  color="info"
-                  size="sm"
-                  variant="soft"
-                >
-                  Disputa finalizada (Somente leitura)
-                </UiChip>
-              </div>
-            </template>
-
-            <div v-if="bidsPending" class="text-center py-4">
-              <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
-            </div>
-
-            <UiTable
-              v-else
-              :headers="[
-                { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
-                { text: 'Fornecedor', value: 'supplier' },
-                { text: 'Status', value: 'status', align: 'center' },
-                { text: 'Valor do Lance', value: 'amount', align: 'right' },
-                { text: 'Ações', value: 'actions', align: 'center', sortable: false },
-              ]"
-              :items="bids || []"
-            >
-              <template #empty>
-                <div class="text-body-2 text-grey text-center py-4">
-                  Nenhum lance registrado para este item ainda.
-                </div>
-              </template>
-
-              <template #item-pos="{ item: bid }">
-                <UiChip
-                  v-if="getBidPosition(bid.id) !== null"
-                  :color="getBidPosition(bid.id) === 1 ? 'success' : 'default'"
-                  size="sm"
-                >
-                  {{ getBidPosition(bid.id) }}º
-                </UiChip>
-                <span v-else class="text-grey">-</span>
-              </template>
-
-              <template #item-supplier="{ item: bid }">
-                <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
-                <div class="d-flex align-center ga-1 text-caption text-grey">
-                  <span>{{ formatCnpj(bid.suppliers?.cnpj) }}</span>
-                  <UiCopyButton
-                    v-if="bid.suppliers?.cnpj"
-                    clean-digits-only
-                    color="secondary"
-                    size="xs"
-                    success-message="CNPJ copiado!"
-                    tooltip="Copiar CNPJ (apenas números)"
-                    :value="bid.suppliers?.cnpj"
-                  />
-                </div>
-              </template>
-
-              <template #item-status="{ item: bid }">
-                <div class="d-flex flex-column align-center">
-                  <UiChip :color="getBidStatusColor(bid.status)" size="sm" variant="soft">
-                    {{ formatBidStatus(bid.status) }}
-                  </UiChip>
-                  <div
-                    v-if="bid.status === 'disqualified' && bid.disqualification_reason"
-                    class="text-caption text-error mt-1"
-                  >
-                    {{ bid.disqualification_reason }}
-                  </div>
-                </div>
-              </template>
-
-              <template #item-amount="{ item: bid }">
                 <div
-                  class="font-weight-bold"
-                  :class="{
-                    'text-success': winningBid && winningBid.id === bid.id,
-                    'text-decoration-line-through text-grey': bid.status === 'disqualified',
-                  }"
+                  v-if="entry.status === 'error' && entry.error_details"
+                  class="text-caption text-error font-weight-medium border rounded pa-2 mt-1"
                 >
-                  {{ formatUnitPrice(bid.amount) }}
+                  <strong>Erro especificado:</strong> {{ entry.error_details }}
                 </div>
-              </template>
 
-              <template #item-actions="{ item: bid }">
-                <div class="d-flex align-center justify-center ga-1">
-                  <UiActionButton
-                    v-if="canManageBidStatus && bid.status !== 'disqualified'"
-                    action="disqualify"
-                    :disabled="isStatusUpdating"
-                    tooltip="Desclassificar Lance"
-                    @click="openDisqualifyModal(bid)"
-                  />
-                  <UiActionButton
-                    v-if="canManageBidStatus && bid.status === 'disqualified'"
-                    action="classify"
-                    :disabled="isStatusUpdating"
-                    tooltip="Classificar Lance"
-                    @click="handleClassifyBid(bid.id)"
-                  />
-                  <UiActionButton
-                    v-if="canRemoveBid"
-                    action="delete"
-                    tooltip="Remover Lance"
-                    @click="confirmRemoveBid(bid.id)"
-                  />
+                <div v-if="entry.observation" class="text-caption text-high-emphasis mt-1">
+                  {{ entry.observation }}
                 </div>
-              </template>
-            </UiTable>
-          </UiCard>
-
-          <!-- Futuro Card de Documentos -->
-          <UiCard title="Documentos e Anexos" variant="outline">
-            <div class="text-body-2 text-grey pa-4 text-center">
-              Nenhum documento anexado. (Em desenvolvimento)
-            </div>
-          </UiCard>
-        </UiCard>
-
-        <div v-if="pending" class="text-center py-10">
-          <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
+              </div>
+            </UiTimelineItem>
+          </UiTimeline>
         </div>
-      </UiCol>
+      </UiCard>
 
-      <UiCol cols="12" md="4">
-        <!-- Resumo da Demanda / Status -->
-        <UiCard title="Informações" variant="outline">
-          <UiList class="bg-transparent" size="sm">
-            <UiListItem v-if="item?.reference_price">
-              <template #prepend>
-                <UiIcon color="grey" name="currency" />
-              </template>
-              <UiListItemTitle>Valor Referencial</UiListItemTitle>
-              <UiListItemSubtitle>
-                {{ formatUnitPrice(item.reference_price) }}
-              </UiListItemSubtitle>
-            </UiListItem>
-            <UiListItem>
-              <template #prepend>
-                <UiIcon color="grey" name="transfer" />
-              </template>
-              <UiListItemTitle>Intervalo entre Lances</UiListItemTitle>
-              <UiListItemSubtitle v-if="item">
-                <span
-                  v-if="item.bid_interval == null || !item.bid_interval_type"
-                  class="text-error font-weight-medium"
-                >
-                  Não informado
-                </span>
-                <template v-else>
-                  {{
-                    item.bid_interval_type === 'percentage'
-                      ? `${item.bid_interval}%`
-                      : formatUnitPrice(item.bid_interval)
-                  }}
-                </template>
-              </UiListItemSubtitle>
-            </UiListItem>
-            <UiDivider class="my-2" />
-            <UiListItem>
-              <template #prepend>
-                <UiIcon color="grey" name="identifier" />
-              </template>
-              <UiListItemTitle>ID do Item</UiListItemTitle>
-              <UiListItemSubtitle>{{ item?.id }}</UiListItemSubtitle>
-            </UiListItem>
-            <UiListItem>
-              <template #prepend>
-                <UiIcon color="grey" name="calendar" />
-              </template>
-              <UiListItemTitle>Adicionado em</UiListItemTitle>
-              <UiListItemSubtitle>
-                {{ item?.created_at ? new Date(item.created_at).toLocaleString() : '-' }}
-              </UiListItemSubtitle>
-            </UiListItem>
-          </UiList>
-        </UiCard>
-      </UiCol>
-    </UiRow>
+      <!-- Card de Lances Recebidos (Largura Total) -->
+      <UiCard class="mb-4" variant="outline">
+        <template #header>
+          <div class="d-flex justify-space-between align-center w-100 flex-wrap ga-2">
+            <div class="d-flex align-center ga-2">
+              <span class="font-weight-bold">Lances Recebidos</span>
+              <UiChip v-if="bids && bids.length > 0" color="primary" size="xs" variant="soft">
+                {{ bids.length }} {{ bids.length === 1 ? 'lance' : 'lances' }}
+              </UiChip>
+            </div>
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <UiChip
+                v-if="item?.demand?.status === 'quotation'"
+                color="warning"
+                size="sm"
+                variant="soft"
+              >
+                Lances permitidos apenas na Disputa
+              </UiChip>
+              <UiChip
+                v-else-if="item?.demand?.status !== 'dispute'"
+                color="info"
+                size="sm"
+                variant="soft"
+              >
+                Disputa finalizada (Somente leitura)
+              </UiChip>
+              <UiButton
+                v-if="canRegisterBids"
+                color="primary"
+                prepend-icon="add"
+                size="sm"
+                @click="openBidModal"
+              >
+                Registrar Lance
+              </UiButton>
+            </div>
+          </div>
+        </template>
+
+        <div v-if="bidsPending" class="text-center py-4">
+          <UiProgressCircular color="primary" indeterminate size="32" />
+        </div>
+
+        <UiTable
+          v-else
+          :headers="[
+            { text: 'Pos.', value: 'pos', align: 'center', sortable: false },
+            { text: 'Fornecedor', value: 'supplier' },
+            { text: 'Status', value: 'status', align: 'center' },
+            { text: 'Valor do Lance', value: 'amount', align: 'right' },
+            { text: 'Ações', value: 'actions', align: 'center', sortable: false },
+          ]"
+          :items="bids || []"
+        >
+          <template #empty>
+            <div class="text-body-2 text-grey text-center py-4">
+              Nenhum lance registrado para este item ainda.
+            </div>
+          </template>
+
+          <template #item-pos="{ item: bid }">
+            <UiChip
+              v-if="getBidPosition(bid.id) !== null"
+              :color="getBidPosition(bid.id) === 1 ? 'success' : 'default'"
+              size="sm"
+            >
+              {{ getBidPosition(bid.id) }}º
+            </UiChip>
+            <span v-else class="text-grey">-</span>
+          </template>
+
+          <template #item-supplier="{ item: bid }">
+            <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
+            <div class="d-flex align-center ga-1 text-caption text-grey">
+              <span>{{ formatCnpj(bid.suppliers?.cnpj) }}</span>
+              <UiCopyButton
+                v-if="bid.suppliers?.cnpj"
+                clean-digits-only
+                color="secondary"
+                size="xs"
+                success-message="CNPJ copiado!"
+                tooltip="Copiar CNPJ (apenas números)"
+                :value="bid.suppliers?.cnpj"
+              />
+            </div>
+          </template>
+
+          <template #item-status="{ item: bid }">
+            <div class="d-flex flex-column align-center">
+              <UiChip :color="getBidStatusColor(bid.status)" size="sm" variant="soft">
+                {{ formatBidStatus(bid.status) }}
+              </UiChip>
+              <div
+                v-if="bid.status === 'disqualified' && bid.disqualification_reason"
+                class="text-caption text-error mt-1"
+              >
+                {{ bid.disqualification_reason }}
+              </div>
+            </div>
+          </template>
+
+          <template #item-amount="{ item: bid }">
+            <div
+              class="font-weight-bold"
+              :class="{
+                'text-success': winningBid && winningBid.id === bid.id,
+                'text-decoration-line-through text-grey': bid.status === 'disqualified',
+              }"
+            >
+              {{ formatUnitPrice(bid.amount) }}
+            </div>
+          </template>
+
+          <template #item-actions="{ item: bid }">
+            <div class="d-flex align-center justify-center ga-1">
+              <UiActionButton
+                v-if="canManageBidStatus && bid.status !== 'disqualified'"
+                action="disqualify"
+                :disabled="isStatusUpdating"
+                tooltip="Desclassificar Lance"
+                @click="openDisqualifyModal(bid)"
+              />
+              <UiActionButton
+                v-if="canManageBidStatus && bid.status === 'disqualified'"
+                action="classify"
+                :disabled="isStatusUpdating"
+                tooltip="Classificar Lance"
+                @click="handleClassifyBid(bid.id)"
+              />
+              <UiActionButton
+                v-if="canRemoveBid"
+                action="delete"
+                tooltip="Remover Lance"
+                @click="confirmRemoveBid(bid.id)"
+              />
+            </div>
+          </template>
+        </UiTable>
+      </UiCard>
+    </template>
 
     <!-- Navegação de Rodapé Entre Produtos -->
     <div
