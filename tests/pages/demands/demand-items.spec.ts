@@ -775,4 +775,13 @@ describe('Demand Items Page', () => {
     vm.handleGenerateClassBalanceTable()
     expect(vm.isClassBalanceTableModalOpen).toBe(true)
   })
+
+  it('navigates deterministically to /demands and does not call router.back', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const filePath = path.resolve(process.cwd(), 'app/pages/demands/[id]/index.vue')
+    const pageContent = fs.readFileSync(filePath, 'utf-8')
+    expect(pageContent).not.toContain('router.back()')
+    expect(pageContent).toMatch(/router\.push\(['"]\/demands['"]\)/)
+  })
 })

@@ -491,6 +491,14 @@
     { text: 'Quantidade', value: 'quantity', align: 'right' as const },
   ]
 
+  const goBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/products')
+    }
+  }
+
   useHead({
     title: computed(() =>
       product.value?.name ? `Produto: ${product.value.name}` : 'Detalhes do Produto',
@@ -507,8 +515,9 @@
           color="default"
           icon="arrowLeft"
           size="sm"
+          tooltip="Voltar"
           variant="ghost"
-          @click="router.back()"
+          @click="goBack"
         />
         <div>
           <div class="d-flex align-center ga-2 flex-wrap">

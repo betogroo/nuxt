@@ -795,7 +795,13 @@
 
 <template>
   <UiContainer>
-    <UiButton class="mb-4" prepend-icon="arrowLeft" variant="ghost" @click="router.back()">
+    <UiButton
+      class="mb-4"
+      prepend-icon="arrowLeft"
+      to="/demands"
+      variant="ghost"
+      @click="router.push('/demands')"
+    >
       Voltar para Demandas
     </UiButton>
 
