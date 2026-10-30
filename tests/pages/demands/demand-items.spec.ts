@@ -83,6 +83,9 @@ mockNuxtImport('useProducts', () => () => ({
 mockNuxtImport('useExpenseNatures', () => () => ({
   fetchExpenseNatures: vi.fn().mockResolvedValue([]),
 }))
+mockNuxtImport('useLogger', () => () => ({
+  logAction: vi.fn().mockResolvedValue(undefined),
+}))
 
 describe('Demand Items Page', () => {
   it('should resolve final unit and call saveToDemand with alias', async () => {
@@ -755,5 +758,21 @@ describe('Demand Items Page', () => {
     const filePath = path.resolve(process.cwd(), 'app/pages/demands/[id]/index.vue')
     const pageContent = fs.readFileSync(filePath, 'utf-8')
     expect(pageContent).not.toMatch(/<UiChip[^>]*>[\s\n]*Alias:/)
+  })
+
+  it('opens class balance table modal when handleGenerateClassBalanceTable is called', () => {
+    mockDemandPending.value = false
+    mockDemandData.value = {
+      id: 'demand-123',
+      name: 'Demanda Cotação',
+      status: 'quotation',
+    }
+    const wrapper = shallowMount(DemandItemsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isClassBalanceTableModalOpen).toBe(false)
+    vm.handleGenerateClassBalanceTable()
+    expect(vm.isClassBalanceTableModalOpen).toBe(true)
   })
 })

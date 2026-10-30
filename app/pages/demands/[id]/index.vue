@@ -21,11 +21,13 @@
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
+  import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
   const toast = useToast()
+  const { logAction } = useLogger()
   const { profile, fetchAllProfiles } = useProfile()
   const { canEditDemand } = usePermissions()
 
@@ -754,6 +756,15 @@
     isTermsTableModalOpen.value = true
   }
 
+  const isClassBalanceTableModalOpen = ref(false)
+  const handleGenerateClassBalanceTable = () => {
+    isClassBalanceTableModalOpen.value = true
+    logAction(
+      'GENERATE_CLASS_BALANCE_TABLE',
+      `Abriu a tabela de saldo por classe de materiais na demanda "${demand.value?.name || demandId}"`,
+    )
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const activeTab = ref<'planning' | 'items' | 'suppliers'>('planning')
 
@@ -1057,6 +1068,14 @@
               >
                 Gerar Tabela para Termo de Referência
               </UiButton>
+              <UiButton
+                color="primary"
+                prepend-icon="balance"
+                variant="soft"
+                @click="handleGenerateClassBalanceTable"
+              >
+                Gerar Tabela de Saldo por Classe
+              </UiButton>
             </div>
           </div>
         </UiCard>
@@ -1298,7 +1317,16 @@
                   {{ disputeSummary.desertedCount }} deserto(s)
                 </UiChip>
               </div>
-              <div class="ml-auto">
+              <div class="ml-auto d-flex flex-wrap ga-2">
+                <UiButton
+                  v-if="demand?.status === 'quotation'"
+                  color="secondary"
+                  prepend-icon="balance"
+                  variant="soft"
+                  @click="handleGenerateClassBalanceTable"
+                >
+                  Tabela de Saldo por Classe
+                </UiButton>
                 <UiButton
                   v-if="demand?.status === 'quotation'"
                   color="primary"
@@ -2559,6 +2587,13 @@
     <DemandTermsOfReferenceTableModal
       v-model="isTermsTableModalOpen"
       :demand-title="demand?.name"
+      :items="items || []"
+    />
+
+    <!-- Modal de Tabela de Saldo por Classe de Materiais -->
+    <DemandClassBalanceTableModal
+      v-model="isClassBalanceTableModalOpen"
+      :demand="demand"
       :items="items || []"
     />
   </UiContainer>
