@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import type { DemandWithClassProductsRow } from '~/composables/useDemandReports'
 import {
   buildDemandClassBalanceRows,
+  calculateSingleClassBalance,
   formatClassBalanceLabel,
   generateDemandClassBalanceTableHtml,
   generateDemandClassBalanceTableText,
@@ -293,6 +294,102 @@ describe('demandClassBalanceTable utility', () => {
       expect(text).toContain('7510 - Artigos para Escritório (1 item)')
       expect(text).toContain('7530 - Papelaria e Papel (2 itens)')
       expect(text).toContain('Totais Consolidados (2 classes):')
+    })
+  })
+
+  describe('calculateSingleClassBalance', () => {
+    it('handles product without linked class safely', () => {
+      const res = calculateSingleClassBalance({
+        classId: null,
+        className: 'Sem classe vinculada',
+        year: 2026,
+        ceilingAmount: 50000,
+      })
+      expect(res.hasLinkedClass).toBe(false)
+      expect(res.currentBalance).toBe(0)
+      expect(res.projectedBalance).toBe(0)
+      expect(res.willExceedWithAddition).toBe(false)
+    })
+
+    it('calculates available balance and projected balance with addition', () => {
+      const otherDemands: DemandWithClassProductsRow[] = [
+        makeCommittedDemand({
+          id: 'dem-other',
+          internal_process_number: '2026-0002',
+          demand_products: [
+            {
+              id: 'dp-1',
+              demand_id: 'dem-other',
+              product_id: 'p-1',
+              quantity: 10,
+              commitment_number: '2026NE00100',
+              execution_status: 'commitment_issued',
+              product: {
+                id: 'p-1',
+                name: 'Papel Sulfite',
+                product_class_id: '7530',
+                product_classes: { id: '7530', name: 'Papelaria e Papel' },
+              },
+              demand_product_bids: [
+                {
+                  id: 'bid-1',
+                  demand_product_id: 'dp-1',
+                  supplier_id: 'sup-1',
+                  amount: 90,
+                  status: 'classified',
+                },
+              ],
+            } as unknown as NonNullable<DemandWithClassProductsRow['demand_products']>[number],
+          ],
+        }),
+      ]
+
+      const res = calculateSingleClassBalance({
+        classId: '7530',
+        className: 'Papelaria e Papel',
+        year: 2026,
+        ceilingAmount: 10000,
+        currentDemandId: 'dem-current',
+        currentItems: sampleCurrentItems,
+        allDemands: otherDemands,
+        addition: {
+          quantity: 10,
+          unitPrice: 50,
+        },
+      })
+
+      expect(res.hasLinkedClass).toBe(true)
+      expect(res.classId).toBe('7530')
+      expect(res.className).toBe('Papelaria e Papel')
+      expect(res.committedInOtherDemands).toBe(900)
+      expect(res.currentDemandAmount).toBe(2500)
+      expect(res.currentBalance).toBe(6600)
+      expect(res.additionAmount).toBe(500)
+      expect(res.projectedBalance).toBe(6100)
+      expect(res.isExceededCurrently).toBe(false)
+      expect(res.willExceedWithAddition).toBe(false)
+    })
+
+    it('detects when addition will exceed annual ceiling', () => {
+      const res = calculateSingleClassBalance({
+        classId: '7530',
+        className: 'Papelaria e Papel',
+        year: 2026,
+        ceilingAmount: 3000,
+        currentDemandId: 'dem-current',
+        currentItems: sampleCurrentItems,
+        allDemands: [],
+        addition: {
+          quantity: 20,
+          unitPrice: 50,
+        },
+      })
+
+      expect(res.currentBalance).toBe(500)
+      expect(res.additionAmount).toBe(1000)
+      expect(res.projectedBalance).toBe(-500)
+      expect(res.isExceededCurrently).toBe(false)
+      expect(res.willExceedWithAddition).toBe(true)
     })
   })
 })

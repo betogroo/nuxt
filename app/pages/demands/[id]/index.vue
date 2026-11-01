@@ -22,6 +22,9 @@
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
+  import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
+  import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
+  import { useDemandReports, type DemandWithClassProductsRow } from '~/composables/useDemandReports'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -37,7 +40,9 @@
   const { fetchAllActiveProductClasses } = useProductClasses()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
-  const { getBecProductUrl } = useSystemSettings()
+  const { getBecProductUrl, fetchProductClassAnnualCeilings, getCeilingForYear } =
+    useSystemSettings()
+  const { fetchDemandsForClassSpending, resolveDemandYear } = useDemandReports()
 
   const demandId = route.params.id as string
 
@@ -404,7 +409,90 @@
     },
   )
 
+  // --- CONTROLE DE SALDO POR CLASSE NO CADASTRO DE PRODUTO ---
+  const ceilingsMap = ref<Record<string, number>>({})
+  const allDemandsForSpending = ref<DemandWithClassProductsRow[]>([])
+  const isSpendingDataLoading = ref(false)
+  const isSpendingDataLoaded = ref(false)
+
+  const ensureSpendingData = async () => {
+    if (isSpendingDataLoaded.value || isSpendingDataLoading.value) return
+    isSpendingDataLoading.value = true
+    try {
+      const [ceilings, demandsList] = await Promise.all([
+        fetchProductClassAnnualCeilings(),
+        fetchDemandsForClassSpending(),
+      ])
+      if (ceilings) ceilingsMap.value = ceilings
+      if (demandsList) allDemandsForSpending.value = demandsList
+      isSpendingDataLoaded.value = true
+    } catch (err) {
+      console.error('Erro ao carregar dados de gastos por classe:', err)
+    } finally {
+      isSpendingDataLoading.value = false
+    }
+  }
+
+  const demandYear = computed<number>(() => {
+    if (!demand.value) return new Date().getFullYear()
+    return resolveDemandYear(demand.value)
+  })
+
+  const addingClassInfo = computed(() => {
+    if (!isNewProductMode.value) {
+      if (!selectedProductId.value) return null
+      const prod = allProducts.value?.find((p) => p.id === selectedProductId.value)
+      if (!prod) return null
+      const classId = prod.product_class_id || prod.product_classes?.id || null
+      const className = prod.product_classes?.name || ''
+      return { classId, className }
+    } else {
+      if (isSuggestingClass.value) {
+        const classId = suggestedClassId.value?.trim() || null
+        const className = suggestedClassName.value?.trim() || ''
+        return { classId, className }
+      } else {
+        if (!newProductClassId.value) return null
+        const cls = productClasses.value?.find((c) => c.id === newProductClassId.value)
+        return {
+          classId: newProductClassId.value,
+          className: cls?.name || '',
+        }
+      }
+    }
+  })
+
+  const addingItemClassBalance = computed(() => {
+    if (!addingClassInfo.value) return null
+    const ceilingInfo = getCeilingForYear(ceilingsMap.value, demandYear.value)
+
+    return calculateSingleClassBalance({
+      classId: addingClassInfo.value.classId,
+      className: addingClassInfo.value.className,
+      year: demandYear.value,
+      ceilingAmount: ceilingInfo.amount,
+      isCeilingConfigured: ceilingInfo.isConfigured,
+      currentDemandId: demandId,
+      currentItems: items.value || [],
+      allDemands: allDemandsForSpending.value,
+      addition: {
+        quantity: itemQuantity.value,
+        unitPrice: itemReferencePrice.value,
+      },
+    })
+  })
+
+  watch(
+    () => isModalOpen.value,
+    (open) => {
+      if (open) {
+        ensureSpendingData()
+      }
+    },
+  )
+
   const openAddModal = () => {
+    ensureSpendingData()
     selectedProductId.value = null
     selectedUnitSearch.value = ''
     selectedAliasId.value = null
@@ -2026,6 +2114,14 @@
           step="0.0001"
           type="number"
         />
+
+        <!-- Card de Saldo por Classe do Produto -->
+        <DemandProductClassBalanceCard
+          v-if="selectedProductId"
+          class="mt-4"
+          :balance="addingItemClassBalance"
+          :loading="isSpendingDataLoading"
+        />
       </template>
 
       <!-- Seção de Cadastro Rápido de Novo Produto -->
@@ -2169,6 +2265,14 @@
           label="Valor Referencial (R$)"
           step="0.0001"
           type="number"
+        />
+
+        <!-- Card de Saldo por Classe do Produto no Cadastro Novo -->
+        <DemandProductClassBalanceCard
+          v-if="newProductClassId || (isSuggestingClass && suggestedClassId)"
+          class="mt-4"
+          :balance="addingItemClassBalance"
+          :loading="isSpendingDataLoading"
         />
 
         <div class="text-right">

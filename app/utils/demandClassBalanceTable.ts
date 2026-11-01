@@ -19,6 +19,37 @@ export interface DemandClassBalanceRow {
   isExceeded: boolean
 }
 
+export interface SingleClassBalanceResult {
+  classId: string
+  className: string
+  hasLinkedClass: boolean
+  year: number
+  ceilingAmount: number
+  isCeilingConfigured: boolean
+  committedInOtherDemands: number
+  currentDemandAmount: number
+  currentBalance: number
+  additionAmount: number
+  projectedBalance: number
+  isExceededCurrently: boolean
+  willExceedWithAddition: boolean
+}
+
+export interface CalculateSingleClassBalanceParams {
+  classId?: string | null
+  className?: string | null
+  year: number
+  ceilingAmount: number
+  isCeilingConfigured?: boolean
+  currentDemandId?: string | null
+  currentItems?: DemandTermsItem[] | null
+  allDemands?: DemandWithClassProductsRow[] | null
+  addition?: {
+    quantity?: number | string | null
+    unitPrice?: number | string | null
+  } | null
+}
+
 export interface DemandClassBalanceTableOptions {
   includeItemsCount?: boolean
   includeTotalsFooter?: boolean
@@ -161,6 +192,129 @@ export function buildDemandClassBalanceRows(
         numeric: true,
       }),
     )
+}
+
+/**
+ * Calcula o saldo anual e a projeção para uma classe individual de produto,
+ * permitindo visualização prévia no momento da inserção ou edição de item na demanda.
+ */
+export function calculateSingleClassBalance(
+  params: CalculateSingleClassBalanceParams,
+): SingleClassBalanceResult {
+  const {
+    classId,
+    className,
+    year,
+    ceilingAmount,
+    isCeilingConfigured = true,
+    currentDemandId,
+    currentItems,
+    allDemands,
+    addition,
+  } = params
+
+  const rawClassId = classId ? String(classId).trim() : ''
+  const hasLinkedClass = Boolean(rawClassId && rawClassId !== 'SEM_CLASSE')
+  const normalizedCeiling = Number(Number(ceilingAmount || 0).toFixed(2))
+
+  if (!hasLinkedClass) {
+    const fallbackName = className?.trim() || 'Sem classe vinculada'
+    return {
+      classId: '',
+      className: fallbackName,
+      hasLinkedClass: false,
+      year,
+      ceilingAmount: normalizedCeiling,
+      isCeilingConfigured,
+      committedInOtherDemands: 0,
+      currentDemandAmount: 0,
+      currentBalance: 0,
+      additionAmount: 0,
+      projectedBalance: 0,
+      isExceededCurrently: false,
+      willExceedWithAddition: false,
+    }
+  }
+
+  // 1. Resolver nome da classe
+  let resolvedClassName = className?.trim() || ''
+  if (!resolvedClassName || resolvedClassName === rawClassId) {
+    for (const item of currentItems || []) {
+      const info = resolveItemClassInfo(item)
+      if (info.classId === rawClassId && info.className && info.className !== rawClassId) {
+        resolvedClassName = info.className
+        break
+      }
+    }
+  }
+  if (!resolvedClassName) {
+    resolvedClassName = rawClassId
+  }
+
+  // 2. Total já empenhado em outras demandas ativas do mesmo exercício
+  let committedInOtherDemands = 0
+  for (const demand of allDemands || []) {
+    if (demand.deleted_at || demand.status === 'cancelled') continue
+    if (currentDemandId && demand.id === currentDemandId) continue
+    if (resolveDemandYear(demand) !== year) continue
+
+    const demandItems = demand.demand_products || []
+    for (const demandItem of demandItems) {
+      if (!hasItemCommitmentIssued(demandItem)) continue
+      const info = resolveItemClassInfo(demandItem)
+      if (info.classId !== rawClassId) continue
+
+      const disputeRes = getItemDisputeResult(demandItem)
+      if (
+        disputeRes.outcome !== 'winner' ||
+        disputeRes.totalFinal == null ||
+        disputeRes.totalFinal <= 0
+      ) {
+        continue
+      }
+      committedInOtherDemands += Number(disputeRes.totalFinal.toFixed(2))
+    }
+  }
+  committedInOtherDemands = Number(committedInOtherDemands.toFixed(2))
+
+  // 3. Total já alocado nesta demanda atual
+  let currentDemandAmount = 0
+  for (const item of currentItems || []) {
+    const info = resolveItemClassInfo(item)
+    if (info.classId !== rawClassId) continue
+
+    const qty = Number(item.quantity) || 0
+    const price = Number(item.reference_price) || 0
+    currentDemandAmount += qty * price
+  }
+  currentDemandAmount = Number(currentDemandAmount.toFixed(2))
+
+  // 4. Saldo atual disponível
+  const currentBalance = Number(
+    (normalizedCeiling - committedInOtherDemands - currentDemandAmount).toFixed(2),
+  )
+
+  // 5. Impacto do item sendo adicionado
+  const qtyAddition = Math.max(0, Number(addition?.quantity) || 0)
+  const priceAddition = Math.max(0, Number(addition?.unitPrice) || 0)
+  const additionAmount = Number((qtyAddition * priceAddition).toFixed(2))
+  const projectedBalance = Number((currentBalance - additionAmount).toFixed(2))
+
+  return {
+    classId: rawClassId,
+    className: resolvedClassName,
+    hasLinkedClass: true,
+    year,
+    ceilingAmount: normalizedCeiling,
+    isCeilingConfigured,
+    committedInOtherDemands,
+    currentDemandAmount,
+    currentBalance,
+    additionAmount,
+    projectedBalance,
+    isExceededCurrently: currentBalance < 0,
+    willExceedWithAddition: projectedBalance < 0,
+  }
 }
 
 /**
