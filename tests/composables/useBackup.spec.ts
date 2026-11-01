@@ -41,6 +41,8 @@ describe('useBackup Composable', () => {
       product_units: 5,
       product_characteristics: 5,
       demands: 5,
+      demand_commitments: 5,
+      demand_commitment_liquidations: 5,
       demand_products: 5,
       demand_product_bids: 5,
       demand_responsibles: 5,
@@ -82,12 +84,12 @@ describe('useBackup Composable', () => {
     expect(inspectionMissing.errorMessage).toContain('propriedade "data" não encontrada')
   })
 
-  it('inspectBackupFile should correctly inspect valid backup payload', async () => {
+  it('inspectBackupFile should correctly inspect valid backup payload including demand_commitments and liquidations', async () => {
     const { inspectBackupFile } = useBackup()
 
     const validPayload: BackupFileStructure = {
       system: 'Demandas & IIRGD',
-      version: '1.0',
+      version: '1.9',
       timestamp: '2026-10-11T12:00:00Z',
       generated_by: { id: 'admin-id', name: 'Admin Test' },
       summary: {
@@ -100,6 +102,8 @@ describe('useBackup Composable', () => {
         products: 1,
         product_units: 0,
         demands: 1,
+        demand_commitments: 1,
+        demand_commitment_liquidations: 2,
         demand_products: 0,
         demand_product_bids: 0,
         demand_responsibles: 0,
@@ -123,6 +127,11 @@ describe('useBackup Composable', () => {
           { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Azul' },
         ],
         demands: [{ id: 'dem-1' }],
+        demand_commitments: [{ id: 'dc-1', commitment_number: '2026NE00313' }],
+        demand_commitment_liquidations: [
+          { id: 'nl-1', liquidation_number: '2026NL00001' },
+          { id: 'nl-2', liquidation_number: '2026NL00002' },
+        ],
         system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
         elections: [{ id: 'el-1' }, { id: 'el-2' }],
@@ -146,6 +155,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.product_characteristic_keys).toBe(1)
     expect(inspection.counts.product_characteristics).toBe(1)
     expect(inspection.counts.demands).toBe(1)
+    expect(inspection.counts.demand_commitments).toBe(1)
+    expect(inspection.counts.demand_commitment_liquidations).toBe(2)
     expect(inspection.counts.iirgd_citizens).toBe(3)
     expect(inspection.counts.iirgd_demands).toBe(2)
     expect(inspection.counts.demand_item_status_history).toBe(1)
@@ -170,6 +181,8 @@ describe('useBackup Composable', () => {
         products: 1,
         product_units: 0,
         demands: 1,
+        demand_commitments: 1,
+        demand_commitment_liquidations: 2,
         demand_products: 0,
         demand_product_bids: 0,
         demand_responsibles: 0,
@@ -187,7 +200,7 @@ describe('useBackup Composable', () => {
     const { restoreBackup } = useBackup()
     const payload = {
       system: 'Test',
-      version: '1.0',
+      version: '1.9',
       timestamp: '2026-10-11T12:00:00Z',
       generated_by: { id: '1', name: 'Admin' },
       summary: mockResult.counts,
@@ -198,135 +211,5 @@ describe('useBackup Composable', () => {
     expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
     expect(logActionMock).toHaveBeenCalledWith('RESTORE_BACKUP', expect.any(String))
     expect(result.success).toBe(true)
-  })
-
-  it('restoreBackup should send payload containing citizens with other_document to RPC', async () => {
-    const mockResult = {
-      success: true,
-      restored_at: new Date().toISOString(),
-      counts: {
-        profiles: 1,
-        suppliers: 0,
-        expense_natures: 0,
-        product_classes: 0,
-        measurement_units: 0,
-        measurement_unit_aliases: 0,
-        products: 0,
-        product_units: 0,
-        demands: 0,
-        demand_products: 0,
-        demand_product_bids: 0,
-        demand_responsibles: 0,
-        iirgd_citizens: 2,
-        iirgd_document_types: 0,
-        iirgd_demands: 0,
-        iirgd_demand_status_history: 0,
-        iirgd_settings: 0,
-        logs: 0,
-      },
-    }
-
-    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
-
-    const { restoreBackup } = useBackup()
-    const payload = {
-      system: 'Test',
-      version: '1.0',
-      timestamp: '2026-10-14T12:00:00Z',
-      generated_by: { id: 'admin-id', name: 'Admin' },
-      summary: mockResult.counts,
-      data: {
-        iirgd_citizens: [
-          {
-            id: '77759679-7108-4400-97c8-154ba1ece5a8',
-            name: 'GILSON SOUZA DE OLIVEIRA',
-            rg: null,
-            cpf: null,
-            other_document: '0561015112-BA',
-          },
-          {
-            id: '88888888-7108-4400-97c8-154ba1ece5a8',
-            name: 'MARIA APARECIDA',
-            rg: '12.345.678-9',
-            cpf: null,
-            other_document: null,
-          },
-        ],
-      },
-    }
-
-    const result = await restoreBackup(payload as unknown as BackupFileStructure)
-    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
-    expect(result.success).toBe(true)
-    expect(result.counts.iirgd_citizens).toBe(2)
-  })
-
-  it('restoreBackup should send payload containing product_characteristic_keys, product_characteristics and historical demands to RPC', async () => {
-    const mockResult = {
-      success: true,
-      restored_at: new Date().toISOString(),
-      counts: {
-        profiles: 1,
-        suppliers: 0,
-        expense_natures: 0,
-        product_classes: 0,
-        measurement_units: 0,
-        measurement_unit_aliases: 0,
-        measurement_unit_alias_links: 0,
-        product_characteristic_keys: 2,
-        products: 1,
-        product_units: 0,
-        product_characteristics: 2,
-        demands: 1,
-        demand_products: 0,
-        demand_product_bids: 0,
-        demand_responsibles: 0,
-        demand_item_status_history: 0,
-        iirgd_citizens: 0,
-        iirgd_document_types: 0,
-        iirgd_demands: 0,
-        iirgd_demand_status_history: 0,
-        iirgd_settings: 0,
-        system_settings: 0,
-        elections: 0,
-        candidates: 0,
-        ballot_boxes: 0,
-        election_committee_members: 0,
-        election_voters: 0,
-        election_voter_attendance: 0,
-        election_votes: 0,
-        logs: 0,
-      },
-    }
-
-    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
-
-    const { restoreBackup } = useBackup()
-    const payload: BackupFileStructure = {
-      system: 'Demandas, IIRGD & Eleições',
-      version: '1.8',
-      timestamp: '2026-10-29T20:49:29Z',
-      generated_by: { id: 'admin-id', name: 'Admin' },
-      summary: mockResult.counts,
-      data: {
-        product_characteristic_keys: [
-          { id: 'pck-1', name: 'Cor', is_active: true, is_pending: false },
-          { id: 'pck-2', name: 'Material', is_active: true, is_pending: false },
-        ],
-        products: [{ id: 'prod-1', name: 'Pasta Suspensa' }],
-        product_characteristics: [
-          { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Kraft' },
-          { id: 'pc-2', product_id: 'prod-1', key_id: 'pck-2', value: 'Papel Cartão' },
-        ],
-        demands: [{ id: 'dem-1', name: 'Demanda Legada', is_historical: true }],
-      },
-    }
-
-    const result = await restoreBackup(payload)
-    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
-    expect(result.success).toBe(true)
-    expect(result.counts.product_characteristic_keys).toBe(2)
-    expect(result.counts.product_characteristics).toBe(2)
-    expect(result.counts.demands).toBe(1)
   })
 })

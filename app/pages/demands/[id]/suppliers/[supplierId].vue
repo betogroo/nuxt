@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { formatCnpj, formatUnitPrice } from '~/utils/formatters'
+  import { APP_ROUTES } from '~/utils/routes'
 
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -120,6 +121,7 @@
             v-else
             :headers="[
               { text: 'Produto', value: 'product' },
+              { text: 'Nota de Empenho', value: 'commitment', align: 'center' },
               { text: 'Qtd.', value: 'quantity', align: 'center' },
               { text: 'Valor Unit.', value: 'unit_price', align: 'right' },
               { text: 'Subtotal', value: 'subtotal', align: 'right' },
@@ -139,6 +141,24 @@
               <div class="text-caption text-grey">
                 {{ item.unit_name_snapshot || item.measurement_units?.name || 'Un.' }}
               </div>
+            </template>
+            <template #item-commitment="{ item }">
+              <NuxtLink
+                v-if="item.commitment_number"
+                class="text-decoration-none"
+                :to="APP_ROUTES.commitments.detail(item.commitment_number)"
+              >
+                <UiChip
+                  class="font-weight-bold cursor-pointer"
+                  color="indigo"
+                  prepend-icon="document"
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ item.commitment_number }}
+                </UiChip>
+              </NuxtLink>
+              <span v-else class="text-caption text-grey">Pendente</span>
             </template>
             <template #item-quantity="{ item }">
               {{ item.quantity }}

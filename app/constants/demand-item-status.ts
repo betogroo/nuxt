@@ -55,6 +55,50 @@ export const ALL_DEMAND_ITEM_EXECUTION_STATUSES: DemandItemExecutionStatus[] = [
   'error',
 ]
 
+export interface DemandItemExecutionStatusOption {
+  value: DemandItemExecutionStatus
+  title: string
+  color: string
+  icon: IconName
+}
+
+export const DEMAND_ITEM_EXECUTION_STATUS_OPTIONS: DemandItemExecutionStatusOption[] =
+  ALL_DEMAND_ITEM_EXECUTION_STATUSES.map((status) => ({
+    value: status,
+    title: DEMAND_ITEM_EXECUTION_STATUS_LABELS[status],
+    color: DEMAND_ITEM_EXECUTION_STATUS_COLORS[status],
+    icon: DEMAND_ITEM_EXECUTION_STATUS_ICONS[status],
+  }))
+
+export function formatDemandItemExecutionStatus(
+  status: DemandItemExecutionStatus | null | undefined,
+): string {
+  if (!status) return DEMAND_ITEM_EXECUTION_STATUS_LABELS.homologated
+  return DEMAND_ITEM_EXECUTION_STATUS_LABELS[status] || status
+}
+
+export function getDemandItemExecutionStatusColor(
+  status: DemandItemExecutionStatus | null | undefined,
+): string {
+  if (!status) return DEMAND_ITEM_EXECUTION_STATUS_COLORS.homologated
+  return DEMAND_ITEM_EXECUTION_STATUS_COLORS[status] || 'grey'
+}
+
+export function getDemandItemExecutionStatusIcon(
+  status: DemandItemExecutionStatus | null | undefined,
+): IconName {
+  if (!status) return DEMAND_ITEM_EXECUTION_STATUS_ICONS.homologated
+  return DEMAND_ITEM_EXECUTION_STATUS_ICONS[status] || 'circle'
+}
+
+export function getDemandItemExecutionStatusStepIndex(
+  status: DemandItemExecutionStatus | null | undefined,
+): number {
+  if (!status) return 0
+  const idx = DEMAND_ITEM_EXECUTION_FLOW.indexOf(status)
+  return idx >= 0 ? idx : 0
+}
+
 export function getNextExecutionStatus(
   currentStatus: DemandItemExecutionStatus | null | undefined,
 ): DemandItemExecutionStatus | null {

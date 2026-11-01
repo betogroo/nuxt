@@ -1676,17 +1676,22 @@
                         DEMAND_ITEM_EXECUTION_STATUS_LABELS[item.execution_status || 'homologated']
                       }}
                     </UiChip>
-                    <UiChip
+                    <NuxtLink
                       v-if="item.commitment_number"
-                      class="font-weight-medium font-monospace"
-                      color="purple"
-                      size="xs"
-                      title="Número do Empenho"
-                      variant="outlined"
+                      class="text-decoration-none"
+                      :to="APP_ROUTES.commitments.detail(item.commitment_number)"
                     >
-                      <UiIcon name="document" size="10" start />
-                      {{ item.commitment_number }}
-                    </UiChip>
+                      <UiChip
+                        class="font-weight-medium font-monospace cursor-pointer"
+                        color="purple"
+                        size="xs"
+                        title="Abrir página da Nota de Empenho"
+                        variant="outlined"
+                      >
+                        <UiIcon name="document" size="10" start />
+                        {{ item.commitment_number }}
+                      </UiChip>
+                    </NuxtLink>
                     <div
                       v-if="item.execution_status === 'error' && item.execution_error_details"
                       class="text-caption text-error text-truncate"
@@ -1833,9 +1838,21 @@
                   class="d-flex align-center justify-space-between ga-2"
                 >
                   <div class="d-flex align-center ga-1">
-                    <UiChip color="purple" prepend-icon="document" size="xs" variant="flat">
-                      {{ c.commitmentNumber }}
-                    </UiChip>
+                    <NuxtLink
+                      class="text-decoration-none"
+                      :to="APP_ROUTES.commitments.detail(c.commitmentNumber)"
+                    >
+                      <UiChip
+                        class="cursor-pointer"
+                        color="purple"
+                        prepend-icon="document"
+                        size="xs"
+                        title="Abrir página da Nota de Empenho"
+                        variant="solid"
+                      >
+                        {{ c.commitmentNumber }}
+                      </UiChip>
+                    </NuxtLink>
                     <span v-if="c.itemsCount > 1" class="text-caption text-grey font-weight-medium">
                       ({{ c.itemsCount }} itens)
                     </span>

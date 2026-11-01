@@ -12,6 +12,7 @@
   } from '~/constants/demand-item-status'
   import type { DemandProductRow } from '~/composables/useDemandProducts'
   import { getWinningBid } from '~/utils/bids'
+  import { APP_ROUTES } from '~/utils/routes'
 
   const props = defineProps<{
     modelValue: boolean
@@ -33,10 +34,12 @@
     return getWinningBid(props.item.demand_product_bids)
   })
 
-  const statusOptions = ALL_DEMAND_ITEM_EXECUTION_STATUSES.map((status) => ({
-    title: DEMAND_ITEM_EXECUTION_STATUS_LABELS[status],
-    value: status,
-  }))
+  const statusOptions = ALL_DEMAND_ITEM_EXECUTION_STATUSES.filter((s) => s !== 'completed').map(
+    (status) => ({
+      title: DEMAND_ITEM_EXECUTION_STATUS_LABELS[status],
+      value: status,
+    }),
+  )
 
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(
     demandItemStatusChangeFormSchema,
@@ -60,7 +63,7 @@
         const current = (props.item.execution_status || 'homologated') as DemandItemExecutionStatus
         resetForm({
           values: {
-            status: current,
+            status: current === 'completed' ? 'received' : current,
             commitment_number: props.item.commitment_number || '',
             observation: '',
             error_details: props.item.execution_error_details || '',
@@ -125,6 +128,27 @@
       </div>
     </div>
 
+    <UiAlert v-if="item?.commitment_number" class="mb-4" size="xs" type="info" variant="soft">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+        <span>
+          Este item pertence à Nota de Empenho
+          <strong>{{ item.commitment_number }}</strong
+          >. As Notas de Liquidação (NL), Programa de Desembolso (PD) e encerramento via Ordem
+          Bancária (OB) são realizados na página da NE.
+        </span>
+        <UiButton
+          color="primary"
+          prepend-icon="externalLink"
+          size="xs"
+          :to="APP_ROUTES.commitments.detail(item.commitment_number)"
+          variant="tonal"
+          @click="closeModal"
+        >
+          Abrir Página da NE
+        </UiButton>
+      </div>
+    </UiAlert>
+
     <UiAlert v-if="serverError" class="mb-4" size="sm" type="error" variant="soft">
       {{ serverError }}
     </UiAlert>
@@ -145,8 +169,10 @@
       v-bind="commitmentNumberProps"
       class="mt-3"
       :error-messages="errors.commitment_number"
-      label="Número do Empenho *"
-      placeholder="Ex: 2026-NE-00247"
+      hint="Padrão SIAFEM obrigatório: 2026NE00000"
+      label="Número da Nota de Empenho *"
+      persistent-hint
+      placeholder="Ex: 2026NE00000"
     />
 
     <UiTextarea

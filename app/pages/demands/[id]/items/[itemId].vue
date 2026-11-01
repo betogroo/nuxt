@@ -728,25 +728,43 @@
                 />
                 {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[currentExecutionStatus] }}
               </UiChip>
-              <UiChip
+              <NuxtLink
                 v-if="item?.commitment_number"
-                class="font-weight-medium font-monospace"
-                color="purple"
-                size="sm"
-                variant="outlined"
+                class="text-decoration-none"
+                :to="APP_ROUTES.commitments.detail(item.commitment_number)"
               >
-                <UiIcon name="document" size="14" start />
-                Empenho: {{ item.commitment_number }}
-              </UiChip>
+                <UiChip
+                  class="font-weight-medium font-monospace cursor-pointer"
+                  color="purple"
+                  size="sm"
+                  title="Abrir página da Nota de Empenho"
+                  variant="outline"
+                >
+                  <UiIcon name="document" size="14" start />
+                  Empenho: {{ item.commitment_number }}
+                </UiChip>
+              </NuxtLink>
             </div>
-            <UiButton
-              color="primary"
-              prepend-icon="editOutline"
-              size="sm"
-              @click="openExecutionStatusModal"
-            >
-              Atualizar Status
-            </UiButton>
+            <div class="d-flex align-center flex-wrap ga-2">
+              <UiButton
+                v-if="item?.commitment_number"
+                color="indigo"
+                prepend-icon="externalLink"
+                size="sm"
+                :to="APP_ROUTES.commitments.detail(item.commitment_number)"
+                variant="soft"
+              >
+                Gerenciar NE (NL / PD / OB)
+              </UiButton>
+              <UiButton
+                color="primary"
+                prepend-icon="editOutline"
+                size="sm"
+                @click="openExecutionStatusModal"
+              >
+                Atualizar Status
+              </UiButton>
+            </div>
           </div>
         </template>
 

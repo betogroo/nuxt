@@ -36,7 +36,7 @@ describe('SupplierCommitmentsBatchModal', () => {
       quantity: 10,
       unit_name_snapshot: 'Pct',
       product_name_snapshot: 'Papel A4',
-      commitment_number: '2026-NE-00100',
+      commitment_number: '2026NE00100',
       product: {
         id: 'prod-1',
         name: 'Papel A4',
@@ -59,7 +59,7 @@ describe('SupplierCommitmentsBatchModal', () => {
       quantity: 5,
       unit_name_snapshot: 'Cx',
       product_name_snapshot: 'Caneta Esferográfica',
-      commitment_number: '2026-NE-00100',
+      commitment_number: '2026NE00100',
       product: {
         id: 'prod-2',
         name: 'Caneta Esferográfica',
@@ -138,14 +138,12 @@ describe('SupplierCommitmentsBatchModal', () => {
     const nature16 = vm.natureGroups.find((g: SupplierNatureGroup) => g.natureId === '33903016')
     expect(nature16).toBeDefined()
     expect(nature16?.items).toHaveLength(2)
-    // 10 * 25 = 250; 5 * 10 = 50 => Total 300
     expect(nature16?.totalAmount).toBe(300)
-    expect(nature16?.initialCommitment).toBe('2026-NE-00100')
+    expect(nature16?.initialCommitment).toBe('2026NE00100')
 
     const nature10 = vm.natureGroups.find((g: SupplierNatureGroup) => g.natureId === '33903010')
     expect(nature10).toBeDefined()
     expect(nature10?.items).toHaveLength(1)
-    // 2 * 100 = 200
     expect(nature10?.totalAmount).toBe(200)
     expect(nature10?.initialCommitment).toBe('')
   })
@@ -177,8 +175,8 @@ describe('SupplierCommitmentsBatchModal', () => {
       onSave: () => Promise<void>
       serverError: string
     }
-    vm.commitmentInputs['33903016'] = '2026-NE-00100'
-    vm.commitmentInputs['33903010'] = '2026-NE-00100' // Duplicate!
+    vm.commitmentInputs['33903016'] = '2026NE00100'
+    vm.commitmentInputs['33903010'] = '2026NE00100' // Duplicate!
 
     await vm.onSave()
 
@@ -212,8 +210,8 @@ describe('SupplierCommitmentsBatchModal', () => {
       commitmentInputs: Record<string, string>
       onSave: () => Promise<void>
     }
-    vm.commitmentInputs['33903016'] = '2026-NE-00100'
-    vm.commitmentInputs['33903010'] = '2026-NE-00200'
+    vm.commitmentInputs['33903016'] = '2026NE00100'
+    vm.commitmentInputs['33903010'] = '2026NE00200'
 
     await vm.onSave()
 
@@ -221,8 +219,8 @@ describe('SupplierCommitmentsBatchModal', () => {
       demandId: 'dem-1',
       supplierId: 'sup-alpha',
       updates: [
-        { expenseNatureId: '33903010', commitmentNumber: '2026-NE-00200' },
-        { expenseNatureId: '33903016', commitmentNumber: '2026-NE-00100' },
+        { expenseNatureId: '33903010', commitmentNumber: '2026NE00200' },
+        { expenseNatureId: '33903016', commitmentNumber: '2026NE00100' },
       ],
     })
     expect(mockToast.success).toHaveBeenCalledWith('Notas de empenho atualizadas com sucesso!')

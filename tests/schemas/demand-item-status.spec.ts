@@ -5,7 +5,7 @@ describe('demandItemStatusChangeFormSchema', () => {
   it('should accept valid sequential statuses without error details', () => {
     const validData = {
       status: 'commitment_sent' as const,
-      observation: 'Empenho emitido sob número 2026NE001',
+      observation: 'Empenho emitido sob número 2026NE00001',
       error_details: '',
     }
 
@@ -13,7 +13,7 @@ describe('demandItemStatusChangeFormSchema', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.status).toBe('commitment_sent')
-      expect(result.data.observation).toBe('Empenho emitido sob número 2026NE001')
+      expect(result.data.observation).toBe('Empenho emitido sob número 2026NE00001')
     }
   })
 
@@ -60,10 +60,10 @@ describe('demandItemStatusChangeFormSchema', () => {
     }
   })
 
-  it('should accept commitment_issued when commitment_number is provided and valid', () => {
+  it('should accept commitment_issued when commitment_number is provided in SIAFEM format 2026NE00000', () => {
     const validCommitmentData = {
       status: 'commitment_issued' as const,
-      commitment_number: '2026-NE-00247',
+      commitment_number: '2026NE00247',
       observation: 'Empenho emitido no SIAFEM',
       error_details: '',
     }
@@ -72,7 +72,7 @@ describe('demandItemStatusChangeFormSchema', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.status).toBe('commitment_issued')
-      expect(result.data.commitment_number).toBe('2026-NE-00247')
+      expect(result.data.commitment_number).toBe('2026NE00247')
     }
   })
 
@@ -94,10 +94,10 @@ describe('demandItemStatusChangeFormSchema', () => {
     }
   })
 
-  it('should fail when commitment_number contains invalid characters', () => {
+  it('should fail when commitment_number does not match SIAFEM pattern 2026NE00000', () => {
     const invalidData = {
       status: 'commitment_issued' as const,
-      commitment_number: '2026 NE @#$',
+      commitment_number: '2026-NE-00247',
       observation: '',
       error_details: '',
     }
@@ -106,7 +106,7 @@ describe('demandItemStatusChangeFormSchema', () => {
     expect(result.success).toBe(false)
     if (!result.success) {
       const issue = result.error.issues.find((i) => i.path.includes('commitment_number'))
-      expect(issue?.message).toBe('O número do empenho deve ser alfanumérico (ex: 2026-NE-00247).')
+      expect(issue?.message).toBe('O número do empenho deve seguir o padrão SIAFEM: 2026NE00000.')
     }
   })
 })

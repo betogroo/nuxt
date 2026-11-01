@@ -1,6 +1,7 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import { getWinningBid } from '~/utils/bids'
+import { isValidCommitmentNumber, normalizeSiafemNumber } from '~/schemas/forms/commitment'
 import {
   type AddDemandItemWithDependenciesParams,
   createProductForDemand,
@@ -225,9 +226,6 @@ export const useDemandProducts = () => {
   }
 
   const reorderDemandItems = async (updates: { id: string; sort_order: number }[]) => {
-    // Supabase JS doesn't support bulk updates directly with a single call returning data nicely,
-    // but we can do it via a loop since we don't have an RPC function right now,
-    // or use Promise.all
     const promises = updates.map((update) =>
       supabase
         .from('demand_products')
@@ -238,13 +236,20 @@ export const useDemandProducts = () => {
     const errors = results.filter((r) => r.error).map((r) => r.error)
     if (errors.length > 0) throw new Error('Erro ao reordenar os itens')
   }
+
   const validateCommitmentNumberSupplier = async (params: {
     itemId: string
     commitmentNumber: string
     supplierId?: string | null
   }): Promise<void> => {
-    const trimmed = params.commitmentNumber.trim().toUpperCase()
+    const trimmed = normalizeSiafemNumber(params.commitmentNumber)
     if (!trimmed) return
+
+    if (!isValidCommitmentNumber(trimmed)) {
+      throw new Error(
+        `O número de empenho "${trimmed}" é inválido. Utilize o padrão SIAFEM: 2026NE00000.`,
+      )
+    }
 
     let currentSupplierId = params.supplierId || null
     if (!currentSupplierId) {
@@ -288,6 +293,55 @@ export const useDemandProducts = () => {
     }
   }
 
+  const upsertCommitmentEntity = async (params: {
+    commitmentNumber: string
+    demandId: string
+    supplierId: string
+    expenseNatureId?: string | null
+    status?: DemandItemExecutionStatus
+    observation?: string | null
+    errorDetails?: string | null
+  }) => {
+    const normalized = normalizeSiafemNumber(params.commitmentNumber)
+    if (!isValidCommitmentNumber(normalized)) return
+
+    const { data: existing } = await supabase
+      .from('demand_commitments')
+      .select('id, demand_id, supplier_id')
+      .eq('commitment_number', normalized)
+      .maybeSingle()
+
+    if (existing) {
+      if (existing.supplier_id !== params.supplierId) {
+        throw new Error(
+          `A Nota de Empenho "${normalized}" já está cadastrada para outro fornecedor.`,
+        )
+      }
+      if (existing.demand_id !== params.demandId) {
+        throw new Error(
+          `A Nota de Empenho "${normalized}" já está cadastrada em outra demanda. Cada Nota de Empenho deve possuir numeração única.`,
+        )
+      }
+      return
+    }
+
+    const { error } = await supabase.from('demand_commitments').insert({
+      commitment_number: normalized,
+      demand_id: params.demandId,
+      supplier_id: params.supplierId,
+      expense_nature_id:
+        params.expenseNatureId && params.expenseNatureId !== 'none' ? params.expenseNatureId : null,
+      status: params.status || 'commitment_issued',
+      observation: params.observation?.trim() || null,
+      error_details: params.errorDetails?.trim() || null,
+      created_by: user.value?.id || null,
+    })
+
+    if (error && error.code !== '23505') {
+      console.error('Erro ao registrar entidade da Nota de Empenho:', error)
+    }
+  }
+
   const updateDemandItemExecutionStatus = async (params: {
     itemId: string
     status: DemandItemExecutionStatus
@@ -297,7 +351,7 @@ export const useDemandProducts = () => {
     supplierId?: string | null
   }) => {
     const trimmedCommitment = params.commitmentNumber
-      ? params.commitmentNumber.trim().toUpperCase()
+      ? normalizeSiafemNumber(params.commitmentNumber)
       : null
 
     if (params.status === 'commitment_issued' && trimmedCommitment) {
@@ -325,6 +379,34 @@ export const useDemandProducts = () => {
       .eq('id', params.itemId)
 
     if (updateErr) throw updateErr
+
+    if (params.status === 'commitment_issued' && trimmedCommitment) {
+      const { data: itemInfo } = await supabase
+        .from('demand_products')
+        .select(
+          'demand_id, product:products(expense_nature_id), demand_product_bids(id, supplier_id, amount, status, created_at)',
+        )
+        .eq('id', params.itemId)
+        .maybeSingle()
+
+      if (itemInfo) {
+        const prod = Array.isArray(itemInfo.product)
+          ? itemInfo.product[0]
+          : (itemInfo.product as { expense_nature_id?: string | null } | null)
+        const winner = getWinningBid(itemInfo.demand_product_bids || [])
+        const resolvedSupplierId = params.supplierId || winner?.supplier_id || null
+        if (resolvedSupplierId) {
+          await upsertCommitmentEntity({
+            commitmentNumber: trimmedCommitment,
+            demandId: itemInfo.demand_id,
+            supplierId: resolvedSupplierId,
+            expenseNatureId: prod?.expense_nature_id || null,
+            status: 'commitment_issued',
+            observation: params.observation,
+          })
+        }
+      }
+    }
 
     const { error: historyErr } = await supabase.from('demand_item_status_history').insert({
       demand_product_id: params.itemId,
@@ -383,11 +465,18 @@ export const useDemandProducts = () => {
     if (itemsErr) throw itemsErr
     if (!demandItems || demandItems.length === 0) return
 
-    // 2. Validate that within the updates, two different expense natures don't have the same commitment number
+    // 2. Validate format and uniqueness across expense natures
     const seenCommitments = new Map<string, string>()
     for (const update of params.updates) {
-      const trimmed = update.commitmentNumber?.trim().toUpperCase() || null
+      const trimmed = update.commitmentNumber
+        ? normalizeSiafemNumber(update.commitmentNumber)
+        : null
       if (trimmed) {
+        if (!isValidCommitmentNumber(trimmed)) {
+          throw new Error(
+            `O número de empenho "${trimmed}" é inválido. Utilize o padrão SIAFEM: 2026NE00000.`,
+          )
+        }
         if (
           seenCommitments.has(trimmed) &&
           seenCommitments.get(trimmed) !== update.expenseNatureId
@@ -405,14 +494,18 @@ export const useDemandProducts = () => {
     const updatePromises: Promise<unknown>[] = []
     const historyInserts: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
       []
+    const removedCommitments = new Set<string>()
     let updatedItemsCount = 0
 
     for (const update of params.updates) {
-      const trimmedCommitment = update.commitmentNumber?.trim().toUpperCase() || null
+      const trimmedCommitment = update.commitmentNumber
+        ? normalizeSiafemNumber(update.commitmentNumber)
+        : null
 
       const matchingItems = demandItems.filter((item) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const prod = Array.isArray(item.product) ? item.product[0] : (item.product as any)
+        const prod = Array.isArray(item.product)
+          ? item.product[0]
+          : (item.product as { expense_nature_id?: string | null } | null)
         const itemNatureId = prod?.expense_nature_id || 'none'
         if (itemNatureId !== update.expenseNatureId) return false
 
@@ -429,11 +522,26 @@ export const useDemandProducts = () => {
           commitmentNumber: trimmedCommitment,
           supplierId: params.supplierId,
         })
+
+        await upsertCommitmentEntity({
+          commitmentNumber: trimmedCommitment,
+          demandId: params.demandId,
+          supplierId: params.supplierId,
+          expenseNatureId: update.expenseNatureId,
+          status: 'commitment_issued',
+          observation: 'Empenho atribuído em lote por Natureza de Despesa',
+        })
       }
 
       for (const item of matchingItems) {
-        const currentCommitment = item.commitment_number?.trim().toUpperCase() || null
+        const currentCommitment = item.commitment_number
+          ? normalizeSiafemNumber(item.commitment_number)
+          : null
         if (trimmedCommitment !== currentCommitment) {
+          if (currentCommitment && currentCommitment !== trimmedCommitment) {
+            removedCommitments.add(currentCommitment)
+          }
+
           updatedItemsCount++
           const newStatus: DemandItemExecutionStatus = trimmedCommitment
             ? 'commitment_issued'
@@ -468,9 +576,23 @@ export const useDemandProducts = () => {
     if (updatePromises.length > 0) {
       const results = await Promise.all(updatePromises)
       for (const res of results) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const err = (res as any)?.error
+        const err = (res as { error?: unknown })?.error
         if (err) throw err
+      }
+
+      for (const oldCommitment of removedCommitments) {
+        const { count } = await supabase
+          .from('demand_products')
+          .select('id', { count: 'exact', head: true })
+          .eq('commitment_number', oldCommitment)
+
+        if (!count || count === 0) {
+          await supabase
+            .from('demand_commitments')
+            .delete()
+            .eq('commitment_number', oldCommitment)
+            .is('bank_order_number', null)
+        }
       }
 
       if (historyInserts.length > 0) {

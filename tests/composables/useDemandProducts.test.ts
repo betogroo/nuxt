@@ -743,6 +743,7 @@ describe('useDemandProducts', () => {
     const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
     const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq })
     const mockHistoryInsert = vi.fn().mockResolvedValue({ error: null })
+    const mockCommitmentInsert = vi.fn().mockResolvedValue({ error: null })
 
     mockSupabase.from.mockImplementation((table: string) => {
       if (table === 'demand_products') {
@@ -752,7 +753,29 @@ describe('useDemandProducts', () => {
             ilike: vi.fn().mockReturnValue({
               neq: vi.fn().mockResolvedValue({ data: [], error: null }),
             }),
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  demand_id: 'dem-1',
+                  product: { expense_nature_id: '33903016' },
+                  demand_product_bids: [
+                    { id: 'b-1', supplier_id: 'sup-1', amount: 10, status: 'classified' },
+                  ],
+                },
+                error: null,
+              }),
+            }),
           }),
+        }
+      }
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+          insert: mockCommitmentInsert,
         }
       }
       if (table === 'demand_item_status_history') {
@@ -764,7 +787,7 @@ describe('useDemandProducts', () => {
     await updateDemandItemExecutionStatus({
       itemId: 'dp-1',
       status: 'commitment_issued',
-      commitmentNumber: '2026-NE-00247',
+      commitmentNumber: '2026NE00247',
       observation: 'Nota de empenho gerada',
       supplierId: 'sup-1',
     })
@@ -772,14 +795,21 @@ describe('useDemandProducts', () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         execution_status: 'commitment_issued',
-        commitment_number: '2026-NE-00247',
+        commitment_number: '2026NE00247',
+      }),
+    )
+    expect(mockCommitmentInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commitment_number: '2026NE00247',
+        demand_id: 'dem-1',
+        supplier_id: 'sup-1',
       }),
     )
     expect(mockHistoryInsert).toHaveBeenCalledWith(
       expect.objectContaining({
         demand_product_id: 'dp-1',
         status: 'commitment_issued',
-        commitment_number: '2026-NE-00247',
+        commitment_number: '2026NE00247',
         observation: 'Nota de empenho gerada',
       }),
     )
@@ -800,7 +830,7 @@ describe('useDemandProducts', () => {
                   data: [
                     {
                       id: 'dp-2',
-                      commitment_number: '2026-NE-00247',
+                      commitment_number: '2026NE00247',
                       demand_product_bids: [
                         {
                           id: 'bid-2',
@@ -825,7 +855,7 @@ describe('useDemandProducts', () => {
     await expect(
       validateCommitmentNumberSupplier({
         itemId: 'dp-1',
-        commitmentNumber: '2026-NE-00247',
+        commitmentNumber: '2026NE00247',
         supplierId: 'sup-same',
       }),
     ).resolves.not.toThrow()
@@ -846,7 +876,7 @@ describe('useDemandProducts', () => {
                 data: [
                   {
                     id: 'dp-2',
-                    commitment_number: '2026-NE-00247',
+                    commitment_number: '2026NE00247',
                     demand_product_bids: [
                       {
                         id: 'bid-2',
@@ -873,7 +903,7 @@ describe('useDemandProducts', () => {
     await expect(
       validateCommitmentNumberSupplier({
         itemId: 'dp-1',
-        commitmentNumber: '2026-NE-00247',
+        commitmentNumber: '2026NE00247',
         supplierId: 'sup-1',
       }),
     ).rejects.toThrow(/Empresa Concorrente LTDA/)
@@ -913,8 +943,8 @@ describe('useDemandProducts', () => {
           demandId: 'dem-1',
           supplierId: 'sup-1',
           updates: [
-            { expenseNatureId: '33903016', commitmentNumber: '2026-NE-00500' },
-            { expenseNatureId: '33903010', commitmentNumber: '2026-NE-00500' },
+            { expenseNatureId: '33903016', commitmentNumber: '2026NE00500' },
+            { expenseNatureId: '33903010', commitmentNumber: '2026NE00500' },
           ],
         }),
       ).rejects.toThrow(/Cada natureza deve possuir uma nota de empenho exclusiva/)
@@ -927,6 +957,7 @@ describe('useDemandProducts', () => {
         eq: vi.fn().mockResolvedValue({ error: null }),
       })
       const mockInsertHistory = vi.fn().mockResolvedValue({ error: null })
+      const mockCommitmentInsert = vi.fn().mockResolvedValue({ error: null })
 
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'demand_products') {
@@ -964,6 +995,16 @@ describe('useDemandProducts', () => {
             update: mockUpdate,
           }
         }
+        if (table === 'demand_commitments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+            insert: mockCommitmentInsert,
+          }
+        }
         if (table === 'demand_item_status_history') {
           return {
             insert: mockInsertHistory,
@@ -975,13 +1016,21 @@ describe('useDemandProducts', () => {
       await batchUpdateCommitmentsByNature({
         demandId: 'dem-1',
         supplierId: 'sup-1',
-        updates: [{ expenseNatureId: '33903016', commitmentNumber: '2026-NE-00999' }],
+        updates: [{ expenseNatureId: '33903016', commitmentNumber: '2026NE00999' }],
       })
 
       expect(mockUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          commitment_number: '2026-NE-00999',
+          commitment_number: '2026NE00999',
           execution_status: 'commitment_issued',
+        }),
+      )
+      expect(mockCommitmentInsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          commitment_number: '2026NE00999',
+          demand_id: 'dem-1',
+          supplier_id: 'sup-1',
+          expense_nature_id: '33903016',
         }),
       )
       expect(mockInsertHistory).toHaveBeenCalledWith(
@@ -989,12 +1038,12 @@ describe('useDemandProducts', () => {
           expect.objectContaining({
             demand_product_id: 'dp-1',
             status: 'commitment_issued',
-            commitment_number: '2026-NE-00999',
+            commitment_number: '2026NE00999',
           }),
           expect.objectContaining({
             demand_product_id: 'dp-2',
             status: 'commitment_issued',
-            commitment_number: '2026-NE-00999',
+            commitment_number: '2026NE00999',
           }),
         ]),
       )

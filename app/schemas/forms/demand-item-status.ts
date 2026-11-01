@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { COMMITMENT_NUMBER_REGEX } from './commitment'
 
 export const demandItemExecutionStatuses = [
   'homologated',
@@ -48,12 +49,12 @@ export const demandItemStatusChangeFormSchema = z
   .refine(
     (data) => {
       if (data.status === 'commitment_issued' && data.commitment_number) {
-        return /^[A-Za-z0-9\-_./]+$/.test(data.commitment_number.trim())
+        return COMMITMENT_NUMBER_REGEX.test(data.commitment_number.trim())
       }
       return true
     },
     {
-      message: 'O número do empenho deve ser alfanumérico (ex: 2026-NE-00247).',
+      message: 'O número do empenho deve seguir o padrão SIAFEM: 2026NE00000.',
       path: ['commitment_number'],
     },
   )

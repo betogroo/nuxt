@@ -22,6 +22,12 @@ export const APP_ROUTES = {
       `/demands/${demandId}/suppliers/${supplierId}`,
   },
 
+  commitments: {
+    index: '/commitments',
+    detail: (commitmentNumber: string) =>
+      `/commitments/${encodeURIComponent(commitmentNumber.trim().toUpperCase())}`,
+  },
+
   suppliers: {
     index: '/suppliers',
     detail: (id: string) => `/suppliers/${id}`,

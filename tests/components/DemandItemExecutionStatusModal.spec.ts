@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+import type { DemandProductRow } from '~/composables/useDemandProducts'
 
 const mockUpdateDemandItemExecutionStatus = vi.fn().mockResolvedValue(undefined)
 const mockToast = {
@@ -38,7 +39,7 @@ describe('DemandItemExecutionStatusModal', () => {
     const wrapper = mount(DemandItemExecutionStatusModal, {
       props: {
         modelValue: true,
-        item,
+        item: item as unknown as DemandProductRow,
       },
       global: {
         stubs: {
@@ -76,7 +77,7 @@ describe('DemandItemExecutionStatusModal', () => {
     const wrapper = mount(DemandItemExecutionStatusModal, {
       props: {
         modelValue: true,
-        item,
+        item: item as unknown as DemandProductRow,
       },
       global: {
         stubs: {
@@ -91,8 +92,7 @@ describe('DemandItemExecutionStatusModal', () => {
       },
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { status: string }
     expect(vm.status).toBe('shipped')
   })
 
@@ -104,7 +104,7 @@ describe('DemandItemExecutionStatusModal', () => {
       product_name_snapshot: 'Papel A4',
       quantity: 50,
       execution_status: 'commitment_issued' as const,
-      commitment_number: '2026-NE-00247',
+      commitment_number: '2026NE00247',
       execution_error_details: null,
       sort_order: 1,
       unit_id: 'u-1',
@@ -127,8 +127,7 @@ describe('DemandItemExecutionStatusModal', () => {
     const wrapper = mount(DemandItemExecutionStatusModal, {
       props: {
         modelValue: true,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        item: item as any,
+        item: item as unknown as DemandProductRow,
       },
       global: {
         stubs: {
@@ -147,10 +146,9 @@ describe('DemandItemExecutionStatusModal', () => {
       },
     })
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const vm = wrapper.vm as any
+    const vm = wrapper.vm as unknown as { status: string; commitmentNumber: string }
     expect(vm.status).toBe('commitment_issued')
-    expect(vm.commitmentNumber).toBe('2026-NE-00247')
+    expect(vm.commitmentNumber).toBe('2026NE00247')
     expect(wrapper.text()).toContain('Fornecedor Vencedor Alpha')
     expect(wrapper.find('.ui-input-stub').exists()).toBe(true)
   })

@@ -2,8 +2,10 @@
   import { ref, computed, watch } from 'vue'
   import { useToast } from '~/composables/useToast'
   import { useDemandProducts, type DemandProductRow } from '~/composables/useDemandProducts'
+  import { isValidCommitmentNumber, normalizeSiafemNumber } from '~/schemas/forms/commitment'
   import { getWinningBid, getItemSubtotal } from '~/utils/bids'
   import { formatCurrency, formatCnpj } from '~/utils/formatters'
+  import { APP_ROUTES } from '~/utils/routes'
 
   export interface NatureGroupItem {
     id: string
@@ -73,7 +75,9 @@
           (natureId === 'none' ? 'Sem Natureza Vinculada' : `Natureza ${natureId}`)
 
         const subtotal = getItemSubtotal(winningBid.amount, item.quantity)
-        const commitment = item.commitment_number?.trim() || null
+        const commitment = item.commitment_number
+          ? normalizeSiafemNumber(item.commitment_number)
+          : null
 
         if (!groupsMap.has(natureId)) {
           groupsMap.set(natureId, {
@@ -128,11 +132,14 @@
   const validateInputs = (): boolean => {
     serverError.value = ''
 
-    // Check for duplicate commitment notes across different natures
     const seen = new Map<string, string>()
     for (const group of natureGroups.value) {
-      const val = (commitmentInputs.value[group.natureId] || '').trim().toUpperCase()
+      const val = normalizeSiafemNumber(commitmentInputs.value[group.natureId] || '')
       if (val) {
+        if (!isValidCommitmentNumber(val)) {
+          serverError.value = `O número de empenho "${val}" na natureza "${group.natureName}" é inválido. Utilize o padrão SIAFEM: 2026NE00000.`
+          return false
+        }
         if (seen.has(val)) {
           serverError.value = `O número de empenho "${val}" foi informado para mais de uma natureza de despesa diferente. Cada natureza deve possuir uma nota de empenho exclusiva.`
           return false
@@ -154,7 +161,7 @@
     try {
       const updates = natureGroups.value.map((g) => ({
         expenseNatureId: g.natureId,
-        commitmentNumber: (commitmentInputs.value[g.natureId] || '').trim().toUpperCase() || null,
+        commitmentNumber: normalizeSiafemNumber(commitmentInputs.value[g.natureId] || '') || null,
       }))
 
       await batchUpdateCommitmentsByNature({
@@ -194,8 +201,8 @@
 
     <UiAlert class="mb-4" size="xs" type="info" variant="soft">
       Os itens arrematados por este fornecedor estão agrupados por
-      <strong>Natureza de Despesa</strong>. Todos os itens de uma mesma natureza compartilharão
-      obrigatoriamente o mesmo número de Nota de Empenho.
+      <strong>Natureza de Despesa</strong>. Cada Nota de Empenho deve seguir o padrão SIAFEM
+      <strong>2026NE00000</strong> e terá sua própria página de execução financeira (NL, PD e OB).
     </UiAlert>
 
     <UiAlert v-if="serverError" class="mb-4" size="sm" type="error" variant="soft">
@@ -209,13 +216,23 @@
     <div v-else class="d-flex flex-column ga-4">
       <UiCard v-for="group in natureGroups" :key="group.natureId" class="pa-3" variant="outline">
         <div class="d-flex align-center justify-space-between mb-2">
-          <div>
+          <div class="d-flex align-center flex-wrap gap-2">
             <span class="font-weight-bold text-body-2 text-primary">
               {{ group.natureName }}
             </span>
-            <UiChip class="ml-2" color="default" size="xs">
+            <UiChip color="default" size="xs">
               {{ group.items.length }} {{ group.items.length === 1 ? 'item' : 'itens' }}
             </UiChip>
+            <UiButton
+              v-if="group.initialCommitment && isValidCommitmentNumber(group.initialCommitment)"
+              color="indigo"
+              prepend-icon="externalLink"
+              size="xs"
+              :to="APP_ROUTES.commitments.detail(group.initialCommitment)"
+              variant="tonal"
+            >
+              Página da NE {{ group.initialCommitment }}
+            </UiButton>
           </div>
           <span class="font-weight-bold text-success text-body-2">
             Total: {{ formatCurrency(group.totalAmount) }}
@@ -242,10 +259,10 @@
         <!-- Campo para a Nota de Empenho do lote -->
         <UiInput
           v-model="commitmentInputs[group.natureId]"
-          hint="Informe o número da NE para todos os itens desta natureza"
+          hint="Padrão SIAFEM obrigatório: 2026NE00000"
           label="Número da Nota de Empenho *"
           persistent-hint
-          placeholder="Ex: 2026-NE-00247"
+          placeholder="Ex: 2026NE00000"
         />
       </UiCard>
     </div>

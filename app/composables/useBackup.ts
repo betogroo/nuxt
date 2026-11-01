@@ -31,6 +31,8 @@ export const useBackup = () => {
         { count: productUnitsCount },
         { count: productCharacteristicsCount },
         { count: demandsCount },
+        { count: demandCommitmentsCount },
+        { count: demandCommitmentLiquidationsCount },
         { count: demandProductsCount },
         { count: demandBidsCount },
         { count: demandResponsiblesCount },
@@ -62,6 +64,10 @@ export const useBackup = () => {
         supabase.from('product_units').select('id', { count: 'exact', head: true }),
         supabase.from('product_characteristics').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
+        supabase.from('demand_commitments').select('id', { count: 'exact', head: true }),
+        supabase
+          .from('demand_commitment_liquidations')
+          .select('id', { count: 'exact', head: true }),
         supabase.from('demand_products').select('id', { count: 'exact', head: true }),
         supabase.from('demand_product_bids').select('id', { count: 'exact', head: true }),
         supabase.from('demand_responsibles').select('id', { count: 'exact', head: true }),
@@ -95,6 +101,8 @@ export const useBackup = () => {
         product_units: productUnitsCount || 0,
         product_characteristics: productCharacteristicsCount || 0,
         demands: demandsCount || 0,
+        demand_commitments: demandCommitmentsCount || 0,
+        demand_commitment_liquidations: demandCommitmentLiquidationsCount || 0,
         demand_products: demandProductsCount || 0,
         demand_product_bids: demandBidsCount || 0,
         demand_responsibles: demandResponsiblesCount || 0,
@@ -187,6 +195,12 @@ export const useBackup = () => {
           ? data.product_characteristics.length
           : 0,
         demands: Array.isArray(data.demands) ? data.demands.length : 0,
+        demand_commitments: Array.isArray(data.demand_commitments)
+          ? data.demand_commitments.length
+          : 0,
+        demand_commitment_liquidations: Array.isArray(data.demand_commitment_liquidations)
+          ? data.demand_commitment_liquidations.length
+          : 0,
         demand_products: Array.isArray(data.demand_products) ? data.demand_products.length : 0,
         demand_product_bids: Array.isArray(data.demand_product_bids)
           ? data.demand_product_bids.length
