@@ -54,6 +54,7 @@
     removeResponsible,
     items,
     itemsPending,
+    itemsError,
     refreshItems,
     isReordering,
     moveItemUp,
@@ -1344,6 +1345,18 @@
               </div>
             </div>
           </template>
+
+          <!-- Alerta de erro de carregamento -->
+          <UiAlert v-if="itemsError" class="mb-4" size="sm" type="error" variant="soft">
+            <div class="d-flex align-center justify-space-between w-100 flex-wrap ga-2">
+              <span
+                >Erro ao carregar itens da demanda: {{ itemsError?.message || itemsError }}</span
+              >
+              <UiButton size="xs" variant="outline" color="error" @click="refreshItems">
+                Tentar novamente
+              </UiButton>
+            </div>
+          </UiAlert>
 
           <!-- Alerta de bloqueio -->
           <UiAlert

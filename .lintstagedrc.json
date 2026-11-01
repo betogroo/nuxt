@@ -1,4 +1,4 @@
 {
-  "*.{js,ts,vue}": "eslint --fix",
+  "*.{js,ts,vue}": "cross-env NAPI_RS_FORCE_WASI=1 eslint --fix",
   "*.{json,md,css,scss,yml,yaml}": "prettier --write"
 }

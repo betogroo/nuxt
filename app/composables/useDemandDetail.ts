@@ -125,6 +125,7 @@ export function useDemandDetail(demandId: string) {
     data: items,
     pending: itemsPending,
     refresh: refreshItems,
+    error: itemsError,
   } = useAsyncData(`demand-items-${demandId}`, async () => {
     return await fetchDemandProducts(demandId)
   })
@@ -314,6 +315,7 @@ export function useDemandDetail(demandId: string) {
 
     items,
     itemsPending,
+    itemsError,
     refreshItems,
     isReordering,
     moveItemUp,
