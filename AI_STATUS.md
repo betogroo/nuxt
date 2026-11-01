@@ -27,7 +27,17 @@ O projeto adota uma arquitetura de **Desacoplamento e Clean Architecture**:
    - **Demandas Históricas e Legadas**: Liberação para registro de demandas históricas sem bloqueio de restrições de datas futuras.
    - **Relatório Anual de Gastos**: Geração de relatório anual de gastos por classe de produto e configuração de tetos anuais (`demands/class-spending.vue`).
 
-2. **Catálogo de Produtos e Materiais**:
+2. **Módulo de Notas de Empenho (NE) e Execução Financeira**:
+   - **Tabelas Dedicadas**: Criação de `demand_commitments` e `demand_commitment_liquidations` (1:N para NLs) com políticas RLS, sincronizadas nas rotinas de backup e restore (`v1.9` com 32 tabelas).
+   - **Fluxo Logístico Integrado**: Gestão coordenada dos status dos itens vinculados ao mesmo empenho (`commitment_issued` -> `commitment_sent` -> `commitment_confirmed` -> `shipped` -> `delivered` -> `received`).
+   - **Execução Financeira (SIAFEM)**:
+     - Notas de Liquidação (NL - mínimo 2 exigidas no formato `2026NL00000`).
+     - Programa de Desembolso (PD - formato `2026PD00000`).
+     - Ordem Bancária (OB - formato `2026OB00000`), que encerra o item como `completed`.
+   - **Páginas Globais**: `/commitments` (listagem e filtros de NEs) e `/commitments/[number]` (detalhe, itens vinculados e modais operacionais).
+   - **Última migration aplicada**: `20261101140000_create_demand_commitments_and_financial_docs.sql`.
+
+3. **Catálogo de Produtos e Materiais**:
    - **Duplicação de Produtos**: Funcionalidade completa para duplicar produtos incluindo suas unidades de apresentação e características associadas.
    - **Características de Produto**: Suporte completo a características adicionais de produtos no schema, composables e sincronização no backup/restore.
 
