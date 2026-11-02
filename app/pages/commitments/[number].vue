@@ -78,7 +78,7 @@
 
   const canManageFinancialDocs = computed(() => {
     if (!commitment.value) return false
-    return commitment.value.status === 'received' || commitment.value.status === 'completed'
+    return commitment.value.status === 'delivered' || commitment.value.status === 'completed'
   })
 
   const hasMinLiquidations = computed(() => liquidations.value.length >= 2)
@@ -111,7 +111,7 @@
   const openLogisticsStatusModal = () => {
     if (!commitment.value) return
     selectedNewStatus.value =
-      commitment.value.status === 'completed' ? 'received' : commitment.value.status
+      commitment.value.status === 'completed' ? 'delivered' : commitment.value.status
     statusNotes.value = commitment.value.observation || ''
     statusErrorDetails.value = commitment.value.error_details || ''
     statusModal.openAdd()
@@ -446,7 +446,7 @@
         <div class="d-flex flex-wrap justify-space-between align-center mb-4 ga-2">
           <div>
             <div class="text-subtitle-1 font-weight-bold">
-              1. Fluxo Logístico e Recebimento da Mercadoria
+              1. Fluxo Logístico e Entrega da Mercadoria
             </div>
             <div class="text-caption text-grey-darken-1">
               O status logístico abaixo é aplicado de forma unificada a todos os itens desta Nota de
@@ -507,7 +507,7 @@
               2. Execução Financeira (Liquidação, Desembolso e Ordem Bancária)
             </div>
             <div class="text-caption text-grey-darken-1">
-              Após o recebimento definitivo da mercadoria, o financeiro emite as Notas de Liquidação
+              Após a entrega definitiva da mercadoria, o financeiro emite as Notas de Liquidação
               (mínimo 2), o Programa de Desembolso e a Ordem Bancária que encerra o item.
             </div>
           </div>
@@ -520,14 +520,14 @@
             <template v-else-if="canManageFinancialDocs">
               Liberado para Lançamentos Financeiros
             </template>
-            <template v-else>Aguardando Recebimento da Mercadoria</template>
+            <template v-else>Aguardando Entrega da Mercadoria</template>
           </UiChip>
         </div>
 
         <UiAlert v-if="!canManageFinancialDocs" class="mb-4" icon="info" type="info" variant="soft">
           Para cadastrar as <strong>Notas de Liquidação (NL)</strong>, o
           <strong>Programa de Desembolso (PD)</strong> e a <strong>Ordem Bancária (OB)</strong>,
-          avance a etapa logística acima até <strong>Recebido</strong>.
+          avance a etapa logística acima até <strong>Entregue</strong>.
         </UiAlert>
 
         <UiRow>

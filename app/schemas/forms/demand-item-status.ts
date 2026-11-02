@@ -8,7 +8,6 @@ export const demandItemExecutionStatuses = [
   'commitment_confirmed',
   'shipped',
   'delivered',
-  'received',
   'completed',
   'error',
 ] as const

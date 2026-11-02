@@ -63,7 +63,7 @@
         const current = (props.item.execution_status || 'homologated') as DemandItemExecutionStatus
         resetForm({
           values: {
-            status: current === 'completed' ? 'received' : current,
+            status: current === 'completed' ? 'delivered' : current,
             commitment_number: props.item.commitment_number || '',
             observation: '',
             error_details: props.item.execution_error_details || '',

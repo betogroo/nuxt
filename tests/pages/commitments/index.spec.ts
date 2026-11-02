@@ -12,7 +12,7 @@ const mockCommitmentsList = ref([
     supplier_id: 'sup-1',
     expense_nature_id: 'nat-1',
     issue_date: '2026-04-10',
-    status: 'received',
+    status: 'delivered',
     error_details: null,
     observation: 'Mercadoria conferida',
     disbursement_program_number: '2026PD00010',

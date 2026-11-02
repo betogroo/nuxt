@@ -27,7 +27,7 @@ describe('useCommitments Composable', () => {
               single: vi.fn().mockResolvedValue({
                 data: {
                   id: 'comm-1',
-                  status: 'received',
+                  status: 'delivered',
                   bank_order_number: null,
                   demand_commitment_liquidations: [{ id: 'nl-1' }], // Only 1 NL!
                 },
@@ -52,7 +52,41 @@ describe('useCommitments Composable', () => {
     ).rejects.toThrow(/mínimo 2 Notas de Liquidação/)
   })
 
-  it('allows Programa de Desembolso (PD) when 2 or more Notas de Liquidação exist and status is received', async () => {
+  it('blocks Programa de Desembolso (PD) when status is not delivered', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'shipped',
+                  bank_order_number: null,
+                  demand_commitment_liquidations: [{ id: 'nl-1' }, { id: 'nl-2' }],
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { saveDisbursementProgram } = useCommitments()
+
+    await expect(
+      saveDisbursementProgram({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        disbursementProgramNumber: '2026PD00001',
+        issuedAt: '2026-11-01',
+      }),
+    ).rejects.toThrow(/status "Entregue"/)
+  })
+
+  it('allows Programa de Desembolso (PD) when 2 or more Notas de Liquidação exist and status is delivered', async () => {
     const updateEqMock = vi.fn().mockResolvedValue({ error: null })
 
     fromMock.mockImplementation((table: string) => {
@@ -63,7 +97,7 @@ describe('useCommitments Composable', () => {
               single: vi.fn().mockResolvedValue({
                 data: {
                   id: 'comm-1',
-                  status: 'received',
+                  status: 'delivered',
                   bank_order_number: null,
                   demand_commitment_liquidations: [{ id: 'nl-1' }, { id: 'nl-2' }],
                 },
@@ -110,7 +144,7 @@ describe('useCommitments Composable', () => {
               single: vi.fn().mockResolvedValue({
                 data: {
                   id: 'comm-1',
-                  status: 'received',
+                  status: 'delivered',
                   disbursement_program_number: '2026PD00001',
                   bank_order_number: null,
                   demand_commitment_liquidations: [{ id: 'nl-1' }, { id: 'nl-2' }],

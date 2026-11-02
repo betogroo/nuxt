@@ -154,7 +154,7 @@ export const useCommitments = () => {
     })
 
     const itemIds = items.map((i) => i.id)
-    let statusHistory: DemandItemStatusHistoryRow[] = []
+    const statusHistory: DemandItemStatusHistoryRow[] = []
 
     if (itemIds.length > 0) {
       const { data: historyData, error: historyErr } = await supabase
@@ -295,9 +295,9 @@ export const useCommitments = () => {
       )
     }
 
-    if (commitment.status !== 'received') {
+    if (commitment.status !== 'delivered') {
       throw new Error(
-        'As Notas de Liquidação só podem ser registradas após o recebimento da mercadoria (status "Recebido").',
+        'As Notas de Liquidação só podem ser registradas após a entrega da mercadoria (status "Entregue").',
       )
     }
 
@@ -409,9 +409,9 @@ export const useCommitments = () => {
       )
     }
 
-    if (commitment.status !== 'received') {
+    if (commitment.status !== 'delivered') {
       throw new Error(
-        'O Programa de Desembolso só pode ser registrado após o recebimento da mercadoria (status "Recebido").',
+        'O Programa de Desembolso só pode ser registrado após a entrega da mercadoria (status "Entregue").',
       )
     }
 

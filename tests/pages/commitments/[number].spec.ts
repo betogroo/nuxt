@@ -12,7 +12,7 @@ const mockDetailData = ref({
     supplier_id: 'sup-1',
     expense_nature_id: 'nat-1',
     issue_date: '2026-04-10',
-    status: 'received',
+    status: 'delivered',
     error_details: null,
     observation: 'Mercadoria conferida',
     disbursement_program_number: '2026PD00010',
@@ -67,7 +67,7 @@ const mockDetailData = ref({
       quantity: 50,
       winning_unit_price: 10,
       total_item_value: 500,
-      execution_status: 'received',
+      execution_status: 'delivered',
       commitment_number: '2026NE00313',
       product: {
         id: 'prod-1',

@@ -83,10 +83,9 @@
         'commitment_sent',
         'commitment_confirmed',
         'shipped',
-        'delivered',
       ].includes(c.status),
     ).length
-    const awaitingFinancial = list.filter((c) => c.status === 'received').length
+    const awaitingFinancial = list.filter((c) => c.status === 'delivered').length
     const completed = list.filter((c) => c.status === 'completed').length
     const totalAmount = list.reduce((sum, c) => sum + Number(c.total_amount || 0), 0)
 
@@ -167,7 +166,7 @@
       <UiCol cols="12" md="3" sm="6">
         <UiCard class="pa-4 h-100" elevation="1" variant="outline">
           <div class="text-caption text-uppercase font-weight-bold text-grey-darken-1">
-            Aguardando Financeiro (Recebidos)
+            Aguardando Financeiro (Entregues)
           </div>
           <div class="text-h5 font-weight-bold text-warning mt-1">
             {{ metrics.awaitingFinancial }}

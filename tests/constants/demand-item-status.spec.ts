@@ -10,7 +10,7 @@ import {
 } from '~/constants/demand-item-status'
 
 describe('demand-item-status constants', () => {
-  it('should maintain the exact 8-step sequential progression', () => {
+  it('should maintain the exact 7-step sequential progression', () => {
     expect(DEMAND_ITEM_EXECUTION_FLOW).toEqual([
       'homologated',
       'commitment_issued',
@@ -18,14 +18,13 @@ describe('demand-item-status constants', () => {
       'commitment_confirmed',
       'shipped',
       'delivered',
-      'received',
       'completed',
     ])
   })
 
   it('should include error in ALL_DEMAND_ITEM_EXECUTION_STATUSES', () => {
     expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES).toContain('error')
-    expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES.length).toBe(9)
+    expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES.length).toBe(8)
   })
 
   it('should define human-readable labels for all statuses in Portuguese', () => {
@@ -35,7 +34,6 @@ describe('demand-item-status constants', () => {
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.commitment_confirmed).toBe('Empenho Confirmado')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.shipped).toBe('Enviado')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.delivered).toBe('Entregue')
-    expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.received).toBe('Recebido')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.completed).toBe('Concluído')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.error).toBe('Erro')
   })
@@ -68,8 +66,8 @@ describe('demand-item-status constants', () => {
       expect(getNextExecutionStatus('commitment_issued')).toBe('commitment_sent')
     })
 
-    it('returns completed when current is received', () => {
-      expect(getNextExecutionStatus('received')).toBe('completed')
+    it('returns completed when current is delivered', () => {
+      expect(getNextExecutionStatus('delivered')).toBe('completed')
     })
 
     it('returns null when current is completed or error', () => {
@@ -88,7 +86,7 @@ describe('demand-item-status constants', () => {
     it('returns previous status along the flow', () => {
       expect(getPreviousExecutionStatus('commitment_issued')).toBe('homologated')
       expect(getPreviousExecutionStatus('commitment_sent')).toBe('commitment_issued')
-      expect(getPreviousExecutionStatus('completed')).toBe('received')
+      expect(getPreviousExecutionStatus('completed')).toBe('delivered')
     })
   })
 })

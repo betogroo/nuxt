@@ -10,7 +10,6 @@ export const DEMAND_ITEM_EXECUTION_FLOW: DemandItemExecutionStatus[] = [
   'commitment_confirmed',
   'shipped',
   'delivered',
-  'received',
   'completed',
 ]
 
@@ -21,7 +20,6 @@ export const DEMAND_ITEM_EXECUTION_STATUS_LABELS: Record<DemandItemExecutionStat
   commitment_confirmed: 'Empenho Confirmado',
   shipped: 'Enviado',
   delivered: 'Entregue',
-  received: 'Recebido',
   completed: 'Concluído',
   error: 'Erro',
 }
@@ -33,7 +31,6 @@ export const DEMAND_ITEM_EXECUTION_STATUS_COLORS: Record<DemandItemExecutionStat
   commitment_confirmed: 'teal',
   shipped: 'blue',
   delivered: 'cyan',
-  received: 'orange',
   completed: 'success',
   error: 'error',
 }
@@ -45,7 +42,6 @@ export const DEMAND_ITEM_EXECUTION_STATUS_ICONS: Record<DemandItemExecutionStatu
   commitment_confirmed: 'recordsList',
   shipped: 'delivery',
   delivered: 'packageSolid',
-  received: 'clipboardClock',
   completed: 'success',
   error: 'alert',
 }

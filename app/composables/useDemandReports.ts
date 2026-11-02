@@ -1402,7 +1402,6 @@ export const COMMITTED_EXECUTION_STATUSES: DemandItemExecutionStatus[] = [
   'commitment_confirmed',
   'shipped',
   'delivered',
-  'received',
   'completed',
 ]
 

@@ -35,7 +35,6 @@ export const commitmentLogisticsStatuses = [
   'commitment_confirmed',
   'shipped',
   'delivered',
-  'received',
   'error',
 ] as const
 
