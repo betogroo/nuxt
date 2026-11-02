@@ -40,10 +40,11 @@ describe('admin-modules constants', () => {
       pendingIirgdDocumentTypesCount: 5,
     })
 
-    expect(modules).toHaveLength(12)
+    expect(modules).toHaveLength(13)
     expect(modules.find((m) => m.id === 'units')?.badge).toBe(2)
     expect(modules.find((m) => m.id === 'expense-natures')?.badge).toBe(1)
     expect(modules.find((m) => m.id === 'product-characteristics')?.badge).toBe(4)
     expect(modules.find((m) => m.id === 'iirgd-doc-types')?.badge).toBe(5)
+    expect(modules.find((m) => m.id === 'class-spending')).toBeDefined()
   })
 })

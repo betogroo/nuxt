@@ -179,8 +179,9 @@ describe('useBallotBoxes Composable', () => {
 
   it('subscribeToBallotBoxes sets up a Realtime channel on ballot_boxes', () => {
     const subscribeMock = vi.fn().mockReturnThis()
-    const onMock = vi.fn().mockReturnValue({ subscribe: subscribeMock })
-    channelMock.mockReturnValue({ on: onMock })
+    const onMock = vi.fn().mockReturnThis()
+    const channelObj = { on: onMock, subscribe: subscribeMock }
+    channelMock.mockReturnValue(channelObj)
 
     const { subscribeToBallotBoxes } = useBallotBoxes()
     const callback = vi.fn()

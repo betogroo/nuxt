@@ -35,12 +35,33 @@ mockNuxtImport('useMeasurementUnits', () => () => ({
   resolveOrCreateUnit: vi.fn().mockResolvedValue('unit-1'),
   registerPendingAliasAndUnit: vi.fn().mockResolvedValue({ alias: {}, unit: {} }),
 }))
+const getFutureDate = (daysAhead: number): string => {
+  const d = new Date()
+  d.setDate(d.getDate() + daysAhead)
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+mockNuxtImport('useSystemSettings', () => () => ({
+  fetchProductClassAnnualCeilings: vi.fn().mockResolvedValue([]),
+}))
+mockNuxtImport('useDemandReports', () => () => ({
+  fetchDemandsForClassSpending: vi.fn().mockResolvedValue([]),
+  resolveDemandYear: vi.fn().mockReturnValue(new Date().getFullYear()),
+}))
 mockNuxtImport('useSupabaseClient', () => () => ({
   from: vi.fn().mockReturnValue({
     insert: vi.fn().mockReturnValue({
       select: vi
         .fn()
         .mockReturnValue({ single: vi.fn().mockResolvedValue({ data: { id: 'new-unit' } }) }),
+    }),
+    select: vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
     }),
   }),
 }))
@@ -362,12 +383,14 @@ describe('Demand Items Page', () => {
   })
 
   it('should open edit bidding notice modal and save updated notice data', async () => {
+    const disputeDate = getFutureDate(10)
+    const offerDate = getFutureDate(6)
     mockDemandData.value = {
       id: 'demand-123',
       bidding_notice_number: 'AV-01',
       dispute_number: 'DISP-01',
-      dispute_date: '2026-11-10',
-      offer_opening_date: '2026-11-05T14:00:00.000Z',
+      dispute_date: disputeDate,
+      offer_opening_date: `${offerDate}T14:00:00.000Z`,
     }
     const wrapper = shallowMount(DemandItemsPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

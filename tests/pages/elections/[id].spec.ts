@@ -183,13 +183,21 @@ const mockVoters = [
   },
 ]
 const fetchVotersMock = vi.fn().mockResolvedValue(mockVoters)
+const subscribeToElectionAttendanceMock = vi.fn().mockReturnValue('mock-attendance-channel')
 mockNuxtImport('useElectionVoters', () => () => ({
   fetchVoters: fetchVotersMock,
+  fetchElectionAttendance: vi.fn().mockResolvedValue([]),
+  subscribeToElectionAttendance: subscribeToElectionAttendanceMock,
   fetchVoterByNumber: vi.fn(),
   checkVoterElectionStatus: vi.fn(),
   createVoter: vi.fn(),
   updateVoter: vi.fn(),
   deleteVoter: vi.fn(),
+}))
+
+mockNuxtImport('useRealtimeChannel', () => () => ({
+  subscribeToPostgresChanges: vi.fn(),
+  removeRealtimeChannel: vi.fn(),
 }))
 
 const removeChannelMock = vi.fn()

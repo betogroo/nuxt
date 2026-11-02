@@ -41,14 +41,14 @@ O projeto adota uma arquitetura de **Desacoplamento e Clean Architecture**:
    - **Duplicação de Produtos**: Funcionalidade completa para duplicar produtos incluindo suas unidades de apresentação e características associadas.
    - **Características de Produto**: Suporte completo a características adicionais de produtos no schema, composables e sincronização no backup/restore.
 
-3. **Módulo IIRGD**:
+4. **Módulo IIRGD**:
    - **Liberação de Lote de RGs (Bulk Release)**: Geração de blocos de 8 RGs contínuos (72 dígitos para terminal legado) e confirmação visual em lote via modal com transição direta para status `released`.
    - **Relatório de Demandas com Erro**: Relatório amigável de erros de demandas do IIRGD com suporte a impressão e exportação em CSV.
 
-4. **Módulo de Eleições**:
+5. **Módulo de Eleições**:
    - Urna virtual com máquina de estados desacoplada (`useVirtualBallot.ts`), sons da urna via sintetizador/Web Audio (`useUrnaSounds.ts`), cartões de eleitor e gerenciamento completo de cabines/seções.
 
-5. **Backup & Restore**:
+6. **Backup & Restore**:
    - Alinhamento da assinatura da função `restore_system_backup` e suporte integral à restauração de características de produto, eleições e demandas históricas.
    - Última migration aplicada: `20261029181000_fix_restore_system_backup_product_characteristics.sql`.
 
@@ -91,8 +91,8 @@ Para configurar e rodar o projeto nesta ou em outra máquina:
 
 ## Próximos Passos Imediatos:
 
-1. **Validar e Estabilizar Testes Pontuais**:
-   - 5 arquivos de testes apresentaram falhas residuais devido a redesigns recentes de telas e atualizações de parâmetros (`tests/pages/elections/[id].spec.ts`, `tests/pages/demands/demand-items.spec.ts`, `tests/constants/admin-modules.spec.ts`, `tests/composables/useBallotBoxes.spec.ts`, `tests/composables/useDemandWorkflow.test.ts`).
+1. **Testes Pontuais Estabilizados com Sucesso**:
+   - Os 5 arquivos de testes com falhas residuais foram atualizados e estão 100% verdes (`tests/pages/elections/[id].spec.ts`, `tests/pages/demands/demand-items.spec.ts`, `tests/constants/admin-modules.spec.ts`, `tests/composables/useBallotBoxes.spec.ts`, `tests/composables/useDemandWorkflow.test.ts`).
 2. **Refinar a Usabilidade das Telas Restantes**:
    - Garantir que todos os componentes continuem estritamente aderentes às regras de desacoplamento do `GEMINI.md`.
 3. **Nova Prioridade de Desenvolvimento**:
