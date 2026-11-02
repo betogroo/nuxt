@@ -133,6 +133,23 @@ export const useProducts = () => {
     await logAction('CREATE_PRODUCT', `Novo produto criado: ${payload.name}`, user.value?.id)
   }
 
+  const createProductsBatch = async (
+    payloads: Database['public']['Tables']['products']['Insert'][],
+  ): Promise<ProductRow[]> => {
+    if (!payloads || payloads.length === 0) return []
+
+    const { data, error } = await supabase.from('products').insert(payloads).select()
+    if (error) throw handleProductDbError(error)
+
+    await logAction(
+      'CREATE_PRODUCTS_BATCH',
+      `${payloads.length} produtos cadastrados em lote`,
+      user.value?.id,
+    )
+
+    return (data || []) as ProductRow[]
+  }
+
   const updateProduct = async (
     id: string,
     payload: Database['public']['Tables']['products']['Update'],
@@ -502,6 +519,7 @@ export const useProducts = () => {
     fetchProductDemands,
     fetchAllActiveProducts,
     createProduct,
+    createProductsBatch,
     updateProduct,
     duplicateProduct,
     toggleProductStatus,

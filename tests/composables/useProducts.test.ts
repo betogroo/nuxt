@@ -686,4 +686,57 @@ describe('useProducts', () => {
       ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
     })
   })
+
+  describe('createProductsBatch', () => {
+    it('returns empty array if payload is empty', async () => {
+      const { createProductsBatch } = useProducts()
+      const result = await createProductsBatch([])
+      expect(result).toEqual([])
+      expect(mockLogAction).not.toHaveBeenCalled()
+    })
+
+    it('inserts multiple products and logs action', async () => {
+      const createdItems = [
+        { id: 'p1', name: 'Prod 1', cat_mat: 111, expense_nature_id: 'nat-1' },
+        { id: 'p2', name: 'Prod 2', cat_mat: 222, expense_nature_id: 'nat-1' },
+      ]
+      const selectMock = vi.fn().mockResolvedValue({ data: createdItems, error: null })
+      const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { createProductsBatch } = useProducts()
+      const payloads = [
+        { name: 'Prod 1', cat_mat: 111, expense_nature_id: 'nat-1' },
+        { name: 'Prod 2', cat_mat: 222, expense_nature_id: 'nat-1' },
+      ]
+      const result = await createProductsBatch(payloads)
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('products')
+      expect(insertMock).toHaveBeenCalledWith(payloads)
+      expect(result).toEqual(createdItems)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'CREATE_PRODUCTS_BATCH',
+        expect.stringContaining('2 produtos cadastrados em lote'),
+        'user-123',
+      )
+    })
+
+    it('throws friendly message when database violates unique CATMAT code 23505', async () => {
+      const selectMock = vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          code: '23505',
+          message: 'duplicate key value violates unique constraint "products_cat_mat_key"',
+          details: 'cat_mat',
+        },
+      })
+      const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { createProductsBatch } = useProducts()
+      await expect(
+        createProductsBatch([{ name: 'Prod Duplicado', cat_mat: 111, expense_nature_id: 'nat-1' }]),
+      ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
+    })
+  })
 })

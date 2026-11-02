@@ -3,6 +3,7 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { productFormSchema } from '~/schemas/forms/product'
   import ProductDuplicateModal from '~/components/products/ProductDuplicateModal.vue'
+  import ProductBatchAddModal from '~/components/products/ProductBatchAddModal.vue'
 
   definePageMeta({
     icon: 'packageSolid',
@@ -93,8 +94,19 @@
   const isEditing = computed(() => !!editingId.value)
 
   // Duplicate Product Modal State
+  const toast = useToast()
   const isDuplicateModalOpen = ref(false)
   const selectedDuplicateProductId = ref<string | null>(null)
+
+  // Batch Add Modal State
+  const isBatchModalOpen = ref(false)
+
+  const onBatchSaved = async (count: number) => {
+    toast.success(
+      `${count} produto${count === 1 ? '' : 's'} cadastrado${count === 1 ? '' : 's'} em lote com sucesso!`,
+    )
+    await refresh()
+  }
 
   const openDuplicateModal = (productId: string) => {
     selectedDuplicateProductId.value = productId
@@ -271,6 +283,14 @@
               variant="soft"
               @click="refresh"
             />
+            <UiButton
+              color="secondary"
+              prepend-icon="playlistAdd"
+              variant="soft"
+              @click="isBatchModalOpen = true"
+            >
+              Adicionar em Lote
+            </UiButton>
             <UiButton color="primary" prepend-icon="add" @click="openAddModal">
               Novo Produto
             </UiButton>
@@ -539,5 +559,8 @@
       :product-id="selectedDuplicateProductId"
       @saved="() => refresh()"
     />
+
+    <!-- Modal Adicionar Produtos em Lote -->
+    <ProductBatchAddModal v-model="isBatchModalOpen" @saved="onBatchSaved" />
   </div>
 </template>

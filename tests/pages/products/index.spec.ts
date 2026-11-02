@@ -8,6 +8,14 @@ const mockCreateProduct = vi.fn().mockResolvedValue({})
 const mockUpdateProduct = vi.fn().mockResolvedValue({})
 const mockToggleProductStatus = vi.fn().mockResolvedValue({})
 const mockRegisterPendingExpenseNature = vi.fn()
+const mockToastSuccess = vi.fn()
+
+mockNuxtImport('useToast', () => () => ({
+  success: mockToastSuccess,
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}))
 
 vi.mock('~/composables/useProducts', () => ({
   useProducts: () => ({
@@ -252,5 +260,18 @@ describe('Products Admin Page', () => {
     vm.openDuplicateModal('prod-42')
     expect(vm.selectedDuplicateProductId).toBe('prod-42')
     expect(vm.isDuplicateModalOpen).toBe(true)
+  })
+
+  it('manages batch add modal state and triggers toast onBatchSaved', async () => {
+    const wrapper = shallowMount(ProductsPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isBatchModalOpen).toBe(false)
+    vm.isBatchModalOpen = true
+    expect(vm.isBatchModalOpen).toBe(true)
+
+    await vm.onBatchSaved(3)
+    expect(mockToastSuccess).toHaveBeenCalledWith(expect.stringContaining('3 produtos cadastrados'))
   })
 })

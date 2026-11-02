@@ -38,6 +38,7 @@ O projeto adota uma arquitetura de **Desacoplamento e Clean Architecture**:
    - **Última migration aplicada**: `20261101140000_create_demand_commitments_and_financial_docs.sql`.
 
 3. **Catálogo de Produtos e Materiais**:
+   - **Cadastro de Produtos em Lote**: Funcionalidade completa para adicionar múltiplos produtos ao catálogo geral (`/products`) com colagem de dados de planilhas (TSV, CSV, pipe ou texto simples), detecção inteligente de cabeçalhos, prévia interativa e editável antes de salvar, deduplicação interna e inserção em lote (`createProductsBatch`) com auditoria (`CREATE_PRODUCTS_BATCH`).
    - **Duplicação de Produtos**: Funcionalidade completa para duplicar produtos incluindo suas unidades de apresentação e características associadas.
    - **Características de Produto**: Suporte completo a características adicionais de produtos no schema, composables e sincronização no backup/restore.
 
