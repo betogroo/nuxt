@@ -1840,12 +1840,21 @@
             </template>
 
             <template #item-supplier="{ item: supplier }">
-              <NuxtLink
-                class="text-decoration-none text-primary font-weight-bold"
-                :to="`/demands/${demandId}/suppliers/${supplier.id}`"
-              >
-                {{ supplier.company_name }}
-              </NuxtLink>
+              <div class="d-flex align-center ga-2">
+                <NuxtLink
+                  class="text-decoration-none text-primary font-weight-bold"
+                  :to="`/demands/${demandId}/suppliers/${supplier.id}`"
+                >
+                  {{ supplier.company_name }}
+                </NuxtLink>
+                <UiActionButton
+                  color="grey"
+                  icon="externalLink"
+                  size="xs"
+                  :to="`/suppliers/${supplier.id}`"
+                  tooltip="Cadastro do Fornecedor"
+                />
+              </div>
               <div class="d-flex align-center ga-1 text-caption text-grey">
                 <span>{{ formatCnpj(supplier.cnpj) }}</span>
                 <UiCopyButton

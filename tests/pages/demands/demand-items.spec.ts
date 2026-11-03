@@ -875,4 +875,15 @@ describe('Demand Items Page', () => {
       })
     })
   })
+
+  it('renders external link icon button pointing to supplier details in suppliers tab', async () => {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const filePath = path.resolve(process.cwd(), 'app/pages/demands/[id]/index.vue')
+    const pageContent = fs.readFileSync(filePath, 'utf-8')
+
+    expect(pageContent).toContain(':to="`/suppliers/${supplier.id}`"')
+    expect(pageContent).toContain('tooltip="Cadastro do Fornecedor"')
+    expect(pageContent).toContain('icon="externalLink"')
+  })
 })
