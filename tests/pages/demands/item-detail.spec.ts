@@ -194,6 +194,47 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     expect(mockClearNuxtData).toHaveBeenCalledWith('demand-items-demand-1')
   })
 
+  it('blocks reclassifying a disqualified bid when its amount exceeds reference_price', async () => {
+    mockBidsData.value.push({
+      id: 'bid-above',
+      amount: 150, // reference_price is 100
+      status: 'disqualified',
+      disqualification_reason: 'Valor ofertado acima do valor referencial.',
+      created_at: '2026-10-16T09:10:00Z',
+      suppliers: { company_name: 'Fornecedor C', cnpj: '33333333000133' },
+    })
+
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isBidAboveReference(150)).toBe(true)
+    expect(vm.isBidAboveReference(80)).toBe(false)
+
+    await vm.handleClassifyBid('bid-above')
+
+    expect(mockUpdateBidStatus).not.toHaveBeenCalled()
+  })
+
+  it('identifies best bid as classified and subsequent valid bids as apto', () => {
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // bid-1 (amount 80) is winning bid; bid-2 (amount 90) is second place
+    expect(vm.winningBid?.id).toBe('bid-1')
+    expect(
+      formatBidStatus(mockBidsData.value[0].status, {
+        isWinning: vm.winningBid?.id === mockBidsData.value[0].id,
+      }),
+    ).toBe('Classificado')
+    expect(
+      formatBidStatus(mockBidsData.value[1].status, {
+        isWinning: vm.winningBid?.id === mockBidsData.value[1].id,
+      }),
+    ).toBe('Apto')
+  })
+
   it('prevents bid registration when demand status is quotation but preserves existing bids', async () => {
     mockItemData.value.demand.status = 'quotation'
     const wrapper = shallowMount(ItemDetailPage)

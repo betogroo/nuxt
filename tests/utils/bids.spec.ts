@@ -95,6 +95,20 @@ describe('utils/bids', () => {
       expect(getBidStatusColor('disqualified')).toBe('error')
       expect(getBidStatusColor(undefined)).toBe('success')
     })
+
+    it('formats status as "Classificado" for winning bid and "Apto" for non-winning valid bids', () => {
+      expect(formatBidStatus('classified', { isWinning: true })).toBe('Classificado')
+      expect(getBidStatusColor('classified', { isWinning: true })).toBe('success')
+
+      expect(formatBidStatus('classified', { isWinning: false })).toBe('Apto')
+      expect(getBidStatusColor('classified', { isWinning: false })).toBe('info')
+
+      // Disqualified bids are always 'Desclassificado' and 'error' regardless of isWinning
+      expect(formatBidStatus('disqualified', { isWinning: true })).toBe('Desclassificado')
+      expect(getBidStatusColor('disqualified', { isWinning: true })).toBe('error')
+      expect(formatBidStatus('disqualified', { isWinning: false })).toBe('Desclassificado')
+      expect(getBidStatusColor('disqualified', { isWinning: false })).toBe('error')
+    })
   })
 
   describe('getItemSubtotal', () => {

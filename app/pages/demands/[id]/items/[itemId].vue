@@ -351,7 +351,24 @@
     }
   }
 
-  const handleClassifyBid = async (bidId: string) => {
+  const isBidAboveReference = (bidAmount: number | string): boolean => {
+    const refPrice = item.value?.reference_price
+    if (refPrice == null) return false
+    const numRef = Number(refPrice)
+    if (Number.isNaN(numRef) || numRef <= 0) return false
+    return Number(bidAmount) > numRef
+  }
+
+  const handleClassifyBid = async (bid: { id: string; amount: number | string } | string) => {
+    const bidId = typeof bid === 'string' ? bid : bid.id
+    const bidAmount =
+      typeof bid === 'object' ? bid.amount : (bids.value?.find((b) => b.id === bidId)?.amount ?? 0)
+
+    if (isBidAboveReference(bidAmount)) {
+      toast.error('Não é possível classificar um lance com valor superior ao valor referencial.')
+      return
+    }
+
     isStatusUpdating.value = true
     try {
       await updateBidStatus(bidId, 'classified', null)
@@ -427,7 +444,9 @@
         finalSupplierId = sup.id
       }
 
-      await addBid(itemId.value, finalSupplierId!, values.amount)
+      await addBid(itemId.value, finalSupplierId!, values.amount, {
+        referencePrice: item.value?.reference_price,
+      })
       await refreshBids()
       invalidateParentDemandItems()
       closeBidModal()
@@ -975,12 +994,16 @@
 
           <template #item-status="{ item: bid }">
             <div class="d-flex flex-column align-center">
-              <UiChip :color="getBidStatusColor(bid.status)" size="sm" variant="soft">
-                {{ formatBidStatus(bid.status) }}
+              <UiChip
+                :color="getBidStatusColor(bid.status, { isWinning: winningBid?.id === bid.id })"
+                size="sm"
+                variant="soft"
+              >
+                {{ formatBidStatus(bid.status, { isWinning: winningBid?.id === bid.id }) }}
               </UiChip>
               <div
                 v-if="bid.status === 'disqualified' && bid.disqualification_reason"
-                class="text-caption text-error mt-1"
+                class="text-caption text-error mt-1 text-center"
               >
                 {{ bid.disqualification_reason }}
               </div>
@@ -1011,9 +1034,13 @@
               <UiActionButton
                 v-if="canManageBidStatus && bid.status === 'disqualified'"
                 action="classify"
-                :disabled="isStatusUpdating"
-                tooltip="Classificar Lance"
-                @click="handleClassifyBid(bid.id)"
+                :disabled="isStatusUpdating || isBidAboveReference(bid.amount)"
+                :tooltip="
+                  isBidAboveReference(bid.amount)
+                    ? 'Não é possível classificar lance acima do valor referencial'
+                    : 'Classificar Lance'
+                "
+                @click="handleClassifyBid(bid)"
               />
               <UiActionButton
                 v-if="canRemoveBid"

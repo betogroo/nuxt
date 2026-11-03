@@ -4,6 +4,8 @@
 
 export type BidStatus = 'classified' | 'disqualified'
 
+export const DISQUALIFICATION_REASON_ABOVE_REFERENCE = 'Valor ofertado acima do valor referencial.'
+
 export interface BidItem {
   amount: number | string
   status?: BidStatus | string | null
@@ -59,19 +61,34 @@ export function getWinningBid<T extends BidItem>(bids: T[] | null | undefined): 
   return winningBid
 }
 
+export interface FormatBidStatusOptions {
+  isWinning?: boolean
+}
+
 /**
  * Formata o rótulo de exibição do status do lance.
+ * - 'disqualified' -> 'Desclassificado'
+ * - Caso isWinning seja false (demais lances válidos após o 1º colocado) -> 'Apto'
+ * - Caso contrário (1º colocado / vencedor ou padrão) -> 'Classificado'
  */
-export function formatBidStatus(status?: string | null): string {
+export function formatBidStatus(status?: string | null, options?: FormatBidStatusOptions): string {
   if (status === 'disqualified') return 'Desclassificado'
+  if (options?.isWinning === false) return 'Apto'
   return 'Classificado'
 }
 
 /**
  * Retorna a cor semântica correspondente ao status do lance.
+ * - 'disqualified' -> 'error'
+ * - isWinning === false -> 'info'
+ * - Caso contrário -> 'success'
  */
-export function getBidStatusColor(status?: string | null): 'error' | 'success' {
+export function getBidStatusColor(
+  status?: string | null,
+  options?: FormatBidStatusOptions,
+): 'error' | 'success' | 'info' {
   if (status === 'disqualified') return 'error'
+  if (options?.isWinning === false) return 'info'
   return 'success'
 }
 

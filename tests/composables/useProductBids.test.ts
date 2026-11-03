@@ -9,6 +9,9 @@ const selectMock = vi.fn()
 const eqMock = vi.fn()
 const orderMock = vi.fn()
 const logActionMock = vi.fn()
+const productMaybeSingleMock = vi.fn().mockResolvedValue({ data: null })
+const productEqMock = vi.fn(() => ({ maybeSingle: productMaybeSingleMock }))
+const productSelectMock = vi.fn(() => ({ eq: productEqMock }))
 
 const fromMock = vi.fn((table: string) => {
   if (table === 'demand_product_bids') {
@@ -17,6 +20,11 @@ const fromMock = vi.fn((table: string) => {
       update: updateMock,
       delete: deleteMock,
       select: selectMock,
+    }
+  }
+  if (table === 'demand_products') {
+    return {
+      select: productSelectMock,
     }
   }
   return {}
@@ -92,6 +100,39 @@ describe('useProductBids', () => {
       'Lance de R$ 405.5 adicionado para o produto da demanda (ID: item-123)',
       'user-admin',
     )
+  })
+
+  it('addBid should automatically disqualify bid with reason if amount > referencePrice', async () => {
+    const { addBid } = useProductBids()
+    await addBid('item-123', 'supp-456', 500, { referencePrice: 400 })
+
+    expect(insertMock).toHaveBeenCalledWith({
+      demand_product_id: 'item-123',
+      supplier_id: 'supp-456',
+      amount: 500,
+      status: 'disqualified',
+      disqualification_reason: 'Valor ofertado acima do valor referencial.',
+    })
+    expect(logActionMock).toHaveBeenCalledWith(
+      'ADD_PRODUCT_BID',
+      'Lance de R$ 500 adicionado para o produto da demanda (ID: item-123) (DESCLASSIFICADO: Valor ofertado acima do valor referencial.)',
+      'user-admin',
+    )
+  })
+
+  it('addBid should automatically fetch referencePrice from demand_products if not provided and disqualify if above', async () => {
+    productMaybeSingleMock.mockResolvedValueOnce({ data: { reference_price: 350 } })
+    const { addBid } = useProductBids()
+    await addBid('item-123', 'supp-456', 360)
+
+    expect(fromMock).toHaveBeenCalledWith('demand_products')
+    expect(insertMock).toHaveBeenCalledWith({
+      demand_product_id: 'item-123',
+      supplier_id: 'supp-456',
+      amount: 360,
+      status: 'disqualified',
+      disqualification_reason: 'Valor ofertado acima do valor referencial.',
+    })
   })
 
   it('updateBidStatus should disqualify a bid with reason and log action', async () => {
