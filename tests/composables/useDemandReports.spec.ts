@@ -757,6 +757,20 @@ describe('useDemandReports', () => {
           execution_status: 'completed',
         }),
       ).toBe(true)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: '2026NE00045',
+          execution_status: 'cancelled',
+        }),
+      ).toBe(false)
+
+      expect(
+        hasItemCommitmentIssued({
+          commitment_number: null,
+          execution_status: 'cancelled',
+        }),
+      ).toBe(false)
     })
 
     it('calculateClassSpendingByYear includes ONLY classes with issued commitments and uses dispute result totalFinal against 2026 ceiling (65492.11)', () => {

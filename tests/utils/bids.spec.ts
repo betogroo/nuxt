@@ -212,22 +212,25 @@ describe('utils/bids', () => {
       expect(result.totalFinal).toBe(85.5 * 3)
     })
 
-    it('defaults quantity to 1 when calculating totalFinal if quantity is missing', () => {
+    it('returns failed with totalFinal 0 and null winningBid when item execution_status is cancelled', () => {
       const result = getItemDisputeResult({
-        quantity: null,
+        quantity: 5,
+        execution_status: 'cancelled',
         demand_product_bids: [
           {
             id: 'b1',
-            amount: 120,
+            amount: 50,
             status: 'classified',
-            suppliers: { company_name: 'Fornecedor X' },
+            suppliers: { company_name: 'Fornecedor Vencedor' },
           },
         ],
       })
-      expect(result.outcome).toBe('winner')
-      expect(result.winningAmount).toBe(120)
-      expect(result.totalFinal).toBe(120)
-      expect(result.winnerSupplierName).toBe('Fornecedor X')
+      expect(result.outcome).toBe('failed')
+      expect(result.label).toBe('Fracassado')
+      expect(result.color).toBe('error')
+      expect(result.winningBid).toBeNull()
+      expect(result.winningAmount).toBe(0)
+      expect(result.totalFinal).toBe(0)
     })
   })
 })

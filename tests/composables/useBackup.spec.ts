@@ -129,8 +129,8 @@ describe('useBackup Composable', () => {
         demands: [{ id: 'dem-1' }],
         demand_commitments: [{ id: 'dc-1', commitment_number: '2026NE00313' }],
         demand_commitment_liquidations: [
-          { id: 'nl-1', liquidation_number: '2026NL00001' },
-          { id: 'nl-2', liquidation_number: '2026NL00002' },
+          { id: 'nl-1', liquidation_number: '2026NL00001', is_cancellation: false },
+          { id: 'nl-2', liquidation_number: '2026NL00002', is_cancellation: true },
         ],
         system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],

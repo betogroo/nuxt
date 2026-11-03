@@ -128,13 +128,29 @@ export interface ItemDisputeResult<T extends BidItem = BidItem> {
 
 /**
  * Apura o resultado do item na disputa:
+ * - 'cancelled' (Empenho cancelado): o item torna-se automaticamente Fracassado.
  * - 'deserted' (Deserto): nenhum lance registrado (0 lances).
  * - 'failed' (Fracassado): lances registrados, mas todos foram desclassificados.
  * - 'winner' (Vencedor): possui pelo menos um lance classificado (o menor valor vence).
  */
 export function getItemDisputeResult<
   T extends BidItem & { suppliers?: { company_name?: string; name?: string } | null },
->(item: { quantity?: number | null; demand_product_bids?: T[] | null }): ItemDisputeResult<T> {
+>(item: {
+  quantity?: number | null
+  execution_status?: string | null
+  demand_product_bids?: T[] | null
+}): ItemDisputeResult<T> {
+  if (item.execution_status === 'cancelled') {
+    return {
+      outcome: 'failed',
+      label: 'Fracassado',
+      color: 'error',
+      winningBid: null,
+      winningAmount: 0,
+      totalFinal: 0,
+    }
+  }
+
   const bids = item.demand_product_bids || []
   if (!bids.length) {
     return {

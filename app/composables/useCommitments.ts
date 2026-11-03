@@ -203,6 +203,12 @@ export const useCommitments = () => {
       )
     }
 
+    if (params.status === 'cancelled') {
+      throw new Error(
+        'Para cancelar a Nota de Empenho, utilize o procedimento específico de cancelamento.',
+      )
+    }
+
     const now = new Date().toISOString()
     const cleanObservation = params.observation?.trim() || null
     const cleanErrorDetails = params.status === 'error' ? params.errorDetails?.trim() || null : null
@@ -271,6 +277,7 @@ export const useCommitments = () => {
     liquidationNumber: string
     issueDate: string
     observation?: string | null
+    isCancellation?: boolean
   }): Promise<CommitmentLiquidationRow> => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
     const normalizedNL = normalizeSiafemNumber(params.liquidationNumber)
@@ -295,9 +302,11 @@ export const useCommitments = () => {
       )
     }
 
-    if (commitment.status !== 'delivered') {
+    const isCancellationNl = Boolean(params.isCancellation) || commitment.status === 'cancelled'
+
+    if (commitment.status !== 'delivered' && !isCancellationNl) {
       throw new Error(
-        'As Notas de Liquidação só podem ser registradas após a entrega da mercadoria (status "Entregue").',
+        'As Notas de Liquidação ordinárias só podem ser registradas após a entrega da mercadoria (status "Entregue"). Para empenhos cancelados, utilize a opção de NL de Cancelamento.',
       )
     }
 
@@ -308,6 +317,7 @@ export const useCommitments = () => {
         liquidation_number: normalizedNL,
         issue_date: params.issueDate,
         observation: params.observation?.trim() || null,
+        is_cancellation: isCancellationNl,
         created_by: user.value?.id || null,
       })
       .select('*')
@@ -409,6 +419,12 @@ export const useCommitments = () => {
       )
     }
 
+    if (commitment.status === 'cancelled') {
+      throw new Error(
+        'Notas de Empenho canceladas não permitem registro de Programa de Desembolso (PD).',
+      )
+    }
+
     if (commitment.status !== 'delivered') {
       throw new Error(
         'O Programa de Desembolso só pode ser registrado após a entrega da mercadoria (status "Entregue").',
@@ -472,6 +488,10 @@ export const useCommitments = () => {
 
     if (checkErr || !commitment) {
       throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    if (commitment.status === 'cancelled') {
+      throw new Error('Notas de Empenho canceladas não permitem emissão de Ordem Bancária (OB).')
     }
 
     const liquidationsCount = (commitment.demand_commitment_liquidations || []).length
@@ -559,6 +579,128 @@ export const useCommitments = () => {
     )
   }
 
+  const cancelCommitment = async (params: {
+    commitmentId: string
+    commitmentNumber: string
+    reason: string
+    cancellationNlNumber?: string | null
+    cancellationNlIssueDate?: string | null
+    cancellationNlObservation?: string | null
+  }) => {
+    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
+    const cleanReason = params.reason.trim()
+    if (!cleanReason) {
+      throw new Error('A justificativa do cancelamento é obrigatória.')
+    }
+
+    const { data: commitment, error: checkErr } = await supabase
+      .from('demand_commitments')
+      .select('id, status, bank_order_number')
+      .eq('id', params.commitmentId)
+      .single()
+
+    if (checkErr || !commitment) {
+      throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    if (commitment.bank_order_number || commitment.status === 'completed') {
+      throw new Error(
+        'Não é permitido cancelar uma Nota de Empenho que já possui Ordem Bancária (OB) emitida e encontra-se concluída.',
+      )
+    }
+
+    const now = new Date().toISOString()
+
+    // 1. Update commitment status to cancelled
+    const { error: updateCommitmentErr } = await supabase
+      .from('demand_commitments')
+      .update({
+        status: 'cancelled',
+        observation: cleanReason,
+        updated_at: now,
+      })
+      .eq('id', params.commitmentId)
+
+    if (updateCommitmentErr) throw updateCommitmentErr
+
+    // 2. If cancellation NL was informed, register it
+    const trimmedNl = params.cancellationNlNumber
+      ? normalizeSiafemNumber(params.cancellationNlNumber)
+      : null
+
+    if (trimmedNl) {
+      if (!isValidLiquidationNumber(trimmedNl)) {
+        throw new Error('O número da NL de Cancelamento deve seguir o padrão SIAFEM: 2026NL00000.')
+      }
+
+      const nlIssueDate = params.cancellationNlIssueDate?.trim() || now.slice(0, 10)
+      const nlObs =
+        params.cancellationNlObservation?.trim() ||
+        `Cancelamento/Anulação do Empenho ${normalizedNE}: ${cleanReason}`
+
+      const { error: insertNlErr } = await supabase.from('demand_commitment_liquidations').insert({
+        commitment_id: params.commitmentId,
+        liquidation_number: trimmedNl,
+        issue_date: nlIssueDate,
+        observation: nlObs,
+        is_cancellation: true,
+        created_by: user.value?.id || null,
+      })
+
+      if (insertNlErr && insertNlErr.code !== '23505') {
+        throw insertNlErr
+      }
+    }
+
+    // 3. Update all linked demand items to cancelled
+    const { data: linkedItems, error: fetchItemsErr } = await supabase
+      .from('demand_products')
+      .select('id')
+      .eq('commitment_number', normalizedNE)
+
+    if (fetchItemsErr) throw fetchItemsErr
+
+    const itemIds = (linkedItems || []).map((i) => i.id)
+    if (itemIds.length > 0) {
+      const { error: updateItemsErr } = await supabase
+        .from('demand_products')
+        .update({
+          execution_status: 'cancelled',
+          execution_error_details: cleanReason,
+          execution_status_updated_at: now,
+        })
+        .in('id', itemIds)
+
+      if (updateItemsErr) throw updateItemsErr
+
+      const historyObs = `Empenho ${normalizedNE} cancelado. Motivo: ${cleanReason}${trimmedNl ? ` (NL de Cancelamento: ${trimmedNl})` : ''}`
+
+      const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
+        itemIds.map((itemId) => ({
+          demand_product_id: itemId,
+          status: 'cancelled',
+          commitment_number: normalizedNE,
+          observation: historyObs,
+          error_details: cleanReason,
+          created_by: user.value?.id || null,
+        }))
+
+      const { error: historyErr } = await supabase
+        .from('demand_item_status_history')
+        .insert(historyPayload)
+
+      if (historyErr) {
+        console.error('Erro ao registrar histórico de cancelamento:', historyErr)
+      }
+    }
+
+    await logAction(
+      'CANCEL_COMMITMENT',
+      `Nota de Empenho ${normalizedNE} cancelada (${itemIds.length} itens marcados como fracassados). Motivo: ${cleanReason}${trimmedNl ? ` | NL: ${trimmedNl}` : ''}`,
+      user.value?.id,
+    )
+  }
+
   return {
     isValidCommitmentNumber,
     fetchCommitments,
@@ -568,5 +710,6 @@ export const useCommitments = () => {
     removeLiquidationNote,
     saveDisbursementProgram,
     saveBankOrderAndComplete,
+    cancelCommitment,
   }
 }

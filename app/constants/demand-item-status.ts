@@ -22,6 +22,7 @@ export const DEMAND_ITEM_EXECUTION_STATUS_LABELS: Record<DemandItemExecutionStat
   delivered: 'Entregue',
   completed: 'Concluído',
   error: 'Erro',
+  cancelled: 'Empenho Cancelado',
 }
 
 export const DEMAND_ITEM_EXECUTION_STATUS_COLORS: Record<DemandItemExecutionStatus, string> = {
@@ -33,6 +34,7 @@ export const DEMAND_ITEM_EXECUTION_STATUS_COLORS: Record<DemandItemExecutionStat
   delivered: 'cyan',
   completed: 'success',
   error: 'error',
+  cancelled: 'error',
 }
 
 export const DEMAND_ITEM_EXECUTION_STATUS_ICONS: Record<DemandItemExecutionStatus, IconName> = {
@@ -44,11 +46,13 @@ export const DEMAND_ITEM_EXECUTION_STATUS_ICONS: Record<DemandItemExecutionStatu
   delivered: 'packageSolid',
   completed: 'success',
   error: 'alert',
+  cancelled: 'closeCircle',
 }
 
 export const ALL_DEMAND_ITEM_EXECUTION_STATUSES: DemandItemExecutionStatus[] = [
   ...DEMAND_ITEM_EXECUTION_FLOW,
   'error',
+  'cancelled',
 ]
 
 export interface DemandItemExecutionStatusOption {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
   import { useRoute } from 'vue-router'
+  import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
   import { useCommitments } from '~/composables/useCommitments'
   import { useFormModal } from '~/composables/useFormModal'
   import { useToast } from '~/composables/useToast'
@@ -78,14 +79,19 @@
 
   const canManageFinancialDocs = computed(() => {
     if (!commitment.value) return false
+    if (commitment.value.status === 'cancelled') return false
     return commitment.value.status === 'delivered' || commitment.value.status === 'completed'
   })
 
-  const hasMinLiquidations = computed(() => liquidations.value.length >= 2)
+  const ordinaryLiquidations = computed(() =>
+    liquidations.value.filter((nl) => !nl.is_cancellation),
+  )
+  const hasMinLiquidations = computed(() => ordinaryLiquidations.value.length >= 2)
   const hasDisbursementProgram = computed(() =>
     Boolean(commitment.value?.disbursement_program_number),
   )
   const hasBankOrder = computed(() => Boolean(commitment.value?.bank_order_number))
+  const isCancelModalOpen = ref(false)
 
   const itemsTableHeaders = [
     { text: 'Item', value: 'item_number', width: 70 },
@@ -143,7 +149,7 @@
     const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
     nlNumber.value = `${yearPrefix}NL`
     nlIssueDate.value = new Date().toISOString().slice(0, 10)
-    nlNotes.value = ''
+    nlNotes.value = commitment.value?.status === 'cancelled' ? 'NL de Cancelamento' : ''
     nlModal.openAdd()
   }
 
@@ -167,6 +173,7 @@
         liquidationNumber: parsed.data.liquidation_number,
         issueDate: parsed.data.issue_date,
         observation: parsed.data.observation || null,
+        isCancellation: commitment.value?.status === 'cancelled',
       })
       await refresh()
       toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} cadastrada!`)
@@ -417,11 +424,39 @@
             <div class="text-caption text-uppercase font-weight-bold text-grey">
               Valor Total do Empenho ({{ items.length }} item(ns))
             </div>
-            <div class="text-h4 font-weight-bold text-success mt-1">
+            <div
+              class="text-h4 font-weight-bold mt-1"
+              :class="
+                commitment.status === 'cancelled'
+                  ? 'text-decoration-line-through text-error'
+                  : 'text-success'
+              "
+            >
               {{ formatCurrency(totalAmount) }}
+            </div>
+            <div
+              v-if="commitment.status === 'cancelled'"
+              class="text-caption text-error font-weight-bold mt-1"
+            >
+              (Empenho Cancelado / Estornado)
             </div>
             <div v-if="commitment.issue_date" class="text-caption text-grey mt-1">
               Data de Emissão: {{ formatDate(commitment.issue_date) }}
+            </div>
+
+            <div
+              v-if="commitment.status !== 'completed' && commitment.status !== 'cancelled'"
+              class="mt-3"
+            >
+              <UiButton
+                color="error"
+                prepend-icon="closeCircle"
+                size="sm"
+                variant="outlined"
+                @click="isCancelModalOpen = true"
+              >
+                Cancelar Empenho
+              </UiButton>
             </div>
           </div>
         </div>
@@ -437,6 +472,26 @@
           <div class="font-weight-bold">Pendência / Erro na Execução da NE</div>
           <div class="text-body-2">
             {{ commitment.error_details || 'Sem detalhes adicionais.' }}
+          </div>
+        </UiAlert>
+
+        <!-- Alerta de Cancelamento se aplicável -->
+        <UiAlert
+          v-if="commitment.status === 'cancelled'"
+          class="mt-4"
+          icon="closeCircle"
+          type="error"
+          variant="tonal"
+        >
+          <div class="font-weight-bold text-subtitle-2">Nota de Empenho Cancelada</div>
+          <div class="text-body-2 mt-1">
+            Esta Nota de Empenho foi cancelada. Os itens vinculados foram convertidos para
+            <strong>Fracassado</strong> e o valor correspondente foi estornado do teto/cota anual de
+            gastos. Não é permitida a emissão de Programa de Desembolso (PD) nem Ordem Bancária
+            (OB).
+          </div>
+          <div v-if="commitment.observation" class="text-caption mt-2 text-error-darken-1">
+            <strong>Motivo registrado:</strong> {{ commitment.observation }}
           </div>
         </UiAlert>
       </UiCard>
@@ -455,7 +510,7 @@
           </div>
 
           <UiButton
-            v-if="commitment.status !== 'completed'"
+            v-if="commitment.status !== 'completed' && commitment.status !== 'cancelled'"
             color="primary"
             prepend-icon="edit"
             size="sm"
@@ -512,11 +567,20 @@
             </div>
           </div>
           <UiChip
-            :color="hasBankOrder ? 'success' : canManageFinancialDocs ? 'primary' : 'warning'"
+            :color="
+              commitment.status === 'cancelled'
+                ? 'error'
+                : hasBankOrder
+                  ? 'success'
+                  : canManageFinancialDocs
+                    ? 'primary'
+                    : 'warning'
+            "
             size="sm"
             variant="soft"
           >
-            <template v-if="hasBankOrder">Execução Financeira Concluída (OB Emitida)</template>
+            <template v-if="commitment.status === 'cancelled'">Cancelado (Sem Desembolso)</template>
+            <template v-else-if="hasBankOrder">Execução Financeira Concluída (OB Emitida)</template>
             <template v-else-if="canManageFinancialDocs">
               Liberado para Lançamentos Financeiros
             </template>
@@ -524,7 +588,23 @@
           </UiChip>
         </div>
 
-        <UiAlert v-if="!canManageFinancialDocs" class="mb-4" icon="info" type="info" variant="soft">
+        <UiAlert
+          v-if="commitment.status === 'cancelled'"
+          class="mb-4"
+          icon="alertCircle"
+          type="error"
+          variant="soft"
+        >
+          Empenho cancelado. Não serão gerados Programa de Desembolso (PD) nem Ordem Bancária (OB).
+          É permitido apenas o registro de Notas de Lançamento (NL) de cancelamento.
+        </UiAlert>
+        <UiAlert
+          v-else-if="!canManageFinancialDocs"
+          class="mb-4"
+          icon="info"
+          type="info"
+          variant="soft"
+        >
           Para cadastrar as <strong>Notas de Liquidação (NL)</strong>, o
           <strong>Programa de Desembolso (PD)</strong> e a <strong>Ordem Bancária (OB)</strong>,
           avance a etapa logística acima até <strong>Entregue</strong>.
@@ -567,8 +647,13 @@
                   class="d-flex justify-space-between align-center pa-2 rounded border"
                 >
                   <div>
-                    <div class="font-weight-bold text-body-2 text-primary">
-                      {{ nl.liquidation_number }}
+                    <div class="d-flex align-center ga-2">
+                      <div class="font-weight-bold text-body-2 text-primary">
+                        {{ nl.liquidation_number }}
+                      </div>
+                      <UiChip v-if="nl.is_cancellation" color="error" size="xs" variant="soft">
+                        Cancelamento
+                      </UiChip>
                     </div>
                     <div v-if="nl.issue_date" class="text-caption text-grey">
                       Emissão: {{ formatDate(nl.issue_date) }}
@@ -592,14 +677,20 @@
 
               <UiButton
                 block
-                color="primary"
-                :disabled="!canManageFinancialDocs || hasBankOrder"
-                prepend-icon="add"
+                :color="commitment.status === 'cancelled' ? 'error' : 'primary'"
+                :disabled="
+                  (!canManageFinancialDocs && commitment.status !== 'cancelled') || hasBankOrder
+                "
+                :prepend-icon="commitment.status === 'cancelled' ? 'closeCircle' : 'add'"
                 size="sm"
                 variant="soft"
                 @click="openAddNlModal"
               >
-                Adicionar Nota de Liquidação
+                {{
+                  commitment.status === 'cancelled'
+                    ? 'Adicionar NL de Cancelamento'
+                    : 'Adicionar Nota de Liquidação'
+                }}
               </UiButton>
             </UiCard>
           </UiCol>
@@ -617,11 +708,23 @@
                   2.2. Programa de Desembolso (PD)
                 </div>
                 <UiChip
-                  :color="hasDisbursementProgram ? 'success' : 'default'"
+                  :color="
+                    commitment.status === 'cancelled'
+                      ? 'error'
+                      : hasDisbursementProgram
+                        ? 'success'
+                        : 'default'
+                  "
                   size="xs"
                   variant="soft"
                 >
-                  {{ hasDisbursementProgram ? 'Emitido' : 'Pendente' }}
+                  {{
+                    commitment.status === 'cancelled'
+                      ? 'Bloqueado'
+                      : hasDisbursementProgram
+                        ? 'Emitido'
+                        : 'Pendente'
+                  }}
                 </UiChip>
               </div>
               <div class="text-caption text-grey mb-3">
@@ -647,22 +750,33 @@
                 </div>
               </div>
               <div v-else class="text-caption text-grey py-3 text-center">
-                Nenhum Programa de Desembolso registrado.
+                {{
+                  commitment.status === 'cancelled'
+                    ? 'Não aplicável para empenho cancelado.'
+                    : 'Nenhum Programa de Desembolso registrado.'
+                }}
               </div>
 
               <UiButton
                 block
                 color="info"
-                :disabled="!canManageFinancialDocs || !hasMinLiquidations || hasBankOrder"
+                :disabled="
+                  commitment.status === 'cancelled' ||
+                  !canManageFinancialDocs ||
+                  !hasMinLiquidations ||
+                  hasBankOrder
+                "
                 :prepend-icon="commitment.disbursement_program_number ? 'edit' : 'add'"
                 size="sm"
                 variant="soft"
                 @click="openPdModal"
               >
                 {{
-                  commitment.disbursement_program_number
-                    ? 'Editar Programa de Desembolso'
-                    : 'Informar Programa de Desembolso'
+                  commitment.status === 'cancelled'
+                    ? 'Bloqueado (Empenho Cancelado)'
+                    : commitment.disbursement_program_number
+                      ? 'Editar Programa de Desembolso'
+                      : 'Informar Programa de Desembolso'
                 }}
               </UiButton>
             </UiCard>
@@ -676,8 +790,24 @@
                   <UiIcon :color="hasBankOrder ? 'success' : 'primary'" name="cash" size="18" />
                   2.3. Ordem Bancária (OB)
                 </div>
-                <UiChip :color="hasBankOrder ? 'success' : 'default'" size="xs" variant="soft">
-                  {{ hasBankOrder ? 'Concluído' : 'Pendente' }}
+                <UiChip
+                  :color="
+                    commitment.status === 'cancelled'
+                      ? 'error'
+                      : hasBankOrder
+                        ? 'success'
+                        : 'default'
+                  "
+                  size="xs"
+                  variant="soft"
+                >
+                  {{
+                    commitment.status === 'cancelled'
+                      ? 'Bloqueado'
+                      : hasBankOrder
+                        ? 'Concluído'
+                        : 'Pendente'
+                  }}
                 </UiChip>
               </div>
               <div class="text-caption text-grey mb-3">
@@ -703,14 +833,21 @@
                 </div>
               </div>
               <div v-else class="text-caption text-grey py-3 text-center">
-                Nenhuma Ordem Bancária registrada.
+                {{
+                  commitment.status === 'cancelled'
+                    ? 'Não aplicável para empenho cancelado.'
+                    : 'Nenhuma Ordem Bancária registrada.'
+                }}
               </div>
 
               <UiButton
                 block
                 color="success"
                 :disabled="
-                  !canManageFinancialDocs || !hasMinLiquidations || !hasDisbursementProgram
+                  commitment.status === 'cancelled' ||
+                  !canManageFinancialDocs ||
+                  !hasMinLiquidations ||
+                  !hasDisbursementProgram
                 "
                 :prepend-icon="commitment.bank_order_number ? 'edit' : 'checkCircle'"
                 size="sm"
@@ -718,9 +855,11 @@
                 @click="openObModal"
               >
                 {{
-                  commitment.bank_order_number
-                    ? 'Atualizar Ordem Bancária'
-                    : 'Registrar OB e Concluir Item(ns)'
+                  commitment.status === 'cancelled'
+                    ? 'Bloqueado (Empenho Cancelado)'
+                    : commitment.bank_order_number
+                      ? 'Atualizar Ordem Bancária'
+                      : 'Registrar OB e Concluir Item(ns)'
                 }}
               </UiButton>
             </UiCard>
@@ -977,5 +1116,13 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal de Cancelamento de Empenho -->
+    <CancelCommitmentModal
+      v-model="isCancelModalOpen"
+      :commitment="commitment"
+      :items-count="items.length"
+      @cancelled="refresh"
+    />
   </div>
 </template>

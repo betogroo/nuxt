@@ -1459,6 +1459,9 @@ export function resolveDemandYear(
 export function hasItemCommitmentIssued(
   item: Pick<DemandProductRow, 'commitment_number' | 'execution_status'>,
 ): boolean {
+  if (item.execution_status === 'cancelled') {
+    return false
+  }
   if (item.commitment_number && String(item.commitment_number).trim().length > 0) {
     return true
   }

@@ -87,13 +87,17 @@
     ).length
     const awaitingFinancial = list.filter((c) => c.status === 'delivered').length
     const completed = list.filter((c) => c.status === 'completed').length
-    const totalAmount = list.reduce((sum, c) => sum + Number(c.total_amount || 0), 0)
+    const cancelled = list.filter((c) => c.status === 'cancelled').length
+    const totalAmount = list
+      .filter((c) => c.status !== 'cancelled')
+      .reduce((sum, c) => sum + Number(c.total_amount || 0), 0)
 
     return {
       total,
       awaitingLogistics,
       awaitingFinancial,
       completed,
+      cancelled,
       totalAmount,
     }
   })
@@ -275,8 +279,18 @@
         </template>
 
         <template #item-amount="{ item }">
-          <div class="font-weight-bold">{{ formatCurrency(item.total_amount) }}</div>
-          <div class="text-caption text-grey">{{ item.items_count }} item(ns)</div>
+          <div
+            class="font-weight-bold"
+            :class="item.status === 'cancelled' ? 'text-decoration-line-through text-error' : ''"
+          >
+            {{ formatCurrency(item.total_amount) }}
+          </div>
+          <div
+            class="text-caption"
+            :class="item.status === 'cancelled' ? 'text-error' : 'text-grey'"
+          >
+            {{ item.status === 'cancelled' ? 'Estornado' : `${item.items_count} item(ns)` }}
+          </div>
         </template>
 
         <template #item-status="{ item }">
@@ -291,7 +305,18 @@
         </template>
 
         <template #item-financial="{ item }">
-          <div class="d-flex flex-wrap ga-1 align-center">
+          <div v-if="item.status === 'cancelled'" class="d-flex align-center ga-1">
+            <UiChip color="error" size="xs" variant="soft"> Sem Desembolso </UiChip>
+            <UiChip
+              v-if="(item.demand_commitment_liquidations?.length || 0) > 0"
+              color="error"
+              size="xs"
+              variant="soft"
+            >
+              NL Canc: {{ item.demand_commitment_liquidations?.length }}
+            </UiChip>
+          </div>
+          <div v-else class="d-flex flex-wrap ga-1 align-center">
             <UiChip
               :color="
                 (item.demand_commitment_liquidations?.length || 0) >= 2 ? 'success' : 'default'

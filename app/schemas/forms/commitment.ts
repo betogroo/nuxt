@@ -117,3 +117,30 @@ export type DisbursementProgramFormValues = z.output<typeof disbursementProgramF
 
 export type BankOrderFormInput = z.input<typeof bankOrderFormSchema>
 export type BankOrderFormValues = z.output<typeof bankOrderFormSchema>
+
+export const cancelCommitmentFormSchema = z
+  .object({
+    reason: z
+      .string({ error: 'Informe a justificativa do cancelamento.' })
+      .trim()
+      .min(3, 'A justificativa do cancelamento deve ter pelo menos 3 caracteres.'),
+    cancellation_nl_number: z.string().optional().default(''),
+    cancellation_nl_issue_date: z.string().optional().default(''),
+    cancellation_nl_observation: z.string().optional().default(''),
+  })
+  .refine(
+    (data) => {
+      const trimmedNl = data.cancellation_nl_number ? data.cancellation_nl_number.trim() : ''
+      if (trimmedNl.length > 0 && !/^\d{4}NL$/i.test(trimmedNl)) {
+        return LIQUIDATION_NUMBER_REGEX.test(trimmedNl)
+      }
+      return true
+    },
+    {
+      message: 'Formato inválido para NL de Cancelamento. Utilize o padrão SIAFEM: 2026NL00000.',
+      path: ['cancellation_nl_number'],
+    },
+  )
+
+export type CancelCommitmentFormInput = z.input<typeof cancelCommitmentFormSchema>
+export type CancelCommitmentFormValues = z.output<typeof cancelCommitmentFormSchema>

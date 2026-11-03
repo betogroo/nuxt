@@ -1821,7 +1821,12 @@
 
               <!-- Execução do Item (Pós-Homologação) -->
               <template #item-execution_status="{ item }">
-                <template v-if="getItemDisputeResult(item).outcome === 'winner'">
+                <template
+                  v-if="
+                    getItemDisputeResult(item).outcome === 'winner' ||
+                    item.execution_status === 'cancelled'
+                  "
+                >
                   <div class="d-flex flex-column align-center ga-1">
                     <UiChip
                       :color="
