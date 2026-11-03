@@ -9,12 +9,21 @@ const {
   mockDemandPending,
   mockDemandProducts,
   mockUpdateDemandDb,
+  mockRoute,
+  mockRouterPush,
+  mockRouterReplace,
 } = vi.hoisted(() => ({
   mockProductsList: { value: [] as unknown[] },
   mockDemandData: { value: null as Record<string, unknown> | null },
   mockDemandPending: { value: false },
   mockDemandProducts: { value: [] as unknown[] },
   mockUpdateDemandDb: vi.fn().mockResolvedValue({}),
+  mockRoute: {
+    params: { id: 'demand-123' },
+    query: {} as Record<string, unknown>,
+  },
+  mockRouterPush: vi.fn(),
+  mockRouterReplace: vi.fn(),
 }))
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
@@ -77,11 +86,10 @@ mockNuxtImport('useDemandProducts', () => () => ({
   updateDemandItemWithDependencies: mockUpdateDemandItemWithDependencies,
   removeDemandProduct: vi.fn().mockResolvedValue({}),
 }))
-mockNuxtImport('useRoute', () => () => ({
-  params: { id: 'demand-123' },
-}))
+mockNuxtImport('useRoute', () => () => mockRoute)
 mockNuxtImport('useRouter', () => () => ({
-  push: vi.fn(),
+  push: mockRouterPush,
+  replace: mockRouterReplace,
 }))
 mockNuxtImport('useSupabaseUser', () => () => ({
   value: { id: 'user-1' },
@@ -806,5 +814,65 @@ describe('Demand Items Page', () => {
     const pageContent = fs.readFileSync(filePath, 'utf-8')
     expect(pageContent).not.toContain('router.back()')
     expect(pageContent).toMatch(/router\.push\(['"]\/demands['"]\)/)
+  })
+
+  describe('Intelligent Tab Selection & Query Sync', () => {
+    it('intelligently selects "items" tab when demand is in quotation status without query param', async () => {
+      mockRoute.query = {}
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'quotation',
+      }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.activeTab).toBe('items')
+    })
+
+    it('intelligently selects "suppliers" tab when demand is in homologation status without query param', async () => {
+      mockRoute.query = {}
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'homologation',
+      }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.activeTab).toBe('suppliers')
+    })
+
+    it('prioritizes explicit URL query tab over demand status default', async () => {
+      mockRoute.query = { tab: 'planning' }
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'quotation',
+      }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.activeTab).toBe('planning')
+    })
+
+    it('synchronizes route query with router.replace when activeTab changes', async () => {
+      mockRoute.query = {}
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'planning',
+      }
+      mockRouterReplace.mockClear()
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      vm.activeTab = 'items'
+      await wrapper.vm.$nextTick()
+
+      expect(mockRouterReplace).toHaveBeenCalledWith({
+        query: { tab: 'items' },
+      })
+    })
   })
 })

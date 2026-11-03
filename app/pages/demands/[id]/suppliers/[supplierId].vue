@@ -47,7 +47,7 @@
   })
 
   const goBack = () => {
-    router.push(`/demands/${demandId}`)
+    router.push({ path: `/demands/${demandId}`, query: { tab: 'suppliers' } })
   }
 </script>
 

@@ -412,4 +412,18 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
 
     expect(vm.totalReferenceAmount).toBe(300)
   })
+
+  it('navigates back to demand with ?tab=items when clicking "Voltar para a Demanda"', async () => {
+    mockRouterPush.mockClear()
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.goBackToDemand()
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      path: '/demands/demand-1',
+      query: { tab: 'items' },
+    })
+  })
 })

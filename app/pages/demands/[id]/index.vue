@@ -24,6 +24,12 @@
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
+  import {
+    type DemandTab,
+    getDemandDefaultTab,
+    isValidDemandTab,
+    resolveInitialDemandTab,
+  } from '~/utils/demandTabs'
   import { useDemandReports, type DemandWithClassProductsRow } from '~/composables/useDemandReports'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
@@ -855,7 +861,41 @@
   }
 
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
-  const activeTab = ref<'planning' | 'items' | 'suppliers'>('planning')
+  const initialQueryTab = route.query.tab
+  const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
+  const activeTab = ref<DemandTab>(resolveInitialDemandTab(initialQueryTab, demand.value?.status))
+
+  watch(
+    () => demand.value?.status,
+    (status) => {
+      if (!userSelectedTab.value && !isValidDemandTab(route.query.tab)) {
+        activeTab.value = getDemandDefaultTab(status)
+      }
+    },
+    { immediate: true },
+  )
+
+  watch(activeTab, (newTab) => {
+    userSelectedTab.value = true
+    if (route.query.tab !== newTab) {
+      router.replace({
+        query: {
+          ...route.query,
+          tab: newTab,
+        },
+      })
+    }
+  })
+
+  watch(
+    () => route.query.tab,
+    (queryTab) => {
+      if (isValidDemandTab(queryTab) && queryTab !== activeTab.value) {
+        userSelectedTab.value = true
+        activeTab.value = queryTab
+      }
+    },
+  )
 
   const totalEstimatedAmount = computed(() => {
     if (!items.value) return 0
@@ -1031,15 +1071,26 @@
                 {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
               </UiChip>
             </div>
-            <div class="d-flex align-center ga-1">
+            <div
+              class="d-flex align-center ga-1"
+              style="cursor: pointer"
+              title="Ver itens da demanda"
+              @click="activeTab = 'items'"
+            >
               <span class="text-grey font-weight-medium">Itens:</span>
-              <span class="font-weight-bold">{{ items?.length || 0 }}</span>
+              <span class="font-weight-bold text-primary">{{ items?.length || 0 }}</span>
             </div>
             <div v-if="totalEstimatedAmount > 0" class="d-flex align-center ga-1">
               <span class="text-grey font-weight-medium">Total Estimado:</span>
               <span class="font-weight-bold">{{ formatCurrency(totalEstimatedAmount) }}</span>
             </div>
-            <div v-if="totalHomologatedAmount > 0" class="d-flex align-center ga-1">
+            <div
+              v-if="totalHomologatedAmount > 0"
+              class="d-flex align-center ga-1"
+              style="cursor: pointer"
+              title="Ver fornecedores e empenhos"
+              @click="activeTab = 'suppliers'"
+            >
               <span class="text-grey font-weight-medium">Total Homologado:</span>
               <span class="font-weight-bold text-success">{{
                 formatCurrency(totalHomologatedAmount)
@@ -1440,7 +1491,7 @@
               <span
                 >Erro ao carregar itens da demanda: {{ itemsError?.message || itemsError }}</span
               >
-              <UiButton size="xs" variant="outline" color="error" @click="refreshItems">
+              <UiButton color="error" size="xs" variant="outline" @click="refreshItems">
                 Tentar novamente
               </UiButton>
             </div>
@@ -2135,8 +2186,8 @@
         <!-- Card de Saldo por Classe do Produto -->
         <DemandProductClassBalanceCard
           v-if="selectedProductId"
-          class="mt-4"
           :balance="addingItemClassBalance"
+          class="mt-4"
           :loading="isSpendingDataLoading"
         />
       </template>
@@ -2287,8 +2338,8 @@
         <!-- Card de Saldo por Classe do Produto no Cadastro Novo -->
         <DemandProductClassBalanceCard
           v-if="newProductClassId || (isSuggestingClass && suggestedClassId)"
-          class="mt-4"
           :balance="addingItemClassBalance"
+          class="mt-4"
           :loading="isSpendingDataLoading"
         />
 

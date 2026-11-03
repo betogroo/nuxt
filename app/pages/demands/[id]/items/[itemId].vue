@@ -480,6 +480,10 @@
     }
   }
 
+  const goBackToDemand = () => {
+    router.push({ path: `/demands/${demandId}`, query: { tab: 'items' } })
+  }
+
   watch(itemId, () => {
     isEditing.value = false
     isBidModalOpen.value = false
@@ -494,11 +498,7 @@
   <UiContainer>
     <!-- Barra Superior de Navegação -->
     <div class="mb-4 d-flex align-center justify-space-between flex-wrap ga-2">
-      <UiButton
-        prepend-icon="arrowLeft"
-        variant="ghost"
-        @click="router.push(`/demands/${demandId}`)"
-      >
+      <UiButton prepend-icon="arrowLeft" variant="ghost" @click="goBackToDemand">
         Voltar para a Demanda
       </UiButton>
 
