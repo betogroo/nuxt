@@ -70,7 +70,7 @@ export const useCommitments = () => {
         supabase
           .from('demand_products')
           .select(
-            'id, commitment_number, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+            'id, commitment_number, quantity, execution_status, demand_product_bids(id, supplier_id, amount, status, created_at)',
           )
           .not('commitment_number', 'is', null),
       ])
@@ -78,7 +78,10 @@ export const useCommitments = () => {
     if (commitmentsErr) throw commitmentsErr
     if (itemsErr) throw itemsErr
 
-    const totalsByCommitment = new Map<string, { count: number; total: number }>()
+    const totalsByCommitment = new Map<
+      string,
+      { count: number; total: number; status?: DemandItemExecutionStatus }
+    >()
     for (const item of itemsData || []) {
       const num = item.commitment_number ? normalizeSiafemNumber(item.commitment_number) : null
       if (!num) continue
@@ -90,6 +93,9 @@ export const useCommitments = () => {
 
       current.count += 1
       current.total += itemTotal
+      if (item.execution_status) {
+        current.status = item.execution_status as DemandItemExecutionStatus
+      }
       totalsByCommitment.set(num, current)
     }
 
@@ -97,9 +103,11 @@ export const useCommitments = () => {
       const normalized = normalizeSiafemNumber(row.commitment_number)
       const metrics = totalsByCommitment.get(normalized) || { count: 0, total: 0 }
       const liquidations = row.demand_commitment_liquidations || []
+      const resolvedStatus = row.status === 'cancelled' ? 'cancelled' : metrics.status || row.status
 
       return {
         ...row,
+        status: resolvedStatus,
         items_count: metrics.count,
         total_amount: metrics.total,
         liquidations_count: liquidations.length,
@@ -180,8 +188,22 @@ export const useCommitments = () => {
       a.liquidation_number.localeCompare(b.liquidation_number),
     )
 
+    const effectiveCommitmentStatus: DemandItemExecutionStatus =
+      commitment.status === 'cancelled'
+        ? 'cancelled'
+        : items.length > 0 &&
+            items[0].execution_status &&
+            items.every((it) => it.execution_status === items[0].execution_status)
+          ? (items[0].execution_status as DemandItemExecutionStatus)
+          : commitment.status
+
+    const reconciledCommitment: CommitmentRow = {
+      ...commitment,
+      status: effectiveCommitmentStatus,
+    }
+
     return {
-      commitment,
+      commitment: reconciledCommitment,
       liquidations,
       items,
       total_amount: totalAmount,

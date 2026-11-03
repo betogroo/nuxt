@@ -764,6 +764,7 @@ describe('useDemandProducts', () => {
                 },
                 error: null,
               }),
+              neq: vi.fn().mockResolvedValue({ data: [], error: null }),
             }),
           }),
         }
@@ -813,6 +814,74 @@ describe('useDemandProducts', () => {
         observation: 'Nota de empenho gerada',
       }),
     )
+  })
+
+  it('updateDemandItemExecutionStatus should synchronize demand_commitments status when item status is updated', async () => {
+    const { updateDemandItemExecutionStatus } = useDemandProducts()
+
+    const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockProductUpdate = vi.fn().mockReturnValue({
+      eq: mockUpdateEq,
+      in: vi.fn().mockResolvedValue({ error: null }),
+    })
+    const mockCommitmentUpdateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockCommitmentUpdate = vi.fn().mockReturnValue({ eq: mockCommitmentUpdateEq })
+    const mockHistoryInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return {
+          update: mockProductUpdate,
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  demand_id: 'dem-1',
+                  commitment_number: '2026NE00032',
+                  product: { expense_nature_id: '339030' },
+                  demand_product_bids: [
+                    { id: 'b-1', supplier_id: 'sup-1', amount: 50, status: 'classified' },
+                  ],
+                },
+                error: null,
+              }),
+              neq: vi.fn().mockResolvedValue({
+                data: [{ id: 'dp-sibling-2' }],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'demand_commitments') {
+        return {
+          update: mockCommitmentUpdate,
+        }
+      }
+      if (table === 'demand_item_status_history') {
+        return { insert: mockHistoryInsert }
+      }
+      return {}
+    })
+
+    await updateDemandItemExecutionStatus({
+      itemId: 'dp-1',
+      status: 'commitment_confirmed',
+      observation: 'Empenho confirmado pelo fornecedor',
+    })
+
+    expect(mockProductUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution_status: 'commitment_confirmed',
+      }),
+    )
+    expect(mockCommitmentUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'commitment_confirmed',
+        observation: 'Empenho confirmado pelo fornecedor',
+      }),
+    )
+    expect(mockCommitmentUpdateEq).toHaveBeenCalledWith('commitment_number', '2026NE00032')
   })
 
   it('batchUpdateDemandItemsExecutionStatus should update each item and log action', async () => {

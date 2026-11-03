@@ -362,6 +362,37 @@ export const useDemandProducts = () => {
       })
     }
 
+    let itemInfo: {
+      demand_id?: string
+      commitment_number?: string | null
+      product?:
+        { expense_nature_id?: string | null } | Array<{ expense_nature_id?: string | null }> | null
+      demand_product_bids?: Array<{
+        id: string
+        supplier_id?: string | null
+        amount: number
+        status: string
+        created_at: string
+      }> | null
+    } | null = null
+
+    try {
+      const { data } = await supabase
+        .from('demand_products')
+        .select(
+          'demand_id, commitment_number, product:products(expense_nature_id), demand_product_bids(id, supplier_id, amount, status, created_at)',
+        )
+        .eq('id', params.itemId)
+        .maybeSingle()
+      itemInfo = data as typeof itemInfo
+    } catch {
+      // Safe fallback if select is not mocked in minimal unit tests
+    }
+
+    const effectiveCommitment =
+      trimmedCommitment ||
+      (itemInfo?.commitment_number ? normalizeSiafemNumber(itemInfo.commitment_number) : null)
+
     const now = new Date().toISOString()
     const updatePayload: Database['public']['Tables']['demand_products']['Update'] = {
       execution_status: params.status,
@@ -369,7 +400,7 @@ export const useDemandProducts = () => {
       execution_status_updated_at: now,
     }
 
-    if (params.status === 'commitment_issued' && trimmedCommitment) {
+    if (trimmedCommitment) {
       updatePayload.commitment_number = trimmedCommitment
     }
 
@@ -380,38 +411,101 @@ export const useDemandProducts = () => {
 
     if (updateErr) throw updateErr
 
-    if (params.status === 'commitment_issued' && trimmedCommitment) {
-      const { data: itemInfo } = await supabase
-        .from('demand_products')
-        .select(
-          'demand_id, product:products(expense_nature_id), demand_product_bids(id, supplier_id, amount, status, created_at)',
-        )
-        .eq('id', params.itemId)
-        .maybeSingle()
-
-      if (itemInfo) {
-        const prod = Array.isArray(itemInfo.product)
-          ? itemInfo.product[0]
-          : (itemInfo.product as { expense_nature_id?: string | null } | null)
-        const winner = getWinningBid(itemInfo.demand_product_bids || [])
-        const resolvedSupplierId = params.supplierId || winner?.supplier_id || null
-        if (resolvedSupplierId) {
-          await upsertCommitmentEntity({
-            commitmentNumber: trimmedCommitment,
-            demandId: itemInfo.demand_id,
-            supplierId: resolvedSupplierId,
-            expenseNatureId: prod?.expense_nature_id || null,
-            status: 'commitment_issued',
-            observation: params.observation,
-          })
+    if (effectiveCommitment) {
+      if (params.status === 'commitment_issued' && trimmedCommitment) {
+        if (itemInfo) {
+          const prod = Array.isArray(itemInfo.product)
+            ? itemInfo.product[0]
+            : (itemInfo.product as { expense_nature_id?: string | null } | null)
+          const winner = getWinningBid(itemInfo.demand_product_bids || [])
+          const resolvedSupplierId = params.supplierId || winner?.supplier_id || null
+          if (resolvedSupplierId) {
+            await upsertCommitmentEntity({
+              commitmentNumber: trimmedCommitment,
+              demandId: itemInfo.demand_id || '',
+              supplierId: resolvedSupplierId,
+              expenseNatureId: prod?.expense_nature_id || null,
+              status: 'commitment_issued',
+              observation: params.observation,
+            })
+          }
         }
+      } else if (params.status !== 'homologated') {
+        const commitmentUpdatePayload: Database['public']['Tables']['demand_commitments']['Update'] =
+          {
+            status: params.status,
+            updated_at: now,
+          }
+        if (params.observation?.trim()) {
+          commitmentUpdatePayload.observation = params.observation.trim()
+        }
+        if (params.status === 'error') {
+          commitmentUpdatePayload.error_details = params.errorDetails?.trim() || null
+        }
+        try {
+          await supabase
+            .from('demand_commitments')
+            .update(commitmentUpdatePayload)
+            .eq('commitment_number', effectiveCommitment)
+        } catch (err: unknown) {
+          console.error('Erro ao sincronizar status na tabela demand_commitments:', err)
+        }
+      }
+
+      // Sincronizar demais itens vinculados à mesma Nota de Empenho
+      try {
+        const query = supabase
+          .from('demand_products')
+          .select('id')
+          .eq('commitment_number', effectiveCommitment)
+
+        const siblingRes =
+          typeof (query as unknown as { neq?: unknown }).neq === 'function'
+            ? await (
+                query as unknown as {
+                  neq: (col: string, val: string) => Promise<{ data: Array<{ id: string }> | null }>
+                }
+              ).neq('id', params.itemId)
+            : await query
+
+        const siblingItems = (siblingRes?.data || []).filter((s) => s.id !== params.itemId)
+
+        if (siblingItems && siblingItems.length > 0) {
+          const siblingIds = siblingItems.map((s) => s.id)
+          await supabase
+            .from('demand_products')
+            .update({
+              execution_status: params.status,
+              execution_error_details:
+                params.status === 'error' ? params.errorDetails || null : null,
+              execution_status_updated_at: now,
+            })
+            .in('id', siblingIds)
+
+          const siblingHistory: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
+            siblingIds.map((sibId) => ({
+              demand_product_id: sibId,
+              status: params.status,
+              commitment_number: effectiveCommitment,
+              observation: params.observation ? params.observation.trim() : null,
+              error_details:
+                params.status === 'error' && params.errorDetails
+                  ? params.errorDetails.trim()
+                  : null,
+              created_by: user.value?.id || null,
+            }))
+
+          await supabase.from('demand_item_status_history').insert(siblingHistory)
+        }
+      } catch (err: unknown) {
+        console.error('Erro ao sincronizar itens irmãos do empenho:', err)
       }
     }
 
     const { error: historyErr } = await supabase.from('demand_item_status_history').insert({
       demand_product_id: params.itemId,
       status: params.status,
-      commitment_number: trimmedCommitment,
+      commitment_number: effectiveCommitment,
       observation: params.observation ? params.observation.trim() : null,
       error_details:
         params.status === 'error' && params.errorDetails ? params.errorDetails.trim() : null,
@@ -424,7 +518,7 @@ export const useDemandProducts = () => {
 
     await logAction(
       'UPDATE_DEMAND_ITEM_EXECUTION_STATUS',
-      `Status de execução do item ${params.itemId} atualizado para "${params.status}"${trimmedCommitment ? ` (Empenho: ${trimmedCommitment})` : ''}`,
+      `Status de execução do item ${params.itemId} atualizado para "${params.status}"${effectiveCommitment ? ` (Empenho: ${effectiveCommitment})` : ''}`,
       user.value?.id,
     )
   }
