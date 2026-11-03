@@ -429,6 +429,32 @@ export const useDemandProducts = () => {
     )
   }
 
+  const batchUpdateDemandItemsExecutionStatus = async (params: {
+    itemIds: string[]
+    status: DemandItemExecutionStatus
+    commitmentNumber?: string | null
+    observation?: string | null
+    errorDetails?: string | null
+  }) => {
+    if (!params.itemIds || params.itemIds.length === 0) return
+
+    for (const itemId of params.itemIds) {
+      await updateDemandItemExecutionStatus({
+        itemId,
+        status: params.status,
+        commitmentNumber: params.commitmentNumber,
+        observation: params.observation,
+        errorDetails: params.errorDetails,
+      })
+    }
+
+    await logAction(
+      'BATCH_UPDATE_DEMAND_ITEMS_EXECUTION_STATUS',
+      `Status de execução atualizado em lote para "${params.status}" em ${params.itemIds.length} item(ns).`,
+      user.value?.id,
+    )
+  }
+
   const fetchDemandItemStatusHistory = async (
     itemId: string,
   ): Promise<DemandItemStatusHistoryRow[]> => {
@@ -621,6 +647,7 @@ export const useDemandProducts = () => {
     removeDemandProduct,
     validateCommitmentNumberSupplier,
     updateDemandItemExecutionStatus,
+    batchUpdateDemandItemsExecutionStatus,
     batchUpdateCommitmentsByNature,
     fetchDemandItemStatusHistory,
   }

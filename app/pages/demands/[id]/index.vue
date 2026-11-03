@@ -17,6 +17,7 @@
   } from '~/constants/demand-item-status'
   import type { DemandProductRow } from '~/composables/useDemandProducts'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+  import DemandItemsBatchExecutionStatusModal from '~/components/demands/DemandItemsBatchExecutionStatusModal.vue'
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
@@ -24,6 +25,7 @@
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
+  import { useRowSelection } from '~/composables/useRowSelection'
   import {
     type DemandTab,
     getDemandDefaultTab,
@@ -749,11 +751,27 @@
   const isReportModalOpen = ref(false)
 
   // --- COLUNAS DA TABELA DE PRODUTOS ---
+  const isExecutionPhase = computed(() => {
+    return demand.value?.status === 'homologation' || demand.value?.status === 'completed'
+  })
+
   const demandProductHeaders = computed(() => {
     const isQuotation = demand.value?.status === 'quotation'
     const isPreDispute = demand.value?.status === 'planning' || demand.value?.status === 'quotation'
 
-    const baseHeaders = [
+    const baseHeaders = []
+
+    if (isExecutionPhase.value && canEditDemand(demand.value)) {
+      baseHeaders.push({
+        text: '',
+        value: 'select',
+        align: 'center' as const,
+        width: 48,
+        sortable: false,
+      })
+    }
+
+    baseHeaders.push(
       {
         text: '#',
         value: 'order',
@@ -771,7 +789,7 @@
         align: 'right' as const,
         width: 140,
       },
-    ]
+    )
 
     if (!isPreDispute) {
       baseHeaders.push({
@@ -782,7 +800,7 @@
       })
     }
 
-    if (demand.value?.status === 'homologation' || demand.value?.status === 'completed') {
+    if (isExecutionPhase.value) {
       baseHeaders.push({
         text: 'Execução',
         value: 'execution_status',
@@ -802,6 +820,38 @@
 
     return baseHeaders
   })
+
+  // --- SELEÇÃO EM LOTE DE ITENS PARA EXECUÇÃO ---
+  const eligibleExecutionItems = computed(() => {
+    return (items.value || []).filter((it) => getItemDisputeResult(it).outcome === 'winner')
+  })
+
+  const {
+    selectedIds: selectedItemIds,
+    selectedIdSet: selectedItemIdSet,
+    isAllPageSelected,
+    isSomePageSelected,
+    isRowSelected,
+    toggleSelectRow,
+    toggleSelectAllPage,
+    clearSelection,
+  } = useRowSelection<DemandProductRow>(eligibleExecutionItems, (item) => item.id)
+
+  const selectedItemsForBatch = computed(() => {
+    if (!items.value || selectedItemIds.value.length === 0) return []
+    return items.value.filter((i) => selectedItemIdSet.value.has(i.id))
+  })
+
+  const isBatchExecutionModalOpen = ref(false)
+  const openBatchExecutionModal = () => {
+    if (selectedItemIds.value.length === 0) return
+    isBatchExecutionModalOpen.value = true
+  }
+
+  const handleBatchExecutionSaved = async () => {
+    clearSelection()
+    await refreshItems()
+  }
 
   // --- MODAL DE STATUS DE EXECUÇÃO DO ITEM ---
   const isExecutionStatusModalOpen = ref(false)
@@ -1465,6 +1515,20 @@
               </div>
               <div class="ml-auto d-flex flex-wrap ga-2">
                 <UiButton
+                  v-if="isExecutionPhase && canEditDemand(demand)"
+                  color="primary"
+                  :disabled="selectedItemIds.length === 0"
+                  prepend-icon="edit"
+                  size="sm"
+                  variant="soft"
+                  @click="openBatchExecutionModal"
+                >
+                  Alterar Status em Lote
+                  <span v-if="selectedItemIds.length > 0" class="ml-1 font-weight-bold">
+                    ({{ selectedItemIds.length }})
+                  </span>
+                </UiButton>
+                <UiButton
                   v-if="demand?.status === 'quotation'"
                   color="secondary"
                   prepend-icon="balance"
@@ -1508,9 +1572,61 @@
             A inserção ou alteração de itens só é permitida na fase de Cotação.
           </UiAlert>
 
+          <!-- Barra de Ações em Lote de Execução -->
+          <UiAlert v-if="selectedItemIds.length > 0" class="mb-4" color="primary" variant="soft">
+            <div class="d-flex align-center justify-space-between flex-wrap ga-2 w-100">
+              <div class="d-flex align-center ga-2">
+                <UiIcon name="checkCircle" size="sm" />
+                <span class="font-weight-medium">
+                  {{ selectedItemIds.length }} item(ns) selecionado(s) para execução
+                </span>
+              </div>
+              <div class="d-flex align-center ga-2">
+                <UiButton color="secondary" size="xs" variant="ghost" @click="clearSelection">
+                  Limpar Seleção
+                </UiButton>
+                <UiButton
+                  color="primary"
+                  prepend-icon="edit"
+                  size="xs"
+                  @click="openBatchExecutionModal"
+                >
+                  Alterar Status em Lote ({{ selectedItemIds.length }})
+                </UiButton>
+              </div>
+            </div>
+          </UiAlert>
+
           <div class="overflow-x-auto">
             <UiTable :headers="demandProductHeaders" :items="items || []">
               <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
+
+              <!-- Checkbox de Seleção em Lote -->
+              <template #header-select>
+                <div class="d-flex justify-center">
+                  <UiCheckbox
+                    :disabled="eligibleExecutionItems.length === 0"
+                    hide-details
+                    :indeterminate="isSomePageSelected"
+                    :model-value="isAllPageSelected"
+                    size="sm"
+                    @update:model-value="toggleSelectAllPage"
+                  />
+                </div>
+              </template>
+
+              <template #item-select="{ item }">
+                <div class="d-flex justify-center" @click.stop>
+                  <UiCheckbox
+                    v-if="getItemDisputeResult(item).outcome === 'winner'"
+                    hide-details
+                    :model-value="isRowSelected(item.id)"
+                    size="sm"
+                    @update:model-value="toggleSelectRow(item.id)"
+                  />
+                  <span v-else class="text-caption text-grey">-</span>
+                </div>
+              </template>
 
               <!-- Ordem -->
               <template #item-order="{ index }">
@@ -2765,6 +2881,13 @@
       v-model="isExecutionStatusModalOpen"
       :item="selectedItemForExecutionStatus"
       @saved="handleExecutionStatusSaved"
+    />
+
+    <!-- Modal de Atualização de Status de Execução em Lote de Itens -->
+    <DemandItemsBatchExecutionStatusModal
+      v-model="isBatchExecutionModalOpen"
+      :items="selectedItemsForBatch"
+      @saved="handleBatchExecutionSaved"
     />
 
     <!-- Modal de Gerenciamento de Empenhos em Lote por Fornecedor & Natureza -->

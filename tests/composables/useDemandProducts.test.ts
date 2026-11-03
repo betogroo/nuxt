@@ -815,6 +815,38 @@ describe('useDemandProducts', () => {
     )
   })
 
+  it('batchUpdateDemandItemsExecutionStatus should update each item and log action', async () => {
+    const { batchUpdateDemandItemsExecutionStatus } = useDemandProducts()
+
+    const mockUpdateEq = vi.fn().mockResolvedValue({ error: null })
+    const mockUpdate = vi.fn().mockReturnValue({ eq: mockUpdateEq })
+    const mockHistoryInsert = vi.fn().mockResolvedValue({ error: null })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'demand_products') {
+        return { update: mockUpdate }
+      }
+      if (table === 'demand_item_status_history') {
+        return { insert: mockHistoryInsert }
+      }
+      return {}
+    })
+
+    await batchUpdateDemandItemsExecutionStatus({
+      itemIds: ['dp-1', 'dp-2', 'dp-3'],
+      status: 'delivered',
+      observation: 'Recebido pelo almoxarifado',
+    })
+
+    expect(mockUpdate).toHaveBeenCalledTimes(3)
+    expect(mockHistoryInsert).toHaveBeenCalledTimes(3)
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'BATCH_UPDATE_DEMAND_ITEMS_EXECUTION_STATUS',
+      'Status de execução atualizado em lote para "delivered" em 3 item(ns).',
+      'user-1',
+    )
+  })
+
   it('validateCommitmentNumberSupplier allows same commitment number for same supplier', async () => {
     const { validateCommitmentNumberSupplier } = useDemandProducts()
     let capturedSelect = ''

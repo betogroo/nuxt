@@ -886,4 +886,74 @@ describe('Demand Items Page', () => {
     expect(pageContent).toContain('tooltip="Cadastro do Fornecedor"')
     expect(pageContent).toContain('icon="externalLink"')
   })
+
+  describe('Batch Execution Status in Items Tab', () => {
+    it('includes select column in demandProductHeaders during homologation phase', () => {
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'homologation',
+      }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      const selectHeader = vm.demandProductHeaders.find(
+        (h: { value: string }) => h.value === 'select',
+      )
+      expect(selectHeader).toBeDefined()
+      expect(selectHeader.width).toBe(48)
+    })
+
+    it('does not include select column during quotation or planning phases', () => {
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'quotation',
+      }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      const selectHeader = vm.demandProductHeaders.find(
+        (h: { value: string }) => h.value === 'select',
+      )
+      expect(selectHeader).toBeUndefined()
+    })
+
+    it('manages row selection of winner items and opens batch execution modal', () => {
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'homologation',
+      }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          demand_product_bids: [
+            { id: 'b-1', amount: 10, status: 'classified', supplier_id: 's-1' },
+          ],
+        },
+        {
+          id: 'item-2',
+          demand_product_bids: [
+            { id: 'b-2', amount: 20, status: 'classified', supplier_id: 's-1' },
+          ],
+        },
+      ]
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.eligibleExecutionItems).toHaveLength(2)
+      expect(vm.isBatchExecutionModalOpen).toBe(false)
+
+      vm.toggleSelectRow('item-1')
+      expect(vm.selectedItemIds).toEqual(['item-1'])
+      expect(vm.selectedItemsForBatch).toHaveLength(1)
+
+      vm.openBatchExecutionModal()
+      expect(vm.isBatchExecutionModalOpen).toBe(true)
+
+      vm.clearSelection()
+      expect(vm.selectedItemIds).toHaveLength(0)
+    })
+  })
 })
