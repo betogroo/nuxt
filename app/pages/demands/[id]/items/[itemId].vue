@@ -30,9 +30,12 @@
   const itemId = computed(() => route.params.itemId as string)
 
   // Fetch Demand Products (Items List for Navigation)
-  const { data: demandItems } = useAsyncData(`demand-items-${demandId}`, async () => {
-    return await fetchDemandProducts(demandId)
-  })
+  const { data: demandItems, refresh: refreshDemandItems } = useAsyncData(
+    `demand-items-${demandId}`,
+    async () => {
+      return await fetchDemandProducts(demandId)
+    },
+  )
 
   // Navigation Computeds
   const currentItemIndex = computed(() => {
@@ -189,6 +192,7 @@
       })
 
       await refresh()
+      await invalidateParentDemandItems()
       closeEditModal()
     } catch (err: unknown) {
       editError.value = err instanceof Error ? err.message : String(err)
@@ -300,9 +304,9 @@
     supplierName: string
   } | null>(null)
 
-  const invalidateParentDemandItems = () => {
+  const invalidateParentDemandItems = async () => {
     try {
-      clearNuxtData(`demand-items-${demandId}`)
+      await refreshDemandItems()
     } catch {
       // NuxtApp context might not be active in isolated unit test environments
     }
@@ -342,7 +346,7 @@
         disqualificationReason.value,
       )
       await refreshBids()
-      invalidateParentDemandItems()
+      await invalidateParentDemandItems()
       closeDisqualifyModal()
     } catch (err: unknown) {
       statusUpdateError.value = err instanceof Error ? err.message : String(err)
@@ -373,7 +377,7 @@
     try {
       await updateBidStatus(bidId, 'classified', null)
       await refreshBids()
-      invalidateParentDemandItems()
+      await invalidateParentDemandItems()
     } catch (err: unknown) {
       console.error('Erro ao classificar lance', err)
     } finally {
@@ -448,7 +452,7 @@
         referencePrice: item.value?.reference_price,
       })
       await refreshBids()
-      invalidateParentDemandItems()
+      await invalidateParentDemandItems()
       closeBidModal()
     } catch (err: unknown) {
       bidError.value = err instanceof Error ? err.message : String(err)
@@ -468,7 +472,7 @@
     try {
       await removeBid(bidId)
       await refreshBids()
-      invalidateParentDemandItems()
+      await invalidateParentDemandItems()
       toast.success('Lance removido com sucesso.')
     } catch (err) {
       console.error('Erro ao remover lance', err)

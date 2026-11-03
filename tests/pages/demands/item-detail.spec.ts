@@ -11,6 +11,7 @@ const {
   mockAddBid,
   mockRemoveBid,
   mockRefreshBids,
+  mockRefreshDemandItems,
   mockClearNuxtData,
   mockRouterPush,
   mockDemandItemsList,
@@ -57,6 +58,7 @@ const {
   mockAddBid: vi.fn().mockResolvedValue(undefined),
   mockRemoveBid: vi.fn().mockResolvedValue(undefined),
   mockRefreshBids: vi.fn().mockResolvedValue(undefined),
+  mockRefreshDemandItems: vi.fn().mockResolvedValue(undefined),
   mockClearNuxtData: vi.fn(),
   mockRouterPush: vi.fn(),
 }))
@@ -83,7 +85,7 @@ mockNuxtImport('useAsyncData', () => (key: string | (() => string)) => {
       data: ref(mockDemandItemsList.value),
       pending: ref(false),
       error: ref(null),
-      refresh: vi.fn(),
+      refresh: mockRefreshDemandItems,
     }
   }
   if (resolvedKey.startsWith('demand-item-')) {
@@ -178,7 +180,7 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
       'Marca não atende ao termo de referência',
     )
     expect(mockRefreshBids).toHaveBeenCalled()
-    expect(mockClearNuxtData).toHaveBeenCalledWith('demand-items-demand-1')
+    expect(mockRefreshDemandItems).toHaveBeenCalled()
     expect(vm.isDisqualifyModalOpen).toBe(false)
   })
 
@@ -191,7 +193,38 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
 
     expect(mockUpdateBidStatus).toHaveBeenCalledWith('bid-1', 'classified', null)
     expect(mockRefreshBids).toHaveBeenCalled()
-    expect(mockClearNuxtData).toHaveBeenCalledWith('demand-items-demand-1')
+    expect(mockRefreshDemandItems).toHaveBeenCalled()
+  })
+
+  it('preserves demandItems and navigation after submitting a new bid', async () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.demandItems).toHaveLength(3)
+    expect(vm.currentItemIndex).toBe(0)
+    expect(vm.previousItem).toBeNull()
+    expect(vm.nextItem).not.toBeNull()
+
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+
+    vm.bidSupplierId = 'supp-1'
+    vm.bidAmount = 85
+    await vm.saveBid()
+
+    expect(mockAddBid).toHaveBeenCalled()
+    expect(mockRefreshBids).toHaveBeenCalled()
+    expect(mockRefreshDemandItems).toHaveBeenCalled()
+
+    // Navigation state must remain active and fully intact
+    expect(vm.demandItems).toBeDefined()
+    expect(vm.demandItems).toHaveLength(3)
+    expect(vm.currentItemIndex).toBe(0)
+    expect(vm.previousItem).toBeNull()
+    expect(vm.nextItem).not.toBeNull()
+    expect(vm.nextItemName).toBe('Mouse')
   })
 
   it('blocks reclassifying a disqualified bid when its amount exceeds reference_price', async () => {
