@@ -83,6 +83,22 @@ describe('utils/bids', () => {
       const sorted = [...bids].sort(compareBids)
       expect(sorted.map((b) => b.id)).toEqual(['b1', 'b2', 'b3'])
     })
+
+    it('always places disqualified bids at the end of the list, even with lower amounts', () => {
+      const bids = [
+        { id: 'b-disqualified-cheap', amount: 10, status: 'disqualified' },
+        { id: 'b-valid-expensive', amount: 100, status: 'classified' },
+        { id: 'b-valid-medium', amount: 50, status: 'classified' },
+        { id: 'b-disqualified-expensive', amount: 200, status: 'disqualified' },
+      ]
+      const sorted = [...bids].sort(compareBids)
+      expect(sorted.map((b) => b.id)).toEqual([
+        'b-valid-medium',
+        'b-valid-expensive',
+        'b-disqualified-cheap',
+        'b-disqualified-expensive',
+      ])
+    })
   })
 
   describe('formatBidStatus & getBidStatusColor', () => {

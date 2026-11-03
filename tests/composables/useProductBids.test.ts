@@ -66,6 +66,22 @@ describe('useProductBids', () => {
     expect(result.map((b) => b.id)).toEqual(['bid-older', 'bid-newer'])
   })
 
+  it('fetchBidsByProduct should place disqualified bids at the end of the returned array', async () => {
+    orderMock.mockResolvedValueOnce({
+      data: [
+        { id: 'bid-disq', amount: 40, status: 'disqualified', created_at: '2026-10-16T10:00:00Z' },
+        { id: 'bid-valid-1', amount: 50, status: 'classified', created_at: '2026-10-16T11:00:00Z' },
+        { id: 'bid-valid-2', amount: 80, status: 'classified', created_at: '2026-10-16T12:00:00Z' },
+      ],
+      error: null,
+    })
+
+    const { fetchBidsByProduct } = useProductBids()
+    const result = await fetchBidsByProduct('prod-1')
+
+    expect(result.map((b) => b.id)).toEqual(['bid-valid-1', 'bid-valid-2', 'bid-disq'])
+  })
+
   it('addBid should support positional arguments (itemId, supplierId, amount)', async () => {
     const { addBid } = useProductBids()
     await addBid('item-123', 'supp-456', 405.5)

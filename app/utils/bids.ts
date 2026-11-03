@@ -15,9 +15,19 @@ export interface BidItem {
 }
 
 /**
- * Compara dois lances por valor crescente e, em caso de empate, pela ordem de cadastro (o mais antigo vence).
+ * Compara dois lances:
+ * 1. Lances desclassificados são sempre posicionados no final.
+ * 2. Compara por valor crescente (menor valor primeiro).
+ * 3. Em caso de empate, pela ordem de cadastro (o mais antigo vence).
  */
 export function compareBids(a: BidItem, b: BidItem): number {
+  const isDisqualifiedA = a.status === 'disqualified'
+  const isDisqualifiedB = b.status === 'disqualified'
+
+  if (isDisqualifiedA !== isDisqualifiedB) {
+    return isDisqualifiedA ? 1 : -1
+  }
+
   const amountA = Number(a.amount)
   const amountB = Number(b.amount)
 
