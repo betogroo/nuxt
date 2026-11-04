@@ -821,9 +821,42 @@
     return baseHeaders
   })
 
+  // --- FILTRO POR FORNECEDOR VENCEDOR (ABA DE ITENS) ---
+  const selectedWinningSupplierId = ref<string | null>(null)
+
+  const winningSupplierFilterOptions = computed(() => {
+    return [
+      { title: 'Todos os vencedores', value: null },
+      ...winningSuppliersSummary.value.map((s) => ({
+        title: `${s.company_name} (${s.wonCount} ${s.wonCount === 1 ? 'item' : 'itens'})`,
+        value: s.id,
+      })),
+    ]
+  })
+
+  const filteredDemandItems = computed(() => {
+    if (!items.value) return []
+    if (!selectedWinningSupplierId.value) return items.value
+
+    return items.value.filter((item) => {
+      const res = getItemDisputeResult(item)
+      return (
+        res.outcome === 'winner' && res.winningBid?.supplier_id === selectedWinningSupplierId.value
+      )
+    })
+  })
+
+  const getItemOriginalIndex = (itemId: string): number => {
+    if (!items.value) return 0
+    const idx = items.value.findIndex((it) => it.id === itemId)
+    return idx >= 0 ? idx + 1 : 0
+  }
+
   // --- SELEÇÃO EM LOTE DE ITENS PARA EXECUÇÃO ---
   const eligibleExecutionItems = computed(() => {
-    return (items.value || []).filter((it) => getItemDisputeResult(it).outcome === 'winner')
+    return (filteredDemandItems.value || []).filter(
+      (it) => getItemDisputeResult(it).outcome === 'winner',
+    )
   })
 
   const {
@@ -1597,9 +1630,49 @@
             </div>
           </UiAlert>
 
+          <!-- Filtro por Fornecedor Vencedor -->
+          <div
+            v-if="winningSuppliersSummary.length > 0"
+            class="px-4 pt-1 pb-3 d-flex flex-wrap align-center justify-space-between ga-3"
+          >
+            <div style="min-width: 280px; max-width: 440px; width: 100%">
+              <UiSelect
+                v-model="selectedWinningSupplierId"
+                clearable
+                hide-details
+                item-title="title"
+                item-value="value"
+                :items="winningSupplierFilterOptions"
+                label="Filtrar por Fornecedor Vencedor"
+                placeholder="Todos os vencedores"
+                prepend-inner-icon="filter"
+                size="sm"
+                variant="outline"
+              />
+            </div>
+            <div v-if="selectedWinningSupplierId" class="d-flex align-center ga-2">
+              <UiChip color="primary" size="sm" variant="soft">
+                Exibindo {{ filteredDemandItems.length }} de {{ items?.length || 0 }} itens
+              </UiChip>
+              <UiButton
+                color="secondary"
+                size="xs"
+                variant="ghost"
+                @click="selectedWinningSupplierId = null"
+              >
+                Limpar filtro
+              </UiButton>
+            </div>
+          </div>
+
           <div class="overflow-x-auto">
-            <UiTable :headers="demandProductHeaders" :items="items || []">
-              <template #empty> Nenhum produto adicionado a esta demanda ainda. </template>
+            <UiTable :headers="demandProductHeaders" :items="filteredDemandItems">
+              <template #empty>
+                <div v-if="selectedWinningSupplierId" class="text-center py-6 text-grey">
+                  Nenhum item encontrado para o fornecedor vencedor selecionado.
+                </div>
+                <div v-else>Nenhum produto adicionado a esta demanda ainda.</div>
+              </template>
 
               <!-- Checkbox de Seleção em Lote -->
               <template #header-select>
@@ -1629,10 +1702,10 @@
               </template>
 
               <!-- Ordem -->
-              <template #item-order="{ index }">
+              <template #item-order="{ item, index }">
                 <div class="d-flex align-center justify-center ga-1">
                   <span class="text-caption font-weight-bold text-medium-emphasis">
-                    {{ index + 1 }}
+                    {{ getItemOriginalIndex(item.id) || index + 1 }}
                   </span>
                   <div v-if="demand?.status === 'quotation'" class="d-flex align-center ga-1 ml-1">
                     <UiActionButton

@@ -1,5 +1,6 @@
 <script setup lang="ts">
   import { computed, useAttrs } from 'vue'
+  import { iconMap, type IconName } from './icons'
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
 
   defineOptions({ inheritAttrs: false })
@@ -55,6 +56,27 @@
     const r = props.rounded || 'lg'
     return r === 'none' ? '0' : r
   })
+
+  const mappedAttrs = computed(() => {
+    const newAttrs: Record<string, unknown> = { ...attrs }
+    const iconProps = [
+      'prepend-inner-icon',
+      'prependInnerIcon',
+      'append-inner-icon',
+      'appendInnerIcon',
+      'prepend-icon',
+      'prependIcon',
+      'append-icon',
+      'appendIcon',
+    ]
+
+    for (const prop of iconProps) {
+      if (typeof newAttrs[prop] === 'string' && newAttrs[prop] in iconMap) {
+        newAttrs[prop] = iconMap[newAttrs[prop] as IconName]
+      }
+    }
+    return newAttrs
+  })
 </script>
 
 <template>
@@ -72,7 +94,7 @@
     :required="required"
     :rounded="vuetifyRounded"
     :variant="vuetifyVariant"
-    v-bind="attrs"
+    v-bind="mappedAttrs"
     @update:model-value="$emit('update:modelValue', $event)"
   />
 </template>

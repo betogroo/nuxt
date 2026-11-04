@@ -93,6 +93,7 @@ export const iconMap = {
   eyeSolid: 'mdi-eye',
   closeCircle: 'mdi-close-circle-outline',
   folder: 'mdi-folder-outline',
+  filter: 'mdi-filter-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

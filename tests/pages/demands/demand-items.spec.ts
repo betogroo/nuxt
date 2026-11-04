@@ -956,4 +956,151 @@ describe('Demand Items Page', () => {
       expect(vm.selectedItemIds).toHaveLength(0)
     })
   })
+
+  describe('Winning Supplier Filter in Items Tab', () => {
+    it('populates winningSupplierFilterOptions with "Todos os vencedores" and only winners with counts', () => {
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'homologation',
+      }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          quantity: 10,
+          demand_product_bids: [
+            {
+              id: 'b-1',
+              amount: 10,
+              status: 'classified',
+              supplier_id: 'sup-alpha',
+              suppliers: {
+                id: 'sup-alpha',
+                company_name: 'Alpha Fornecedora LTDA',
+                cnpj: '11111111000101',
+              },
+            },
+          ],
+        },
+        {
+          id: 'item-2',
+          quantity: 5,
+          demand_product_bids: [
+            {
+              id: 'b-2',
+              amount: 25,
+              status: 'classified',
+              supplier_id: 'sup-beta',
+              suppliers: {
+                id: 'sup-beta',
+                company_name: 'Beta Suprimentos LTDA',
+                cnpj: '22222222000102',
+              },
+            },
+          ],
+        },
+        {
+          id: 'item-3',
+          quantity: 2,
+          demand_product_bids: [
+            {
+              id: 'b-3',
+              amount: 15,
+              status: 'disqualified',
+              supplier_id: 'sup-gamma',
+              suppliers: {
+                id: 'sup-gamma',
+                company_name: 'Gamma Comercio LTDA',
+                cnpj: '33333333000103',
+              },
+            },
+          ],
+        },
+      ]
+
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.winningSuppliersSummary).toHaveLength(2)
+      expect(vm.winningSupplierFilterOptions).toEqual([
+        { title: 'Todos os vencedores', value: null },
+        { title: 'Alpha Fornecedora LTDA (1 item)', value: 'sup-alpha' },
+        { title: 'Beta Suprimentos LTDA (1 item)', value: 'sup-beta' },
+      ])
+    })
+
+    it('filters demand items by selected winning supplier and keeps true item order index', () => {
+      mockDemandData.value = {
+        id: 'demand-123',
+        status: 'homologation',
+      }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          quantity: 10,
+          demand_product_bids: [
+            {
+              id: 'b-1',
+              amount: 10,
+              status: 'classified',
+              supplier_id: 'sup-alpha',
+              suppliers: { id: 'sup-alpha', company_name: 'Alpha Fornecedora LTDA' },
+            },
+          ],
+        },
+        {
+          id: 'item-2',
+          quantity: 5,
+          demand_product_bids: [
+            {
+              id: 'b-2',
+              amount: 25,
+              status: 'classified',
+              supplier_id: 'sup-beta',
+              suppliers: { id: 'sup-beta', company_name: 'Beta Suprimentos LTDA' },
+            },
+          ],
+        },
+        {
+          id: 'item-3',
+          quantity: 20,
+          demand_product_bids: [
+            {
+              id: 'b-3',
+              amount: 30,
+              status: 'classified',
+              supplier_id: 'sup-alpha',
+              suppliers: { id: 'sup-alpha', company_name: 'Alpha Fornecedora LTDA' },
+            },
+          ],
+        },
+      ]
+
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      // Default: no filter
+      expect(vm.selectedWinningSupplierId).toBeNull()
+      expect(vm.filteredDemandItems).toHaveLength(3)
+
+      // Filter by sup-beta
+      vm.selectedWinningSupplierId = 'sup-beta'
+      expect(vm.filteredDemandItems).toHaveLength(1)
+      expect(vm.filteredDemandItems[0].id).toBe('item-2')
+      expect(vm.getItemOriginalIndex('item-2')).toBe(2)
+
+      // Filter by sup-alpha
+      vm.selectedWinningSupplierId = 'sup-alpha'
+      expect(vm.filteredDemandItems).toHaveLength(2)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(vm.filteredDemandItems.map((i: any) => i.id)).toEqual(['item-1', 'item-3'])
+      expect(vm.getItemOriginalIndex('item-1')).toBe(1)
+      expect(vm.getItemOriginalIndex('item-3')).toBe(3)
+
+      // Reset filter
+      vm.selectedWinningSupplierId = null
+      expect(vm.filteredDemandItems).toHaveLength(3)
+    })
+  })
 })
