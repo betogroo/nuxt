@@ -22,9 +22,10 @@ describe('demand-item-status constants', () => {
     ])
   })
 
-  it('should include error in ALL_DEMAND_ITEM_EXECUTION_STATUSES', () => {
+  it('should include error and cancelled in ALL_DEMAND_ITEM_EXECUTION_STATUSES', () => {
     expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES).toContain('error')
-    expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES.length).toBe(8)
+    expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES).toContain('cancelled')
+    expect(ALL_DEMAND_ITEM_EXECUTION_STATUSES.length).toBe(9)
   })
 
   it('should define human-readable labels for all statuses in Portuguese', () => {
@@ -36,6 +37,7 @@ describe('demand-item-status constants', () => {
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.delivered).toBe('Entregue')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.completed).toBe('Concluído')
     expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.error).toBe('Erro')
+    expect(DEMAND_ITEM_EXECUTION_STATUS_LABELS.cancelled).toBe('Empenho Cancelado')
   })
 
   it('should define semantic colors for all statuses', () => {

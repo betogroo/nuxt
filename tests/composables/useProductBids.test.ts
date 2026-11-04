@@ -9,6 +9,9 @@ const selectMock = vi.fn()
 const eqMock = vi.fn()
 const orderMock = vi.fn()
 const logActionMock = vi.fn()
+const bidMaybeSingleMock = vi
+  .fn()
+  .mockResolvedValue({ data: { demand_product_id: 'item-123' }, error: null })
 const productMaybeSingleMock = vi.fn().mockResolvedValue({ data: null })
 const productEqMock = vi.fn(() => ({ maybeSingle: productMaybeSingleMock }))
 const productSelectMock = vi.fn(() => ({ eq: productEqMock }))
@@ -43,7 +46,7 @@ describe('useProductBids', () => {
     updateMock.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     deleteMock.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) })
     orderMock.mockResolvedValue({ data: [{ id: 'bid-1', amount: 100 }], error: null })
-    eqMock.mockReturnValue({ order: orderMock })
+    eqMock.mockReturnValue({ order: orderMock, maybeSingle: bidMaybeSingleMock })
     selectMock.mockReturnValue({ eq: eqMock })
   })
 
