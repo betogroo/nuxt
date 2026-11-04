@@ -88,6 +88,11 @@ export const iconMap = {
   pause: 'mdi-pause-circle-outline',
   alertCircle: 'mdi-alert-circle-outline',
   playlistAdd: 'mdi-playlist-plus',
+  eye: 'mdi-eye-outline',
+  eyeOutline: 'mdi-eye-outline',
+  eyeSolid: 'mdi-eye',
+  closeCircle: 'mdi-close-circle-outline',
+  folder: 'mdi-folder-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

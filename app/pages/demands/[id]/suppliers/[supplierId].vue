@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { formatCnpj, formatUnitPrice } from '~/utils/formatters'
   import { APP_ROUTES } from '~/utils/routes'
+  import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -27,14 +28,18 @@
     const items = []
 
     for (const product of demandProducts.value) {
-      const bids = product.demand_product_bids || []
-      const winningBid = getWinningBid(bids)
+      const dispute = getItemDisputeResult(product)
 
-      if (winningBid && winningBid.supplier_id === supplierId) {
+      if (
+        dispute.outcome === 'winner' &&
+        dispute.winningBid &&
+        dispute.winningBid.supplier_id === supplierId
+      ) {
         items.push({
           ...product,
-          winning_bid_amount: winningBid.amount,
-          subtotal: getItemSubtotal(winningBid.amount, product.quantity),
+          winning_bid_amount: dispute.winningAmount,
+          subtotal:
+            dispute.totalFinal ?? getItemSubtotal(dispute.winningAmount || 0, product.quantity),
         })
       }
     }

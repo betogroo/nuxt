@@ -115,6 +115,14 @@ const stubs = {
     template: '<a :href="to"><slot /></a>',
     props: ['to'],
   },
+  CancelCommitmentModal: {
+    template: '<div class="cancel-commitment-modal-stub" />',
+    props: ['modelValue', 'commitment'],
+  },
+  UiActionButton: {
+    template: '<button class="ui-action-button" />',
+    props: ['action', 'color', 'icon', 'tooltip'],
+  },
 }
 
 describe('CommitmentsIndexPage (/commitments)', () => {

@@ -2,7 +2,7 @@ import { onMounted, getCurrentInstance } from 'vue'
 import type { Database } from '~/types/database.types'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { useToast } from '~/composables/useToast'
-import { getWinningBid, getItemSubtotal } from '~/utils/bids'
+import { getItemSubtotal, getItemDisputeResult } from '~/utils/bids'
 
 export interface SupplierCommitmentGroup {
   commitmentNumber: string
@@ -220,12 +220,18 @@ export function useDemandDetail(demandId: string) {
         }
       })
 
-      const winningBid = getWinningBid(bids)
-      if (winningBid && winningBid.suppliers) {
+      const disputeRes = getItemDisputeResult(product)
+      if (
+        disputeRes.outcome === 'winner' &&
+        disputeRes.winningBid &&
+        disputeRes.winningBid.suppliers
+      ) {
+        const winningBid = disputeRes.winningBid
         const stats = supplierStats.get(winningBid.supplier_id)
         if (stats) {
           stats.won.add(product.id)
-          const subtotal = getItemSubtotal(winningBid.amount, product.quantity)
+          const subtotal =
+            disputeRes.totalFinal ?? getItemSubtotal(winningBid.amount, product.quantity)
           stats.totalAmountWon += subtotal
 
           const trimmedCommitment = product.commitment_number?.trim() || null

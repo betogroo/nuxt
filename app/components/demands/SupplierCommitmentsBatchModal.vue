@@ -3,7 +3,7 @@
   import { useToast } from '~/composables/useToast'
   import { useDemandProducts, type DemandProductRow } from '~/composables/useDemandProducts'
   import { isValidCommitmentNumber, normalizeSiafemNumber } from '~/schemas/forms/commitment'
-  import { getWinningBid, getItemSubtotal } from '~/utils/bids'
+  import { getItemSubtotal, getItemDisputeResult } from '~/utils/bids'
   import { formatCurrency, formatCnpj } from '~/utils/formatters'
   import { APP_ROUTES } from '~/utils/routes'
 
@@ -64,17 +64,21 @@
     >()
 
     for (const item of props.items) {
-      const bids = item.demand_product_bids || []
-      const winningBid = getWinningBid(bids)
+      const dispute = getItemDisputeResult(item)
 
-      if (winningBid && winningBid.supplier_id === suppId) {
+      if (
+        dispute.outcome === 'winner' &&
+        dispute.winningBid &&
+        dispute.winningBid.supplier_id === suppId
+      ) {
+        const winningBid = dispute.winningBid
         const prod = Array.isArray(item.product) ? item.product[0] : item.product
         const natureId = prod?.expense_nature_id || 'none'
         const natureName =
           prod?.expense_natures?.name ||
           (natureId === 'none' ? 'Sem Natureza Vinculada' : `Natureza ${natureId}`)
 
-        const subtotal = getItemSubtotal(winningBid.amount, item.quantity)
+        const subtotal = dispute.totalFinal ?? getItemSubtotal(winningBid.amount, item.quantity)
         const commitment = item.commitment_number
           ? normalizeSiafemNumber(item.commitment_number)
           : null

@@ -289,5 +289,102 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
         itemNames: ['Monitor'],
       })
     })
+
+    it('excludes failed items (cancelled execution status or all bids disqualified) from wonCount and totalAmountWon', () => {
+      mockItems.value = [
+        {
+          id: 'item-valid',
+          quantity: 2,
+          commitment_number: '2026-NE-00010',
+          execution_status: 'homologated',
+          product_name_snapshot: 'Cadeira Ergonômica',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-a',
+              amount: 500.0,
+              status: 'classified',
+              suppliers: mockSupplierA,
+            },
+          ],
+        },
+        {
+          // Item fracassado por cancelamento de empenho
+          id: 'item-failed-cancelled',
+          quantity: 1,
+          commitment_number: '2026-NE-00011',
+          execution_status: 'cancelled',
+          product_name_snapshot: 'Mesa de Reunião',
+          demand_product_bids: [
+            {
+              id: 'bid-2',
+              supplier_id: 'sup-a',
+              amount: 2000.0,
+              status: 'classified',
+              suppliers: mockSupplierA,
+            },
+          ],
+        },
+        {
+          // Item fracassado por lances desclassificados
+          id: 'item-failed-disqualified',
+          quantity: 4,
+          commitment_number: null,
+          execution_status: null,
+          product_name_snapshot: 'Armário de Aço',
+          demand_product_bids: [
+            {
+              id: 'bid-3',
+              supplier_id: 'sup-a',
+              amount: 800.0,
+              status: 'disqualified',
+              suppliers: mockSupplierA,
+            },
+          ],
+        },
+      ]
+
+      const { winningSuppliersSummary } = useDemandDetail('demand-1')
+      expect(winningSuppliersSummary.value).toHaveLength(1)
+
+      const winnerA = winningSuppliersSummary.value[0]
+      // Participated in all 3 items
+      expect(winnerA.participatedCount).toBe(3)
+      // Won ONLY the valid item (not the 2 failed ones)
+      expect(winnerA.wonCount).toBe(1)
+      // Only item-valid: 2 * 500 = 1000. The 2000 and 3200 must NOT be counted.
+      expect(winnerA.totalAmountWon).toBe(1000)
+      // Only 1 commitment group with 1 item
+      expect(winnerA.commitments).toHaveLength(1)
+      expect(winnerA.commitments[0]).toEqual({
+        commitmentNumber: '2026-NE-00010',
+        itemsCount: 1,
+        totalAmount: 1000,
+        itemNames: ['Cadeira Ergonômica'],
+      })
+    })
+
+    it('returns empty winning suppliers if all items in the demand are failed or cancelled', () => {
+      mockItems.value = [
+        {
+          id: 'item-cancelled',
+          quantity: 1,
+          execution_status: 'cancelled',
+          product_name_snapshot: 'Item Cancelado',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-a',
+              amount: 1500.0,
+              status: 'classified',
+              suppliers: mockSupplierA,
+            },
+          ],
+        },
+      ]
+
+      const { winningSuppliersSummary } = useDemandDetail('demand-1')
+      expect(winningSuppliersSummary.value).toEqual([])
+    })
   })
 })

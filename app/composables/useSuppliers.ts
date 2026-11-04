@@ -1,4 +1,5 @@
 import type { Database } from '~/types/database.types'
+import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 
 export type SupplierRow = Database['public']['Tables']['suppliers']['Row']
 export type SupplierInsert = Database['public']['Tables']['suppliers']['Insert']
@@ -42,6 +43,7 @@ export interface ProductWithRelations {
   unit_name_snapshot: string | null
   quantity: number
   reference_price: number | null
+  execution_status?: Database['public']['Enums']['demand_item_execution_status'] | null
   demands: {
     id: string
     name: string
@@ -225,6 +227,7 @@ export const useSuppliers = () => {
         unit_name_snapshot,
         quantity,
         reference_price,
+        execution_status,
         demands (
           id,
           name,
@@ -255,12 +258,15 @@ export const useSuppliers = () => {
     const products = (productsData || []) as unknown as ProductWithRelations[]
 
     for (const product of products) {
-      const bids = product.demand_product_bids || []
-      const winningBid = getWinningBid(bids)
+      const dispute = getItemDisputeResult(product)
 
-      if (winningBid && winningBid.supplier_id === supplierId) {
+      if (
+        dispute.outcome === 'winner' &&
+        dispute.winningBid &&
+        dispute.winningBid.supplier_id === supplierId
+      ) {
         const qty = product.quantity || 1
-        const subtotal = getItemSubtotal(winningBid.amount, qty)
+        const subtotal = dispute.totalFinal ?? getItemSubtotal(dispute.winningAmount || 0, qty)
 
         const wonItem: SupplierWonItem = {
           id: product.id,
@@ -269,7 +275,7 @@ export const useSuppliers = () => {
           unit_name_snapshot: product.unit_name_snapshot,
           quantity: qty,
           reference_price: product.reference_price,
-          winning_bid_amount: winningBid.amount,
+          winning_bid_amount: dispute.winningAmount || 0,
           subtotal,
         }
         wonItems.push(wonItem)

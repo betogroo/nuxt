@@ -1,6 +1,6 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
-import { getWinningBid } from '~/utils/bids'
+import { getWinningBid, getItemDisputeResult } from '~/utils/bids'
 import { isValidCommitmentNumber, normalizeSiafemNumber } from '~/schemas/forms/commitment'
 import {
   type AddDemandItemWithDependenciesParams,
@@ -629,9 +629,12 @@ export const useDemandProducts = () => {
         const itemNatureId = prod?.expense_nature_id || 'none'
         if (itemNatureId !== update.expenseNatureId) return false
 
-        const bids = item.demand_product_bids || []
-        const winner = getWinningBid(bids)
-        return winner && winner.supplier_id === params.supplierId
+        const dispute = getItemDisputeResult(item)
+        return (
+          dispute.outcome === 'winner' &&
+          dispute.winningBid &&
+          dispute.winningBid.supplier_id === params.supplierId
+        )
       })
 
       if (matchingItems.length === 0) continue

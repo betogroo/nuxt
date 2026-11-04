@@ -57,4 +57,58 @@ describe('UiButton', () => {
     const tooltip = wrapper.findComponent(UiTooltip)
     expect(tooltip.props('disabled')).toBe(true)
   })
+
+  it('maps prepend-icon="eye" to mdi-eye-outline on the inner button', () => {
+    const wrapper = mount(UiButton, {
+      attrs: {
+        'prepend-icon': 'eye',
+      },
+      slots: {
+        default: 'Abrir NE',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const vBtn = wrapper.findComponent({ name: 'VBtn' })
+    expect(vBtn.exists()).toBe(true)
+    expect(vBtn.props('prependIcon')).toBe('mdi-eye-outline')
+  })
+
+  it('maps camelCase prependIcon="eye" to mdi-eye-outline on the inner button', () => {
+    const wrapper = mount(UiButton, {
+      attrs: {
+        prependIcon: 'eye',
+      },
+      slots: {
+        default: 'Abrir NE',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const vBtn = wrapper.findComponent({ name: 'VBtn' })
+    expect(vBtn.exists()).toBe(true)
+    expect(vBtn.props('prependIcon')).toBe('mdi-eye-outline')
+  })
+
+  it('maps append-icon to corresponding mdi icon', () => {
+    const wrapper = mount(UiButton, {
+      attrs: {
+        'append-icon': 'next',
+      },
+      slots: {
+        default: 'Avançar',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const vBtn = wrapper.findComponent({ name: 'VBtn' })
+    expect(vBtn.exists()).toBe(true)
+    expect(vBtn.props('appendIcon')).toBe('mdi-arrow-right')
+  })
 })

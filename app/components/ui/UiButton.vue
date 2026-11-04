@@ -54,7 +54,7 @@
 
   const mappedAttrs = computed(() => {
     const newAttrs: Record<string, unknown> = { ...attrs }
-    const iconProps = ['prepend-icon', 'append-icon']
+    const iconProps = ['prepend-icon', 'append-icon', 'prependIcon', 'appendIcon']
 
     for (const prop of iconProps) {
       if (typeof newAttrs[prop] === 'string' && newAttrs[prop] in iconMap) {
