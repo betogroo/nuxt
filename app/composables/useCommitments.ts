@@ -1,7 +1,7 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import type { DemandItemStatusHistoryRow, DemandProductRow } from '~/composables/useDemandProducts'
-import { getWinningBid } from '~/utils/bids'
+import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 import {
   isValidBankOrderNumber,
   isValidCommitmentNumber,
@@ -86,10 +86,12 @@ export const useCommitments = () => {
       const num = item.commitment_number ? normalizeSiafemNumber(item.commitment_number) : null
       if (!num) continue
 
+      const dispute = getItemDisputeResult(item)
+      if (dispute.outcome !== 'winner') continue
+
       const current = totalsByCommitment.get(num) || { count: 0, total: 0 }
-      const winningBid = getWinningBid(item.demand_product_bids || [])
-      const unitPrice = winningBid ? Number(winningBid.amount) : 0
-      const itemTotal = unitPrice * Number(item.quantity || 0)
+      const unitPrice = dispute.winningAmount ?? 0
+      const itemTotal = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
 
       current.count += 1
       current.total += itemTotal
@@ -148,10 +150,18 @@ export const useCommitments = () => {
     const rawItems = (itemsData || []) as unknown as DemandProductRow[]
     let totalAmount = 0
 
-    const items: CommitmentItemWithTotals[] = rawItems.map((item) => {
-      const winner = getWinningBid(item.demand_product_bids || [])
-      const unitPrice = winner ? Number(winner.amount) : 0
-      const subtotal = unitPrice * Number(item.quantity || 0)
+    const validItems = rawItems.filter((item) => {
+      const dispute = getItemDisputeResult(item)
+      return (
+        dispute.outcome === 'winner' &&
+        (!commitment.supplier_id || dispute.winningBid?.supplier_id === commitment.supplier_id)
+      )
+    })
+
+    const items: CommitmentItemWithTotals[] = validItems.map((item) => {
+      const dispute = getItemDisputeResult(item)
+      const unitPrice = dispute.winningAmount ?? 0
+      const subtotal = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
       totalAmount += subtotal
 
       return {
@@ -249,13 +259,38 @@ export const useCommitments = () => {
 
     const { data: linkedItems, error: fetchItemsErr } = await supabase
       .from('demand_products')
-      .select('id')
+      .select(
+        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
       .eq('commitment_number', normalized)
 
     if (fetchItemsErr) throw fetchItemsErr
 
-    const itemIds = (linkedItems || []).map((i) => i.id)
-    if (itemIds.length > 0) {
+    const validItemIds: string[] = []
+    const invalidItemIds: string[] = []
+
+    for (const item of (linkedItems || []) as unknown as DemandProductRow[]) {
+      const dispute = getItemDisputeResult(item)
+      if (dispute.outcome === 'winner') {
+        validItemIds.push(item.id)
+      } else {
+        invalidItemIds.push(item.id)
+      }
+    }
+
+    if (invalidItemIds.length > 0) {
+      await supabase
+        .from('demand_products')
+        .update({
+          commitment_number: null,
+          execution_status: 'homologated',
+          execution_error_details: null,
+          execution_status_updated_at: now,
+        })
+        .in('id', invalidItemIds)
+    }
+
+    if (validItemIds.length > 0) {
       const { error: updateItemsErr } = await supabase
         .from('demand_products')
         .update({
@@ -263,12 +298,12 @@ export const useCommitments = () => {
           execution_error_details: cleanErrorDetails,
           execution_status_updated_at: now,
         })
-        .in('id', itemIds)
+        .in('id', validItemIds)
 
       if (updateItemsErr) throw updateItemsErr
 
       const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
-        itemIds.map((itemId) => ({
+        validItemIds.map((itemId) => ({
           demand_product_id: itemId,
           status: params.status,
           commitment_number: normalized,
@@ -288,7 +323,7 @@ export const useCommitments = () => {
 
     await logAction(
       'UPDATE_COMMITMENT_STATUS',
-      `Status da Nota de Empenho ${normalized} atualizado para "${params.status}" (${itemIds.length} itens)`,
+      `Status da Nota de Empenho ${normalized} atualizado para "${params.status}" (${validItemIds.length} itens)`,
       user.value?.id,
     )
   }
@@ -555,13 +590,18 @@ export const useCommitments = () => {
 
     const { data: linkedItems, error: fetchItemsErr } = await supabase
       .from('demand_products')
-      .select('id')
+      .select(
+        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
       .eq('commitment_number', normalizedNE)
 
     if (fetchItemsErr) throw fetchItemsErr
 
-    const itemIds = (linkedItems || []).map((i) => i.id)
-    if (itemIds.length > 0) {
+    const validItemIds = ((linkedItems || []) as unknown as DemandProductRow[])
+      .filter((i) => getItemDisputeResult(i).outcome === 'winner')
+      .map((i) => i.id)
+
+    if (validItemIds.length > 0) {
       const { error: updateItemsErr } = await supabase
         .from('demand_products')
         .update({
@@ -569,14 +609,14 @@ export const useCommitments = () => {
           execution_error_details: null,
           execution_status_updated_at: now,
         })
-        .in('id', itemIds)
+        .in('id', validItemIds)
 
       if (updateItemsErr) throw updateItemsErr
 
       const historyObservation = `Encerrado via Ordem Bancária ${normalizedOB} (PD: ${commitment.disbursement_program_number})${cleanObservation ? ` — ${cleanObservation}` : ''}`
 
       const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
-        itemIds.map((itemId) => ({
+        validItemIds.map((itemId) => ({
           demand_product_id: itemId,
           status: 'completed',
           commitment_number: normalizedNE,
@@ -596,7 +636,7 @@ export const useCommitments = () => {
 
     await logAction(
       'COMPLETE_COMMITMENT_BANK_ORDER',
-      `Ordem Bancária ${normalizedOB} registrada na Nota de Empenho ${normalizedNE}, encerrando ${itemIds.length} item(ns) como Concluído`,
+      `Ordem Bancária ${normalizedOB} registrada na Nota de Empenho ${normalizedNE}, encerrando ${validItemIds.length} item(ns) como Concluído`,
       user.value?.id,
     )
   }
@@ -677,13 +717,18 @@ export const useCommitments = () => {
     // 3. Update all linked demand items to cancelled
     const { data: linkedItems, error: fetchItemsErr } = await supabase
       .from('demand_products')
-      .select('id')
+      .select(
+        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
       .eq('commitment_number', normalizedNE)
 
     if (fetchItemsErr) throw fetchItemsErr
 
-    const itemIds = (linkedItems || []).map((i) => i.id)
-    if (itemIds.length > 0) {
+    const validItemIds = ((linkedItems || []) as unknown as DemandProductRow[])
+      .filter((i) => getItemDisputeResult(i).outcome === 'winner')
+      .map((i) => i.id)
+
+    if (validItemIds.length > 0) {
       const { error: updateItemsErr } = await supabase
         .from('demand_products')
         .update({
@@ -691,14 +736,14 @@ export const useCommitments = () => {
           execution_error_details: cleanReason,
           execution_status_updated_at: now,
         })
-        .in('id', itemIds)
+        .in('id', validItemIds)
 
       if (updateItemsErr) throw updateItemsErr
 
       const historyObs = `Empenho ${normalizedNE} cancelado. Motivo: ${cleanReason}${trimmedNl ? ` (NL de Cancelamento: ${trimmedNl})` : ''}`
 
       const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
-        itemIds.map((itemId) => ({
+        validItemIds.map((itemId) => ({
           demand_product_id: itemId,
           status: 'cancelled',
           commitment_number: normalizedNE,
@@ -718,7 +763,7 @@ export const useCommitments = () => {
 
     await logAction(
       'CANCEL_COMMITMENT',
-      `Nota de Empenho ${normalizedNE} cancelada (${itemIds.length} itens marcados como fracassados). Motivo: ${cleanReason}${trimmedNl ? ` | NL: ${trimmedNl}` : ''}`,
+      `Nota de Empenho ${normalizedNE} cancelada (${validItemIds.length} itens marcados como fracassados). Motivo: ${cleanReason}${trimmedNl ? ` | NL: ${trimmedNl}` : ''}`,
       user.value?.id,
     )
   }

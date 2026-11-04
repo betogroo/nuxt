@@ -1,5 +1,10 @@
 import type { Database } from '~/types/database.types'
-import { compareBids, DISQUALIFICATION_REASON_ABOVE_REFERENCE, type BidStatus } from '~/utils/bids'
+import {
+  compareBids,
+  DISQUALIFICATION_REASON_ABOVE_REFERENCE,
+  getItemDisputeResult,
+  type BidStatus,
+} from '~/utils/bids'
 
 export type DemandProductBidRow = Database['public']['Tables']['demand_product_bids']['Row']
 export type DemandProductBidInsert = Database['public']['Tables']['demand_product_bids']['Insert']
@@ -109,6 +114,44 @@ export const useProductBids = () => {
     )
   }
 
+  const syncProductCommitmentIfFailed = async (demandProductId: string) => {
+    try {
+      const { data: prod } = await supabase
+        .from('demand_products')
+        .select(
+          'id, commitment_number, execution_status, demand_product_bids(id, supplier_id, amount, status, created_at)',
+        )
+        .eq('id', demandProductId)
+        .maybeSingle()
+
+      if (!prod || !prod.commitment_number) return
+
+      const dispute = getItemDisputeResult(prod)
+      if (dispute.outcome !== 'winner') {
+        const now = new Date().toISOString()
+        await supabase
+          .from('demand_products')
+          .update({
+            commitment_number: null,
+            execution_status: 'homologated',
+            execution_error_details: null,
+            execution_status_updated_at: now,
+          })
+          .eq('id', demandProductId)
+
+        await supabase.from('demand_item_status_history').insert({
+          demand_product_id: demandProductId,
+          status: 'homologated',
+          commitment_number: null,
+          observation: 'Empenho desvinculado automaticamente: item fracassado na disputa',
+          created_by: user.value?.id || null,
+        })
+      }
+    } catch (err) {
+      console.error('Erro ao sincronizar desvinculação de empenho:', err)
+    }
+  }
+
   const updateBidStatus = async (
     bidId: string,
     status: BidStatus,
@@ -119,6 +162,12 @@ export const useProductBids = () => {
         ? disqualificationReason.trim()
         : null
 
+    const { data: bidData } = await supabase
+      .from('demand_product_bids')
+      .select('demand_product_id')
+      .eq('id', bidId)
+      .maybeSingle()
+
     const { error } = await supabase
       .from('demand_product_bids')
       .update({
@@ -128,6 +177,10 @@ export const useProductBids = () => {
       .eq('id', bidId)
 
     if (error) throw error
+
+    if (bidData?.demand_product_id) {
+      await syncProductCommitmentIfFailed(bidData.demand_product_id)
+    }
 
     const statusLabel = status === 'disqualified' ? 'DESCLASSIFICADO' : 'CLASSIFICADO'
     const reasonSuffix = cleanReason ? ` (Motivo: ${cleanReason})` : ''
@@ -140,9 +193,19 @@ export const useProductBids = () => {
   }
 
   const removeBid = async (bidId: string) => {
+    const { data: bidData } = await supabase
+      .from('demand_product_bids')
+      .select('demand_product_id')
+      .eq('id', bidId)
+      .maybeSingle()
+
     const { error } = await supabase.from('demand_product_bids').delete().eq('id', bidId)
 
     if (error) throw error
+
+    if (bidData?.demand_product_id) {
+      await syncProductCommitmentIfFailed(bidData.demand_product_id)
+    }
 
     await logAction('REMOVE_PRODUCT_BID', `Lance (ID: ${bidId}) removido`, user.value?.id)
   }

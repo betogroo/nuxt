@@ -37,6 +37,19 @@ describe('useCommitments Composable', () => {
           }),
         }
       }
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -71,6 +84,19 @@ describe('useCommitments Composable', () => {
           }),
         }
       }
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -110,6 +136,19 @@ describe('useCommitments Composable', () => {
           }),
         }
       }
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -163,7 +202,16 @@ describe('useCommitments Composable', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({
-              data: [{ id: 'item-1' }, { id: 'item-2' }],
+              data: [
+                {
+                  id: 'item-1',
+                  demand_product_bids: [{ id: 'b1', amount: 10, status: 'classified' }],
+                },
+                {
+                  id: 'item-2',
+                  demand_product_bids: [{ id: 'b2', amount: 20, status: 'classified' }],
+                },
+              ],
               error: null,
             }),
           }),
@@ -176,6 +224,19 @@ describe('useCommitments Composable', () => {
       if (table === 'demand_item_status_history') {
         return {
           insert: insertHistoryMock,
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
         }
       }
 
@@ -252,7 +313,16 @@ describe('useCommitments Composable', () => {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({
-              data: [{ id: 'item-1' }, { id: 'item-2' }],
+              data: [
+                {
+                  id: 'item-1',
+                  demand_product_bids: [{ id: 'b1', amount: 10, status: 'classified' }],
+                },
+                {
+                  id: 'item-2',
+                  demand_product_bids: [{ id: 'b2', amount: 20, status: 'classified' }],
+                },
+              ],
               error: null,
             }),
           }),
@@ -265,6 +335,19 @@ describe('useCommitments Composable', () => {
       if (table === 'demand_item_status_history') {
         return {
           insert: insertHistoryMock,
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
         }
       }
 
@@ -330,6 +413,19 @@ describe('useCommitments Composable', () => {
           }),
         }
       }
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -364,6 +460,19 @@ describe('useCommitments Composable', () => {
           }),
         }
       }
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -426,6 +535,19 @@ describe('useCommitments Composable', () => {
         }
       }
 
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
       return {}
     })
 
@@ -441,5 +563,195 @@ describe('useCommitments Composable', () => {
 
     expect(result.liquidation_number).toBe('2026NL00077')
     expect(result.is_cancellation).toBe(true)
+  })
+
+  it('fetchCommitmentByNumber strictly excludes failed items and calculates total only for winning items', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  commitment_number: '2026NE00313',
+                  supplier_id: 'sup-1',
+                  demand_id: 'dem-1',
+                  status: 'delivered',
+                  demand_commitment_liquidations: [],
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: 'item-won',
+                      quantity: 10,
+                      commitment_number: '2026NE00313',
+                      execution_status: 'delivered',
+                      product_name_snapshot: 'Lacre para Malote',
+                      demand_product_bids: [
+                        {
+                          id: 'bid-won',
+                          supplier_id: 'sup-1',
+                          amount: 14.7,
+                          status: 'classified',
+                        },
+                      ],
+                    },
+                    {
+                      id: 'item-failed',
+                      quantity: 100,
+                      commitment_number: '2026NE00313',
+                      execution_status: 'delivered',
+                      product_name_snapshot: 'Envelope Plástico 20 x 30',
+                      demand_product_bids: [
+                        {
+                          id: 'bid-disq-1',
+                          supplier_id: 'sup-other',
+                          amount: 7.99,
+                          status: 'disqualified',
+                        },
+                        {
+                          id: 'bid-disq-2',
+                          supplier_id: 'sup-1',
+                          amount: 8.5,
+                          status: 'disqualified',
+                        },
+                      ],
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      return {}
+    })
+
+    const { fetchCommitmentByNumber } = useCommitments()
+    const detail = await fetchCommitmentByNumber('2026NE00313')
+
+    expect(detail).not.toBeNull()
+    // Failed item is excluded
+    expect(detail!.items).toHaveLength(1)
+    expect(detail!.items[0].id).toBe('item-won')
+    expect(detail!.items[0].winning_unit_price).toBe(14.7)
+    // Total reflects only winning item (10 * 14.70 = 147.00)
+    expect(detail!.total_amount).toBe(147)
+  })
+
+  it('updateCommitmentLogisticsStatus detaches failed items and updates only valid winning items', async () => {
+    const updateCommitmentEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateItemsInMock = vi.fn().mockResolvedValue({ error: null })
+    const detachItemsInMock = vi.fn().mockResolvedValue({ error: null })
+    const insertHistoryMock = vi.fn().mockResolvedValue({ error: null })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: updateCommitmentEqMock,
+          }),
+        }
+      }
+
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'item-won',
+                  demand_product_bids: [{ id: 'b1', amount: 10, status: 'classified' }],
+                },
+                {
+                  id: 'item-failed',
+                  demand_product_bids: [{ id: 'b2', amount: 20, status: 'disqualified' }],
+                },
+              ],
+              error: null,
+            }),
+          }),
+          update: vi.fn().mockImplementation((payload: Record<string, unknown>) => {
+            if (payload.commitment_number === null) {
+              return { in: detachItemsInMock }
+            }
+            return { in: updateItemsInMock }
+          }),
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          insert: insertHistoryMock,
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      return {}
+    })
+
+    const { updateCommitmentLogisticsStatus } = useCommitments()
+
+    await updateCommitmentLogisticsStatus({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+      status: 'delivered',
+    })
+
+    // Commitment status updated
+    expect(updateCommitmentEqMock).toHaveBeenCalledWith('id', 'comm-1')
+    // Failed item is detached
+    expect(detachItemsInMock).toHaveBeenCalledWith('id', ['item-failed'])
+    // Only winning item is updated to delivered
+    expect(updateItemsInMock).toHaveBeenCalledWith('id', ['item-won'])
+    // History inserted only for winning item
+    expect(insertHistoryMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          demand_product_id: 'item-won',
+          status: 'delivered',
+        }),
+      ]),
+    )
   })
 })
