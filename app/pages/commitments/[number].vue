@@ -4,6 +4,7 @@
   import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
   import { useCommitments } from '~/composables/useCommitments'
   import { useFormModal } from '~/composables/useFormModal'
+  import { useLogger } from '~/composables/useLogger'
   import { useToast } from '~/composables/useToast'
   import {
     DEMAND_ITEM_EXECUTION_FLOW,
@@ -19,7 +20,10 @@
     disbursementProgramFormSchema,
     liquidationNoteFormSchema,
   } from '~/schemas/forms/commitment'
+  import { downloadFile } from '~/utils/download'
   import { formatCnpj, formatCurrency, formatDate, formatUnitPrice } from '~/utils/formatters'
+  import { escapeCsvField } from '~/utils/reportCsv'
+  import { toSafeFilename } from '~/utils/reportFilename'
   import { APP_ROUTES } from '~/utils/routes'
 
   definePageMeta({
@@ -28,6 +32,7 @@
 
   const route = useRoute()
   const toast = useToast()
+  const { logAction } = useLogger()
 
   const commitmentNumberParam = computed(() =>
     decodeURIComponent(String(route.params.number || ''))
@@ -91,6 +96,13 @@
     Boolean(commitment.value?.disbursement_program_number),
   )
   const hasBankOrder = computed(() => Boolean(commitment.value?.bank_order_number))
+  const hasAnyFinancialDoc = computed(() => {
+    return (
+      liquidations.value.length > 0 ||
+      Boolean(commitment.value?.disbursement_program_number) ||
+      Boolean(commitment.value?.bank_order_number)
+    )
+  })
   const isCancelModalOpen = ref(false)
 
   const itemsTableHeaders = [
@@ -292,6 +304,98 @@
       )
       obModal.close()
     })
+  }
+
+  // --- Exportação da Lista de Documentos Financeiros em CSV ---
+  const handleExportFinancialDocsCsv = () => {
+    if (!commitment.value || !hasAnyFinancialDoc.value) {
+      toast.error('Nenhum documento financeiro registrado para exportação.')
+      return
+    }
+
+    const headers = [
+      'Tipo de Documento',
+      'Número do Documento',
+      'Data de Emissão',
+      'Nota de Empenho',
+      'Processo',
+      'Fornecedor',
+      'CNPJ',
+      'Status / Natureza',
+      'Observações',
+    ]
+
+    const rows: string[][] = []
+    const neNumber = commitment.value.commitment_number
+    const processNumber = commitment.value.demands?.internal_process_number || '-'
+    const supplierName = commitment.value.suppliers?.company_name || '-'
+    const supplierCnpj = commitment.value.suppliers?.cnpj
+      ? formatCnpj(commitment.value.suppliers.cnpj)
+      : '-'
+
+    // 1. Notas de Liquidação (NL)
+    for (const nl of liquidations.value) {
+      rows.push([
+        'Nota de Liquidação (NL)',
+        nl.liquidation_number,
+        nl.issue_date ? formatDate(nl.issue_date) : '-',
+        neNumber,
+        processNumber,
+        supplierName,
+        supplierCnpj,
+        nl.is_cancellation ? 'Cancelamento' : 'Ordinária',
+        nl.observation || '-',
+      ])
+    }
+
+    // 2. Programa de Desembolso (PD)
+    if (commitment.value.disbursement_program_number) {
+      rows.push([
+        'Programa de Desembolso (PD)',
+        commitment.value.disbursement_program_number,
+        commitment.value.disbursement_program_issued_at
+          ? formatDate(commitment.value.disbursement_program_issued_at)
+          : '-',
+        neNumber,
+        processNumber,
+        supplierName,
+        supplierCnpj,
+        'Emitido',
+        commitment.value.disbursement_program_observation || '-',
+      ])
+    }
+
+    // 3. Ordem Bancária (OB)
+    if (commitment.value.bank_order_number) {
+      rows.push([
+        'Ordem Bancária (OB)',
+        commitment.value.bank_order_number,
+        commitment.value.bank_order_issued_at
+          ? formatDate(commitment.value.bank_order_issued_at)
+          : '-',
+        neNumber,
+        processNumber,
+        supplierName,
+        supplierCnpj,
+        'Emitida',
+        commitment.value.bank_order_observation || '-',
+      ])
+    }
+
+    const csvRows = [
+      headers.map((h) => escapeCsvField(h)).join(';'),
+      ...rows.map((row) => row.map((field) => escapeCsvField(field)).join(';')),
+    ]
+
+    const csvContent = '\uFEFF' + csvRows.join('\r\n')
+    const filename = `documentos-financeiros-${toSafeFilename(neNumber, 'empenho')}-${new Date().toISOString().slice(0, 10)}.csv`
+
+    downloadFile(csvContent, filename, 'text/csv;charset=utf-8;')
+    logAction(
+      'EXPORT_COMMITMENT_FINANCIAL_DOCS_CSV',
+      `Exportada lista CSV de documentos financeiros (NL, PD, OB) da NE ${neNumber}`,
+    )
+    toast.success('Lista CSV de documentos financeiros baixada com sucesso!')
   }
 </script>
 
@@ -593,26 +697,43 @@
               (mínimo 2), o Programa de Desembolso e a Ordem Bancária que encerra o item.
             </div>
           </div>
-          <UiChip
-            :color="
-              commitment.status === 'cancelled'
-                ? 'error'
-                : hasBankOrder
-                  ? 'success'
-                  : canManageFinancialDocs
-                    ? 'primary'
-                    : 'warning'
-            "
-            size="sm"
-            variant="soft"
-          >
-            <template v-if="commitment.status === 'cancelled'">Cancelado (Sem Desembolso)</template>
-            <template v-else-if="hasBankOrder">Execução Financeira Concluída (OB Emitida)</template>
-            <template v-else-if="canManageFinancialDocs">
-              Liberado para Lançamentos Financeiros
-            </template>
-            <template v-else>Aguardando Entrega da Mercadoria</template>
-          </UiChip>
+          <div class="d-flex align-center ga-2 flex-wrap">
+            <UiButton
+              color="secondary"
+              :disabled="!hasAnyFinancialDoc"
+              prepend-icon="download"
+              size="sm"
+              tooltip="Baixar lista de NLs, PD e OB em formato CSV"
+              variant="soft"
+              @click="handleExportFinancialDocsCsv"
+            >
+              Baixar CSV (NL, PD, OB)
+            </UiButton>
+            <UiChip
+              :color="
+                commitment.status === 'cancelled'
+                  ? 'error'
+                  : hasBankOrder
+                    ? 'success'
+                    : canManageFinancialDocs
+                      ? 'primary'
+                      : 'warning'
+              "
+              size="sm"
+              variant="soft"
+            >
+              <template v-if="commitment.status === 'cancelled'"
+                >Cancelado (Sem Desembolso)</template
+              >
+              <template v-else-if="hasBankOrder"
+                >Execução Financeira Concluída (OB Emitida)</template
+              >
+              <template v-else-if="canManageFinancialDocs">
+                Liberado para Lançamentos Financeiros
+              </template>
+              <template v-else>Aguardando Entrega da Mercadoria</template>
+            </UiChip>
+          </div>
         </div>
 
         <UiAlert
@@ -674,10 +795,17 @@
                   class="d-flex justify-space-between align-center pa-2 rounded border"
                 >
                   <div>
-                    <div class="d-flex align-center ga-2">
+                    <div class="d-flex align-center ga-1">
                       <div class="font-weight-bold text-body-2 text-primary">
                         {{ nl.liquidation_number }}
                       </div>
+                      <UiCopyButton
+                        color="primary"
+                        size="xs"
+                        success-message="Número da NL copiado!"
+                        tooltip="Copiar número da NL"
+                        :value="nl.liquidation_number"
+                      />
                       <UiChip v-if="nl.is_cancellation" color="error" size="xs" variant="soft">
                         Cancelamento
                       </UiChip>
@@ -760,8 +888,17 @@
 
               <div v-if="commitment.disbursement_program_number" class="pa-3 rounded border mb-3">
                 <div class="text-overline text-grey">NÚMERO DO PD</div>
-                <div class="text-h6 font-weight-bold text-info">
-                  {{ commitment.disbursement_program_number }}
+                <div class="d-flex align-center ga-1">
+                  <div class="text-h6 font-weight-bold text-info">
+                    {{ commitment.disbursement_program_number }}
+                  </div>
+                  <UiCopyButton
+                    color="info"
+                    size="xs"
+                    success-message="Número do PD copiado!"
+                    tooltip="Copiar número do PD"
+                    :value="commitment.disbursement_program_number"
+                  />
                 </div>
                 <div
                   v-if="commitment.disbursement_program_issued_at"
@@ -846,8 +983,17 @@
                 <div class="text-overline text-success font-weight-bold">
                   ORDEM BANCÁRIA EMITIDA
                 </div>
-                <div class="text-h6 font-weight-bold text-success">
-                  {{ commitment.bank_order_number }}
+                <div class="d-flex align-center ga-1">
+                  <div class="text-h6 font-weight-bold text-success">
+                    {{ commitment.bank_order_number }}
+                  </div>
+                  <UiCopyButton
+                    color="success"
+                    size="xs"
+                    success-message="Número da OB copiado!"
+                    tooltip="Copiar número da OB"
+                    :value="commitment.bank_order_number"
+                  />
                 </div>
                 <div v-if="commitment.bank_order_issued_at" class="text-caption text-grey mt-1">
                   Data de Emissão: {{ formatDate(commitment.bank_order_issued_at) }}
