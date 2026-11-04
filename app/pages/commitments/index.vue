@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
-  import { useCommitments } from '~/composables/useCommitments'
+  import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
+  import { useCommitments, type CommitmentListItem } from '~/composables/useCommitments'
   import {
     DEMAND_ITEM_EXECUTION_STATUS_OPTIONS,
     formatDemandItemExecutionStatus,
@@ -28,6 +29,13 @@
 
   const searchQuery = ref('')
   const selectedStatus = ref<string>('all')
+  const isCancelModalOpen = ref(false)
+  const selectedCommitmentToCancel = ref<CommitmentListItem | null>(null)
+
+  const openCancelModal = (commitment: CommitmentListItem) => {
+    selectedCommitmentToCancel.value = commitment
+    isCancelModalOpen.value = true
+  }
 
   const {
     data: commitments,
@@ -344,17 +352,34 @@
         </template>
 
         <template #item-actions="{ item }">
-          <UiButton
-            color="primary"
-            prepend-icon="eye"
-            size="sm"
-            :to="APP_ROUTES.commitments.detail(item.commitment_number)"
-            variant="soft"
-          >
-            Abrir NE
-          </UiButton>
+          <div class="d-flex align-center justify-end ga-1">
+            <UiButton
+              color="primary"
+              prepend-icon="eye"
+              size="sm"
+              :to="APP_ROUTES.commitments.detail(item.commitment_number)"
+              variant="soft"
+            >
+              Abrir NE
+            </UiButton>
+            <UiActionButton
+              v-if="item.status !== 'completed' && item.status !== 'cancelled'"
+              action="delete"
+              color="error"
+              icon="closeCircle"
+              tooltip="Cancelar Nota de Empenho"
+              @click="openCancelModal(item)"
+            />
+          </div>
         </template>
       </UiTable>
     </UiCard>
+
+    <CancelCommitmentModal
+      v-model="isCancelModalOpen"
+      :commitment="selectedCommitmentToCancel"
+      :items-count="selectedCommitmentToCancel?.items_count"
+      @cancelled="() => refresh()"
+    />
   </div>
 </template>

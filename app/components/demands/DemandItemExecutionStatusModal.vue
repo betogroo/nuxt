@@ -34,11 +34,13 @@
     return getWinningBid(props.item.demand_product_bids)
   })
 
-  const statusOptions = ALL_DEMAND_ITEM_EXECUTION_STATUSES.filter((s) => s !== 'completed').map(
-    (status) => ({
+  const statusOptions = computed(() =>
+    ALL_DEMAND_ITEM_EXECUTION_STATUSES.filter(
+      (s) => s !== 'completed' && (!props.item?.commitment_number || s !== 'cancelled'),
+    ).map((status) => ({
       title: DEMAND_ITEM_EXECUTION_STATUS_LABELS[status],
       value: status,
-    }),
+    })),
   )
 
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(
@@ -133,8 +135,8 @@
         <span>
           Este item pertence à Nota de Empenho
           <strong>{{ item.commitment_number }}</strong
-          >. As Notas de Liquidação (NL), Programa de Desembolso (PD) e encerramento via Ordem
-          Bancária (OB) são realizados na página da NE.
+          >. As etapas logísticas, cancelamento do empenho, Notas de Liquidação (NL), PD e Ordem
+          Bancária (OB) são gerenciados na página da NE.
         </span>
         <UiButton
           color="primary"

@@ -111,7 +111,9 @@
   const statusErrorDetails = ref('')
 
   const logisticsStatusOptions = computed(() =>
-    DEMAND_ITEM_EXECUTION_STATUS_OPTIONS.filter((opt) => opt.value !== 'completed'),
+    DEMAND_ITEM_EXECUTION_STATUS_OPTIONS.filter(
+      (opt) => opt.value !== 'completed' && opt.value !== 'cancelled',
+    ),
   )
 
   const openLogisticsStatusModal = () => {
@@ -324,6 +326,18 @@
 
       <div class="d-flex align-center ga-2">
         <UiButton
+          v-if="
+            commitment && commitment.status !== 'completed' && commitment.status !== 'cancelled'
+          "
+          color="error"
+          prepend-icon="closeCircle"
+          size="sm"
+          variant="solid"
+          @click="isCancelModalOpen = true"
+        >
+          Cancelar Empenho
+        </UiButton>
+        <UiButton
           color="primary"
           :loading="pending"
           prepend-icon="refresh"
@@ -509,16 +523,29 @@
             </div>
           </div>
 
-          <UiButton
+          <div
             v-if="commitment.status !== 'completed' && commitment.status !== 'cancelled'"
-            color="primary"
-            prepend-icon="edit"
-            size="sm"
-            variant="soft"
-            @click="openLogisticsStatusModal"
+            class="d-flex align-center ga-2"
           >
-            Atualizar Etapa Logística
-          </UiButton>
+            <UiButton
+              color="error"
+              prepend-icon="closeCircle"
+              size="sm"
+              variant="soft"
+              @click="isCancelModalOpen = true"
+            >
+              Cancelar Empenho
+            </UiButton>
+            <UiButton
+              color="primary"
+              prepend-icon="edit"
+              size="sm"
+              variant="soft"
+              @click="openLogisticsStatusModal"
+            >
+              Atualizar Etapa Logística
+            </UiButton>
+          </div>
         </div>
 
         <!-- Linha do Tempo de Etapas -->
@@ -982,6 +1009,28 @@
         rows="2"
         variant="outline"
       />
+
+      <UiAlert class="mt-3" type="info" variant="tonal">
+        <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+          <span class="text-caption">
+            Precisa cancelar este empenho por inadimplemento ou desistência do fornecedor?
+          </span>
+          <UiButton
+            color="error"
+            prepend-icon="closeCircle"
+            size="xs"
+            variant="flat"
+            @click="
+              () => {
+                statusModal.close()
+                isCancelModalOpen = true
+              }
+            "
+          >
+            Cancelar Empenho
+          </UiButton>
+        </div>
+      </UiAlert>
 
       <template #actions>
         <UiButton variant="ghost" @click="statusModal.close()">Cancelar</UiButton>
