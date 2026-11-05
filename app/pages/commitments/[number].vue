@@ -48,9 +48,12 @@
     fetchCommitmentByNumber,
     updateCommitmentLogisticsStatus,
     addLiquidationNote,
+    updateLiquidationNote,
     removeLiquidationNote,
     saveDisbursementProgram,
+    removeDisbursementProgram,
     saveBankOrderAndComplete,
+    removeBankOrder,
   } = useCommitments()
 
   const {
@@ -155,16 +158,34 @@
 
   // --- Modal de Nota de Liquidação (NL) ---
   const nlModal = useFormModal()
+  const isEditingNl = ref(false)
+  const editingNlId = ref<string | null>(null)
   const nlNumber = ref('')
   const nlIssueDate = ref(new Date().toISOString().slice(0, 10))
   const nlNotes = ref('')
 
   const openAddNlModal = () => {
+    isEditingNl.value = false
+    editingNlId.value = null
     const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
     nlNumber.value = `${yearPrefix}NL`
     nlIssueDate.value = new Date().toISOString().slice(0, 10)
     nlNotes.value = commitment.value?.status === 'cancelled' ? 'NL de Cancelamento' : ''
     nlModal.openAdd()
+  }
+
+  const openEditNlModal = (nl: {
+    id: string
+    liquidation_number: string
+    issue_date: string | null
+    observation: string | null
+  }) => {
+    isEditingNl.value = true
+    editingNlId.value = nl.id
+    nlNumber.value = nl.liquidation_number
+    nlIssueDate.value = nl.issue_date || new Date().toISOString().slice(0, 10)
+    nlNotes.value = nl.observation || ''
+    nlModal.openEdit()
   }
 
   const handleSaveNl = async () => {
@@ -181,16 +202,29 @@
     }
 
     await nlModal.executeSave(async () => {
-      await addLiquidationNote({
-        commitmentId: commitment.value!.id,
-        commitmentNumber: commitment.value!.commitment_number,
-        liquidationNumber: parsed.data.liquidation_number,
-        issueDate: parsed.data.issue_date,
-        observation: parsed.data.observation || null,
-        isCancellation: commitment.value?.status === 'cancelled',
-      })
-      await refresh()
-      toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} cadastrada!`)
+      if (isEditingNl.value && editingNlId.value) {
+        await updateLiquidationNote({
+          liquidationId: editingNlId.value,
+          commitmentId: commitment.value!.id,
+          commitmentNumber: commitment.value!.commitment_number,
+          liquidationNumber: parsed.data.liquidation_number,
+          issueDate: parsed.data.issue_date,
+          observation: parsed.data.observation || null,
+        })
+        await refresh()
+        toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} atualizada!`)
+      } else {
+        await addLiquidationNote({
+          commitmentId: commitment.value!.id,
+          commitmentNumber: commitment.value!.commitment_number,
+          liquidationNumber: parsed.data.liquidation_number,
+          issueDate: parsed.data.issue_date,
+          observation: parsed.data.observation || null,
+          isCancellation: commitment.value?.status === 'cancelled',
+        })
+        await refresh()
+        toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} cadastrada!`)
+      }
       nlModal.close()
     })
   }
@@ -220,6 +254,7 @@
   const pdNumber = ref('')
   const pdIssueDate = ref(new Date().toISOString().slice(0, 10))
   const pdNotes = ref('')
+  const isDeletingPd = ref(false)
 
   const openPdModal = () => {
     if (!commitment.value) return
@@ -260,11 +295,39 @@
     })
   }
 
+  const handleRemovePd = async () => {
+    if (!commitment.value) return
+    if (hasBankOrder.value) {
+      toast.error(
+        'Não é possível excluir o Programa de Desembolso enquanto houver uma Ordem Bancária vinculada.',
+      )
+      return
+    }
+    const pdNum = commitment.value.disbursement_program_number || 'PD'
+    if (!(await toast.confirm(`Deseja realmente excluir o Programa de Desembolso ${pdNum}?`))) {
+      return
+    }
+    isDeletingPd.value = true
+    try {
+      await removeDisbursementProgram({
+        commitmentId: commitment.value.id,
+        commitmentNumber: commitment.value.commitment_number,
+      })
+      await refresh()
+      toast.success(`Programa de Desembolso ${pdNum} excluído com sucesso!`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir PD.')
+    } finally {
+      isDeletingPd.value = false
+    }
+  }
+
   // --- Modal de Ordem Bancária (OB) + Conclusão ---
   const obModal = useFormModal()
   const obNumber = ref('')
   const obIssueDate = ref(new Date().toISOString().slice(0, 10))
   const obNotes = ref('')
+  const isDeletingOb = ref(false)
 
   const openObModal = () => {
     if (!commitment.value) return
@@ -304,6 +367,31 @@
       )
       obModal.close()
     })
+  }
+
+  const handleRemoveOb = async () => {
+    if (!commitment.value) return
+    const obNum = commitment.value.bank_order_number || 'OB'
+    if (
+      !(await toast.confirm(
+        `Deseja realmente excluir a Ordem Bancária ${obNum}? A Nota de Empenho e seus itens retornarão ao status "Entregue".`,
+      ))
+    ) {
+      return
+    }
+    isDeletingOb.value = true
+    try {
+      await removeBankOrder({
+        commitmentId: commitment.value.id,
+        commitmentNumber: commitment.value.commitment_number,
+      })
+      await refresh()
+      toast.success(`Ordem Bancária ${obNum} excluída. Status retornado para Entregue!`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir OB.')
+    } finally {
+      isDeletingOb.value = false
+    }
   }
 
   // --- Exportação da Lista de Documentos Financeiros em CSV ---
@@ -817,16 +905,27 @@
                       {{ nl.observation }}
                     </div>
                   </div>
-                  <UiButton
-                    v-if="!hasBankOrder"
-                    color="error"
-                    icon="delete"
-                    :loading="isDeletingNlId === nl.id"
-                    size="xs"
-                    tooltip="Remover NL"
-                    variant="ghost"
-                    @click="handleRemoveNl(nl.id, nl.liquidation_number)"
-                  />
+                  <div class="d-flex align-center ga-1">
+                    <UiButton
+                      v-if="!hasBankOrder"
+                      color="primary"
+                      icon="edit"
+                      size="xs"
+                      tooltip="Editar data / observação da NL"
+                      variant="ghost"
+                      @click="openEditNlModal(nl)"
+                    />
+                    <UiButton
+                      v-if="!hasBankOrder"
+                      color="error"
+                      icon="delete"
+                      :loading="isDeletingNlId === nl.id"
+                      size="xs"
+                      tooltip="Remover NL"
+                      variant="ghost"
+                      @click="handleRemoveNl(nl.id, nl.liquidation_number)"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -887,17 +986,31 @@
               </div>
 
               <div v-if="commitment.disbursement_program_number" class="pa-3 rounded border mb-3">
-                <div class="text-overline text-grey">NÚMERO DO PD</div>
-                <div class="d-flex align-center ga-1">
-                  <div class="text-h6 font-weight-bold text-info">
-                    {{ commitment.disbursement_program_number }}
+                <div class="d-flex justify-space-between align-start">
+                  <div>
+                    <div class="text-overline text-grey">NÚMERO DO PD</div>
+                    <div class="d-flex align-center ga-1">
+                      <div class="text-h6 font-weight-bold text-info">
+                        {{ commitment.disbursement_program_number }}
+                      </div>
+                      <UiCopyButton
+                        color="info"
+                        size="xs"
+                        success-message="Número do PD copiado!"
+                        tooltip="Copiar número do PD"
+                        :value="commitment.disbursement_program_number"
+                      />
+                    </div>
                   </div>
-                  <UiCopyButton
-                    color="info"
+                  <UiButton
+                    v-if="!hasBankOrder"
+                    color="error"
+                    icon="delete"
+                    :loading="isDeletingPd"
                     size="xs"
-                    success-message="Número do PD copiado!"
-                    tooltip="Copiar número do PD"
-                    :value="commitment.disbursement_program_number"
+                    tooltip="Excluir Programa de Desembolso"
+                    variant="ghost"
+                    @click="handleRemovePd"
                   />
                 </div>
                 <div
@@ -980,19 +1093,32 @@
               </div>
 
               <div v-if="commitment.bank_order_number" class="pa-3 rounded border mb-3">
-                <div class="text-overline text-success font-weight-bold">
-                  ORDEM BANCÁRIA EMITIDA
-                </div>
-                <div class="d-flex align-center ga-1">
-                  <div class="text-h6 font-weight-bold text-success">
-                    {{ commitment.bank_order_number }}
+                <div class="d-flex justify-space-between align-start">
+                  <div>
+                    <div class="text-overline text-success font-weight-bold">
+                      ORDEM BANCÁRIA EMITIDA
+                    </div>
+                    <div class="d-flex align-center ga-1">
+                      <div class="text-h6 font-weight-bold text-success">
+                        {{ commitment.bank_order_number }}
+                      </div>
+                      <UiCopyButton
+                        color="success"
+                        size="xs"
+                        success-message="Número da OB copiado!"
+                        tooltip="Copiar número da OB"
+                        :value="commitment.bank_order_number"
+                      />
+                    </div>
                   </div>
-                  <UiCopyButton
-                    color="success"
+                  <UiButton
+                    color="error"
+                    icon="delete"
+                    :loading="isDeletingOb"
                     size="xs"
-                    success-message="Número da OB copiado!"
-                    tooltip="Copiar número da OB"
-                    :value="commitment.bank_order_number"
+                    tooltip="Excluir Ordem Bancária"
+                    variant="ghost"
+                    @click="handleRemoveOb"
                   />
                 </div>
                 <div v-if="commitment.bank_order_issued_at" class="text-caption text-grey mt-1">
@@ -1190,11 +1316,17 @@
       </template>
     </UiModal>
 
-    <!-- Modal 2: Adicionar Nota de Liquidação (NL) -->
+    <!-- Modal 2: Adicionar / Editar Nota de Liquidação (NL) -->
     <UiModal
       v-model="nlModal.isOpen.value"
       max-width="480px"
-      title="Nova Nota de Liquidação (NL)"
+      :title="
+        isEditingNl
+          ? 'Editar Nota de Liquidação (NL)'
+          : commitment?.status === 'cancelled'
+            ? 'Registrar NL de Cancelamento'
+            : 'Nova Nota de Liquidação (NL)'
+      "
       transparent-header
     >
       <UiAlert v-if="nlModal.error.value" class="mb-3" type="error" variant="soft">
@@ -1204,6 +1336,7 @@
       <UiInput
         v-model="nlNumber"
         class="mb-3"
+        :disabled="isEditingNl"
         hint="Formato obrigatório: 2026NL00000"
         label="Número da NL"
         persistent-hint
@@ -1224,7 +1357,7 @@
       <template #actions>
         <UiButton variant="ghost" @click="nlModal.close()">Cancelar</UiButton>
         <UiButton color="primary" :loading="nlModal.isSaving.value" @click="handleSaveNl">
-          Adicionar NL
+          {{ isEditingNl ? 'Salvar Alterações' : 'Adicionar NL' }}
         </UiButton>
       </template>
     </UiModal>

@@ -11,6 +11,7 @@ const mockToast = {
   error: vi.fn(),
   info: vi.fn(),
   warning: vi.fn(),
+  confirm: vi.fn().mockResolvedValue(true),
 }
 
 const mockDetailData = ref({
@@ -95,9 +96,12 @@ const mockDetailData = ref({
 const mockFetchCommitmentByNumber = vi.fn().mockResolvedValue(mockDetailData.value)
 const mockUpdateCommitmentLogisticsStatus = vi.fn()
 const mockAddLiquidationNote = vi.fn()
+const mockUpdateLiquidationNote = vi.fn()
 const mockRemoveLiquidationNote = vi.fn()
 const mockSaveDisbursementProgram = vi.fn()
+const mockRemoveDisbursementProgram = vi.fn()
 const mockSaveBankOrderAndComplete = vi.fn()
+const mockRemoveBankOrder = vi.fn()
 
 vi.mock('vue-router', () => ({
   useRoute: () => ({
@@ -114,9 +118,12 @@ mockNuxtImport('useCommitments', () => () => ({
   fetchCommitmentByNumber: mockFetchCommitmentByNumber,
   updateCommitmentLogisticsStatus: mockUpdateCommitmentLogisticsStatus,
   addLiquidationNote: mockAddLiquidationNote,
+  updateLiquidationNote: mockUpdateLiquidationNote,
   removeLiquidationNote: mockRemoveLiquidationNote,
   saveDisbursementProgram: mockSaveDisbursementProgram,
+  removeDisbursementProgram: mockRemoveDisbursementProgram,
   saveBankOrderAndComplete: mockSaveBankOrderAndComplete,
+  removeBankOrder: mockRemoveBankOrder,
 }))
 
 mockNuxtImport('useAsyncData', () => {
@@ -135,7 +142,8 @@ const stubs = {
   UiCol: { template: '<div class="ui-col"><slot /></div>' },
   UiCard: { template: '<div class="ui-card"><slot /></div>' },
   UiButton: {
-    template: '<button class="ui-button" :disabled="disabled"><slot /></button>',
+    template:
+      '<button class="ui-button" :disabled="disabled" :data-icon="icon" :data-tooltip="tooltip"><slot /></button>',
     props: [
       'color',
       'variant',
@@ -357,5 +365,133 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
       .find((b) => b.text().includes('Baixar CSV (NL, PD, OB)'))
     expect(downloadBtn).toBeDefined()
     expect(downloadBtn!.attributes('disabled')).toBeDefined()
+  })
+
+  it('allows editing an NL: opens modal and saves with updated date', async () => {
+    mockUpdateLiquidationNote.mockResolvedValue({
+      id: 'nl-1',
+      commitment_id: 'comm-1',
+      liquidation_number: '2026NL00101',
+      issue_date: '2026-04-20',
+      observation: 'NL retificada',
+    })
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    // Find edit button for first NL
+    const editNlBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Editar data / observação da NL'))
+    expect(editNlBtn).toBeDefined()
+
+    await editNlBtn!.trigger('click')
+
+    // Find submit button in NL modal
+    const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Salvar Alterações'))
+    expect(saveBtn).toBeDefined()
+
+    await saveBtn!.trigger('click')
+
+    expect(mockUpdateLiquidationNote).toHaveBeenCalledWith(
+      expect.objectContaining({
+        liquidationId: 'nl-1',
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        liquidationNumber: '2026NL00101',
+        issueDate: '2026-04-11',
+      }),
+    )
+    expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('atualizada!'))
+  })
+
+  it('allows removing PD with confirmation dialog', async () => {
+    mockRemoveDisbursementProgram.mockResolvedValue(undefined)
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const deletePdBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Excluir Programa de Desembolso'))
+    expect(deletePdBtn).toBeDefined()
+
+    await deletePdBtn!.trigger('click')
+
+    expect(mockToast.confirm).toHaveBeenCalledWith(
+      expect.stringContaining('Deseja realmente excluir o Programa de Desembolso 2026PD00010?'),
+    )
+    expect(mockRemoveDisbursementProgram).toHaveBeenCalledWith({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+    })
+    expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('excluído com sucesso!'))
+  })
+
+  it('allows removing OB with confirmation dialog and warning that status reverts to Entregue', async () => {
+    mockDetailData.value.commitment.bank_order_number = '2026OB00050'
+    mockDetailData.value.commitment.bank_order_issued_at = '2026-04-15'
+    mockDetailData.value.commitment.status = 'completed'
+    mockRemoveBankOrder.mockResolvedValue(undefined)
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const deleteObBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Excluir Ordem Bancária'))
+    expect(deleteObBtn).toBeDefined()
+
+    await deleteObBtn!.trigger('click')
+
+    expect(mockToast.confirm).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Deseja realmente excluir a Ordem Bancária 2026OB00050? A Nota de Empenho e seus itens retornarão ao status "Entregue".',
+      ),
+    )
+    expect(mockRemoveBankOrder).toHaveBeenCalledWith({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+    })
+    expect(mockToast.success).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Ordem Bancária 2026OB00050 excluída. Status retornado para Entregue!',
+      ),
+    )
+  })
+
+  it('hides edit/delete NL buttons and delete PD button when OB is present', () => {
+    mockDetailData.value.commitment.bank_order_number = '2026OB00050'
+    mockDetailData.value.commitment.status = 'completed'
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const editNlBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Editar data / observação da NL'))
+    expect(editNlBtn).toBeUndefined()
+
+    const deleteNlBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Remover NL'))
+    expect(deleteNlBtn).toBeUndefined()
+
+    const deletePdBtn = wrapper
+      .findAll('button')
+      .find((b) => b.attributes('data-tooltip')?.includes('Excluir Programa de Desembolso'))
+    expect(deletePdBtn).toBeUndefined()
   })
 })

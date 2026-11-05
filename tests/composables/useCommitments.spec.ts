@@ -754,4 +754,274 @@ describe('useCommitments Composable', () => {
       ]),
     )
   })
+
+  it('blocks updateLiquidationNote when Ordem Bancária (OB) is present', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'completed',
+                  bank_order_number: '2026OB00001',
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { updateLiquidationNote } = useCommitments()
+
+    await expect(
+      updateLiquidationNote({
+        liquidationId: 'nl-1',
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        liquidationNumber: '2026NL00001',
+        issueDate: '2026-11-05',
+      }),
+    ).rejects.toThrow(
+      /Não é permitido alterar Notas de Liquidação de um empenho concluído com Ordem Bancária/,
+    )
+  })
+
+  it('updates liquidation note issue date and observation when no OB exists', async () => {
+    const updateNlMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: {
+              id: 'nl-1',
+              commitment_id: 'comm-1',
+              liquidation_number: '2026NL00001',
+              issue_date: '2026-11-05',
+              observation: 'Data retificada',
+            },
+            error: null,
+          }),
+        }),
+      }),
+    })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  bank_order_number: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'demand_commitment_liquidations') {
+        return {
+          update: updateNlMock,
+        }
+      }
+      return {}
+    })
+
+    const { updateLiquidationNote } = useCommitments()
+
+    const result = await updateLiquidationNote({
+      liquidationId: 'nl-1',
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+      liquidationNumber: '2026NL00001',
+      issueDate: '2026-11-05',
+      observation: 'Data retificada',
+    })
+
+    expect(result.issue_date).toBe('2026-11-05')
+    expect(updateNlMock).toHaveBeenCalledWith({
+      issue_date: '2026-11-05',
+      observation: 'Data retificada',
+    })
+    expect(logActionMock).toHaveBeenCalledWith(
+      'UPDATE_COMMITMENT_LIQUIDATION',
+      expect.stringContaining('2026NL00001 atualizada'),
+      'user-1',
+    )
+  })
+
+  it('blocks removeDisbursementProgram when Ordem Bancária (OB) is present', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'completed',
+                  disbursement_program_number: '2026PD00001',
+                  bank_order_number: '2026OB00001',
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { removeDisbursementProgram } = useCommitments()
+
+    await expect(
+      removeDisbursementProgram({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+      }),
+    ).rejects.toThrow(
+      /Não é possível excluir o Programa de Desembolso.*enquanto houver uma Ordem Bancária/,
+    )
+  })
+
+  it('removes disbursement program when no OB is present', async () => {
+    const updateCommitmentEq = vi.fn().mockResolvedValue({ error: null })
+    const updateCommitment = vi.fn().mockReturnValue({ eq: updateCommitmentEq })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  disbursement_program_number: '2026PD00001',
+                  bank_order_number: null,
+                },
+                error: null,
+              }),
+            }),
+          }),
+          update: updateCommitment,
+        }
+      }
+      return {}
+    })
+
+    const { removeDisbursementProgram } = useCommitments()
+
+    await removeDisbursementProgram({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+    })
+
+    expect(updateCommitment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        disbursement_program_number: null,
+        disbursement_program_issued_at: null,
+        disbursement_program_observation: null,
+      }),
+    )
+    expect(logActionMock).toHaveBeenCalledWith(
+      'REMOVE_COMMITMENT_DISBURSEMENT_PROGRAM',
+      expect.stringContaining('2026PD00001 removido'),
+      'user-1',
+    )
+  })
+
+  it('removes bank order, reverts commitment and linked items to delivered, and records history', async () => {
+    const updateCommitmentEq = vi.fn().mockResolvedValue({ error: null })
+    const updateCommitment = vi.fn().mockReturnValue({ eq: updateCommitmentEq })
+    const updateItemsIn = vi.fn().mockResolvedValue({ error: null })
+    const updateItems = vi.fn().mockReturnValue({ in: updateItemsIn })
+    const insertHistory = vi.fn().mockResolvedValue({ error: null })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'completed',
+                  bank_order_number: '2026OB00001',
+                },
+                error: null,
+              }),
+            }),
+          }),
+          update: updateCommitment,
+        }
+      }
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'item-1',
+                  execution_status: 'completed',
+                  quantity: 10,
+                  demand_product_bids: [
+                    { id: 'b1', supplier_id: 'sup-1', amount: 10, status: 'winner' },
+                  ],
+                },
+              ],
+              error: null,
+            }),
+          }),
+          update: updateItems,
+        }
+      }
+      if (table === 'demand_item_status_history') {
+        return {
+          insert: insertHistory,
+        }
+      }
+      return {}
+    })
+
+    const { removeBankOrder } = useCommitments()
+
+    await removeBankOrder({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+    })
+
+    expect(updateCommitment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bank_order_number: null,
+        status: 'delivered',
+      }),
+    )
+    expect(updateItems).toHaveBeenCalledWith(
+      expect.objectContaining({
+        execution_status: 'delivered',
+      }),
+    )
+    expect(updateItemsIn).toHaveBeenCalledWith('id', ['item-1'])
+    expect(insertHistory).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          demand_product_id: 'item-1',
+          status: 'delivered',
+        }),
+      ]),
+    )
+    expect(logActionMock).toHaveBeenCalledWith(
+      'REMOVE_COMMITMENT_BANK_ORDER',
+      expect.stringContaining('2026OB00001 removida'),
+      'user-1',
+    )
+  })
 })

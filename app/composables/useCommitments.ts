@@ -396,6 +396,54 @@ export const useCommitments = () => {
     return inserted
   }
 
+  const updateLiquidationNote = async (params: {
+    liquidationId: string
+    commitmentId: string
+    commitmentNumber: string
+    liquidationNumber: string
+    issueDate: string
+    observation?: string | null
+  }): Promise<CommitmentLiquidationRow> => {
+    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
+    const normalizedNL = normalizeSiafemNumber(params.liquidationNumber)
+
+    const { data: commitment, error: checkErr } = await supabase
+      .from('demand_commitments')
+      .select('id, status, bank_order_number')
+      .eq('id', params.commitmentId)
+      .single()
+
+    if (checkErr || !commitment) {
+      throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    if (commitment.bank_order_number || commitment.status === 'completed') {
+      throw new Error(
+        'Não é permitido alterar Notas de Liquidação de um empenho concluído com Ordem Bancária. Exclua a Ordem Bancária primeiro.',
+      )
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('demand_commitment_liquidations')
+      .update({
+        issue_date: params.issueDate,
+        observation: params.observation?.trim() || null,
+      })
+      .eq('id', params.liquidationId)
+      .select('*')
+      .single()
+
+    if (updateErr) throw updateErr
+
+    await logAction(
+      'UPDATE_COMMITMENT_LIQUIDATION',
+      `Nota de Liquidação ${normalizedNL} atualizada na Nota de Empenho ${normalizedNE} (Data: ${params.issueDate})`,
+      user.value?.id,
+    )
+
+    return updated
+  }
+
   const removeLiquidationNote = async (params: {
     liquidationId: string
     commitmentId: string
@@ -521,6 +569,53 @@ export const useCommitments = () => {
     )
   }
 
+  const removeDisbursementProgram = async (params: {
+    commitmentId: string
+    commitmentNumber: string
+  }) => {
+    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
+
+    const { data: commitment, error: checkErr } = await supabase
+      .from('demand_commitments')
+      .select('id, status, disbursement_program_number, bank_order_number')
+      .eq('id', params.commitmentId)
+      .single()
+
+    if (checkErr || !commitment) {
+      throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    if (commitment.bank_order_number || commitment.status === 'completed') {
+      throw new Error(
+        'Não é possível excluir o Programa de Desembolso (PD) enquanto houver uma Ordem Bancária (OB) vinculada. Exclua a Ordem Bancária primeiro.',
+      )
+    }
+
+    if (!commitment.disbursement_program_number) {
+      throw new Error('Esta Nota de Empenho não possui Programa de Desembolso registrado.')
+    }
+
+    const pdNumber = commitment.disbursement_program_number
+
+    const { error: updateErr } = await supabase
+      .from('demand_commitments')
+      .update({
+        disbursement_program_number: null,
+        disbursement_program_issued_at: null,
+        disbursement_program_observation: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', params.commitmentId)
+
+    if (updateErr) throw updateErr
+
+    await logAction(
+      'REMOVE_COMMITMENT_DISBURSEMENT_PROGRAM',
+      `Programa de Desembolso ${pdNumber} removido da Nota de Empenho ${normalizedNE}`,
+      user.value?.id,
+    )
+  }
+
   const saveBankOrderAndComplete = async (params: {
     commitmentId: string
     commitmentNumber: string
@@ -637,6 +732,89 @@ export const useCommitments = () => {
     await logAction(
       'COMPLETE_COMMITMENT_BANK_ORDER',
       `Ordem Bancária ${normalizedOB} registrada na Nota de Empenho ${normalizedNE}, encerrando ${validItemIds.length} item(ns) como Concluído`,
+      user.value?.id,
+    )
+  }
+
+  const removeBankOrder = async (params: { commitmentId: string; commitmentNumber: string }) => {
+    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
+
+    const { data: commitment, error: checkErr } = await supabase
+      .from('demand_commitments')
+      .select('id, status, bank_order_number')
+      .eq('id', params.commitmentId)
+      .single()
+
+    if (checkErr || !commitment) {
+      throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    if (!commitment.bank_order_number) {
+      throw new Error('Esta Nota de Empenho não possui Ordem Bancária registrada.')
+    }
+
+    const obNumber = commitment.bank_order_number
+    const now = new Date().toISOString()
+
+    const { error: updateCommitmentErr } = await supabase
+      .from('demand_commitments')
+      .update({
+        bank_order_number: null,
+        bank_order_issued_at: null,
+        bank_order_observation: null,
+        status: 'delivered',
+        updated_at: now,
+      })
+      .eq('id', params.commitmentId)
+
+    if (updateCommitmentErr) throw updateCommitmentErr
+
+    const { data: linkedItems, error: fetchItemsErr } = await supabase
+      .from('demand_products')
+      .select(
+        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
+      .eq('commitment_number', normalizedNE)
+
+    if (fetchItemsErr) throw fetchItemsErr
+
+    const validItemIds = ((linkedItems || []) as unknown as DemandProductRow[])
+      .filter((i) => getItemDisputeResult(i).outcome === 'winner')
+      .map((i) => i.id)
+
+    if (validItemIds.length > 0) {
+      const { error: updateItemsErr } = await supabase
+        .from('demand_products')
+        .update({
+          execution_status: 'delivered',
+          execution_status_updated_at: now,
+        })
+        .in('id', validItemIds)
+
+      if (updateItemsErr) throw updateItemsErr
+
+      const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
+        validItemIds.map((itemId) => ({
+          demand_product_id: itemId,
+          status: 'delivered',
+          commitment_number: normalizedNE,
+          observation: `Ordem Bancária ${obNumber} excluída. Status retornado para Entregue.`,
+          error_details: null,
+          created_by: user.value?.id || null,
+        }))
+
+      const { error: historyErr } = await supabase
+        .from('demand_item_status_history')
+        .insert(historyPayload)
+
+      if (historyErr) {
+        console.error('Erro ao registrar histórico de reversão de OB:', historyErr)
+      }
+    }
+
+    await logAction(
+      'REMOVE_COMMITMENT_BANK_ORDER',
+      `Ordem Bancária ${obNumber} removida da Nota de Empenho ${normalizedNE}. Status retornado para Entregue.`,
       user.value?.id,
     )
   }
@@ -774,9 +952,12 @@ export const useCommitments = () => {
     fetchCommitmentByNumber,
     updateCommitmentLogisticsStatus,
     addLiquidationNote,
+    updateLiquidationNote,
     removeLiquidationNote,
     saveDisbursementProgram,
+    removeDisbursementProgram,
     saveBankOrderAndComplete,
+    removeBankOrder,
     cancelCommitment,
   }
 }
