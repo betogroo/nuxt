@@ -5,6 +5,7 @@ import {
   formatUnitPrice,
   formatDate,
   formatDateTime,
+  getTodayDateString,
   formatCnpj,
   slugify,
   formatCpf,
@@ -72,6 +73,20 @@ describe('Formatadores (utils/formatters.ts)', () => {
       const res = formatDate(dateStr)
       expect(res).not.toBe('-')
       expect(res).toMatch(/\d{2}\/\d{2}\/\d{4}/)
+    })
+
+    it('deve formatar string de data YYYY-MM-DD sem regressão de dia por fuso horário', () => {
+      expect(formatDate('2026-03-18')).toBe('18/03/2026')
+      expect(formatDate('2026-01-01')).toBe('01/01/2026')
+      expect(formatDate('2026-12-31')).toBe('31/12/2026')
+    })
+
+    it('deve gerar string de data de hoje no formato YYYY-MM-DD', () => {
+      const today = getTodayDateString()
+      expect(today).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      const now = new Date()
+      const currentYear = now.getFullYear().toString()
+      expect(today.startsWith(currentYear)).toBe(true)
     })
 
     it('deve retornar "-" para data inválida ou nula', () => {

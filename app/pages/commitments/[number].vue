@@ -21,7 +21,13 @@
     liquidationNoteFormSchema,
   } from '~/schemas/forms/commitment'
   import { downloadFile } from '~/utils/download'
-  import { formatCnpj, formatCurrency, formatDate, formatUnitPrice } from '~/utils/formatters'
+  import {
+    formatCnpj,
+    formatCurrency,
+    formatDate,
+    formatUnitPrice,
+    getTodayDateString,
+  } from '~/utils/formatters'
   import { escapeCsvField } from '~/utils/reportCsv'
   import { toSafeFilename } from '~/utils/reportFilename'
   import { APP_ROUTES } from '~/utils/routes'
@@ -161,7 +167,7 @@
   const isEditingNl = ref(false)
   const editingNlId = ref<string | null>(null)
   const nlNumber = ref('')
-  const nlIssueDate = ref(new Date().toISOString().slice(0, 10))
+  const nlIssueDate = ref(getTodayDateString())
   const nlNotes = ref('')
 
   const openAddNlModal = () => {
@@ -169,7 +175,7 @@
     editingNlId.value = null
     const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
     nlNumber.value = `${yearPrefix}NL`
-    nlIssueDate.value = new Date().toISOString().slice(0, 10)
+    nlIssueDate.value = getTodayDateString()
     nlNotes.value = commitment.value?.status === 'cancelled' ? 'NL de Cancelamento' : ''
     nlModal.openAdd()
   }
@@ -183,7 +189,7 @@
     isEditingNl.value = true
     editingNlId.value = nl.id
     nlNumber.value = nl.liquidation_number
-    nlIssueDate.value = nl.issue_date || new Date().toISOString().slice(0, 10)
+    nlIssueDate.value = nl.issue_date || getTodayDateString()
     nlNotes.value = nl.observation || ''
     nlModal.openEdit()
   }
@@ -252,7 +258,7 @@
   // --- Modal de Programa de Desembolso (PD) ---
   const pdModal = useFormModal()
   const pdNumber = ref('')
-  const pdIssueDate = ref(new Date().toISOString().slice(0, 10))
+  const pdIssueDate = ref(getTodayDateString())
   const pdNotes = ref('')
   const isDeletingPd = ref(false)
 
@@ -260,8 +266,7 @@
     if (!commitment.value) return
     const yearPrefix = commitment.value.commitment_number.slice(0, 4) || '2026'
     pdNumber.value = commitment.value.disbursement_program_number || `${yearPrefix}PD`
-    pdIssueDate.value =
-      commitment.value.disbursement_program_issued_at || new Date().toISOString().slice(0, 10)
+    pdIssueDate.value = commitment.value.disbursement_program_issued_at || getTodayDateString()
     pdNotes.value = commitment.value.disbursement_program_observation || ''
     pdModal.openAdd()
   }
@@ -325,7 +330,7 @@
   // --- Modal de Ordem Bancária (OB) + Conclusão ---
   const obModal = useFormModal()
   const obNumber = ref('')
-  const obIssueDate = ref(new Date().toISOString().slice(0, 10))
+  const obIssueDate = ref(getTodayDateString())
   const obNotes = ref('')
   const isDeletingOb = ref(false)
 
@@ -333,8 +338,7 @@
     if (!commitment.value) return
     const yearPrefix = commitment.value.commitment_number.slice(0, 4) || '2026'
     obNumber.value = commitment.value.bank_order_number || `${yearPrefix}OB`
-    obIssueDate.value =
-      commitment.value.bank_order_issued_at || new Date().toISOString().slice(0, 10)
+    obIssueDate.value = commitment.value.bank_order_issued_at || getTodayDateString()
     obNotes.value = commitment.value.bank_order_observation || ''
     obModal.openAdd()
   }

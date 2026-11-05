@@ -22,12 +22,34 @@ export function formatUnitPrice(value: number | string | null | undefined): stri
 
 export const formatReferencePrice = formatUnitPrice
 
+export function getTodayDateString(): string {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function formatDate(
   date: string | Date | null | undefined,
   options?: Intl.DateTimeFormatOptions,
 ): string {
   if (!date) return '-'
-  const d = typeof date === 'string' ? new Date(date) : date
+
+  let d: Date
+  if (typeof date === 'string') {
+    const trimmed = date.trim()
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed)
+    if (match) {
+      const [, y, m, day] = match
+      d = new Date(Number(y), Number(m) - 1, Number(day), 12, 0, 0)
+    } else {
+      d = new Date(trimmed)
+    }
+  } else {
+    d = date
+  }
+
   if (isNaN(d.getTime())) return '-'
   return new Intl.DateTimeFormat('pt-BR', options ?? { dateStyle: 'short' }).format(d)
 }
