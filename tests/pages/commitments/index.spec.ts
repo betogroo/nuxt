@@ -98,6 +98,7 @@ const stubs = {
   UiTable: {
     template: `
       <div class="ui-table-stub">
+        <slot name="header-commitment_number" />
         <div v-for="item in items" :key="item.id" class="table-row">
           <slot name="item-commitment_number" :item="item" />
           <slot name="item-demand" :item="item" />
@@ -146,5 +147,53 @@ describe('CommitmentsIndexPage (/commitments)', () => {
     expect(text).toContain('NL: 2/2+')
     expect(text).toContain('PD: 2026PD00010')
     expect(text).toContain('OB: Pendente')
+  })
+
+  it('sorts commitments by commitment_number in numerical order (ascending by default, toggles to descending)', async () => {
+    mockCommitmentsList.value = [
+      {
+        ...mockCommitmentsList.value[0],
+        id: 'c-315',
+        commitment_number: '2026NE00315',
+      },
+      {
+        ...mockCommitmentsList.value[0],
+        id: 'c-28',
+        commitment_number: '2026NE00028',
+      },
+      {
+        ...mockCommitmentsList.value[0],
+        id: 'c-30',
+        commitment_number: '2026NE00030',
+      },
+      {
+        ...mockCommitmentsList.value[0],
+        id: 'c-29',
+        commitment_number: '2026NE00029',
+      },
+    ]
+
+    const wrapper = mount(CommitmentsIndexPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const renderedNumbers = () =>
+      wrapper
+        .findAll('.table-row')
+        .map((row) => row.text())
+        .map((t) => t.match(/2026NE\d{5}/)?.[0])
+        .filter(Boolean)
+
+    // Default ascending numeric order
+    expect(renderedNumbers()).toEqual(['2026NE00028', '2026NE00029', '2026NE00030', '2026NE00315'])
+
+    // Toggle to descending via header click
+    const header = wrapper.find('.cursor-pointer')
+    expect(header.exists()).toBe(true)
+    await header.trigger('click')
+
+    expect(renderedNumbers()).toEqual(['2026NE00315', '2026NE00030', '2026NE00029', '2026NE00028'])
   })
 })

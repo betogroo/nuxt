@@ -67,7 +67,7 @@ export const useCommitments = () => {
           .select(
             '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj), expense_natures(id, name), demand_commitment_liquidations(*)',
           )
-          .order('commitment_number', { ascending: false }),
+          .order('commitment_number', { ascending: true }),
         supabase
           .from('demand_products')
           .select(

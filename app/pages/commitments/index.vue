@@ -29,8 +29,14 @@
 
   const searchQuery = ref('')
   const selectedStatus = ref<string>('all')
+  const sortDirection = ref<'asc' | 'desc'>('asc')
   const isCancelModalOpen = ref(false)
   const selectedCommitmentToCancel = ref<CommitmentListItem | null>(null)
+
+  const sortDirectionOptions = [
+    { title: 'Nº da NE (Crescente)', value: 'asc' },
+    { title: 'Nº da NE (Decrescente)', value: 'desc' },
+  ]
 
   const openCancelModal = (commitment: CommitmentListItem) => {
     selectedCommitmentToCancel.value = commitment
@@ -57,7 +63,7 @@
 
   const filteredCommitments = computed(() => {
     const q = searchQuery.value.trim().toLowerCase()
-    return (commitments.value || []).filter((item) => {
+    const list = (commitments.value || []).filter((item) => {
       const matchesStatus = selectedStatus.value === 'all' || item.status === selectedStatus.value
 
       if (!matchesStatus) return false
@@ -89,6 +95,13 @@
         obMatch ||
         cancellationMatch,
       )
+    })
+
+    return list.slice().sort((a, b) => {
+      const cmp = a.commitment_number.localeCompare(b.commitment_number, undefined, {
+        numeric: true,
+      })
+      return sortDirection.value === 'desc' ? -cmp : cmp
     })
   })
 
@@ -221,7 +234,7 @@
 
     <UiCard class="pa-4 mb-4" elevation="1" variant="outline">
       <UiRow align="center">
-        <UiCol cols="12" md="7">
+        <UiCol cols="12" md="5">
           <UiInput
             v-model="searchQuery"
             clearable
@@ -232,7 +245,7 @@
             variant="outline"
           />
         </UiCol>
-        <UiCol cols="12" md="5">
+        <UiCol cols="12" md="4" sm="6">
           <UiSelect
             v-model="selectedStatus"
             hide-details
@@ -244,12 +257,35 @@
             variant="outline"
           />
         </UiCol>
+        <UiCol cols="12" md="3" sm="6">
+          <UiSelect
+            v-model="sortDirection"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="sortDirectionOptions"
+            label="Ordem Numérica da NE"
+            size="sm"
+            variant="outline"
+          />
+        </UiCol>
       </UiRow>
     </UiCard>
 
     <!-- Tabela de Notas de Empenho -->
     <UiCard elevation="1" variant="outline">
       <UiTable :headers="tableHeaders" :items="filteredCommitments" :loading="pending">
+        <template #header-commitment_number>
+          <div
+            class="d-inline-flex align-center cursor-pointer ga-1"
+            title="Clique para alternar ordem numérica"
+            @click="sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'"
+          >
+            <span>Nota de Empenho</span>
+            <UiIcon :name="sortDirection === 'asc' ? 'chevronUp' : 'chevronDown'" size="16" />
+          </div>
+        </template>
+
         <template #empty>
           <div class="text-center py-6 text-grey">
             Nenhuma Nota de Empenho encontrada para os filtros selecionados.
