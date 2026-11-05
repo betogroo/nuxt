@@ -1192,8 +1192,8 @@
             </div>
           </template>
 
-          <template #item-item_number="{ index }">
-            <span class="font-weight-bold">#{{ index + 1 }}</span>
+          <template #item-item_number="{ item, index }">
+            <span class="font-weight-bold">#{{ item.demand_item_number ?? index + 1 }}</span>
           </template>
 
           <template #item-product="{ item }">

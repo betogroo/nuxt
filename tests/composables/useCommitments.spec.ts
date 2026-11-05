@@ -589,52 +589,70 @@ describe('useCommitments Composable', () => {
 
       if (table === 'demand_products') {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                order: vi.fn().mockResolvedValue({
-                  data: [
-                    {
-                      id: 'item-won',
-                      quantity: 10,
-                      commitment_number: '2026NE00313',
-                      execution_status: 'delivered',
-                      product_name_snapshot: 'Lacre para Malote',
-                      demand_product_bids: [
-                        {
-                          id: 'bid-won',
-                          supplier_id: 'sup-1',
-                          amount: 14.7,
-                          status: 'classified',
-                        },
+          select: vi.fn().mockImplementation((fields?: string) => {
+            if (fields === 'id') {
+              return {
+                eq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({
+                      data: [
+                        { id: 'item-first-in-demand' },
+                        { id: 'item-won' },
+                        { id: 'item-failed' },
                       ],
-                    },
-                    {
-                      id: 'item-failed',
-                      quantity: 100,
-                      commitment_number: '2026NE00313',
-                      execution_status: 'delivered',
-                      product_name_snapshot: 'Envelope Plástico 20 x 30',
-                      demand_product_bids: [
-                        {
-                          id: 'bid-disq-1',
-                          supplier_id: 'sup-other',
-                          amount: 7.99,
-                          status: 'disqualified',
-                        },
-                        {
-                          id: 'bid-disq-2',
-                          supplier_id: 'sup-1',
-                          amount: 8.5,
-                          status: 'disqualified',
-                        },
-                      ],
-                    },
-                  ],
-                  error: null,
+                      error: null,
+                    }),
+                  }),
+                }),
+              }
+            }
+            return {
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: [
+                      {
+                        id: 'item-won',
+                        quantity: 10,
+                        commitment_number: '2026NE00313',
+                        execution_status: 'delivered',
+                        product_name_snapshot: 'Lacre para Malote',
+                        demand_product_bids: [
+                          {
+                            id: 'bid-won',
+                            supplier_id: 'sup-1',
+                            amount: 14.7,
+                            status: 'classified',
+                          },
+                        ],
+                      },
+                      {
+                        id: 'item-failed',
+                        quantity: 100,
+                        commitment_number: '2026NE00313',
+                        execution_status: 'delivered',
+                        product_name_snapshot: 'Envelope Plástico 20 x 30',
+                        demand_product_bids: [
+                          {
+                            id: 'bid-disq-1',
+                            supplier_id: 'sup-other',
+                            amount: 7.99,
+                            status: 'disqualified',
+                          },
+                          {
+                            id: 'bid-disq-2',
+                            supplier_id: 'sup-1',
+                            amount: 8.5,
+                            status: 'disqualified',
+                          },
+                        ],
+                      },
+                    ],
+                    error: null,
+                  }),
                 }),
               }),
-            }),
+            }
           }),
         }
       }
@@ -662,6 +680,7 @@ describe('useCommitments Composable', () => {
     // Failed item is excluded
     expect(detail!.items).toHaveLength(1)
     expect(detail!.items[0].id).toBe('item-won')
+    expect(detail!.items[0].demand_item_number).toBe(2)
     expect(detail!.items[0].winning_unit_price).toBe(14.7)
     // Total reflects only winning item (10 * 14.70 = 147.00)
     expect(detail!.total_amount).toBe(147)

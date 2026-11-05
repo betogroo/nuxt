@@ -43,6 +43,7 @@ export type CommitmentListItem = CommitmentRow & {
 export type CommitmentItemWithTotals = DemandProductRow & {
   winning_unit_price: number
   total_item_value: number
+  demand_item_number?: number
 }
 
 export type CommitmentDetail = {
@@ -136,16 +137,35 @@ export const useCommitments = () => {
 
     const commitment = commitmentData as unknown as CommitmentRow
 
-    const { data: itemsData, error: itemsErr } = await supabase
-      .from('demand_products')
-      .select(
-        '*, product:products(*, product_classes(id, name), expense_natures(id, name)), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
-      )
-      .eq('commitment_number', normalized)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true })
+    const [{ data: itemsData, error: itemsErr }, { data: allDemandItems, error: demandItemsErr }] =
+      await Promise.all([
+        supabase
+          .from('demand_products')
+          .select(
+            '*, product:products(*, product_classes(id, name), expense_natures(id, name)), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
+          )
+          .eq('commitment_number', normalized)
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: true }),
+        commitment.demand_id
+          ? supabase
+              .from('demand_products')
+              .select('id')
+              .eq('demand_id', commitment.demand_id)
+              .order('sort_order', { ascending: true })
+              .order('created_at', { ascending: true })
+          : Promise.resolve({ data: null, error: null }),
+      ])
 
     if (itemsErr) throw itemsErr
+    if (demandItemsErr) throw demandItemsErr
+
+    const demandItemNumberMap = new Map<string, number>()
+    if (allDemandItems) {
+      allDemandItems.forEach((row, idx) => {
+        demandItemNumberMap.set(row.id, idx + 1)
+      })
+    }
 
     const rawItems = (itemsData || []) as unknown as DemandProductRow[]
     let totalAmount = 0
@@ -158,7 +178,7 @@ export const useCommitments = () => {
       )
     })
 
-    const items: CommitmentItemWithTotals[] = validItems.map((item) => {
+    const items: CommitmentItemWithTotals[] = validItems.map((item, fallbackIndex) => {
       const dispute = getItemDisputeResult(item)
       const unitPrice = dispute.winningAmount ?? 0
       const subtotal = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
@@ -168,6 +188,7 @@ export const useCommitments = () => {
         ...item,
         winning_unit_price: unitPrice,
         total_item_value: subtotal,
+        demand_item_number: demandItemNumberMap.get(item.id) ?? fallbackIndex + 1,
       }
     })
 

@@ -81,6 +81,7 @@ const mockDetailData = ref({
       total_item_value: 500,
       execution_status: 'delivered',
       commitment_number: '2026NE00313',
+      demand_item_number: 4,
       product: {
         id: 'prod-1',
         name: 'Caneta Esferográfica Azul',
@@ -262,6 +263,7 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
           total_item_value: 500,
           execution_status: 'delivered',
           commitment_number: '2026NE00313',
+          demand_item_number: 4,
           product: {
             id: 'prod-1',
             name: 'Caneta Esferográfica Azul',
@@ -290,6 +292,7 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
     expect(text).toContain('2026NL00102')
     expect(text).toContain('2026PD00010')
     expect(text).toContain('Caneta Esferográfica Azul')
+    expect(text).toContain('#4')
     expect(text).toContain('Registrar OB e Concluir Item(ns)')
   })
 
