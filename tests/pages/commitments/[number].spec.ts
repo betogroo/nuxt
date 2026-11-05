@@ -497,4 +497,42 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
       .find((b) => b.attributes('data-tooltip')?.includes('Excluir Programa de Desembolso'))
     expect(deletePdBtn).toBeUndefined()
   })
+
+  it('displays cancellation alert with link to cancellation NE when commitment was cancelled', () => {
+    mockDetailData.value.commitment.status = 'cancelled'
+    mockDetailData.value.commitment.cancellation_commitment_number = '2026NE00099'
+    mockDetailData.value.commitment.cancels_commitment_number = null
+    mockDetailData.value.commitment.observation = 'Fornecedor desistiu'
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('Nota de Empenho Cancelada')
+    expect(text).toContain('2026NE00099')
+    expect(text).toContain('Fornecedor desistiu')
+    expect(text).toContain('(Empenho Cancelado / Estornado)')
+  })
+
+  it('displays cancellation alert with link to original NE when commitment is the cancellation NE', () => {
+    mockDetailData.value.commitment.status = 'cancelled'
+    mockDetailData.value.commitment.commitment_number = '2026NE00099'
+    mockDetailData.value.commitment.cancellation_commitment_number = null
+    mockDetailData.value.commitment.cancels_commitment_number = '2026NE00313'
+    mockDetailData.value.commitment.observation = 'Anulação formal de empenho anterior'
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('Nota de Empenho de Cancelamento / Anulação')
+    expect(text).toContain('2026NE00313')
+    expect(text).toContain('Anulação formal de empenho anterior')
+  })
 })

@@ -177,6 +177,8 @@ export type Database = {
           bank_order_issued_at: string | null
           bank_order_number: string | null
           bank_order_observation: string | null
+          cancellation_commitment_number: string | null
+          cancels_commitment_number: string | null
           commitment_number: string
           created_at: string
           created_by: string | null
@@ -197,6 +199,8 @@ export type Database = {
           bank_order_issued_at?: string | null
           bank_order_number?: string | null
           bank_order_observation?: string | null
+          cancellation_commitment_number?: string | null
+          cancels_commitment_number?: string | null
           commitment_number: string
           created_at?: string
           created_by?: string | null
@@ -217,6 +221,8 @@ export type Database = {
           bank_order_issued_at?: string | null
           bank_order_number?: string | null
           bank_order_observation?: string | null
+          cancellation_commitment_number?: string | null
+          cancels_commitment_number?: string | null
           commitment_number?: string
           created_at?: string
           created_by?: string | null

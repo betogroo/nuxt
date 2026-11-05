@@ -176,7 +176,7 @@
     const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
     nlNumber.value = `${yearPrefix}NL`
     nlIssueDate.value = getTodayDateString()
-    nlNotes.value = commitment.value?.status === 'cancelled' ? 'NL de Cancelamento' : ''
+    nlNotes.value = ''
     nlModal.openAdd()
   }
 
@@ -226,7 +226,6 @@
           liquidationNumber: parsed.data.liquidation_number,
           issueDate: parsed.data.issue_date,
           observation: parsed.data.observation || null,
-          isCancellation: commitment.value?.status === 'cancelled',
         })
         await refresh()
         toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} cadastrada!`)
@@ -693,12 +692,35 @@
           type="error"
           variant="tonal"
         >
-          <div class="font-weight-bold text-subtitle-2">Nota de Empenho Cancelada</div>
-          <div class="text-body-2 mt-1">
-            Esta Nota de Empenho foi cancelada. Os itens vinculados foram convertidos para
-            <strong>Fracassado</strong> e o valor correspondente foi estornado do teto/cota anual de
-            gastos. Não é permitida a emissão de Programa de Desembolso (PD) nem Ordem Bancária
-            (OB).
+          <div class="font-weight-bold text-subtitle-2">
+            {{
+              commitment.cancels_commitment_number
+                ? 'Nota de Empenho de Cancelamento / Anulação'
+                : 'Nota de Empenho Cancelada'
+            }}
+          </div>
+          <div v-if="commitment.cancels_commitment_number" class="text-body-2 mt-1">
+            Esta Nota de Empenho anula e cancela formalmente a Nota de Empenho
+            <NuxtLink
+              class="font-weight-bold text-primary text-decoration-none"
+              :to="APP_ROUTES.commitments.detail(commitment.cancels_commitment_number)"
+            >
+              {{ commitment.cancels_commitment_number }} </NuxtLink
+            >. Os valores e itens foram estornados do teto de gastos.
+          </div>
+          <div v-else class="text-body-2 mt-1">
+            Esta Nota de Empenho foi cancelada
+            <template v-if="commitment.cancellation_commitment_number">
+              pela Nota de Empenho
+              <NuxtLink
+                class="font-weight-bold text-primary text-decoration-none"
+                :to="APP_ROUTES.commitments.detail(commitment.cancellation_commitment_number)"
+              >
+                {{ commitment.cancellation_commitment_number }}
+              </NuxtLink> </template
+            >. Os itens vinculados foram convertidos para <strong>Fracassado</strong> e o valor
+            correspondente foi estornado do teto/cota anual de gastos. Não é permitida a emissão de
+            Programa de Desembolso (PD) nem Ordem Bancária (OB).
           </div>
           <div v-if="commitment.observation" class="text-caption mt-2 text-error-darken-1">
             <strong>Motivo registrado:</strong> {{ commitment.observation }}
@@ -835,8 +857,8 @@
           type="error"
           variant="soft"
         >
-          Empenho cancelado. Não serão gerados Programa de Desembolso (PD) nem Ordem Bancária (OB).
-          É permitido apenas o registro de Notas de Lançamento (NL) de cancelamento.
+          Empenho cancelado / estornado. Não serão gerados Notas de Liquidação (NL), Programa de
+          Desembolso (PD) nem Ordem Bancária (OB).
         </UiAlert>
         <UiAlert
           v-else-if="!canManageFinancialDocs"
@@ -934,21 +956,16 @@
               </div>
 
               <UiButton
+                v-if="commitment.status !== 'cancelled'"
                 block
-                :color="commitment.status === 'cancelled' ? 'error' : 'primary'"
-                :disabled="
-                  (!canManageFinancialDocs && commitment.status !== 'cancelled') || hasBankOrder
-                "
-                :prepend-icon="commitment.status === 'cancelled' ? 'closeCircle' : 'add'"
+                color="primary"
+                :disabled="!canManageFinancialDocs || hasBankOrder"
+                prepend-icon="add"
                 size="sm"
                 variant="soft"
                 @click="openAddNlModal"
               >
-                {{
-                  commitment.status === 'cancelled'
-                    ? 'Adicionar NL de Cancelamento'
-                    : 'Adicionar Nota de Liquidação'
-                }}
+                Adicionar Nota de Liquidação
               </UiButton>
             </UiCard>
           </UiCol>
@@ -1324,13 +1341,7 @@
     <UiModal
       v-model="nlModal.isOpen.value"
       max-width="480px"
-      :title="
-        isEditingNl
-          ? 'Editar Nota de Liquidação (NL)'
-          : commitment?.status === 'cancelled'
-            ? 'Registrar NL de Cancelamento'
-            : 'Nova Nota de Liquidação (NL)'
-      "
+      :title="isEditingNl ? 'Editar Nota de Liquidação (NL)' : 'Nova Nota de Liquidação (NL)'"
       transparent-header
     >
       <UiAlert v-if="nlModal.error.value" class="mb-3" type="error" variant="soft">

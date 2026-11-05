@@ -28,18 +28,18 @@
 
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(cancelCommitmentFormSchema, {
     reason: '',
-    cancellation_nl_number: '',
-    cancellation_nl_issue_date: new Date().toISOString().slice(0, 10),
-    cancellation_nl_observation: '',
+    cancellation_commitment_number: '',
+    cancellation_issue_date: new Date().toISOString().slice(0, 10),
+    cancellation_observation: '',
   })
 
   const [reason, reasonProps] = defineField('reason')
-  const [cancellationNlNumber, cancellationNlNumberProps] = defineField('cancellation_nl_number')
-  const [cancellationNlIssueDate, cancellationNlIssueDateProps] = defineField(
-    'cancellation_nl_issue_date',
+  const [cancellationCommitmentNumber, cancellationCommitmentNumberProps] = defineField(
+    'cancellation_commitment_number',
   )
-  const [cancellationNlObservation, cancellationNlObservationProps] = defineField(
-    'cancellation_nl_observation',
+  const [cancellationIssueDate, cancellationIssueDateProps] = defineField('cancellation_issue_date')
+  const [cancellationObservation, cancellationObservationProps] = defineField(
+    'cancellation_observation',
   )
 
   watch(
@@ -49,9 +49,9 @@
         resetForm({
           values: {
             reason: '',
-            cancellation_nl_number: '',
-            cancellation_nl_issue_date: new Date().toISOString().slice(0, 10),
-            cancellation_nl_observation: '',
+            cancellation_commitment_number: '',
+            cancellation_issue_date: new Date().toISOString().slice(0, 10),
+            cancellation_observation: '',
           },
         })
         serverError.value = ''
@@ -70,19 +70,18 @@
     serverError.value = ''
 
     try {
-      const cleanNl = values.cancellation_nl_number?.trim()
-      const finalNlNumber = cleanNl && !/^\d{4}NL$/i.test(cleanNl) ? cleanNl : null
-
       await cancelCommitment({
         commitmentId: props.commitment.id,
         commitmentNumber: props.commitment.commitment_number,
         reason: values.reason,
-        cancellationNlNumber: finalNlNumber,
-        cancellationNlIssueDate: finalNlNumber ? values.cancellation_nl_issue_date : null,
-        cancellationNlObservation: finalNlNumber ? values.cancellation_nl_observation : null,
+        cancellationCommitmentNumber: values.cancellation_commitment_number,
+        cancellationIssueDate: values.cancellation_issue_date,
+        cancellationObservation: values.cancellation_observation || null,
       })
 
-      toast.success(`Nota de Empenho ${props.commitment.commitment_number} cancelada com sucesso!`)
+      toast.success(
+        `Nota de Empenho ${props.commitment.commitment_number} cancelada pela NE ${values.cancellation_commitment_number}!`,
+      )
       emit('cancelled')
       closeModal()
     } catch (err: unknown) {
@@ -97,9 +96,9 @@
   defineExpose({
     onSubmit,
     reason,
-    cancellationNlNumber,
-    cancellationNlIssueDate,
-    cancellationNlObservation,
+    cancellationCommitmentNumber,
+    cancellationIssueDate,
+    cancellationObservation,
   })
 </script>
 
@@ -152,31 +151,32 @@
 
         <UiCard class="pa-3 mb-4 bg-grey-lighten-4" variant="outlined">
           <div class="text-subtitle-2 font-weight-medium mb-1">
-            Nota de Lançamento (NL) de Cancelamento
+            Nova Nota de Empenho (NE) de Cancelamento / Anulação
           </div>
           <div class="text-caption text-medium-emphasis mb-3">
-            Opcional no momento. Caso já possua o número da NL SIAFEM gerada, informe abaixo ou
-            cadastre posteriormente.
+            Informe a nova Nota de Empenho SIAFEM gerada que anula e substitui o empenho anterior.
           </div>
 
           <UiRow>
             <UiCol cols="12" sm="6">
               <UiTextField
-                v-model="cancellationNlNumber"
-                v-bind="cancellationNlNumberProps"
-                :error-messages="errors.cancellation_nl_number"
-                hint="Padrão SIAFEM: 2026NL00000"
-                label="Nº da NL SIAFEM (Opcional)"
+                v-model="cancellationCommitmentNumber"
+                v-bind="cancellationCommitmentNumberProps"
+                :error-messages="errors.cancellation_commitment_number"
+                hint="Padrão SIAFEM: 2026NE00000"
+                label="Nº da NE de Cancelamento *"
                 persistent-hint
-                placeholder="2026NL00000"
+                placeholder="2026NE00000"
+                required
               />
             </UiCol>
             <UiCol cols="12" sm="6">
               <UiTextField
-                v-model="cancellationNlIssueDate"
-                v-bind="cancellationNlIssueDateProps"
-                :error-messages="errors.cancellation_nl_issue_date"
-                label="Data de Emissão da NL"
+                v-model="cancellationIssueDate"
+                v-bind="cancellationIssueDateProps"
+                :error-messages="errors.cancellation_issue_date"
+                label="Data de Emissão da NE *"
+                required
                 type="date"
               />
             </UiCol>
@@ -184,10 +184,10 @@
 
           <div class="mt-3">
             <UiTextField
-              v-model="cancellationNlObservation"
-              v-bind="cancellationNlObservationProps"
-              :error-messages="errors.cancellation_nl_observation"
-              label="Observações da NL de Cancelamento (Opcional)"
+              v-model="cancellationObservation"
+              v-bind="cancellationObservationProps"
+              :error-messages="errors.cancellation_observation"
+              label="Observações da NE de Cancelamento (Opcional)"
               placeholder="Ex: Anulação total da NE por inadimplemento contratual"
             />
           </div>

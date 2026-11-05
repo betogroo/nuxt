@@ -1,7 +1,7 @@
 import type { Database } from '~/types/database.types'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import type { DemandItemStatusHistoryRow, DemandProductRow } from '~/composables/useDemandProducts'
-import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
+import { getItemDisputeResult, getItemSubtotal, getWinningBid } from '~/utils/bids'
 import {
   isValidBankOrderNumber,
   isValidCommitmentNumber,
@@ -136,6 +136,9 @@ export const useCommitments = () => {
     if (!commitmentData) return null
 
     const commitment = commitmentData as unknown as CommitmentRow
+    const effectiveItemsCommitmentNumber = commitment.cancels_commitment_number
+      ? normalizeSiafemNumber(commitment.cancels_commitment_number)
+      : normalized
 
     const [{ data: itemsData, error: itemsErr }, { data: allDemandItems, error: demandItemsErr }] =
       await Promise.all([
@@ -144,7 +147,7 @@ export const useCommitments = () => {
           .select(
             '*, product:products(*, product_classes(id, name), expense_natures(id, name)), measurement_units(*), measurement_unit_aliases(*), demand_product_bids(*, suppliers(*))',
           )
-          .eq('commitment_number', normalized)
+          .eq('commitment_number', effectiveItemsCommitmentNumber)
           .order('sort_order', { ascending: true })
           .order('created_at', { ascending: true }),
         commitment.demand_id
@@ -172,16 +175,32 @@ export const useCommitments = () => {
 
     const validItems = rawItems.filter((item) => {
       const dispute = getItemDisputeResult(item)
-      return (
-        dispute.outcome === 'winner' &&
-        (!commitment.supplier_id || dispute.winningBid?.supplier_id === commitment.supplier_id)
-      )
+      if (dispute.outcome === 'winner') {
+        return !commitment.supplier_id || dispute.winningBid?.supplier_id === commitment.supplier_id
+      }
+      if (commitment.status === 'cancelled' || item.execution_status === 'cancelled') {
+        const winningBid = getWinningBid(item.demand_product_bids || [])
+        return Boolean(
+          winningBid &&
+          (!commitment.supplier_id || winningBid.supplier_id === commitment.supplier_id),
+        )
+      }
+      return false
     })
 
     const items: CommitmentItemWithTotals[] = validItems.map((item, fallbackIndex) => {
       const dispute = getItemDisputeResult(item)
-      const unitPrice = dispute.winningAmount ?? 0
-      const subtotal = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
+      const winningBid = dispute.winningBid || getWinningBid(item.demand_product_bids || [])
+      const unitPrice =
+        dispute.winningAmount && dispute.winningAmount > 0
+          ? dispute.winningAmount
+          : winningBid
+            ? Number(winningBid.amount)
+            : 0
+      const subtotal =
+        dispute.totalFinal && dispute.totalFinal > 0
+          ? dispute.totalFinal
+          : getItemSubtotal(unitPrice, item.quantity)
       totalAmount += subtotal
 
       return {
@@ -380,11 +399,15 @@ export const useCommitments = () => {
       )
     }
 
-    const isCancellationNl = Boolean(params.isCancellation) || commitment.status === 'cancelled'
-
-    if (commitment.status !== 'delivered' && !isCancellationNl) {
+    if (commitment.status === 'cancelled') {
       throw new Error(
-        'As Notas de Liquidação ordinárias só podem ser registradas após a entrega da mercadoria (status "Entregue"). Para empenhos cancelados, utilize a opção de NL de Cancelamento.',
+        'Notas de Empenho canceladas não permitem registro de Notas de Liquidação (NL).',
+      )
+    }
+
+    if (commitment.status !== 'delivered') {
+      throw new Error(
+        'As Notas de Liquidação só podem ser registradas após a entrega da mercadoria (status "Entregue").',
       )
     }
 
@@ -395,7 +418,7 @@ export const useCommitments = () => {
         liquidation_number: normalizedNL,
         issue_date: params.issueDate,
         observation: params.observation?.trim() || null,
-        is_cancellation: isCancellationNl,
+        is_cancellation: false,
         created_by: user.value?.id || null,
       })
       .select('*')
@@ -844,19 +867,35 @@ export const useCommitments = () => {
     commitmentId: string
     commitmentNumber: string
     reason: string
-    cancellationNlNumber?: string | null
-    cancellationNlIssueDate?: string | null
-    cancellationNlObservation?: string | null
+    cancellationCommitmentNumber: string
+    cancellationIssueDate?: string | null
+    cancellationObservation?: string | null
   }) => {
-    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
-    const cleanReason = params.reason.trim()
+    const normalizedNE = params.commitmentNumber
+      ? normalizeSiafemNumber(params.commitmentNumber)
+      : ''
+    const normalizedCancellationNE = params.cancellationCommitmentNumber
+      ? normalizeSiafemNumber(params.cancellationCommitmentNumber)
+      : ''
+    const cleanReason = params.reason ? params.reason.trim() : ''
     if (!cleanReason) {
       throw new Error('A justificativa do cancelamento é obrigatória.')
+    }
+    if (!normalizedCancellationNE) {
+      throw new Error('O número da NE de Cancelamento é obrigatório.')
+    }
+    if (!isValidCommitmentNumber(normalizedCancellationNE)) {
+      throw new Error('O número da NE de Cancelamento deve seguir o padrão SIAFEM: 2026NE00000.')
+    }
+    if (normalizedCancellationNE === normalizedNE) {
+      throw new Error(
+        'O número da NE de Cancelamento deve ser diferente do número da Nota de Empenho atual.',
+      )
     }
 
     const { data: commitment, error: checkErr } = await supabase
       .from('demand_commitments')
-      .select('id, status, bank_order_number')
+      .select('id, demand_id, supplier_id, expense_nature_id, status, bank_order_number')
       .eq('id', params.commitmentId)
       .single()
 
@@ -870,48 +909,54 @@ export const useCommitments = () => {
       )
     }
 
-    const now = new Date().toISOString()
+    // Check if cancellation commitment number already exists
+    const { data: existingNE } = await supabase
+      .from('demand_commitments')
+      .select('id, commitment_number')
+      .eq('commitment_number', normalizedCancellationNE)
+      .maybeSingle()
 
-    // 1. Update commitment status to cancelled
+    if (existingNE) {
+      throw new Error(
+        `A Nota de Empenho "${normalizedCancellationNE}" já está cadastrada no sistema.`,
+      )
+    }
+
+    const now = new Date().toISOString()
+    const cancellationIssueDate = params.cancellationIssueDate?.trim() || now.slice(0, 10)
+    const cancellationObs =
+      params.cancellationObservation?.trim() ||
+      `Nota de Empenho de Cancelamento referente ao empenho ${normalizedNE}. Motivo: ${cleanReason}`
+
+    // 1. Update original commitment status to cancelled and record cancellation_commitment_number
     const { error: updateCommitmentErr } = await supabase
       .from('demand_commitments')
       .update({
         status: 'cancelled',
         observation: cleanReason,
+        cancellation_commitment_number: normalizedCancellationNE,
         updated_at: now,
       })
       .eq('id', params.commitmentId)
 
     if (updateCommitmentErr) throw updateCommitmentErr
 
-    // 2. If cancellation NL was informed, register it
-    const trimmedNl = params.cancellationNlNumber
-      ? normalizeSiafemNumber(params.cancellationNlNumber)
-      : null
+    // 2. Insert the new cancellation commitment row
+    const { error: insertCancellationErr } = await supabase.from('demand_commitments').insert({
+      commitment_number: normalizedCancellationNE,
+      demand_id: commitment.demand_id,
+      supplier_id: commitment.supplier_id,
+      expense_nature_id: commitment.expense_nature_id,
+      status: 'cancelled',
+      issue_date: cancellationIssueDate,
+      observation: cancellationObs,
+      cancels_commitment_number: normalizedNE,
+      created_by: user.value?.id || null,
+      created_at: now,
+      updated_at: now,
+    })
 
-    if (trimmedNl) {
-      if (!isValidLiquidationNumber(trimmedNl)) {
-        throw new Error('O número da NL de Cancelamento deve seguir o padrão SIAFEM: 2026NL00000.')
-      }
-
-      const nlIssueDate = params.cancellationNlIssueDate?.trim() || now.slice(0, 10)
-      const nlObs =
-        params.cancellationNlObservation?.trim() ||
-        `Cancelamento/Anulação do Empenho ${normalizedNE}: ${cleanReason}`
-
-      const { error: insertNlErr } = await supabase.from('demand_commitment_liquidations').insert({
-        commitment_id: params.commitmentId,
-        liquidation_number: trimmedNl,
-        issue_date: nlIssueDate,
-        observation: nlObs,
-        is_cancellation: true,
-        created_by: user.value?.id || null,
-      })
-
-      if (insertNlErr && insertNlErr.code !== '23505') {
-        throw insertNlErr
-      }
-    }
+    if (insertCancellationErr) throw insertCancellationErr
 
     // 3. Update all linked demand items to cancelled
     const { data: linkedItems, error: fetchItemsErr } = await supabase
@@ -939,7 +984,7 @@ export const useCommitments = () => {
 
       if (updateItemsErr) throw updateItemsErr
 
-      const historyObs = `Empenho ${normalizedNE} cancelado. Motivo: ${cleanReason}${trimmedNl ? ` (NL de Cancelamento: ${trimmedNl})` : ''}`
+      const historyObs = `Empenho ${normalizedNE} cancelado via NE de Cancelamento ${normalizedCancellationNE}. Motivo: ${cleanReason}`
 
       const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
         validItemIds.map((itemId) => ({
@@ -962,7 +1007,7 @@ export const useCommitments = () => {
 
     await logAction(
       'CANCEL_COMMITMENT',
-      `Nota de Empenho ${normalizedNE} cancelada (${validItemIds.length} itens marcados como fracassados). Motivo: ${cleanReason}${trimmedNl ? ` | NL: ${trimmedNl}` : ''}`,
+      `Nota de Empenho ${normalizedNE} cancelada pela NE ${normalizedCancellationNE} (${validItemIds.length} itens marcados como fracassados). Motivo: ${cleanReason}`,
       user.value?.id,
     )
   }

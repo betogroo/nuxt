@@ -276,9 +276,9 @@ describe('useCommitments Composable', () => {
     )
   })
 
-  it('cancelCommitment successfully cancels commitment, updates linked items, creates history and inserts cancellation NL', async () => {
+  it('cancelCommitment successfully cancels commitment, updates linked items, creates history and inserts cancellation NE', async () => {
     const updateCommitmentEqMock = vi.fn().mockResolvedValue({ error: null })
-    const insertNlMock = vi.fn().mockResolvedValue({ error: null })
+    const insertCommitmentMock = vi.fn().mockResolvedValue({ error: null })
     const updateItemsInMock = vi.fn().mockResolvedValue({ error: null })
     const insertHistoryMock = vi.fn().mockResolvedValue({ error: null })
 
@@ -286,26 +286,35 @@ describe('useCommitments Composable', () => {
       if (table === 'demand_commitments') {
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  id: 'comm-1',
-                  status: 'commitment_confirmed',
-                  bank_order_number: null,
-                },
-                error: null,
-              }),
+            eq: vi.fn().mockImplementation((col: string, _val: string) => {
+              if (col === 'id') {
+                return {
+                  single: vi.fn().mockResolvedValue({
+                    data: {
+                      id: 'comm-1',
+                      demand_id: 'dem-1',
+                      supplier_id: 'sup-1',
+                      expense_nature_id: '339030',
+                      status: 'commitment_confirmed',
+                      bank_order_number: null,
+                    },
+                    error: null,
+                  }),
+                }
+              }
+              // check if cancellation NE already exists
+              return {
+                maybeSingle: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: null,
+                }),
+              }
             }),
           }),
           update: vi.fn().mockReturnValue({
             eq: updateCommitmentEqMock,
           }),
-        }
-      }
-
-      if (table === 'demand_commitment_liquidations') {
-        return {
-          insert: insertNlMock,
+          insert: insertCommitmentMock,
         }
       }
 
@@ -338,19 +347,6 @@ describe('useCommitments Composable', () => {
         }
       }
 
-      if (table === 'demand_item_status_history') {
-        return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        }
-      }
-
       return {}
     })
 
@@ -360,17 +356,17 @@ describe('useCommitments Composable', () => {
       commitmentId: 'comm-1',
       commitmentNumber: '2026NE00313',
       reason: 'Fornecedor não entregou os produtos no prazo legal',
-      cancellationNlNumber: '2026nl00088',
-      cancellationNlIssueDate: '2026-11-03',
-      cancellationNlObservation: 'Estorno total de empenho',
+      cancellationCommitmentNumber: '2026ne00088',
+      cancellationIssueDate: '2026-11-03',
+      cancellationObservation: 'Estorno total de empenho',
     })
 
     expect(updateCommitmentEqMock).toHaveBeenCalledWith('id', 'comm-1')
-    expect(insertNlMock).toHaveBeenCalledWith(
+    expect(insertCommitmentMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        commitment_id: 'comm-1',
-        liquidation_number: '2026NL00088',
-        is_cancellation: true,
+        commitment_number: '2026NE00088',
+        cancels_commitment_number: '2026NE00313',
+        status: 'cancelled',
       }),
     )
     expect(updateItemsInMock).toHaveBeenCalledWith('id', ['item-1', 'item-2'])
@@ -436,6 +432,7 @@ describe('useCommitments Composable', () => {
         commitmentId: 'comm-1',
         commitmentNumber: '2026NE00313',
         reason: 'Tentativa de cancelamento',
+        cancellationCommitmentNumber: '2026NE00099',
       }),
     ).rejects.toThrow(/Não é permitido cancelar uma Nota de Empenho que já possui Ordem Bancária/)
   })
@@ -497,16 +494,7 @@ describe('useCommitments Composable', () => {
     ).rejects.toThrow(/Notas de Empenho canceladas não permitem emissão de Ordem Bancária/)
   })
 
-  it('allows adding cancellation NL on a cancelled commitment even if not delivered', async () => {
-    const insertSingleMock = vi.fn().mockResolvedValue({
-      data: {
-        id: 'nl-canc-1',
-        liquidation_number: '2026NL00077',
-        is_cancellation: true,
-      },
-      error: null,
-    })
-
+  it('blocks adding NL on a cancelled commitment', async () => {
     fromMock.mockImplementation((table: string) => {
       if (table === 'demand_commitments') {
         return {
@@ -525,44 +513,19 @@ describe('useCommitments Composable', () => {
         }
       }
 
-      if (table === 'demand_commitment_liquidations') {
-        return {
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: insertSingleMock,
-            }),
-          }),
-        }
-      }
-
-      if (table === 'demand_item_status_history') {
-        return {
-          select: vi.fn().mockReturnValue({
-            in: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [],
-                error: null,
-              }),
-            }),
-          }),
-        }
-      }
-
       return {}
     })
 
     const { addLiquidationNote } = useCommitments()
 
-    const result = await addLiquidationNote({
-      commitmentId: 'comm-1',
-      commitmentNumber: '2026NE00313',
-      liquidationNumber: '2026NL00077',
-      issueDate: '2026-11-03',
-      observation: 'NL de Cancelamento posterior',
-    })
-
-    expect(result.liquidation_number).toBe('2026NL00077')
-    expect(result.is_cancellation).toBe(true)
+    await expect(
+      addLiquidationNote({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        liquidationNumber: '2026NL00077',
+        issueDate: '2026-11-03',
+      }),
+    ).rejects.toThrow(/Notas de Empenho canceladas não permitem registro de Notas de Liquidação/)
   })
 
   it('fetchCommitmentByNumber strictly excludes failed items and calculates total only for winning items', async () => {
@@ -684,6 +647,104 @@ describe('useCommitments Composable', () => {
     expect(detail!.items[0].winning_unit_price).toBe(14.7)
     // Total reflects only winning item (10 * 14.70 = 147.00)
     expect(detail!.total_amount).toBe(147)
+  })
+
+  it('fetchCommitmentByNumber loads original items when commitment is a cancellation NE', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-canc-2',
+                  commitment_number: '2026NE00099',
+                  cancels_commitment_number: '2026NE00313',
+                  supplier_id: 'sup-1',
+                  demand_id: 'dem-1',
+                  status: 'cancelled',
+                  demand_commitment_liquidations: [],
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockImplementation((cols: string) => {
+            if (cols === 'id') {
+              return {
+                eq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({
+                      data: [{ id: 'item-won' }],
+                      error: null,
+                    }),
+                  }),
+                }),
+              }
+            }
+            return {
+              eq: vi.fn().mockImplementation((col: string, val: string) => {
+                expect(val).toBe('2026NE00313')
+                return {
+                  order: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({
+                      data: [
+                        {
+                          id: 'item-won',
+                          quantity: 5,
+                          commitment_number: '2026NE00313',
+                          execution_status: 'cancelled',
+                          product_name_snapshot: 'Item Cancelado',
+                          demand_product_bids: [
+                            {
+                              id: 'bid-1',
+                              supplier_id: 'sup-1',
+                              amount: 20.0,
+                              status: 'classified',
+                            },
+                          ],
+                        },
+                      ],
+                      error: null,
+                    }),
+                  }),
+                }
+              }),
+            }
+          }),
+        }
+      }
+
+      if (table === 'demand_item_status_history') {
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+
+      return {}
+    })
+
+    const { fetchCommitmentByNumber } = useCommitments()
+    const detail = await fetchCommitmentByNumber('2026NE00099')
+
+    expect(detail).not.toBeNull()
+    expect(detail!.commitment.commitment_number).toBe('2026NE00099')
+    expect(detail!.commitment.cancels_commitment_number).toBe('2026NE00313')
+    expect(detail!.items).toHaveLength(1)
+    expect(detail!.items[0].id).toBe('item-won')
+    expect(detail!.total_amount).toBe(100)
   })
 
   it('updateCommitmentLogisticsStatus detaches failed items and updates only valid winning items', async () => {

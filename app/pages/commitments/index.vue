@@ -76,8 +76,19 @@
       )
       const pdMatch = item.disbursement_program_number?.toLowerCase().includes(q)
       const obMatch = item.bank_order_number?.toLowerCase().includes(q)
+      const cancellationMatch =
+        item.cancellation_commitment_number?.toLowerCase().includes(q) ||
+        item.cancels_commitment_number?.toLowerCase().includes(q)
 
-      return Boolean(numberMatch || supplierMatch || demandMatch || nlMatch || pdMatch || obMatch)
+      return Boolean(
+        numberMatch ||
+        supplierMatch ||
+        demandMatch ||
+        nlMatch ||
+        pdMatch ||
+        obMatch ||
+        cancellationMatch,
+      )
     })
   })
 
@@ -313,15 +324,18 @@
         </template>
 
         <template #item-financial="{ item }">
-          <div v-if="item.status === 'cancelled'" class="d-flex align-center ga-1">
+          <div v-if="item.status === 'cancelled'" class="d-flex flex-wrap align-center ga-1">
             <UiChip color="error" size="xs" variant="soft"> Sem Desembolso </UiChip>
+            <UiChip v-if="item.cancels_commitment_number" color="warning" size="xs" variant="soft">
+              Cancela: {{ item.cancels_commitment_number }}
+            </UiChip>
             <UiChip
-              v-if="(item.demand_commitment_liquidations?.length || 0) > 0"
+              v-else-if="item.cancellation_commitment_number"
               color="error"
               size="xs"
               variant="soft"
             >
-              NL Canc: {{ item.demand_commitment_liquidations?.length }}
+              Cancelada por: {{ item.cancellation_commitment_number }}
             </UiChip>
           </div>
           <div v-else class="d-flex flex-wrap ga-1 align-center">

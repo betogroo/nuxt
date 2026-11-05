@@ -21,7 +21,9 @@ vi.mock('~/composables/useToast', () => ({
 
 interface CancelModalVm {
   reason: string
-  cancellationNlNumber: string
+  cancellationCommitmentNumber: string
+  cancellationIssueDate: string
+  cancellationObservation: string
   onSubmit: () => Promise<void>
 }
 
@@ -42,6 +44,8 @@ describe('CancelCommitmentModal', () => {
     bank_order_number: null,
     bank_order_issued_at: null,
     bank_order_observation: null,
+    cancellation_commitment_number: null,
+    cancels_commitment_number: null,
     created_by: null,
     created_at: '2026-11-01T10:00:00Z',
     updated_at: '2026-11-01T10:00:00Z',
@@ -86,10 +90,11 @@ describe('CancelCommitmentModal', () => {
 
     expect(wrapper.text()).toContain('Atenção: Cancelamento de Empenho')
     expect(wrapper.text()).toContain('2026NE00010')
+    expect(wrapper.text()).toContain('Nova Nota de Empenho (NE) de Cancelamento')
     expect(wrapper.text()).toContain('Confirmar Cancelamento')
   })
 
-  it('submits cancellation without NL when user only informs reason', async () => {
+  it('submits cancellation when user informs valid reason and cancellation NE', async () => {
     cancelCommitmentMock.mockResolvedValue(undefined)
 
     const wrapper = mount(CancelCommitmentModal, {
@@ -125,6 +130,8 @@ describe('CancelCommitmentModal', () => {
 
     const vm = wrapper.vm as unknown as CancelModalVm
     vm.reason = 'Fornecedor desistiu da contratação'
+    vm.cancellationCommitmentNumber = '2026NE00099'
+    vm.cancellationIssueDate = '2026-11-05'
     await wrapper.vm.$nextTick()
 
     await vm.onSubmit()
@@ -134,14 +141,18 @@ describe('CancelCommitmentModal', () => {
         commitmentId: 'comm-123',
         commitmentNumber: '2026NE00010',
         reason: 'Fornecedor desistiu da contratação',
-        cancellationNlNumber: null,
+        cancellationCommitmentNumber: '2026NE00099',
+        cancellationIssueDate: '2026-11-05',
       }),
+    )
+    expect(toastSuccessMock).toHaveBeenCalledWith(
+      expect.stringContaining('cancelada pela NE 2026NE00099'),
     )
     expect(wrapper.emitted('cancelled')).toBeTruthy()
   })
 
-  it('submits cancellation with NL when user informs valid SIAFEM NL', async () => {
-    cancelCommitmentMock.mockResolvedValue(undefined)
+  it('displays error toast when cancelCommitment rejects', async () => {
+    cancelCommitmentMock.mockRejectedValue(new Error('A Nota de Empenho já existe.'))
 
     const wrapper = mount(CancelCommitmentModal, {
       props: {
@@ -161,13 +172,11 @@ describe('CancelCommitmentModal', () => {
           UiCol: { template: '<div><slot /></div>' },
           UiTextarea: {
             props: ['modelValue'],
-            template:
-              '<textarea class="reason-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template: '<textarea :value="modelValue" />',
           },
           UiTextField: {
             props: ['modelValue'],
-            template:
-              '<input class="text-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            template: '<input :value="modelValue" />',
           },
           UiButton: { template: '<button><slot /></button>' },
         },
@@ -175,21 +184,13 @@ describe('CancelCommitmentModal', () => {
     })
 
     const vm = wrapper.vm as unknown as CancelModalVm
-    vm.reason = 'Inadimplemento do fornecedor'
-    vm.cancellationNlNumber = '2026NL00099'
+    vm.reason = 'Cancelamento por falha do fornecedor'
+    vm.cancellationCommitmentNumber = '2026NE00099'
+    vm.cancellationIssueDate = '2026-11-05'
     await wrapper.vm.$nextTick()
 
     await vm.onSubmit()
 
-    expect(cancelCommitmentMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        commitmentId: 'comm-123',
-        commitmentNumber: '2026NE00010',
-        reason: 'Inadimplemento do fornecedor',
-        cancellationNlNumber: '2026NL00099',
-      }),
-    )
-    expect(toastSuccessMock).toHaveBeenCalledWith(expect.stringContaining('cancelada com sucesso'))
-    expect(wrapper.emitted('cancelled')).toBeTruthy()
+    expect(toastErrorMock).toHaveBeenCalledWith('A Nota de Empenho já existe.')
   })
 })
