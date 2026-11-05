@@ -159,7 +159,7 @@
 
           <UiRow>
             <UiCol cols="12" sm="6">
-              <UiTextField
+              <UiInput
                 v-model="cancellationCommitmentNumber"
                 v-bind="cancellationCommitmentNumberProps"
                 :error-messages="errors.cancellation_commitment_number"
@@ -171,7 +171,7 @@
               />
             </UiCol>
             <UiCol cols="12" sm="6">
-              <UiTextField
+              <UiInput
                 v-model="cancellationIssueDate"
                 v-bind="cancellationIssueDateProps"
                 :error-messages="errors.cancellation_issue_date"
@@ -183,7 +183,7 @@
           </UiRow>
 
           <div class="mt-3">
-            <UiTextField
+            <UiInput
               v-model="cancellationObservation"
               v-bind="cancellationObservationProps"
               :error-messages="errors.cancellation_observation"

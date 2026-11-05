@@ -77,6 +77,11 @@ describe('CancelCommitmentModal', () => {
             template:
               '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
           },
+          UiInput: {
+            props: ['modelValue', 'label', 'errorMessages'],
+            template:
+              '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          },
           UiTextField: {
             props: ['modelValue', 'label', 'errorMessages'],
             template:
@@ -117,6 +122,11 @@ describe('CancelCommitmentModal', () => {
             props: ['modelValue'],
             template:
               '<textarea class="reason-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+          },
+          UiInput: {
+            props: ['modelValue'],
+            template:
+              '<input class="text-input" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
           },
           UiTextField: {
             props: ['modelValue'],
@@ -173,6 +183,10 @@ describe('CancelCommitmentModal', () => {
           UiTextarea: {
             props: ['modelValue'],
             template: '<textarea :value="modelValue" />',
+          },
+          UiInput: {
+            props: ['modelValue'],
+            template: '<input :value="modelValue" />',
           },
           UiTextField: {
             props: ['modelValue'],
