@@ -993,11 +993,22 @@
     return winningSuppliersSummary.value.reduce((acc, s) => acc + s.totalAmountWon, 0)
   })
 
+  const totalHomologatedEstimatedAmount = computed(() => {
+    if (!items.value) return 0
+    return items.value.reduce((acc, item) => {
+      const dispute = getItemDisputeResult(item)
+      if (dispute.outcome !== 'winner') return acc
+      const price = Number(item.reference_price) || 0
+      const qty = Number(item.quantity) || 0
+      return acc + price * qty
+    }, 0)
+  })
+
   const totalSavings = computed(() => {
-    if (totalEstimatedAmount.value <= 0 || totalHomologatedAmount.value <= 0) return null
-    const diff = totalEstimatedAmount.value - totalHomologatedAmount.value
+    if (totalHomologatedEstimatedAmount.value <= 0 || totalHomologatedAmount.value <= 0) return null
+    const diff = totalHomologatedEstimatedAmount.value - totalHomologatedAmount.value
     if (diff <= 0) return null
-    const percent = (diff / totalEstimatedAmount.value) * 100
+    const percent = (diff / totalHomologatedEstimatedAmount.value) * 100
     return {
       amount: diff,
       percentage: percent,

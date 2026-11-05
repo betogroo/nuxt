@@ -1102,5 +1102,76 @@ describe('Demand Items Page', () => {
       vm.selectedWinningSupplierId = null
       expect(vm.filteredDemandItems).toHaveLength(3)
     })
+
+    it('calculates totalSavings considering only homologated/executed items (excluding failed and cancelled items)', () => {
+      mockDemandProducts.value = [
+        // Item 1: Vencedor (Ref: 100 * 10 = 1.000 | Vencedor: 80 * 10 = 800 -> Economia: 200)
+        {
+          id: 'item-won',
+          reference_price: 100,
+          quantity: 10,
+          execution_status: 'delivered',
+          demand_product_bids: [
+            {
+              id: 'b-1',
+              amount: 80,
+              status: 'classified',
+              supplier_id: 'sup-alpha',
+              suppliers: { id: 'sup-alpha', company_name: 'Alpha Fornecedora LTDA' },
+            },
+          ],
+        },
+        // Item 2: Fracassado na disputa (Ref: 500 * 10 = 5.000 | Fracassado -> NÃO deve contar como economia)
+        {
+          id: 'item-failed',
+          reference_price: 500,
+          quantity: 10,
+          execution_status: null,
+          demand_product_bids: [
+            {
+              id: 'b-2',
+              amount: 600,
+              status: 'disqualified',
+              supplier_id: 'sup-beta',
+              suppliers: { id: 'sup-beta', company_name: 'Beta Suprimentos LTDA' },
+            },
+          ],
+        },
+        // Item 3: Cancelado na execução (Ref: 200 * 5 = 1.000 | Cancelado -> NÃO deve contar como economia)
+        {
+          id: 'item-cancelled',
+          reference_price: 200,
+          quantity: 5,
+          execution_status: 'cancelled',
+          demand_product_bids: [
+            {
+              id: 'b-3',
+              amount: 150,
+              status: 'classified',
+              supplier_id: 'sup-alpha',
+              suppliers: { id: 'sup-alpha', company_name: 'Alpha Fornecedora LTDA' },
+            },
+          ],
+        },
+      ]
+
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      // Total Estimado da demanda inclui todos os itens para planejamento: 1.000 + 5.000 + 1.000 = 7.000
+      expect(vm.totalEstimatedAmount).toBe(7000)
+
+      // Total Homologado inclui apenas o item com fornecedor vencedor: 800
+      expect(vm.totalHomologatedAmount).toBe(800)
+
+      // Total Estimado dos itens efetivamente homologados: 1.000 (exclui os 5.000 do item fracassado e 1.000 do item cancelado)
+      expect(vm.totalHomologatedEstimatedAmount).toBe(1000)
+
+      // Economia Gerada: 1.000 - 800 = 200 (20.0%)
+      expect(vm.totalSavings).not.toBeNull()
+      expect(vm.totalSavings.amount).toBe(200)
+      expect(vm.totalSavings.percentage).toBeCloseTo(20.0, 1)
+    })
   })
 })
