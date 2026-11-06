@@ -32,6 +32,8 @@ describe('useSuppliers', () => {
     expect(composable.createSupplierFast).toBeDefined()
     expect(composable.updateSupplier).toBeDefined()
     expect(composable.toggleSupplierStatus).toBeDefined()
+    expect(composable.checkExistingSuppliersByCnpjs).toBeDefined()
+    expect(composable.createSuppliersBatch).toBeDefined()
   })
 
   describe('fetchSupplierById', () => {
@@ -323,6 +325,63 @@ describe('useSuppliers', () => {
       expect(result.totalDemandsWon).toBe(1)
       expect(result.totalItemsWon).toBe(1)
       expect(result.totalAmountWon).toBe(50)
+    })
+  })
+
+  describe('checkExistingSuppliersByCnpjs', () => {
+    it('deve retornar mapa vazio se o array de CNPJs for vazio', async () => {
+      const { checkExistingSuppliersByCnpjs } = useSuppliers()
+      const res = await checkExistingSuppliersByCnpjs([])
+      expect(res.size).toBe(0)
+    })
+
+    it('deve consultar variantes e indexar por dígitos limpos', async () => {
+      const mockRows = [{ id: 's-1', cnpj: '00.000.000/0001-91', company_name: 'Alpha LTDA' }]
+
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValueOnce({
+          in: vi.fn().mockResolvedValueOnce({
+            data: mockRows,
+            error: null,
+          }),
+        }),
+      })
+
+      const { checkExistingSuppliersByCnpjs } = useSuppliers()
+      const res = await checkExistingSuppliersByCnpjs(['00000000000191'])
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('suppliers')
+      expect(res.has('00000000000191')).toBe(true)
+      expect(res.get('00000000000191')?.company_name).toBe('Alpha LTDA')
+    })
+  })
+
+  describe('createSuppliersBatch', () => {
+    it('deve formatar CNPJ, inserir no banco e registrar logAction', async () => {
+      const items = [{ cnpj: '00000000000191', company_name: 'Empresa Teste' }]
+      const createdRows = [
+        { id: 's-1', cnpj: '00.000.000/0001-91', company_name: 'Empresa Teste', is_active: true },
+      ]
+
+      mockSupabaseClient.from.mockReturnValueOnce({
+        insert: vi.fn().mockReturnValueOnce({
+          select: vi.fn().mockResolvedValueOnce({
+            data: createdRows,
+            error: null,
+          }),
+        }),
+      })
+
+      const { createSuppliersBatch } = useSuppliers()
+      const res = await createSuppliersBatch(items)
+
+      expect(mockSupabaseClient.from).toHaveBeenCalledWith('suppliers')
+      expect(res).toEqual(createdRows)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'CREATE_SUPPLIERS_BATCH',
+        '1 fornecedores cadastrados em lote',
+        'user-1',
+      )
     })
   })
 })

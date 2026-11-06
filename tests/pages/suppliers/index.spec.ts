@@ -112,6 +112,10 @@ const stubs = {
   UiInput: { template: '<input class="ui-input" />' },
   UiPagination: { template: '<div class="ui-pagination" />' },
   SupplierFormModal: { template: '<div class="supplier-form-modal-stub" />' },
+  SupplierBatchAddModal: {
+    template: '<div class="supplier-batch-add-modal-stub" :data-open="modelValue" />',
+    props: ['modelValue'],
+  },
   NuxtLink: {
     template: '<a :href="to"><slot /></a>',
     props: ['to'],
@@ -168,5 +172,25 @@ describe('SuppliersIndexPage (/suppliers)', () => {
     const text = wrapper.text()
     expect(text).toContain('alpha@materiais.com')
     expect(text).toContain('-')
+  })
+
+  it('renders "Cadastro em Lote" button and opens batch modal on click', async () => {
+    const wrapper = mount(SuppliersIndexPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const batchBtn = wrapper
+      .findAll('button.ui-button')
+      .find((b) => b.text().includes('Cadastro em Lote'))
+
+    expect(batchBtn).toBeDefined()
+
+    const modalStub = wrapper.find('.supplier-batch-add-modal-stub')
+    expect(modalStub.attributes('data-open')).toBe('false')
+
+    await batchBtn!.trigger('click')
+    expect(modalStub.attributes('data-open')).toBe('true')
   })
 })

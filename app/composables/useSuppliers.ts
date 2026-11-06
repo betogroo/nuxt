@@ -1,5 +1,6 @@
 import type { Database } from '~/types/database.types'
 import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
+import { formatCnpj } from '~/utils/formatters'
 
 export type SupplierRow = Database['public']['Tables']['suppliers']['Row']
 export type SupplierInsert = Database['public']['Tables']['suppliers']['Insert']
@@ -326,6 +327,70 @@ export const useSuppliers = () => {
     }
   }
 
+  const checkExistingSuppliersByCnpjs = async (
+    cleanCnpjs: string[],
+  ): Promise<Map<string, SupplierRow>> => {
+    if (!cleanCnpjs || cleanCnpjs.length === 0) return new Map()
+
+    const variants = Array.from(
+      new Set([
+        ...cleanCnpjs.map((c) => c.replace(/\D/g, '')),
+        ...cleanCnpjs.map((c) => formatCnpj(c)),
+      ]),
+    ).filter(Boolean)
+
+    if (variants.length === 0) return new Map()
+
+    const { data, error } = await supabase.from('suppliers').select('*').in('cnpj', variants)
+
+    if (error) {
+      console.error('Erro ao verificar fornecedores existentes por CNPJ:', error)
+      throw error
+    }
+
+    const existingMap = new Map<string, SupplierRow>()
+    for (const row of data || []) {
+      const clean = (row.cnpj || '').replace(/\D/g, '')
+      if (clean) {
+        existingMap.set(clean, row as SupplierRow)
+      }
+    }
+
+    return existingMap
+  }
+
+  const createSuppliersBatch = async (
+    items: Array<{ cnpj: string; company_name: string }>,
+  ): Promise<SupplierRow[]> => {
+    if (!items || items.length === 0) return []
+
+    const payloads: SupplierInsert[] = items.map((item) => {
+      const clean = item.cnpj.replace(/\D/g, '')
+      const formatted = clean.length === 14 ? formatCnpj(clean) : item.cnpj.trim()
+      return {
+        cnpj: formatted,
+        company_name: item.company_name.trim(),
+        is_active: true,
+        email: null,
+      }
+    })
+
+    const { data, error } = await supabase.from('suppliers').insert(payloads).select()
+
+    if (error) {
+      console.error('Erro ao cadastrar fornecedores em lote:', error)
+      throw error
+    }
+
+    await logAction(
+      'CREATE_SUPPLIERS_BATCH',
+      `${payloads.length} fornecedores cadastrados em lote`,
+      user.value?.id,
+    )
+
+    return (data || []) as SupplierRow[]
+  }
+
   return {
     fetchSuppliers,
     fetchAllActiveSuppliers,
@@ -335,5 +400,7 @@ export const useSuppliers = () => {
     createSupplierFast,
     updateSupplier,
     toggleSupplierStatus,
+    checkExistingSuppliersByCnpjs,
+    createSuppliersBatch,
   }
 }

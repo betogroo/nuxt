@@ -2,6 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import { formatDate, formatCnpj } from '~/utils/formatters'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
+  import SupplierBatchAddModal from '~/components/suppliers/SupplierBatchAddModal.vue'
   const toast = useToast()
 
   definePageMeta({
@@ -55,6 +56,7 @@
 
   // Modal State
   const isModalOpen = ref(false)
+  const isBatchModalOpen = ref(false)
   const selectedSupplier = ref<SupplierRow | null>(null)
 
   const openAddModal = () => {
@@ -100,6 +102,14 @@
                 variant="soft"
                 @click="refresh"
               />
+              <UiButton
+                color="secondary"
+                prepend-icon="playlistAdd"
+                variant="soft"
+                @click="isBatchModalOpen = true"
+              >
+                Cadastro em Lote
+              </UiButton>
               <UiButton color="primary" prepend-icon="add" @click="openAddModal">
                 Novo Fornecedor
               </UiButton>
@@ -315,5 +325,8 @@
       :supplier="selectedSupplier"
       @saved="onSupplierSaved"
     />
+
+    <!-- Modal de Cadastro em Lote -->
+    <SupplierBatchAddModal v-model="isBatchModalOpen" @saved="refresh" />
   </div>
 </template>
