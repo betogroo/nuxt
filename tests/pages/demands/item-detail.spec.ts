@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount } from '@vue/test-utils'
+import { shallowMount, flushPromises } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { ref } from 'vue'
 import ItemDetailPage from '~/pages/demands/[id]/items/[itemId].vue'
@@ -225,6 +225,98 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     expect(vm.previousItem).toBeNull()
     expect(vm.nextItem).not.toBeNull()
     expect(vm.nextItemName).toBe('Mouse')
+    expect(vm.isBidModalOpen).toBe(false)
+  })
+
+  it('salva o lance e mantém a modal aberta ao usar saveBid(true) (continuar adicionando)', async () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+
+    vm.bidSupplierId = 'supp-1'
+    vm.bidAmount = 75
+    await vm.saveBid(true)
+
+    expect(mockAddBid).toHaveBeenCalledWith('item-1', 'supp-1', 75, expect.anything())
+    expect(mockRefreshBids).toHaveBeenCalled()
+    expect(mockRefreshDemandItems).toHaveBeenCalled()
+
+    // Modal deve continuar aberta
+    expect(vm.isBidModalOpen).toBe(true)
+    // Valores devem ter sido resetados para a próxima digitação
+    expect(vm.bidAmount).toBe('')
+    expect(vm.bidSupplierId).toBeNull()
+  })
+
+  it('aciona saveBid(true) ao pressionar Ctrl+Enter no modal de lances', async () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+
+    vm.bidSupplierId = 'supp-1'
+    vm.bidAmount = 65
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true })
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+
+    await vm.handleBidModalKeyDown(event)
+    await flushPromises()
+
+    expect(preventDefaultSpy).toHaveBeenCalled()
+    expect(mockAddBid).toHaveBeenCalledWith('item-1', 'supp-1', 65, expect.anything())
+    expect(vm.isBidModalOpen).toBe(true)
+  })
+
+  it('aciona saveBid(false) ao pressionar Enter simples no campo de valor', async () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+
+    vm.bidSupplierId = 'supp-1'
+    vm.bidAmount = 60
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: false, metaKey: false })
+    const preventDefaultSpy = vi.spyOn(event, 'preventDefault')
+
+    await vm.handleAmountKeyDown(event)
+    await flushPromises()
+
+    expect(preventDefaultSpy).toHaveBeenCalled()
+    expect(mockAddBid).toHaveBeenCalledWith('item-1', 'supp-1', 60, expect.anything())
+    expect(vm.isBidModalOpen).toBe(false)
+  })
+
+  it('aplica foco no elemento do fornecedor através de focusSupplierField', async () => {
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    const mockFocus = vi.fn()
+    const mockInputFocus = vi.fn()
+    vm.supplierAutocompleteRef = {
+      focus: mockFocus,
+      $el: {
+        querySelector: vi.fn().mockReturnValue({ focus: mockInputFocus }),
+      },
+    }
+
+    await vm.focusSupplierField()
+    await new Promise((resolve) => setTimeout(resolve, 60))
+
+    expect(mockFocus).toHaveBeenCalled()
+    expect(mockInputFocus).toHaveBeenCalled()
   })
 
   it('blocks reclassifying a disqualified bid when its amount exceeds reference_price', async () => {

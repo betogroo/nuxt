@@ -1,7 +1,7 @@
 <script setup lang="ts">
   import { useZodForm } from '~/composables/useZodForm'
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
-  import { demandBidFormSchema } from '~/schemas/forms/demand-bid'
+  import { demandBidFormSchema, type DemandBidFormInput } from '~/schemas/forms/demand-bid'
   import type { SupplierRow } from '~/composables/useSuppliers'
   import type { UnitRow } from '~/composables/useMeasurementUnits'
   import {
@@ -291,6 +291,7 @@
 
   const isBidModalOpen = ref(false)
   const isBidSaving = ref(false)
+  const isBidSavingAndContinuing = ref(false)
   const bidError = ref('')
 
   // Disqualification Modal State
@@ -407,7 +408,23 @@
   const [bidEmail, bidEmailProps] = bidDefine('newSupplierEmail')
   const [bidAmount, bidAmountProps] = bidDefine('amount')
 
-  const openBidModal = () => {
+  const toast = useToast()
+  const supplierAutocompleteRef = ref<{ focus?: () => void; $el?: HTMLElement } | null>(null)
+
+  const focusSupplierField = async () => {
+    await nextTick()
+    setTimeout(() => {
+      if (supplierAutocompleteRef.value) {
+        if (typeof supplierAutocompleteRef.value.focus === 'function') {
+          supplierAutocompleteRef.value.focus()
+        }
+        const input = supplierAutocompleteRef.value.$el?.querySelector?.('input')
+        input?.focus?.()
+      }
+    }, 50)
+  }
+
+  const openBidModal = async () => {
     if (!canRegisterBids.value) {
       bidError.value = 'O registro de lances é permitido apenas durante a fase de Disputa.'
       return
@@ -424,18 +441,41 @@
     })
     bidError.value = ''
     isBidModalOpen.value = true
+    await focusSupplierField()
+  }
+
+  const handleBidModalKeyDown = async (event: KeyboardEvent) => {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault()
+      if (!isBidSaving.value && !isBidSavingAndContinuing.value) {
+        await saveBid(true)
+      }
+    }
+  }
+
+  const handleAmountKeyDown = async (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault()
+      if (!isBidSaving.value && !isBidSavingAndContinuing.value) {
+        await saveBid(false)
+      }
+    }
   }
 
   const closeBidModal = () => {
     isBidModalOpen.value = false
   }
 
-  const saveBid = bidSubmit(async (values) => {
+  const executeSaveBid = async (values: DemandBidFormInput, keepOpen: boolean) => {
     if (!canRegisterBids.value) {
       bidError.value = 'O registro de lances é permitido apenas durante a fase de Disputa.'
       return
     }
-    isBidSaving.value = true
+    if (keepOpen) {
+      isBidSavingAndContinuing.value = true
+    } else {
+      isBidSaving.value = true
+    }
     bidError.value = ''
     try {
       let finalSupplierId = values.supplierId
@@ -446,6 +486,7 @@
           email: values.newSupplierEmail || undefined,
         })
         finalSupplierId = sup.id
+        await fetchSuppliersList()
       }
 
       await addBid(itemId.value, finalSupplierId!, values.amount, {
@@ -453,15 +494,32 @@
       })
       await refreshBids()
       await invalidateParentDemandItems()
-      closeBidModal()
+      toast.success('Lance registrado com sucesso!')
+
+      if (keepOpen) {
+        bidReset({
+          values: {
+            isNewSupplier: false,
+            supplierId: null,
+            newSupplierCnpj: '',
+            newSupplierName: '',
+            newSupplierEmail: '',
+            amount: '' as unknown as number,
+          },
+        })
+        await focusSupplierField()
+      } else {
+        closeBidModal()
+      }
     } catch (err: unknown) {
       bidError.value = err instanceof Error ? err.message : String(err)
     } finally {
       isBidSaving.value = false
+      isBidSavingAndContinuing.value = false
     }
-  })
+  }
 
-  const toast = useToast()
+  const saveBid = (keepOpen = false) => bidSubmit((values) => executeSaveBid(values, keepOpen))()
 
   const confirmRemoveBid = async (bidId: string) => {
     if (!canRemoveBid.value) {
@@ -1179,78 +1237,105 @@
       title="Registrar Lance do Fornecedor"
       transparent-header
     >
-      <UiAlert v-if="bidError" class="mb-4" size="sm" type="error" variant="soft">
-        {{ bidError }}
-      </UiAlert>
+      <div @keydown="handleBidModalKeyDown">
+        <UiAlert v-if="bidError" class="mb-4" size="sm" type="error" variant="soft">
+          {{ bidError }}
+        </UiAlert>
 
-      <UiSwitch
-        v-model="bidIsNew"
-        v-bind="bidIsNewProps"
-        class="mb-4"
-        color="primary"
-        :error-messages="bidErrors.isNewSupplier"
-        hide-details
-        label="Fornecedor não está na lista? Cadastrar Novo."
-        size="sm"
-      ></UiSwitch>
+        <UiSwitch
+          v-model="bidIsNew"
+          v-bind="bidIsNewProps"
+          class="mb-4"
+          color="primary"
+          :error-messages="bidErrors.isNewSupplier"
+          hide-details
+          label="Fornecedor não está na lista? Cadastrar Novo."
+          size="sm"
+        ></UiSwitch>
 
-      <!-- Fornecedor Existente -->
-      <UiAutocomplete
-        v-if="!bidIsNew"
-        v-model="bidSupplierId"
-        v-bind="bidSupplierIdProps"
-        class="mb-3"
-        color="primary"
-        :error-messages="bidErrors.supplierId"
-        item-title="company_name"
-        item-value="id"
-        :items="suppliers"
-        label="Selecionar Fornecedor*"
-        placeholder="Busque pela razão social..."
-        size="md"
-        variant="outline"
-      ></UiAutocomplete>
+        <!-- Fornecedor Existente -->
+        <UiAutocomplete
+          v-if="!bidIsNew"
+          ref="supplierAutocompleteRef"
+          v-model="bidSupplierId"
+          v-bind="bidSupplierIdProps"
+          class="mb-3"
+          color="primary"
+          :error-messages="bidErrors.supplierId"
+          item-title="company_name"
+          item-value="id"
+          :items="suppliers"
+          label="Selecionar Fornecedor*"
+          placeholder="Busque pela razão social..."
+          size="md"
+          variant="outline"
+        ></UiAutocomplete>
 
-      <!-- Novo Fornecedor -->
-      <template v-else>
+        <!-- Novo Fornecedor -->
+        <template v-else>
+          <UiInput
+            v-model="bidCnpj"
+            v-bind="bidCnpjProps"
+            v-maska="'##.###.###/####-##'"
+            :error-messages="bidErrors.newSupplierCnpj"
+            label="CNPJ do Fornecedor*"
+            placeholder="Apenas números"
+          />
+          <UiInput
+            v-model="bidName"
+            v-bind="bidNameProps"
+            :error-messages="bidErrors.newSupplierName"
+            label="Razão Social*"
+            placeholder="Nome da empresa"
+          />
+          <UiInput
+            v-model="bidEmail"
+            v-bind="bidEmailProps"
+            :error-messages="bidErrors.newSupplierEmail"
+            label="E-mail de Contato"
+            placeholder="email@empresa.com"
+            type="email"
+          />
+        </template>
+
         <UiInput
-          v-model="bidCnpj"
-          v-bind="bidCnpjProps"
-          v-maska="'##.###.###/####-##'"
-          :error-messages="bidErrors.newSupplierCnpj"
-          label="CNPJ do Fornecedor*"
-          placeholder="Apenas números"
+          v-model="bidAmount"
+          v-bind="bidAmountProps"
+          class="mt-4"
+          :error-messages="bidErrors.amount"
+          inputmode="decimal"
+          label="Valor do Lance (R$)*"
+          placeholder="0,00"
+          @keydown="handleAmountKeyDown"
         />
-        <UiInput
-          v-model="bidName"
-          v-bind="bidNameProps"
-          :error-messages="bidErrors.newSupplierName"
-          label="Razão Social*"
-          placeholder="Nome da empresa"
-        />
-        <UiInput
-          v-model="bidEmail"
-          v-bind="bidEmailProps"
-          :error-messages="bidErrors.newSupplierEmail"
-          label="E-mail de Contato"
-          placeholder="email@empresa.com"
-          type="email"
-        />
-      </template>
-
-      <UiInput
-        v-model="bidAmount"
-        v-bind="bidAmountProps"
-        class="mt-4"
-        :error-messages="bidErrors.amount"
-        inputmode="decimal"
-        label="Valor do Lance (R$)*"
-        placeholder="0,00"
-      />
+      </div>
 
       <template #actions>
-        <UiButton :disabled="isBidSaving" variant="ghost" @click="closeBidModal">Cancelar</UiButton>
-        <UiButton color="primary" :loading="isBidSaving" @click="saveBid"> Salvar Lance </UiButton>
+        <UiButton
+          :disabled="isBidSaving || isBidSavingAndContinuing"
+          variant="ghost"
+          @click="closeBidModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          :disabled="isBidSaving"
+          :loading="isBidSavingAndContinuing"
+          variant="tonal"
+          @click="saveBid(true)"
+        >
+          Salvar e Continuar Inserindo (Ctrl+Enter)
+        </UiButton>
+        <UiButton
+          color="primary"
+          :disabled="isBidSavingAndContinuing"
+          :loading="isBidSaving"
+          variant="solid"
+          @click="saveBid(false)"
+        >
+          Salvar Lance
+        </UiButton>
       </template>
     </UiModal>
 

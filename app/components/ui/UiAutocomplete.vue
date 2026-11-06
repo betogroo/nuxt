@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, useAttrs } from 'vue'
+  import { ref, computed, useAttrs } from 'vue'
   import type { UiVariant, UiSize, UiRounded } from '~/types/ui'
 
   defineOptions({ inheritAttrs: false })
@@ -55,10 +55,21 @@
     const r = props.rounded || 'lg'
     return r === 'none' ? '0' : r
   })
+
+  const autocompleteRef = ref<{ focus?: () => void } | null>(null)
+
+  const focus = () => {
+    autocompleteRef.value?.focus?.()
+  }
+
+  defineExpose({
+    focus,
+  })
 </script>
 
 <template>
   <v-autocomplete
+    ref="autocompleteRef"
     :class="{ 'mb-3': !isDetailsHidden }"
     :clearable="clearable"
     :custom-filter="customFilter"
