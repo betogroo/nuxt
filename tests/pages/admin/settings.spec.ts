@@ -50,6 +50,8 @@ describe('SettingsAdminPage', () => {
           UiSpacer: true,
           UiProgressCircular: true,
           UiActionButton: true,
+          UiTable: true,
+          UiChip: true,
         },
       },
     })
@@ -80,6 +82,8 @@ describe('SettingsAdminPage', () => {
           UiSpacer: true,
           UiProgressCircular: true,
           UiActionButton: true,
+          UiTable: true,
+          UiChip: true,
         },
       },
     })
@@ -114,6 +118,8 @@ describe('SettingsAdminPage', () => {
           UiSpacer: true,
           UiProgressCircular: true,
           UiActionButton: true,
+          UiTable: true,
+          UiChip: true,
         },
       },
     })
