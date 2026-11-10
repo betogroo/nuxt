@@ -41,69 +41,110 @@ export const useIirgdDemands = () => {
   const { logAction } = useLogger()
 
   const fetchDemandCounts = async () => {
-    const { data, error } = await supabase
-      .from('iirgd_demands')
-      .select('status, document_type_id, iirgd_document_types(name)')
-    if (error) {
-      console.error(error)
+    // 1. Fetch antecedent document type ids
+    const { data: antecedentTypes, error: docErr } = await supabase
+      .from('iirgd_document_types')
+      .select('id')
+      .ilike('name', '%antecedentes%')
+
+    if (docErr) {
+      console.error(docErr)
       throw new Error('Erro ao buscar contagens de demandas do IIRGD')
     }
 
-    const counts = {
-      inProgress: 0,
-      consulted: 0,
-      released: 0,
-      issued: 0,
-      issuedAntecedents: 0,
-      errors: 0,
+    const antecedentIds = (antecedentTypes || []).map((t: { id: string }) => t.id)
+
+    // 2. Count demands per group using head: true (zero row payload over the network)
+    const [inProgressRes, consultedRes, releasedRes, errorsRes, issuedAntecedentsRes, issuedRgRes] =
+      await Promise.all([
+        supabase
+          .from('iirgd_demands')
+          .select('*', { count: 'exact', head: true })
+          .in('status', IIRGD_STATUS_BY_GROUP['in-progress']),
+        supabase
+          .from('iirgd_demands')
+          .select('*', { count: 'exact', head: true })
+          .in('status', IIRGD_STATUS_BY_GROUP.consulted),
+        supabase
+          .from('iirgd_demands')
+          .select('*', { count: 'exact', head: true })
+          .in('status', IIRGD_STATUS_BY_GROUP.released),
+        supabase
+          .from('iirgd_demands')
+          .select('*', { count: 'exact', head: true })
+          .in('status', IIRGD_STATUS_BY_GROUP.errors),
+        antecedentIds.length > 0
+          ? supabase
+              .from('iirgd_demands')
+              .select('*', { count: 'exact', head: true })
+              .eq('status', 'issued')
+              .in('document_type_id', antecedentIds)
+          : Promise.resolve({ count: 0, error: null }),
+        antecedentIds.length > 0
+          ? supabase
+              .from('iirgd_demands')
+              .select('*', { count: 'exact', head: true })
+              .eq('status', 'issued')
+              .not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
+          : supabase
+              .from('iirgd_demands')
+              .select('*', { count: 'exact', head: true })
+              .eq('status', 'issued'),
+      ])
+
+    const firstError =
+      inProgressRes.error ||
+      consultedRes.error ||
+      releasedRes.error ||
+      errorsRes.error ||
+      issuedAntecedentsRes.error ||
+      issuedRgRes.error
+
+    if (firstError) {
+      console.error(firstError)
+      throw new Error('Erro ao buscar contagens de demandas do IIRGD')
     }
 
-    if (data) {
-      data.forEach((d) => {
-        const status = d.status as IirgdDemandStatus
-        if (IIRGD_STATUS_BY_GROUP['in-progress'].includes(status)) {
-          counts.inProgress++
-        } else if (IIRGD_STATUS_BY_GROUP.consulted.includes(status)) {
-          counts.consulted++
-        } else if (IIRGD_STATUS_BY_GROUP.released.includes(status)) {
-          counts.released++
-        } else if (IIRGD_STATUS_BY_GROUP.issued.includes(status)) {
-          const docName = (d.iirgd_document_types as { name?: string } | null)?.name || ''
-          if (docName.toLowerCase().includes('antecedentes')) {
-            counts.issuedAntecedents++
-          } else {
-            counts.issued++
-          }
-        } else if (IIRGD_STATUS_BY_GROUP.errors.includes(status)) {
-          counts.errors++
-        }
-      })
+    return {
+      inProgress: inProgressRes.count || 0,
+      consulted: consultedRes.count || 0,
+      released: releasedRes.count || 0,
+      issued: issuedRgRes.count || 0,
+      issuedAntecedents: issuedAntecedentsRes.count || 0,
+      errors: errorsRes.count || 0,
     }
-    return counts
   }
 
   const fetchDemands = async (options?: {
     page?: number
     itemsPerPage?: number
     statusGroup?: string
+    status?: string | string[]
     searchQuery?: string
     stationCode?: string
+    documentTypeId?: string
     noPagination?: boolean
+    orderBy?: string
+    ascending?: boolean
   }) => {
     const {
       page = 1,
       itemsPerPage = 10,
       statusGroup,
+      status,
       searchQuery,
       stationCode,
+      documentTypeId,
       noPagination = false,
+      orderBy = 'created_at',
+      ascending = statusGroup ? true : false,
     } = options || {}
 
     let query = supabase
       .from('iirgd_demands')
       .select('*, iirgd_citizens!inner(*), iirgd_document_types(name)', { count: 'exact' })
 
-    if (statusGroup) {
+    if (statusGroup && statusGroup !== 'all') {
       const groupStatuses = IIRGD_STATUS_BY_GROUP[statusGroup as IirgdStatusGroup]
       if (groupStatuses) {
         query = query.in('status', groupStatuses)
@@ -127,18 +168,29 @@ export const useIirgdDemands = () => {
           query = query.not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
         }
       }
+    } else if (status && status !== 'all') {
+      if (Array.isArray(status)) {
+        query = query.in('status', status)
+      } else {
+        query = query.eq('status', status)
+      }
     }
 
-    if (stationCode) {
+    if (stationCode && stationCode !== 'Todos') {
       query = query.eq('station_code', stationCode)
     }
 
-    if (searchQuery) {
+    if (documentTypeId && documentTypeId !== 'all') {
+      query = query.eq('document_type_id', documentTypeId)
+    }
+
+    if (searchQuery && searchQuery.trim()) {
+      const trimmed = searchQuery.trim()
       const { data: citIds, error: citErr } = await supabase
         .from('iirgd_citizens')
         .select('id')
         .or(
-          `name.ilike.%${searchQuery}%,rg.ilike.%${searchQuery}%,cpf.ilike.%${searchQuery}%,other_document.ilike.%${searchQuery}%`,
+          `name.ilike.%${trimmed}%,rg.ilike.%${trimmed}%,cpf.ilike.%${trimmed}%,other_document.ilike.%${trimmed}%`,
         )
 
       if (!citErr && citIds) {
@@ -156,7 +208,7 @@ export const useIirgdDemands = () => {
       query = query.range(from, to)
     }
 
-    const { data, count, error } = await query.order('created_at', { ascending: true })
+    const { data, count, error } = await query.order(orderBy, { ascending })
 
     if (error) {
       console.error(error)

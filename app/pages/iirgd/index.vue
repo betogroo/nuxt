@@ -173,6 +173,14 @@
       title="Dashboard IIRGD"
     >
       <template #actions>
+        <UiButton
+          color="secondary"
+          prepend-icon="search"
+          variant="outlined"
+          @click="navigateTo('/iirgd/demands')"
+        >
+          Todas as Demandas
+        </UiButton>
         <UiButton color="primary" prepend-icon="add" @click="isModalOpen = true">
           Nova Demanda
         </UiButton>
@@ -199,8 +207,27 @@
           </UiCard>
         </UiCol>
       </UiRow>
-      <UiRow v-if="canManageIirgd" class="mt-6">
-        <UiCol cols="12">
+      <UiRow class="mt-6">
+        <UiCol cols="12" :md="canManageIirgd ? 6 : 12">
+          <UiCard
+            class="cursor-pointer transition-swing"
+            hover
+            @click="navigateTo('/iirgd/demands')"
+          >
+            <div class="d-flex align-center justify-space-between pa-4">
+              <div>
+                <div class="text-h6 mb-1">Buscar e Listar Demandas</div>
+                <div class="text-body-2 text-medium-emphasis">
+                  Consulte todas as demandas cadastradas por nome, RG, CPF ou posto.
+                </div>
+              </div>
+              <UiAvatar color="primary" size="lg" variant="soft">
+                <UiIcon name="search" />
+              </UiAvatar>
+            </div>
+          </UiCard>
+        </UiCol>
+        <UiCol v-if="canManageIirgd" cols="12" md="6">
           <UiCard
             class="cursor-pointer transition-swing"
             hover

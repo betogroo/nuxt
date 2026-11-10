@@ -43,6 +43,9 @@ describe('useIirgdDemands', () => {
       data: [],
       error: null,
     })
+    supabaseFromMock.in = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.not = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.eq = vi.fn(() => supabaseFromMock)
   })
 
   it('fetchDemands should return data', async () => {
@@ -52,40 +55,22 @@ describe('useIirgdDemands', () => {
     expect(result).toEqual({ data: [{ id: '1', name: 'Test' }], count: 1 })
   })
 
-  it('fetchDemandCounts should count RGs and Antecedentes separately', async () => {
-    supabaseFromMock.select.mockResolvedValueOnce({
-      data: [
-        { status: 'new', document_type_id: '1', iirgd_document_types: { name: '1ª Via RG' } },
-        {
-          status: 'confronted',
-          document_type_id: '1',
-          iirgd_document_types: { name: '1ª Via RG' },
-        },
-        { status: 'released', document_type_id: '1', iirgd_document_types: { name: '1ª Via RG' } },
-        { status: 'issued', document_type_id: '1', iirgd_document_types: { name: '1ª Via RG' } },
-        {
-          status: 'issued',
-          document_type_id: '2',
-          iirgd_document_types: { name: 'Antecedentes Numeral' },
-        },
-        {
-          status: 'issued',
-          document_type_id: '3',
-          iirgd_document_types: { name: 'Antecedentes Nominal' },
-        },
-        {
-          status: 'protocol_cancelled',
-          document_type_id: '1',
-          iirgd_document_types: { name: '1ª Via RG' },
-        },
-        {
-          status: 'unknown_error',
-          document_type_id: '1',
-          iirgd_document_types: { name: '1ª Via RG' },
-        },
-      ],
+  it('fetchDemandCounts should count RGs and Antecedentes separately via head requests', async () => {
+    supabaseFromMock.ilike.mockResolvedValueOnce({
+      data: [{ id: 'doc-ant-1' }],
       error: null,
     })
+
+    const inMock = vi.fn()
+    inMock
+      .mockResolvedValueOnce({ count: 1, error: null }) // inProgress
+      .mockResolvedValueOnce({ count: 1, error: null }) // consulted
+      .mockResolvedValueOnce({ count: 1, error: null }) // released
+      .mockResolvedValueOnce({ count: 2, error: null }) // errors
+      .mockResolvedValueOnce({ count: 2, error: null }) // issuedAntecedents
+
+    supabaseFromMock.in = inMock
+    supabaseFromMock.not = vi.fn().mockResolvedValueOnce({ count: 1, error: null }) // issued RGs
 
     const { fetchDemandCounts } = useIirgdDemands()
     const counts = await fetchDemandCounts()
@@ -98,6 +83,55 @@ describe('useIirgdDemands', () => {
       issuedAntecedents: 2,
       errors: 2,
     })
+  })
+
+  it('fetchDemandCounts should handle zero antecedent types gracefully', async () => {
+    supabaseFromMock.ilike.mockResolvedValueOnce({
+      data: [],
+      error: null,
+    })
+
+    const inMock = vi.fn()
+    inMock
+      .mockResolvedValueOnce({ count: 5, error: null }) // inProgress
+      .mockResolvedValueOnce({ count: 0, error: null }) // consulted
+      .mockResolvedValueOnce({ count: 3, error: null }) // released
+      .mockResolvedValueOnce({ count: 1, error: null }) // errors
+
+    supabaseFromMock.in = inMock
+    supabaseFromMock.eq = vi.fn().mockResolvedValueOnce({ count: 4, error: null }) // issued RGs
+
+    const { fetchDemandCounts } = useIirgdDemands()
+    const counts = await fetchDemandCounts()
+
+    expect(counts).toEqual({
+      inProgress: 5,
+      consulted: 0,
+      released: 3,
+      issued: 4,
+      issuedAntecedents: 0,
+      errors: 1,
+    })
+  })
+
+  it('fetchDemands should support querying all demands without statusGroup', async () => {
+    const { fetchDemands } = useIirgdDemands()
+    await fetchDemands({ page: 2, itemsPerPage: 20 })
+    expect(supabaseFromMock.in).not.toHaveBeenCalledWith('status', expect.anything())
+    expect(supabaseFromMock.order).toHaveBeenCalledWith('created_at', { ascending: false })
+    expect(supabaseFromMock.range).toHaveBeenCalledWith(20, 39)
+  })
+
+  it('fetchDemands should filter by single status when provided', async () => {
+    const { fetchDemands } = useIirgdDemands()
+    await fetchDemands({ status: 'new' })
+    expect(supabaseFromMock.eq).toHaveBeenCalledWith('status', 'new')
+  })
+
+  it('fetchDemands should filter by documentTypeId when provided', async () => {
+    const { fetchDemands } = useIirgdDemands()
+    await fetchDemands({ documentTypeId: 'doc-123' })
+    expect(supabaseFromMock.eq).toHaveBeenCalledWith('document_type_id', 'doc-123')
   })
 
   it('fetchDemands should exclude antecedent types when statusGroup is issued', async () => {
