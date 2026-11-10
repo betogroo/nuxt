@@ -337,4 +337,19 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
     expect(vm.group).toBe('errors')
     expect(wrapper.text()).toContain('Relatório de Erros')
   })
+
+  it('should include observation header when group is pendencies', async () => {
+    mockRoute.params.group = 'pendencies'
+    mockProfile.value = { role: 'admin' }
+    const wrapper = mount(GroupPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.group).toBe('pendencies')
+    expect(vm.tableHeaders.some((h: { value: string }) => h.value === 'observation')).toBe(true)
+  })
 })

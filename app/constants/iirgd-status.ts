@@ -68,19 +68,27 @@ export const IIRGD_STATUS_GROUPS = [
 ]
 
 export type IirgdStatusGroup =
-  'in-progress' | 'consulted' | 'released' | 'issued' | 'issued-antecedents' | 'errors'
+  | 'in-progress'
+  | 'pendencies'
+  | 'consulted'
+  | 'released'
+  | 'issued'
+  | 'issued-antecedents'
+  | 'errors'
 
 export const IIRGD_STATUS_GROUP_TITLES: Record<IirgdStatusGroup, string> = {
   'in-progress': 'Em Andamento',
+  pendencies: 'Pendências',
   consulted: 'Consultados',
   released: 'Liberados',
   issued: 'RGs Emitidos',
   'issued-antecedents': 'Antecedentes Emitidos',
-  errors: 'Erros e Pendências',
+  errors: 'Erros e Cancelamentos',
 }
 
 export const IIRGD_STATUS_BY_GROUP: Record<IirgdStatusGroup, IirgdDemandStatus[]> = {
-  'in-progress': ['new', 'mailbag', 'cegaf', 'no_data', 'other_pending'],
+  'in-progress': ['new'],
+  pendencies: ['mailbag', 'cegaf', 'no_data', 'other_pending'],
   consulted: ['confronted'],
   released: ['released'],
   issued: ['issued'],

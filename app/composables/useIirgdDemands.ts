@@ -55,45 +55,57 @@ export const useIirgdDemands = () => {
     const antecedentIds = (antecedentTypes || []).map((t: { id: string }) => t.id)
 
     // 2. Count demands per group using head: true (zero row payload over the network)
-    const [inProgressRes, consultedRes, releasedRes, errorsRes, issuedAntecedentsRes, issuedRgRes] =
-      await Promise.all([
-        supabase
-          .from('iirgd_demands')
-          .select('*', { count: 'exact', head: true })
-          .in('status', IIRGD_STATUS_BY_GROUP['in-progress']),
-        supabase
-          .from('iirgd_demands')
-          .select('*', { count: 'exact', head: true })
-          .in('status', IIRGD_STATUS_BY_GROUP.consulted),
-        supabase
-          .from('iirgd_demands')
-          .select('*', { count: 'exact', head: true })
-          .in('status', IIRGD_STATUS_BY_GROUP.released),
-        supabase
-          .from('iirgd_demands')
-          .select('*', { count: 'exact', head: true })
-          .in('status', IIRGD_STATUS_BY_GROUP.errors),
-        antecedentIds.length > 0
-          ? supabase
-              .from('iirgd_demands')
-              .select('*', { count: 'exact', head: true })
-              .eq('status', 'issued')
-              .in('document_type_id', antecedentIds)
-          : Promise.resolve({ count: 0, error: null }),
-        antecedentIds.length > 0
-          ? supabase
-              .from('iirgd_demands')
-              .select('*', { count: 'exact', head: true })
-              .eq('status', 'issued')
-              .not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
-          : supabase
-              .from('iirgd_demands')
-              .select('*', { count: 'exact', head: true })
-              .eq('status', 'issued'),
-      ])
+    const [
+      inProgressRes,
+      pendenciesRes,
+      consultedRes,
+      releasedRes,
+      errorsRes,
+      issuedAntecedentsRes,
+      issuedRgRes,
+    ] = await Promise.all([
+      supabase
+        .from('iirgd_demands')
+        .select('*', { count: 'exact', head: true })
+        .in('status', IIRGD_STATUS_BY_GROUP['in-progress']),
+      supabase
+        .from('iirgd_demands')
+        .select('*', { count: 'exact', head: true })
+        .in('status', IIRGD_STATUS_BY_GROUP.pendencies),
+      supabase
+        .from('iirgd_demands')
+        .select('*', { count: 'exact', head: true })
+        .in('status', IIRGD_STATUS_BY_GROUP.consulted),
+      supabase
+        .from('iirgd_demands')
+        .select('*', { count: 'exact', head: true })
+        .in('status', IIRGD_STATUS_BY_GROUP.released),
+      supabase
+        .from('iirgd_demands')
+        .select('*', { count: 'exact', head: true })
+        .in('status', IIRGD_STATUS_BY_GROUP.errors),
+      antecedentIds.length > 0
+        ? supabase
+            .from('iirgd_demands')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'issued')
+            .in('document_type_id', antecedentIds)
+        : Promise.resolve({ count: 0, error: null }),
+      antecedentIds.length > 0
+        ? supabase
+            .from('iirgd_demands')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'issued')
+            .not('document_type_id', 'in', `(${antecedentIds.join(',')})`)
+        : supabase
+            .from('iirgd_demands')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'issued'),
+    ])
 
     const firstError =
       inProgressRes.error ||
+      pendenciesRes.error ||
       consultedRes.error ||
       releasedRes.error ||
       errorsRes.error ||
@@ -107,6 +119,7 @@ export const useIirgdDemands = () => {
 
     return {
       inProgress: inProgressRes.count || 0,
+      pendencies: pendenciesRes.count || 0,
       consulted: consultedRes.count || 0,
       released: releasedRes.count || 0,
       issued: issuedRgRes.count || 0,

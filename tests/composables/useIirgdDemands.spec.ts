@@ -64,6 +64,7 @@ describe('useIirgdDemands', () => {
     const inMock = vi.fn()
     inMock
       .mockResolvedValueOnce({ count: 1, error: null }) // inProgress
+      .mockResolvedValueOnce({ count: 1, error: null }) // pendencies
       .mockResolvedValueOnce({ count: 1, error: null }) // consulted
       .mockResolvedValueOnce({ count: 1, error: null }) // released
       .mockResolvedValueOnce({ count: 2, error: null }) // errors
@@ -77,6 +78,7 @@ describe('useIirgdDemands', () => {
 
     expect(counts).toEqual({
       inProgress: 1,
+      pendencies: 1,
       consulted: 1,
       released: 1,
       issued: 1,
@@ -94,6 +96,7 @@ describe('useIirgdDemands', () => {
     const inMock = vi.fn()
     inMock
       .mockResolvedValueOnce({ count: 5, error: null }) // inProgress
+      .mockResolvedValueOnce({ count: 2, error: null }) // pendencies
       .mockResolvedValueOnce({ count: 0, error: null }) // consulted
       .mockResolvedValueOnce({ count: 3, error: null }) // released
       .mockResolvedValueOnce({ count: 1, error: null }) // errors
@@ -106,6 +109,7 @@ describe('useIirgdDemands', () => {
 
     expect(counts).toEqual({
       inProgress: 5,
+      pendencies: 2,
       consulted: 0,
       released: 3,
       issued: 4,

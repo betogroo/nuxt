@@ -38,7 +38,11 @@
   // Para o UiTabs e navegação
   const currentTab = computed({
     get: () => group.value,
-    set: (val) => navigateTo(`/iirgd/status/${val}`),
+    set: (val) => {
+      if (val && val !== group.value) {
+        navigateTo(`/iirgd/status/${val}`)
+      }
+    },
   })
 
   const titles: Record<string, string> = IIRGD_STATUS_GROUP_TITLES
@@ -65,7 +69,7 @@
       { text: 'RG', value: 'rg' },
       { text: 'CPF', value: 'cpf' },
       { text: 'Status', value: 'status', align: 'center' as const },
-      ...(group.value === 'errors' || group.value === 'in-progress'
+      ...(group.value === 'errors' || group.value === 'in-progress' || group.value === 'pendencies'
         ? [{ text: 'Observações', value: 'observation' }]
         : []),
       { text: 'Data', value: 'created_at', align: 'right' as const },
@@ -294,6 +298,7 @@
       <!-- Navegação Facilitada entre status -->
       <UiTabs v-model="currentTab" class="mb-4">
         <UiTab value="in-progress">Em Andamento</UiTab>
+        <UiTab value="pendencies">Pendências</UiTab>
         <UiTab v-if="canEditStatus" value="consulted">Consultados</UiTab>
         <UiTab v-if="canEditStatus" value="released">Liberados</UiTab>
         <UiTab value="issued">RGs Emitidos</UiTab>

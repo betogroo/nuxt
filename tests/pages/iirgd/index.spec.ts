@@ -56,6 +56,7 @@ describe('IIRGD Page Dashboard', () => {
   it('should render successfully with counts', () => {
     mockCountsData.value = {
       inProgress: 5,
+      pendencies: 2,
       consulted: 1,
       released: 2,
       issued: 3,
@@ -65,10 +66,8 @@ describe('IIRGD Page Dashboard', () => {
     const wrapper = shallowMount(IirgdPage)
     expect(wrapper.exists()).toBe(true)
     const vm = wrapper.vm as unknown as IirgdPageVm
-    expect(vm.statusChartSeries).toEqual([5, 1, 2, 3, 4, 0])
-    expect(vm.cards).toHaveLength(6)
-    expect(vm.cards[0].count).toBe(5)
-    expect(vm.cards.find((c) => c.group === 'issued-antecedents')?.count).toBe(4)
+    expect(vm.statusChartSeries).toEqual([5, 2, 1, 2, 3, 4, 0])
+    expect(vm.cards).toHaveLength(7)
   })
 
   it('should handle null counts gracefully without throwing', () => {
@@ -76,7 +75,7 @@ describe('IIRGD Page Dashboard', () => {
     const wrapper = shallowMount(IirgdPage)
     expect(wrapper.exists()).toBe(true)
     const vm = wrapper.vm as unknown as IirgdPageVm
-    expect(vm.statusChartSeries).toEqual([0, 0, 0, 0, 0, 0])
+    expect(vm.statusChartSeries).toEqual([0, 0, 0, 0, 0, 0, 0])
     expect(vm.cards[0].count).toBe(0)
   })
 

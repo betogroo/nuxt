@@ -32,6 +32,7 @@
   const { data: counts, refresh } = useAsyncData('iirgd-demand-counts', fetchDemandCounts, {
     default: () => ({
       inProgress: 0,
+      pendencies: 0,
       consulted: 0,
       released: 0,
       issued: 0,
@@ -44,13 +45,14 @@
     chart: { type: 'donut', fontFamily: 'inherit' },
     labels: [
       'Em Andamento',
+      'Pendências',
       'Consultados',
       'Liberados',
       'RGs Emitidos',
       'Antecedentes Emitidos',
       'Erros',
     ],
-    colors: ['#2196F3', '#1976D2', '#009688', '#4CAF50', '#4F46E5', '#F44336'],
+    colors: ['#2196F3', '#FF9800', '#1976D2', '#009688', '#4CAF50', '#4F46E5', '#F44336'],
     plotOptions: {
       pie: { donut: { size: '70%' } },
     },
@@ -60,6 +62,7 @@
 
   const statusChartSeries = computed(() => [
     counts.value?.inProgress ?? 0,
+    counts.value?.pendencies ?? 0,
     counts.value?.consulted ?? 0,
     counts.value?.released ?? 0,
     counts.value?.issued ?? 0,
@@ -121,6 +124,13 @@
         color: 'primary',
       },
       {
+        group: 'pendencies',
+        label: 'Pendências',
+        count: counts.value?.pendencies ?? 0,
+        icon: 'warning',
+        color: 'orange',
+      },
+      {
         group: 'consulted',
         label: 'Consultado',
         count: counts.value?.consulted ?? 0,
@@ -159,7 +169,7 @@
 
     if (isIirgdUser.value) {
       return all.filter((c) =>
-        ['in-progress', 'issued', 'issued-antecedents', 'errors'].includes(c.group),
+        ['in-progress', 'pendencies', 'issued', 'issued-antecedents', 'errors'].includes(c.group),
       )
     }
     return all
