@@ -154,6 +154,35 @@ describe('useProductBids', () => {
     })
   })
 
+  it('addBid should correctly classify bids with 4 decimal places when amount <= referencePrice', async () => {
+    const { addBid } = useProductBids()
+    await addBid('item-123', 'supp-456', 10.2545, { referencePrice: 10.2545 })
+
+    expect(insertMock).toHaveBeenCalledWith({
+      demand_product_id: 'item-123',
+      supplier_id: 'supp-456',
+      amount: 10.2545,
+    })
+    expect(logActionMock).toHaveBeenCalledWith(
+      'ADD_PRODUCT_BID',
+      'Lance de R$ 10.2545 adicionado para o produto da demanda (ID: item-123)',
+      'user-admin',
+    )
+  })
+
+  it('addBid should disqualify bids with 4 decimal places when amount > referencePrice', async () => {
+    const { addBid } = useProductBids()
+    await addBid('item-123', 'supp-456', 10.2546, { referencePrice: 10.2545 })
+
+    expect(insertMock).toHaveBeenCalledWith({
+      demand_product_id: 'item-123',
+      supplier_id: 'supp-456',
+      amount: 10.2546,
+      status: 'disqualified',
+      disqualification_reason: 'Valor ofertado acima do valor referencial.',
+    })
+  })
+
   it('updateBidStatus should disqualify a bid with reason and log action', async () => {
     const updateEqMock = vi.fn().mockResolvedValue({ error: null })
     updateMock.mockReturnValueOnce({ eq: updateEqMock })

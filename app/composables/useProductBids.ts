@@ -86,7 +86,7 @@ export const useProductBids = () => {
       numericRefPrice !== null &&
       !Number.isNaN(numericRefPrice) &&
       numericRefPrice > 0 &&
-      finalAmount > numericRefPrice
+      Math.round(finalAmount * 10000) > Math.round(numericRefPrice * 10000)
 
     const payload: DemandProductBidInsert = {
       demand_product_id: demandProductId,
