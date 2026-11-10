@@ -335,6 +335,9 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
 
     expect(vm.isBidAboveReference(150)).toBe(true)
     expect(vm.isBidAboveReference(80)).toBe(false)
+    expect(vm.isBidAboveReference(100.0001)).toBe(true)
+    expect(vm.isBidAboveReference(100.0)).toBe(false)
+    expect(vm.isBidAboveReference(99.9999)).toBe(false)
 
     await vm.handleClassifyBid('bid-above')
 
@@ -517,5 +520,80 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
       path: '/demands/demand-1',
       query: { tab: 'items' },
     })
+  })
+
+  it('exibe o último lance cadastrado ordenado por data e atualiza ao salvar com saveBid(true)', async () => {
+    mockItemData.value.demand.status = 'dispute'
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // mockBidsData has bid-1 (09:00:00Z) and bid-2 (09:05:00Z)
+    expect(vm.latestRegisteredBid).not.toBeNull()
+    expect(vm.latestRegisteredBid?.id).toBe('bid-2')
+    expect(vm.latestBidDisplay).toEqual({
+      supplierName: 'Fornecedor B',
+      amount: 90,
+    })
+
+    // Open modal and save a new bid with keepOpen=true
+    vm.openBidModal()
+    expect(vm.isBidModalOpen).toBe(true)
+
+    vm.bidSupplierId = 'supp-1'
+    vm.bidAmount = 72
+    await vm.saveBid(true)
+
+    // After saving, latestBidDisplay should reflect the newly saved bid
+    expect(vm.latestBidDisplay).toEqual({
+      supplierName: expect.any(String),
+      amount: 72,
+    })
+
+    // Closing the modal works
+    vm.closeBidModal()
+    expect(vm.isBidModalOpen).toBe(false)
+  })
+
+  it('resolves supplier title and subtitle correctly for autocomplete options', () => {
+    const wrapper = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    const flatSupplier = {
+      id: 'supp-1',
+      company_name: 'Empresa Teste LTDA',
+      cnpj: '12345678000190',
+    }
+    const wrappedSupplier = {
+      raw: {
+        id: 'supp-2',
+        company_name: 'Fornecedor Envelopado SA',
+        cnpj: '98765432000110',
+      },
+    }
+    const supplierWithoutCnpj = {
+      id: 'supp-3',
+      company_name: 'Fornecedor Sem CNPJ',
+      cnpj: null,
+    }
+
+    // Direct flat item (Vuetify 3 default)
+    expect(vm.getSupplierOption(flatSupplier)).toEqual(flatSupplier)
+    expect(vm.getSupplierTitle(flatSupplier)).toBe('Empresa Teste LTDA')
+    expect(vm.getSupplierSubtitle(flatSupplier)).toBe('12.345.678/0001-90')
+
+    // Wrapped raw item (Vuetify internalItem)
+    expect(vm.getSupplierOption(wrappedSupplier)).toEqual(wrappedSupplier.raw)
+    expect(vm.getSupplierTitle(wrappedSupplier)).toBe('Fornecedor Envelopado SA')
+    expect(vm.getSupplierSubtitle(wrappedSupplier)).toBe('98.765.432/0001-10')
+
+    // Item without CNPJ must return undefined for subtitle (never a lone '-')
+    expect(vm.getSupplierTitle(supplierWithoutCnpj)).toBe('Fornecedor Sem CNPJ')
+    expect(vm.getSupplierSubtitle(supplierWithoutCnpj)).toBeUndefined()
+
+    // Fallback to itemProps.title if supplier company_name is missing
+    expect(vm.getSupplierTitle({}, { title: 'Props Fallback Name' })).toBe('Props Fallback Name')
+    expect(vm.getSupplierSubtitle(null)).toBeUndefined()
   })
 })

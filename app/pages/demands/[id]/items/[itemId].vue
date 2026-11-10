@@ -13,6 +13,7 @@
   } from '~/constants/demand-item-status'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   import { formatUnitPrice, formatCurrency, formatCnpj } from '~/utils/formatters'
+  import { filterSupplierOption } from '~/utils/supplierFilter'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
   const router = useRouter()
@@ -361,7 +362,7 @@
     if (refPrice == null) return false
     const numRef = Number(refPrice)
     if (Number.isNaN(numRef) || numRef <= 0) return false
-    return Number(bidAmount) > numRef
+    return Math.round(Number(bidAmount) * 10000) > Math.round(numRef * 10000)
   }
 
   const handleClassifyBid = async (bid: { id: string; amount: number | string } | string) => {
@@ -410,6 +411,54 @@
 
   const toast = useToast()
   const supplierAutocompleteRef = ref<{ focus?: () => void; $el?: HTMLElement } | null>(null)
+  const lastSubmittedBidInfo = ref<{ supplierName: string; amount: number } | null>(null)
+
+  const latestRegisteredBid = computed(() => {
+    if (!bids.value || bids.value.length === 0) return null
+    return (
+      [...bids.value].sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0
+        return dateB - dateA
+      })[0] || null
+    )
+  })
+
+  const latestBidDisplay = computed(() => {
+    if (lastSubmittedBidInfo.value) {
+      return lastSubmittedBidInfo.value
+    }
+    if (latestRegisteredBid.value) {
+      return {
+        supplierName: latestRegisteredBid.value.suppliers?.company_name || 'Fornecedor',
+        amount: Number(latestRegisteredBid.value.amount),
+      }
+    }
+    return null
+  })
+
+  const getSupplierOption = (item: unknown): SupplierRow | null => {
+    if (!item || typeof item !== 'object') return null
+    if ('raw' in item && item.raw && typeof item.raw === 'object') {
+      return item.raw as SupplierRow
+    }
+    return item as SupplierRow
+  }
+
+  const getSupplierTitle = (supplierItem: unknown, itemProps?: Record<string, unknown>): string => {
+    const supplier = getSupplierOption(supplierItem)
+    if (supplier?.company_name) return supplier.company_name
+    if (itemProps?.title && typeof itemProps.title === 'string') return itemProps.title
+    return ''
+  }
+
+  const getSupplierSubtitle = (supplierItem: unknown): string | undefined => {
+    const supplier = getSupplierOption(supplierItem)
+    if (supplier?.cnpj) {
+      return formatCnpj(supplier.cnpj)
+    }
+    return undefined
+  }
 
   const focusSupplierField = async () => {
     await nextTick()
@@ -429,6 +478,7 @@
       bidError.value = 'O registro de lances é permitido apenas durante a fase de Disputa.'
       return
     }
+    lastSubmittedBidInfo.value = null
     bidReset({
       values: {
         isNewSupplier: false,
@@ -496,6 +546,18 @@
       await invalidateParentDemandItems()
       toast.success('Lance registrado com sucesso!')
 
+      let registeredSupplierName = ''
+      if (values.isNewSupplier) {
+        registeredSupplierName = values.newSupplierName || 'Fornecedor'
+      } else {
+        const found = suppliers.value.find((s) => s.id === finalSupplierId)
+        registeredSupplierName = found?.company_name || 'Fornecedor'
+      }
+      lastSubmittedBidInfo.value = {
+        supplierName: registeredSupplierName,
+        amount: Number(values.amount),
+      }
+
       if (keepOpen) {
         bidReset({
           values: {
@@ -549,6 +611,7 @@
     isExecutionStatusModalOpen.value = false
     editError.value = ''
     bidError.value = ''
+    lastSubmittedBidInfo.value = null
   })
 </script>
 
@@ -1173,7 +1236,7 @@
         :error-messages="eiErrors.reference_price"
         inputmode="decimal"
         label="Valor Referencial (R$)"
-        placeholder="0,00"
+        placeholder="0,0000"
       />
 
       <div class="d-flex align-center mt-2 mb-4">
@@ -1233,11 +1296,77 @@
     <!-- Modal Registrar Lance -->
     <UiModal
       v-model="isBidModalOpen"
-      max-width="500px"
+      max-width="620px"
       title="Registrar Lance do Fornecedor"
       transparent-header
     >
       <div @keydown="handleBidModalKeyDown">
+        <!-- Contexto do Produto Atual -->
+        <UiCard class="mb-4 bg-surface-variant border" rounded="lg" variant="outline">
+          <div class="pa-3">
+            <div class="d-flex align-center justify-space-between ga-2 mb-2 flex-wrap">
+              <div class="d-flex align-center ga-2 min-w-0">
+                <UiIcon color="primary" name="product" size="20" />
+                <span
+                  class="font-weight-bold text-body-1 text-high-emphasis text-truncate"
+                  :title="item?.product_name_snapshot || item?.product?.name"
+                >
+                  {{ item?.product_name_snapshot || item?.product?.name || 'Produto' }}
+                </span>
+              </div>
+              <UiChip v-if="item?.quantity" color="secondary" size="xs" variant="soft">
+                Qtd: {{ item.quantity }}
+                {{ item.unit_name_snapshot || item.measurement_units?.name || 'un' }}
+              </UiChip>
+            </div>
+
+            <div class="d-flex flex-wrap align-center ga-4 text-body-2 text-medium-emphasis">
+              <div v-if="item?.reference_price != null">
+                <span>Preço Ref.: </span>
+                <strong class="text-high-emphasis">{{
+                  formatUnitPrice(item.reference_price)
+                }}</strong>
+              </div>
+              <div v-if="item?.bid_interval != null && item?.bid_interval_type">
+                <span>Intervalo Mín.: </span>
+                <strong class="text-high-emphasis">
+                  {{
+                    item.bid_interval_type === 'percentage'
+                      ? `${item.bid_interval}%`
+                      : formatUnitPrice(item.bid_interval)
+                  }}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </UiCard>
+
+        <!-- Último Lance Cadastrado para o Produto -->
+        <UiCard v-if="latestBidDisplay" class="mb-4 border-info border" rounded="lg" variant="soft">
+          <div class="pa-3 d-flex align-center justify-space-between flex-wrap ga-2">
+            <div class="d-flex align-center ga-2 min-w-0">
+              <UiIcon color="info" name="history" size="18" />
+              <div>
+                <div class="text-caption text-medium-emphasis font-weight-medium">
+                  Último lance cadastrado
+                </div>
+                <div
+                  class="font-weight-bold text-high-emphasis text-truncate"
+                  :title="latestBidDisplay.supplierName"
+                >
+                  {{ latestBidDisplay.supplierName }}
+                </div>
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="text-caption text-medium-emphasis">Valor</div>
+              <div class="text-body-1 font-weight-bold text-primary">
+                {{ formatUnitPrice(latestBidDisplay.amount) }}
+              </div>
+            </div>
+          </div>
+        </UiCard>
+
         <UiAlert v-if="bidError" class="mb-4" size="sm" type="error" variant="soft">
           {{ bidError }}
         </UiAlert>
@@ -1261,15 +1390,24 @@
           v-bind="bidSupplierIdProps"
           class="mb-3"
           color="primary"
+          :custom-filter="filterSupplierOption"
           :error-messages="bidErrors.supplierId"
           item-title="company_name"
           item-value="id"
           :items="suppliers"
           label="Selecionar Fornecedor*"
-          placeholder="Busque pela razão social..."
+          placeholder="Busque pela razão social ou CNPJ..."
           size="md"
           variant="outline"
-        ></UiAutocomplete>
+        >
+          <template #item="{ props: itemProps, item: supplierItem }">
+            <UiListItem
+              v-bind="itemProps"
+              :subtitle="getSupplierSubtitle(supplierItem)"
+              :title="getSupplierTitle(supplierItem, itemProps)"
+            />
+          </template>
+        </UiAutocomplete>
 
         <!-- Novo Fornecedor -->
         <template v-else>
@@ -1305,7 +1443,7 @@
           :error-messages="bidErrors.amount"
           inputmode="decimal"
           label="Valor do Lance (R$)*"
-          placeholder="0,00"
+          placeholder="0,0000"
           @keydown="handleAmountKeyDown"
         />
       </div>
@@ -1318,6 +1456,7 @@
         >
           Cancelar
         </UiButton>
+        <UiSpacer />
         <UiButton
           color="primary"
           :disabled="isBidSaving"
