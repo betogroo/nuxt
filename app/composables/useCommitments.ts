@@ -541,6 +541,7 @@ export const useCommitments = () => {
     commitmentNumber: string
     disbursementProgramNumber: string
     issuedAt: string
+    paidAt?: string | null
     observation?: string | null
   }) => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
@@ -592,6 +593,7 @@ export const useCommitments = () => {
       .update({
         disbursement_program_number: normalizedPD,
         disbursement_program_issued_at: params.issuedAt,
+        disbursement_program_paid_at: params.paidAt?.trim() || null,
         disbursement_program_observation: params.observation?.trim() || null,
         updated_at: new Date().toISOString(),
       })
@@ -646,6 +648,7 @@ export const useCommitments = () => {
       .update({
         disbursement_program_number: null,
         disbursement_program_issued_at: null,
+        disbursement_program_paid_at: null,
         disbursement_program_observation: null,
         updated_at: new Date().toISOString(),
       })
@@ -665,6 +668,7 @@ export const useCommitments = () => {
     commitmentNumber: string
     bankOrderNumber: string
     issuedAt: string
+    paidAt?: string | null
     observation?: string | null
   }) => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
@@ -711,6 +715,7 @@ export const useCommitments = () => {
       .update({
         bank_order_number: normalizedOB,
         bank_order_issued_at: params.issuedAt,
+        bank_order_paid_at: params.paidAt?.trim() || null,
         bank_order_observation: cleanObservation,
         status: 'completed',
         error_details: null,
@@ -805,6 +810,7 @@ export const useCommitments = () => {
       .update({
         bank_order_number: null,
         bank_order_issued_at: null,
+        bank_order_paid_at: null,
         bank_order_observation: null,
         status: 'delivered',
         updated_at: now,

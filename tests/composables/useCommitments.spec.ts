@@ -114,6 +114,9 @@ describe('useCommitments Composable', () => {
 
   it('allows Programa de Desembolso (PD) when 2 or more Notas de Liquidação exist and status is delivered', async () => {
     const updateEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateCommitmentSpy = vi.fn().mockReturnValue({
+      eq: updateEqMock,
+    })
 
     fromMock.mockImplementation((table: string) => {
       if (table === 'demand_commitments') {
@@ -131,9 +134,7 @@ describe('useCommitments Composable', () => {
               }),
             }),
           }),
-          update: vi.fn().mockReturnValue({
-            eq: updateEqMock,
-          }),
+          update: updateCommitmentSpy,
         }
       }
       if (table === 'demand_item_status_history') {
@@ -159,9 +160,18 @@ describe('useCommitments Composable', () => {
       commitmentNumber: '2026ne00313',
       disbursementProgramNumber: '2026pd00001',
       issuedAt: '2026-11-01',
+      paidAt: '2026-11-05',
       observation: 'PD emitido',
     })
 
+    expect(updateCommitmentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        disbursement_program_number: '2026PD00001',
+        disbursement_program_issued_at: '2026-11-01',
+        disbursement_program_paid_at: '2026-11-05',
+        disbursement_program_observation: 'PD emitido',
+      }),
+    )
     expect(updateEqMock).toHaveBeenCalledWith('id', 'comm-1')
     expect(logActionMock).toHaveBeenCalledWith(
       'SAVE_COMMITMENT_DISBURSEMENT_PROGRAM',
@@ -172,6 +182,9 @@ describe('useCommitments Composable', () => {
 
   it('automatically closes commitment and all linked items as completed when Ordem Bancária (OB) is saved', async () => {
     const updateCommitmentEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateCommitmentSpy = vi.fn().mockReturnValue({
+      eq: updateCommitmentEqMock,
+    })
     const updateItemsInMock = vi.fn().mockResolvedValue({ error: null })
     const insertHistoryMock = vi.fn().mockResolvedValue({ error: null })
 
@@ -192,9 +205,7 @@ describe('useCommitments Composable', () => {
               }),
             }),
           }),
-          update: vi.fn().mockReturnValue({
-            eq: updateCommitmentEqMock,
-          }),
+          update: updateCommitmentSpy,
         }
       }
 
@@ -250,9 +261,18 @@ describe('useCommitments Composable', () => {
       commitmentNumber: '2026NE00313',
       bankOrderNumber: '2026ob00999',
       issuedAt: '2026-11-01',
+      paidAt: '2026-11-06',
       observation: 'Pago',
     })
 
+    expect(updateCommitmentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bank_order_number: '2026OB00999',
+        bank_order_issued_at: '2026-11-01',
+        bank_order_paid_at: '2026-11-06',
+        bank_order_observation: 'Pago',
+      }),
+    )
     expect(updateCommitmentEqMock).toHaveBeenCalledWith('id', 'comm-1')
     expect(updateItemsInMock).toHaveBeenCalledWith('id', ['item-1', 'item-2'])
     expect(insertHistoryMock).toHaveBeenCalledWith(
@@ -1008,6 +1028,7 @@ describe('useCommitments Composable', () => {
       expect.objectContaining({
         disbursement_program_number: null,
         disbursement_program_issued_at: null,
+        disbursement_program_paid_at: null,
         disbursement_program_observation: null,
       }),
     )
@@ -1081,6 +1102,8 @@ describe('useCommitments Composable', () => {
     expect(updateCommitment).toHaveBeenCalledWith(
       expect.objectContaining({
         bank_order_number: null,
+        bank_order_issued_at: null,
+        bank_order_paid_at: null,
         status: 'delivered',
       }),
     )

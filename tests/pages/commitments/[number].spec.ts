@@ -27,9 +27,11 @@ const mockDetailData = ref({
     observation: 'Mercadoria conferida',
     disbursement_program_number: '2026PD00010',
     disbursement_program_issued_at: '2026-04-12',
+    disbursement_program_paid_at: '2026-04-14',
     disbursement_program_observation: 'PD liberado',
     bank_order_number: null,
     bank_order_issued_at: null,
+    bank_order_paid_at: null,
     bank_order_observation: null,
     created_at: '2026-04-10T10:00:00Z',
     updated_at: '2026-04-12T10:00:00Z',
@@ -209,9 +211,11 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
         observation: 'Mercadoria conferida',
         disbursement_program_number: '2026PD00010',
         disbursement_program_issued_at: '2026-04-12',
+        disbursement_program_paid_at: '2026-04-14',
         disbursement_program_observation: 'PD liberado',
         bank_order_number: null,
         bank_order_issued_at: null,
+        bank_order_paid_at: null,
         bank_order_observation: null,
         created_at: '2026-04-10T10:00:00Z',
         updated_at: '2026-04-12T10:00:00Z',
@@ -534,5 +538,55 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
     expect(text).toContain('Nota de Empenho de Cancelamento / Anulação')
     expect(text).toContain('2026NE00313')
     expect(text).toContain('Anulação formal de empenho anterior')
+  })
+
+  it('displays payment dates in PD and OB summary cards and passes paidAt to save functions', async () => {
+    mockDetailData.value.commitment.bank_order_number = '2026OB00088'
+    mockDetailData.value.commitment.bank_order_issued_at = '2026-04-15'
+    mockDetailData.value.commitment.bank_order_paid_at = '2026-04-18'
+
+    mockSaveDisbursementProgram.mockResolvedValue(undefined)
+    mockSaveBankOrderAndComplete.mockResolvedValue(undefined)
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    // Verify display in cards
+    const text = wrapper.text()
+    expect(text).toContain('Data do Pagamento: 14/04/2026')
+    expect(text).toContain('Data do Pagamento: 18/04/2026')
+
+    // Test saving PD with paidAt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+    vm.openPdModal()
+    expect(vm.pdPaidDate).toBe('2026-04-14')
+    vm.pdPaidDate = '2026-04-16'
+    await vm.handleSavePd()
+
+    expect(mockSaveDisbursementProgram).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        paidAt: '2026-04-16',
+      }),
+    )
+
+    // Test saving OB with paidAt
+    vm.openObModal()
+    expect(vm.obPaidDate).toBe('2026-04-18')
+    vm.obPaidDate = '2026-04-20'
+    await vm.handleSaveOb()
+
+    expect(mockSaveBankOrderAndComplete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        paidAt: '2026-04-20',
+      }),
+    )
   })
 })

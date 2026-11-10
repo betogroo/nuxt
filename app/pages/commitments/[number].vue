@@ -258,6 +258,7 @@
   const pdModal = useFormModal()
   const pdNumber = ref('')
   const pdIssueDate = ref(getTodayDateString())
+  const pdPaidDate = ref('')
   const pdNotes = ref('')
   const isDeletingPd = ref(false)
 
@@ -266,6 +267,7 @@
     const yearPrefix = commitment.value.commitment_number.slice(0, 4) || '2026'
     pdNumber.value = commitment.value.disbursement_program_number || `${yearPrefix}PD`
     pdIssueDate.value = commitment.value.disbursement_program_issued_at || getTodayDateString()
+    pdPaidDate.value = commitment.value.disbursement_program_paid_at || ''
     pdNotes.value = commitment.value.disbursement_program_observation || ''
     pdModal.openAdd()
   }
@@ -275,6 +277,7 @@
     const parsed = disbursementProgramFormSchema.safeParse({
       disbursement_program_number: pdNumber.value,
       disbursement_program_issued_at: pdIssueDate.value || '',
+      disbursement_program_paid_at: pdPaidDate.value || '',
       disbursement_program_observation: pdNotes.value || '',
     })
 
@@ -289,6 +292,7 @@
         commitmentNumber: commitment.value!.commitment_number,
         disbursementProgramNumber: parsed.data.disbursement_program_number,
         issuedAt: parsed.data.disbursement_program_issued_at,
+        paidAt: parsed.data.disbursement_program_paid_at || null,
         observation: parsed.data.disbursement_program_observation || null,
       })
       await refresh()
@@ -330,6 +334,7 @@
   const obModal = useFormModal()
   const obNumber = ref('')
   const obIssueDate = ref(getTodayDateString())
+  const obPaidDate = ref('')
   const obNotes = ref('')
   const isDeletingOb = ref(false)
 
@@ -338,6 +343,7 @@
     const yearPrefix = commitment.value.commitment_number.slice(0, 4) || '2026'
     obNumber.value = commitment.value.bank_order_number || `${yearPrefix}OB`
     obIssueDate.value = commitment.value.bank_order_issued_at || getTodayDateString()
+    obPaidDate.value = commitment.value.bank_order_paid_at || ''
     obNotes.value = commitment.value.bank_order_observation || ''
     obModal.openAdd()
   }
@@ -347,6 +353,7 @@
     const parsed = bankOrderFormSchema.safeParse({
       bank_order_number: obNumber.value,
       bank_order_issued_at: obIssueDate.value || '',
+      bank_order_paid_at: obPaidDate.value || '',
       bank_order_observation: obNotes.value || '',
     })
 
@@ -362,6 +369,7 @@
         commitmentNumber: commitment.value!.commitment_number,
         bankOrderNumber: parsed.data.bank_order_number,
         issuedAt: parsed.data.bank_order_issued_at,
+        paidAt: parsed.data.bank_order_paid_at || null,
         observation: parsed.data.bank_order_observation || null,
       })
       await refresh()
@@ -408,6 +416,7 @@
       'Tipo de Documento',
       'Número do Documento',
       'Data de Emissão',
+      'Data de Pagamento',
       'Nota de Empenho',
       'Processo',
       'Fornecedor',
@@ -430,6 +439,7 @@
         'Nota de Liquidação (NL)',
         nl.liquidation_number,
         nl.issue_date ? formatDate(nl.issue_date) : '-',
+        '-',
         neNumber,
         processNumber,
         supplierName,
@@ -446,6 +456,9 @@
         commitment.value.disbursement_program_number,
         commitment.value.disbursement_program_issued_at
           ? formatDate(commitment.value.disbursement_program_issued_at)
+          : '-',
+        commitment.value.disbursement_program_paid_at
+          ? formatDate(commitment.value.disbursement_program_paid_at)
           : '-',
         neNumber,
         processNumber,
@@ -464,6 +477,7 @@
         commitment.value.bank_order_issued_at
           ? formatDate(commitment.value.bank_order_issued_at)
           : '-',
+        commitment.value.bank_order_paid_at ? formatDate(commitment.value.bank_order_paid_at) : '-',
         neNumber,
         processNumber,
         supplierName,
@@ -1041,6 +1055,12 @@
                   Data de Emissão: {{ formatDate(commitment.disbursement_program_issued_at) }}
                 </div>
                 <div
+                  v-if="commitment.disbursement_program_paid_at"
+                  class="text-caption text-grey mt-1"
+                >
+                  Data do Pagamento: {{ formatDate(commitment.disbursement_program_paid_at) }}
+                </div>
+                <div
                   v-if="commitment.disbursement_program_observation"
                   class="text-caption text-grey-darken-1 mt-1"
                 >
@@ -1144,6 +1164,9 @@
                 </div>
                 <div v-if="commitment.bank_order_issued_at" class="text-caption text-grey mt-1">
                   Data de Emissão: {{ formatDate(commitment.bank_order_issued_at) }}
+                </div>
+                <div v-if="commitment.bank_order_paid_at" class="text-caption text-grey mt-1">
+                  Data do Pagamento: {{ formatDate(commitment.bank_order_paid_at) }}
                 </div>
                 <div
                   v-if="commitment.bank_order_observation"
@@ -1406,6 +1429,14 @@
         variant="outline"
       />
 
+      <UiInput
+        v-model="pdPaidDate"
+        class="mb-3"
+        label="Data do Pagamento (Opcional)"
+        type="date"
+        variant="outline"
+      />
+
       <UiTextarea v-model="pdNotes" label="Observação (Opcional)" rows="2" variant="outline" />
 
       <template #actions>
@@ -1446,6 +1477,14 @@
         v-model="obIssueDate"
         class="mb-3"
         label="Data de Emissão"
+        type="date"
+        variant="outline"
+      />
+
+      <UiInput
+        v-model="obPaidDate"
+        class="mb-3"
+        label="Data do Pagamento (Opcional)"
         type="date"
         variant="outline"
       />

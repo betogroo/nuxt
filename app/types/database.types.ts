@@ -177,6 +177,7 @@ export type Database = {
           bank_order_issued_at: string | null
           bank_order_number: string | null
           bank_order_observation: string | null
+          bank_order_paid_at: string | null
           cancellation_commitment_number: string | null
           cancels_commitment_number: string | null
           commitment_number: string
@@ -186,6 +187,7 @@ export type Database = {
           disbursement_program_issued_at: string | null
           disbursement_program_number: string | null
           disbursement_program_observation: string | null
+          disbursement_program_paid_at: string | null
           error_details: string | null
           expense_nature_id: string | null
           id: string
@@ -199,6 +201,7 @@ export type Database = {
           bank_order_issued_at?: string | null
           bank_order_number?: string | null
           bank_order_observation?: string | null
+          bank_order_paid_at?: string | null
           cancellation_commitment_number?: string | null
           cancels_commitment_number?: string | null
           commitment_number: string
@@ -208,6 +211,7 @@ export type Database = {
           disbursement_program_issued_at?: string | null
           disbursement_program_number?: string | null
           disbursement_program_observation?: string | null
+          disbursement_program_paid_at?: string | null
           error_details?: string | null
           expense_nature_id?: string | null
           id?: string
@@ -221,6 +225,7 @@ export type Database = {
           bank_order_issued_at?: string | null
           bank_order_number?: string | null
           bank_order_observation?: string | null
+          bank_order_paid_at?: string | null
           cancellation_commitment_number?: string | null
           cancels_commitment_number?: string | null
           commitment_number?: string
@@ -230,6 +235,7 @@ export type Database = {
           disbursement_program_issued_at?: string | null
           disbursement_program_number?: string | null
           disbursement_program_observation?: string | null
+          disbursement_program_paid_at?: string | null
           error_details?: string | null
           expense_nature_id?: string | null
           id?: string

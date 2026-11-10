@@ -86,6 +86,7 @@ export const disbursementProgramFormSchema = z.object({
     .string({ error: 'Informe a data de emissão.' })
     .trim()
     .min(1, 'A data de emissão é obrigatória.'),
+  disbursement_program_paid_at: z.string().optional().default(''),
   disbursement_program_observation: z.string().optional().default(''),
 })
 
@@ -101,6 +102,7 @@ export const bankOrderFormSchema = z.object({
     .string({ error: 'Informe a data de emissão.' })
     .trim()
     .min(1, 'A data de emissão é obrigatória.'),
+  bank_order_paid_at: z.string().optional().default(''),
   bank_order_observation: z.string().optional().default(''),
 })
 
