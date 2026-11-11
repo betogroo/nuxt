@@ -138,7 +138,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          ir_retention_amount: number | null
           is_cancellation: boolean
+          is_ir_retention: boolean
           issue_date: string
           liquidation_number: string
           observation: string | null
@@ -148,7 +150,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          ir_retention_amount?: number | null
           is_cancellation?: boolean
+          is_ir_retention?: boolean
           issue_date?: string
           liquidation_number: string
           observation?: string | null
@@ -158,7 +162,9 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          ir_retention_amount?: number | null
           is_cancellation?: boolean
+          is_ir_retention?: boolean
           issue_date?: string
           liquidation_number?: string
           observation?: string | null

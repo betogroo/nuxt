@@ -1,8 +1,8 @@
 <script setup lang="ts">
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
-  import { useCommitments } from '~/composables/useCommitments'
+  import { isOrdinaryLiquidationNote, useCommitments } from '~/composables/useCommitments'
   import { useFormModal } from '~/composables/useFormModal'
   import { useLogger } from '~/composables/useLogger'
   import { useToast } from '~/composables/useToast'
@@ -86,6 +86,10 @@
   )
   const totalAmount = computed(() => detail.value?.total_amount ?? 0)
 
+  const isSupplierSimplesOptant = computed(() =>
+    Boolean(commitment.value?.suppliers?.is_simples_optant),
+  )
+
   const currentStepIndex = computed(() => {
     if (!commitment.value) return 0
     return getDemandItemExecutionStatusStepIndex(commitment.value.status)
@@ -97,8 +101,10 @@
     return commitment.value.status === 'delivered' || commitment.value.status === 'completed'
   })
 
-  const ordinaryLiquidations = computed(() =>
-    liquidations.value.filter((nl) => !nl.is_cancellation),
+  const ordinaryLiquidations = computed(() => liquidations.value.filter(isOrdinaryLiquidationNote))
+  const irLiquidations = computed(() => liquidations.value.filter((nl) => nl.is_ir_retention))
+  const totalIrRetentionAmount = computed(() =>
+    irLiquidations.value.reduce((acc, nl) => acc + Number(nl.ir_retention_amount || 0), 0),
   )
   const hasMinLiquidations = computed(() => ordinaryLiquidations.value.length >= 2)
   const hasDisbursementProgram = computed(() =>
@@ -169,6 +175,8 @@
   const nlNumber = ref('')
   const nlIssueDate = ref(getTodayDateString())
   const nlNotes = ref('')
+  const nlIsIrRetention = ref(false)
+  const nlIrRetentionAmount = ref<string | number>('')
 
   const openAddNlModal = () => {
     isEditingNl.value = false
@@ -177,6 +185,8 @@
     nlNumber.value = `${yearPrefix}NL`
     nlIssueDate.value = getTodayDateString()
     nlNotes.value = ''
+    nlIsIrRetention.value = false
+    nlIrRetentionAmount.value = ''
     nlModal.openAdd()
   }
 
@@ -185,21 +195,28 @@
     liquidation_number: string
     issue_date: string | null
     observation: string | null
+    is_ir_retention?: boolean | null
+    ir_retention_amount?: number | null
   }) => {
     isEditingNl.value = true
     editingNlId.value = nl.id
     nlNumber.value = nl.liquidation_number
     nlIssueDate.value = nl.issue_date || getTodayDateString()
     nlNotes.value = nl.observation || ''
+    nlIsIrRetention.value = !isSupplierSimplesOptant.value && Boolean(nl.is_ir_retention)
+    nlIrRetentionAmount.value = nl.ir_retention_amount != null ? String(nl.ir_retention_amount) : ''
     nlModal.openEdit()
   }
 
   const handleSaveNl = async () => {
     if (!commitment.value) return
+    const effectiveIsIrRetention = !isSupplierSimplesOptant.value && Boolean(nlIsIrRetention.value)
     const parsed = liquidationNoteFormSchema.safeParse({
       liquidation_number: nlNumber.value,
       issue_date: nlIssueDate.value || '',
       observation: nlNotes.value || '',
+      is_ir_retention: effectiveIsIrRetention,
+      ir_retention_amount: effectiveIsIrRetention ? nlIrRetentionAmount.value : null,
     })
 
     if (!parsed.success) {
@@ -216,6 +233,8 @@
           liquidationNumber: parsed.data.liquidation_number,
           issueDate: parsed.data.issue_date,
           observation: parsed.data.observation || null,
+          isIrRetention: parsed.data.is_ir_retention,
+          irRetentionAmount: parsed.data.ir_retention_amount,
         })
         await refresh()
         toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} atualizada!`)
@@ -226,6 +245,8 @@
           liquidationNumber: parsed.data.liquidation_number,
           issueDate: parsed.data.issue_date,
           observation: parsed.data.observation || null,
+          isIrRetention: parsed.data.is_ir_retention,
+          irRetentionAmount: parsed.data.ir_retention_amount,
         })
         await refresh()
         toast.success(`Nota de Liquidação ${parsed.data.liquidation_number} cadastrada!`)
@@ -254,13 +275,26 @@
     }
   }
 
-  // --- Modal de Programa de Desembolso (PD) ---
+  // --- Modal de Programa de Desembolso (PD) e Pagamento com OB ---
   const pdModal = useFormModal()
   const pdNumber = ref('')
   const pdIssueDate = ref(getTodayDateString())
   const pdPaidDate = ref('')
+  const pdBankOrderNumber = ref('')
   const pdNotes = ref('')
   const isDeletingPd = ref(false)
+
+  watch(pdPaidDate, (newPaidDate) => {
+    if (newPaidDate && newPaidDate.trim().length > 0 && !pdBankOrderNumber.value.trim()) {
+      const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
+      pdBankOrderNumber.value = commitment.value?.bank_order_number || `${yearPrefix}OB`
+    } else if (
+      (!newPaidDate || !newPaidDate.trim()) &&
+      /^(\d{4})OB$/i.test(pdBankOrderNumber.value.trim())
+    ) {
+      pdBankOrderNumber.value = ''
+    }
+  })
 
   const openPdModal = () => {
     if (!commitment.value) return
@@ -268,6 +302,7 @@
     pdNumber.value = commitment.value.disbursement_program_number || `${yearPrefix}PD`
     pdIssueDate.value = commitment.value.disbursement_program_issued_at || getTodayDateString()
     pdPaidDate.value = commitment.value.disbursement_program_paid_at || ''
+    pdBankOrderNumber.value = commitment.value.bank_order_number || ''
     pdNotes.value = commitment.value.disbursement_program_observation || ''
     pdModal.openAdd()
   }
@@ -278,6 +313,7 @@
       disbursement_program_number: pdNumber.value,
       disbursement_program_issued_at: pdIssueDate.value || '',
       disbursement_program_paid_at: pdPaidDate.value || '',
+      bank_order_number: pdBankOrderNumber.value || '',
       disbursement_program_observation: pdNotes.value || '',
     })
 
@@ -293,12 +329,19 @@
         disbursementProgramNumber: parsed.data.disbursement_program_number,
         issuedAt: parsed.data.disbursement_program_issued_at,
         paidAt: parsed.data.disbursement_program_paid_at || null,
+        bankOrderNumber: parsed.data.bank_order_number || null,
         observation: parsed.data.disbursement_program_observation || null,
       })
       await refresh()
-      toast.success(
-        `Programa de Desembolso ${parsed.data.disbursement_program_number} salvo com sucesso!`,
-      )
+      if (parsed.data.bank_order_number && parsed.data.disbursement_program_paid_at) {
+        toast.success(
+          `Pagamento da PD ${parsed.data.disbursement_program_number} e Ordem Bancária ${parsed.data.bank_order_number} registrados! NE concluída.`,
+        )
+      } else {
+        toast.success(
+          `Programa de Desembolso ${parsed.data.disbursement_program_number} salvo com sucesso!`,
+        )
+      }
       pdModal.close()
     })
   }
@@ -330,7 +373,7 @@
     }
   }
 
-  // --- Modal de Ordem Bancária (OB) + Conclusão ---
+  // --- Modal de Pagamento da PD / Ordem Bancária (OB) + Conclusão ---
   const obModal = useFormModal()
   const obNumber = ref('')
   const obIssueDate = ref(getTodayDateString())
@@ -342,18 +385,23 @@
     if (!commitment.value) return
     const yearPrefix = commitment.value.commitment_number.slice(0, 4) || '2026'
     obNumber.value = commitment.value.bank_order_number || `${yearPrefix}OB`
-    obIssueDate.value = commitment.value.bank_order_issued_at || getTodayDateString()
-    obPaidDate.value = commitment.value.bank_order_paid_at || ''
+    const existingPaidDate =
+      commitment.value.disbursement_program_paid_at || commitment.value.bank_order_paid_at || ''
+    obIssueDate.value =
+      commitment.value.bank_order_issued_at || existingPaidDate || getTodayDateString()
+    obPaidDate.value = existingPaidDate
     obNotes.value = commitment.value.bank_order_observation || ''
     obModal.openAdd()
   }
 
   const handleSaveOb = async () => {
     if (!commitment.value) return
+    const effectiveIssuedAt = obIssueDate.value || obPaidDate.value || getTodayDateString()
+    const effectivePaidAt = obPaidDate.value || effectiveIssuedAt
     const parsed = bankOrderFormSchema.safeParse({
       bank_order_number: obNumber.value,
-      bank_order_issued_at: obIssueDate.value || '',
-      bank_order_paid_at: obPaidDate.value || '',
+      bank_order_issued_at: effectiveIssuedAt,
+      bank_order_paid_at: effectivePaidAt,
       bank_order_observation: obNotes.value || '',
     })
 
@@ -432,19 +480,28 @@
     const supplierCnpj = commitment.value.suppliers?.cnpj
       ? formatCnpj(commitment.value.suppliers.cnpj)
       : '-'
+    const pdPaidFormatted = commitment.value.disbursement_program_paid_at
+      ? formatDate(commitment.value.disbursement_program_paid_at)
+      : '-'
 
     // 1. Notas de Liquidação (NL)
     for (const nl of liquidations.value) {
+      const nlNature = nl.is_cancellation
+        ? 'Cancelamento'
+        : nl.is_ir_retention
+          ? `Retenção de IR (${formatCurrency(nl.ir_retention_amount || 0)})`
+          : 'Ordinária'
+
       rows.push([
         'Nota de Liquidação (NL)',
         nl.liquidation_number,
         nl.issue_date ? formatDate(nl.issue_date) : '-',
-        '-',
+        nl.is_ir_retention ? pdPaidFormatted : '-',
         neNumber,
         processNumber,
         supplierName,
         supplierCnpj,
-        nl.is_cancellation ? 'Cancelamento' : 'Ordinária',
+        nlNature,
         nl.observation || '-',
       ])
     }
@@ -457,9 +514,7 @@
         commitment.value.disbursement_program_issued_at
           ? formatDate(commitment.value.disbursement_program_issued_at)
           : '-',
-        commitment.value.disbursement_program_paid_at
-          ? formatDate(commitment.value.disbursement_program_paid_at)
-          : '-',
+        pdPaidFormatted,
         neNumber,
         processNumber,
         supplierName,
@@ -477,7 +532,9 @@
         commitment.value.bank_order_issued_at
           ? formatDate(commitment.value.bank_order_issued_at)
           : '-',
-        commitment.value.bank_order_paid_at ? formatDate(commitment.value.bank_order_paid_at) : '-',
+        commitment.value.bank_order_paid_at
+          ? formatDate(commitment.value.bank_order_paid_at)
+          : pdPaidFormatted,
         neNumber,
         processNumber,
         supplierName,
@@ -627,12 +684,15 @@
                   {{ commitment.demands.name }}
                 </NuxtLink>
               </div>
-              <div v-if="commitment.suppliers">
+              <div v-if="commitment.suppliers" class="d-inline-flex align-center flex-wrap ga-1">
                 <strong>Fornecedor:</strong>
                 <span class="ml-1 font-weight-medium">{{ commitment.suppliers.company_name }}</span>
-                <span class="text-caption text-grey ml-1">
+                <span class="text-caption text-grey">
                   ({{ formatCnpj(commitment.suppliers.cnpj) }})
                 </span>
+                <UiChip v-if="isSupplierSimplesOptant" color="info" size="xs" variant="soft">
+                  Simples Nacional
+                </UiChip>
               </div>
               <div v-if="commitment.expense_natures">
                 <strong>Natureza de Despesa:</strong>
@@ -822,7 +882,8 @@
             </div>
             <div class="text-caption text-grey-darken-1">
               Após a entrega definitiva da mercadoria, o financeiro emite as Notas de Liquidação
-              (mínimo 2), o Programa de Desembolso e a Ordem Bancária que encerra o item.
+              (mínimo 2 normais), o Programa de Desembolso e, ao registrar a data de pagamento,
+              informa o número da Ordem Bancária que encerra o item.
             </div>
           </div>
           <div class="d-flex align-center ga-2 flex-wrap">
@@ -887,7 +948,7 @@
         </UiAlert>
 
         <UiRow>
-          <!-- Passo Financeiro 2.1: Notas de Liquidação (1:N, mín. 2) -->
+          <!-- Passo Financeiro 2.1: Notas de Liquidação (1:N, mín. 2 normais) -->
           <UiCol cols="12" md="4">
             <UiCard class="pa-4 h-100" variant="outline">
               <div class="d-flex justify-space-between align-center mb-2">
@@ -899,17 +960,22 @@
                   />
                   2.1. Notas de Liquidação (NL)
                 </div>
-                <UiChip
-                  :color="hasMinLiquidations ? 'success' : 'warning'"
-                  size="xs"
-                  variant="soft"
-                >
-                  {{ liquidations.length }} / mín. 2
-                </UiChip>
+                <div class="d-flex align-center ga-1">
+                  <UiChip
+                    :color="hasMinLiquidations ? 'success' : 'warning'"
+                    size="xs"
+                    variant="soft"
+                  >
+                    {{ ordinaryLiquidations.length }} / mín. 2
+                  </UiChip>
+                  <UiChip v-if="irLiquidations.length > 0" color="warning" size="xs" variant="soft">
+                    +{{ irLiquidations.length }} IR
+                  </UiChip>
+                </div>
               </div>
               <div class="text-caption text-grey mb-3">
-                Padrão <code>2026NL00000</code>. São necessárias no mínimo 2 NLs por Nota de
-                Empenho.
+                Padrão <code>2026NL00000</code>. São necessárias no mínimo 2 NLs ordinárias por Nota
+                de Empenho (além da NL de Retenção de IR, quando aplicável).
               </div>
 
               <div v-if="liquidations.length === 0" class="text-caption text-grey py-3 text-center">
@@ -923,7 +989,7 @@
                   class="d-flex justify-space-between align-center pa-2 rounded border"
                 >
                   <div>
-                    <div class="d-flex align-center ga-1">
+                    <div class="d-flex align-center flex-wrap ga-1">
                       <div class="font-weight-bold text-body-2 text-primary">
                         {{ nl.liquidation_number }}
                       </div>
@@ -937,9 +1003,18 @@
                       <UiChip v-if="nl.is_cancellation" color="error" size="xs" variant="soft">
                         Cancelamento
                       </UiChip>
+                      <UiChip v-if="nl.is_ir_retention" color="warning" size="xs" variant="soft">
+                        (IR) {{ formatCurrency(nl.ir_retention_amount || 0) }}
+                      </UiChip>
                     </div>
                     <div v-if="nl.issue_date" class="text-caption text-grey">
                       Emissão: {{ formatDate(nl.issue_date) }}
+                    </div>
+                    <div
+                      v-if="nl.is_ir_retention && commitment.disbursement_program_paid_at"
+                      class="text-caption text-warning-darken-2 font-weight-medium"
+                    >
+                      Pagto. PD: {{ formatDate(commitment.disbursement_program_paid_at) }}
                     </div>
                     <div v-if="nl.observation" class="text-caption text-grey-darken-1">
                       {{ nl.observation }}
@@ -1000,9 +1075,11 @@
                   :color="
                     commitment.status === 'cancelled'
                       ? 'error'
-                      : hasDisbursementProgram
+                      : commitment.disbursement_program_paid_at
                         ? 'success'
-                        : 'default'
+                        : hasDisbursementProgram
+                          ? 'info'
+                          : 'default'
                   "
                   size="xs"
                   variant="soft"
@@ -1010,14 +1087,17 @@
                   {{
                     commitment.status === 'cancelled'
                       ? 'Bloqueado'
-                      : hasDisbursementProgram
-                        ? 'Emitido'
-                        : 'Pendente'
+                      : commitment.disbursement_program_paid_at
+                        ? 'Pago'
+                        : hasDisbursementProgram
+                          ? 'Emitido'
+                          : 'Pendente'
                   }}
                 </UiChip>
               </div>
               <div class="text-caption text-grey mb-3">
-                Padrão <code>2026PD00000</code>. Requer ao menos 2 Notas de Liquidação registradas.
+                Padrão <code>2026PD00000</code>. Requer ao menos 2 NLs ordinárias. Ao registrar a
+                data de pagamento da PD, informe o número da OB.
               </div>
 
               <div v-if="commitment.disbursement_program_number" class="pa-3 rounded border mb-3">
@@ -1056,9 +1136,18 @@
                 </div>
                 <div
                   v-if="commitment.disbursement_program_paid_at"
-                  class="text-caption text-grey mt-1"
+                  class="text-caption text-success font-weight-bold mt-1"
                 >
                   Data do Pagamento: {{ formatDate(commitment.disbursement_program_paid_at) }}
+                </div>
+                <div v-else class="text-caption text-warning-darken-2 mt-1">
+                  Pagamento pendente (sem data de pagamento)
+                </div>
+                <div
+                  v-if="totalIrRetentionAmount > 0"
+                  class="text-caption text-warning-darken-2 font-weight-medium mt-1"
+                >
+                  Retenção de IR vinculada: {{ formatCurrency(totalIrRetentionAmount) }}
                 </div>
                 <div
                   v-if="commitment.disbursement_program_observation"
@@ -1093,7 +1182,7 @@
                   commitment.status === 'cancelled'
                     ? 'Bloqueado (Empenho Cancelado)'
                     : commitment.disbursement_program_number
-                      ? 'Editar Programa de Desembolso'
+                      ? 'Editar PD / Informar Pagamento e OB'
                       : 'Informar Programa de Desembolso'
                 }}
               </UiButton>
@@ -1129,8 +1218,8 @@
                 </UiChip>
               </div>
               <div class="text-caption text-grey mb-3">
-                Padrão <code>2026OB00000</code>. O cadastro da Ordem Bancária encerra a Nota de
-                Empenho e todos os seus itens.
+                Padrão <code>2026OB00000</code>. Informada ao registrar a data de pagamento da PD,
+                encerrando a Nota de Empenho e todos os seus itens.
               </div>
 
               <div v-if="commitment.bank_order_number" class="pa-3 rounded border mb-3">
@@ -1390,6 +1479,33 @@
         variant="outline"
       />
 
+      <template v-if="!isSupplierSimplesOptant">
+        <UiCheckbox
+          v-model="nlIsIrRetention"
+          class="mb-2"
+          label="NL de Retenção de Imposto de Renda (IR)"
+        />
+
+        <UiInput
+          v-if="nlIsIrRetention"
+          v-model="nlIrRetentionAmount"
+          class="mb-3"
+          hint="Obrigatório para NL de Retenção de IR (vinculado à data de pagamento da PD)"
+          label="Valor da Retenção de IR (R$)"
+          min="0.01"
+          persistent-hint
+          placeholder="Ex: 24,50"
+          step="0.01"
+          type="number"
+          variant="outline"
+        />
+      </template>
+      <UiAlert v-else class="mb-3" type="info" variant="tonal">
+        <span class="text-caption">
+          Fornecedor optante pelo Simples Nacional — opção de NL de Retenção de IR indisponível.
+        </span>
+      </UiAlert>
+
       <UiTextarea v-model="nlNotes" label="Observação (Opcional)" rows="2" variant="outline" />
 
       <template #actions>
@@ -1400,10 +1516,10 @@
       </template>
     </UiModal>
 
-    <!-- Modal 3: Programa de Desembolso (PD) -->
+    <!-- Modal 3: Programa de Desembolso (PD) e Pagamento com OB -->
     <UiModal
       v-model="pdModal.isOpen.value"
-      max-width="480px"
+      max-width="500px"
       title="Programa de Desembolso (PD)"
       transparent-header
     >
@@ -1432,8 +1548,21 @@
       <UiInput
         v-model="pdPaidDate"
         class="mb-3"
+        hint="Opcional no cadastro da PD. Ao informar a data de pagamento, informe também o número da OB."
         label="Data do Pagamento (Opcional)"
+        persistent-hint
         type="date"
+        variant="outline"
+      />
+
+      <UiInput
+        v-if="pdPaidDate || pdBankOrderNumber"
+        v-model="pdBankOrderNumber"
+        class="mb-3"
+        hint="Obrigatório ao registrar a data de pagamento da PD (Padrão: 2026OB00000)"
+        label="Número da Ordem Bancária (OB)"
+        persistent-hint
+        placeholder="2026OB00000"
         variant="outline"
       />
 
@@ -1442,7 +1571,7 @@
       <template #actions>
         <UiButton variant="ghost" @click="pdModal.close()">Cancelar</UiButton>
         <UiButton color="info" :loading="pdModal.isSaving.value" @click="handleSavePd">
-          Salvar PD
+          {{ pdPaidDate ? 'Salvar Pagamento e Emitir OB' : 'Salvar PD' }}
         </UiButton>
       </template>
     </UiModal>
@@ -1451,12 +1580,13 @@
     <UiModal
       v-model="obModal.isOpen.value"
       max-width="500px"
-      title="Ordem Bancária (OB) e Encerramento"
+      title="Pagamento da PD e Ordem Bancária (OB)"
       transparent-header
     >
       <UiAlert class="mb-3" icon="checkCircle" type="success" variant="soft">
-        Ao registrar a <strong>Ordem Bancária (OB)</strong>, esta Nota de Empenho e todos os seus
-        itens vinculados serão marcados automaticamente como <strong>Concluídos</strong>.
+        Ao registrar a <strong>Data de Pagamento da PD</strong> e a
+        <strong>Ordem Bancária (OB)</strong>, esta Nota de Empenho e todos os seus itens vinculados
+        serão marcados automaticamente como <strong>Concluídos</strong>.
       </UiAlert>
 
       <UiAlert v-if="obModal.error.value" class="mb-3" type="error" variant="soft">
@@ -1484,7 +1614,7 @@
       <UiInput
         v-model="obPaidDate"
         class="mb-3"
-        label="Data do Pagamento (Opcional)"
+        label="Data do Pagamento (PD / OB)"
         type="date"
         variant="outline"
       />

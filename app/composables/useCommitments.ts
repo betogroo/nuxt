@@ -9,6 +9,7 @@ import {
   isValidLiquidationNumber,
   MIN_LIQUIDATIONS_FOR_PD,
   normalizeSiafemNumber,
+  parseRetentionAmount,
 } from '~/schemas/forms/commitment'
 
 export type CommitmentLiquidationRow =
@@ -26,6 +27,7 @@ export type CommitmentRow = Database['public']['Tables']['demand_commitments']['
     id: string
     company_name: string
     cnpj: string
+    is_simples_optant?: boolean
   } | null
   expense_natures?: {
     id: string
@@ -54,10 +56,71 @@ export type CommitmentDetail = {
   status_history: DemandItemStatusHistoryRow[]
 }
 
+export const isOrdinaryLiquidationNote = (nl: {
+  is_cancellation?: boolean | null
+  is_ir_retention?: boolean | null
+}): boolean => !nl.is_cancellation && !nl.is_ir_retention
+
 export const useCommitments = () => {
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
   const { logAction } = useLogger()
+
+  const completeCommitmentItems = async (params: {
+    normalizedNE: string
+    normalizedOB: string
+    pdNumber: string
+    observation: string | null
+    now: string
+  }): Promise<number> => {
+    const { data: linkedItems, error: fetchItemsErr } = await supabase
+      .from('demand_products')
+      .select(
+        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
+      )
+      .eq('commitment_number', params.normalizedNE)
+
+    if (fetchItemsErr) throw fetchItemsErr
+
+    const validItemIds = ((linkedItems || []) as unknown as DemandProductRow[])
+      .filter((i) => getItemDisputeResult(i).outcome === 'winner')
+      .map((i) => i.id)
+
+    if (validItemIds.length > 0) {
+      const { error: updateItemsErr } = await supabase
+        .from('demand_products')
+        .update({
+          execution_status: 'completed',
+          execution_error_details: null,
+          execution_status_updated_at: params.now,
+        })
+        .in('id', validItemIds)
+
+      if (updateItemsErr) throw updateItemsErr
+
+      const historyObservation = `Encerrado via Ordem Bancária ${params.normalizedOB} (PD: ${params.pdNumber})${params.observation ? ` — ${params.observation}` : ''}`
+
+      const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
+        validItemIds.map((itemId) => ({
+          demand_product_id: itemId,
+          status: 'completed',
+          commitment_number: params.normalizedNE,
+          observation: historyObservation,
+          error_details: null,
+          created_by: user.value?.id || null,
+        }))
+
+      const { error: historyErr } = await supabase
+        .from('demand_item_status_history')
+        .insert(historyPayload)
+
+      if (historyErr) {
+        console.error('Erro ao registrar histórico de conclusão por OB:', historyErr)
+      }
+    }
+
+    return validItemIds.length
+  }
 
   const fetchCommitments = async (): Promise<CommitmentListItem[]> => {
     const [{ data: commitmentsData, error: commitmentsErr }, { data: itemsData, error: itemsErr }] =
@@ -65,7 +128,7 @@ export const useCommitments = () => {
         supabase
           .from('demand_commitments')
           .select(
-            '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj), expense_natures(id, name), demand_commitment_liquidations(*)',
+            '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
           )
           .order('commitment_number', { ascending: true }),
         supabase
@@ -113,7 +176,7 @@ export const useCommitments = () => {
         status: resolvedStatus,
         items_count: metrics.count,
         total_amount: metrics.total,
-        liquidations_count: liquidations.length,
+        liquidations_count: liquidations.filter(isOrdinaryLiquidationNote).length,
       }
     })
   }
@@ -127,7 +190,7 @@ export const useCommitments = () => {
     const { data: commitmentData, error: commitmentErr } = await supabase
       .from('demand_commitments')
       .select(
-        '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj), expense_natures(id, name), demand_commitment_liquidations(*)',
+        '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
       )
       .eq('commitment_number', normalized)
       .maybeSingle()
@@ -375,6 +438,8 @@ export const useCommitments = () => {
     issueDate: string
     observation?: string | null
     isCancellation?: boolean
+    isIrRetention?: boolean
+    irRetentionAmount?: number | string | null
   }): Promise<CommitmentLiquidationRow> => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
     const normalizedNL = normalizeSiafemNumber(params.liquidationNumber)
@@ -383,14 +448,21 @@ export const useCommitments = () => {
       throw new Error('O número da Nota de Liquidação deve seguir o padrão SIAFEM: 2026NL00000.')
     }
 
-    const { data: commitment, error: checkErr } = await supabase
+    const { data: commitmentData, error: checkErr } = await supabase
       .from('demand_commitments')
-      .select('id, status, bank_order_number')
+      .select('id, status, bank_order_number, suppliers(id, is_simples_optant)')
       .eq('id', params.commitmentId)
       .single()
 
-    if (checkErr || !commitment) {
+    if (checkErr || !commitmentData) {
       throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      bank_order_number: string | null
+      suppliers?: { id: string; is_simples_optant?: boolean } | null
     }
 
     if (commitment.bank_order_number || commitment.status === 'completed') {
@@ -411,6 +483,22 @@ export const useCommitments = () => {
       )
     }
 
+    const isIrRetention = Boolean(params.isIrRetention)
+    let irRetentionAmount: number | null = null
+
+    if (isIrRetention) {
+      if (commitment.suppliers?.is_simples_optant === true) {
+        throw new Error(
+          'Fornecedores optantes pelo Simples Nacional não permitem cadastro de NL de Retenção de IR.',
+        )
+      }
+      const parsedAmount = parseRetentionAmount(params.irRetentionAmount)
+      if (parsedAmount === null || parsedAmount <= 0) {
+        throw new Error('É obrigatório informar o valor da retenção para NL de Retenção de IR.')
+      }
+      irRetentionAmount = parsedAmount
+    }
+
     const { data: inserted, error: insertErr } = await supabase
       .from('demand_commitment_liquidations')
       .insert({
@@ -419,6 +507,8 @@ export const useCommitments = () => {
         issue_date: params.issueDate,
         observation: params.observation?.trim() || null,
         is_cancellation: false,
+        is_ir_retention: isIrRetention,
+        ir_retention_amount: irRetentionAmount,
         created_by: user.value?.id || null,
       })
       .select('*')
@@ -431,9 +521,14 @@ export const useCommitments = () => {
       throw insertErr
     }
 
+    const irSuffix =
+      isIrRetention && irRetentionAmount !== null
+        ? ` (Retenção de IR: R$ ${irRetentionAmount.toFixed(2)})`
+        : ''
+
     await logAction(
       'ADD_COMMITMENT_LIQUIDATION',
-      `Nota de Liquidação ${normalizedNL} vinculada à Nota de Empenho ${normalizedNE}`,
+      `Nota de Liquidação ${normalizedNL}${irSuffix} vinculada à Nota de Empenho ${normalizedNE}`,
       user.value?.id,
     )
 
@@ -447,18 +542,35 @@ export const useCommitments = () => {
     liquidationNumber: string
     issueDate: string
     observation?: string | null
+    isIrRetention?: boolean
+    irRetentionAmount?: number | string | null
   }): Promise<CommitmentLiquidationRow> => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
     const normalizedNL = normalizeSiafemNumber(params.liquidationNumber)
 
-    const { data: commitment, error: checkErr } = await supabase
+    const { data: commitmentData, error: checkErr } = await supabase
       .from('demand_commitments')
-      .select('id, status, bank_order_number')
+      .select(
+        'id, status, disbursement_program_number, bank_order_number, suppliers(id, is_simples_optant), demand_commitment_liquidations(id, is_cancellation, is_ir_retention)',
+      )
       .eq('id', params.commitmentId)
       .single()
 
-    if (checkErr || !commitment) {
+    if (checkErr || !commitmentData) {
       throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      disbursement_program_number?: string | null
+      bank_order_number: string | null
+      suppliers?: { id: string; is_simples_optant?: boolean } | null
+      demand_commitment_liquidations?: Array<{
+        id: string
+        is_cancellation?: boolean | null
+        is_ir_retention?: boolean | null
+      }>
     }
 
     if (commitment.bank_order_number || commitment.status === 'completed') {
@@ -467,12 +579,46 @@ export const useCommitments = () => {
       )
     }
 
-    const { data: updated, error: updateErr } = await supabase
-      .from('demand_commitment_liquidations')
-      .update({
+    const updatePayload: Database['public']['Tables']['demand_commitment_liquidations']['Update'] =
+      {
         issue_date: params.issueDate,
         observation: params.observation?.trim() || null,
-      })
+      }
+
+    if (params.isIrRetention !== undefined) {
+      if (params.isIrRetention) {
+        if (commitment.suppliers?.is_simples_optant === true) {
+          throw new Error(
+            'Fornecedores optantes pelo Simples Nacional não permitem cadastro de NL de Retenção de IR.',
+          )
+        }
+        const parsedAmount = parseRetentionAmount(params.irRetentionAmount)
+        if (parsedAmount === null || parsedAmount <= 0) {
+          throw new Error('É obrigatório informar o valor da retenção para NL de Retenção de IR.')
+        }
+
+        if (commitment.disbursement_program_number) {
+          const remainingOrdinaryCount = (commitment.demand_commitment_liquidations || []).filter(
+            (nl) => nl.id !== params.liquidationId && isOrdinaryLiquidationNote(nl),
+          ).length
+          if (remainingOrdinaryCount < MIN_LIQUIDATIONS_FOR_PD) {
+            throw new Error(
+              `Não é possível converter esta NL para Retenção de IR pois o Programa de Desembolso (${commitment.disbursement_program_number}) exige no mínimo ${MIN_LIQUIDATIONS_FOR_PD} Notas de Liquidação ordinárias.`,
+            )
+          }
+        }
+
+        updatePayload.is_ir_retention = true
+        updatePayload.ir_retention_amount = parsedAmount
+      } else {
+        updatePayload.is_ir_retention = false
+        updatePayload.ir_retention_amount = null
+      }
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('demand_commitment_liquidations')
+      .update(updatePayload)
       .eq('id', params.liquidationId)
       .select('*')
       .single()
@@ -497,16 +643,28 @@ export const useCommitments = () => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
     const normalizedNL = normalizeSiafemNumber(params.liquidationNumber)
 
-    const { data: commitment, error: checkErr } = await supabase
+    const { data: commitmentData, error: checkErr } = await supabase
       .from('demand_commitments')
       .select(
-        'id, status, disbursement_program_number, bank_order_number, demand_commitment_liquidations(id)',
+        'id, status, disbursement_program_number, bank_order_number, demand_commitment_liquidations(id, is_cancellation, is_ir_retention)',
       )
       .eq('id', params.commitmentId)
       .single()
 
-    if (checkErr || !commitment) {
+    if (checkErr || !commitmentData) {
       throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      disbursement_program_number: string | null
+      bank_order_number: string | null
+      demand_commitment_liquidations?: Array<{
+        id: string
+        is_cancellation?: boolean | null
+        is_ir_retention?: boolean | null
+      }>
     }
 
     if (commitment.bank_order_number || commitment.status === 'completed') {
@@ -515,8 +673,16 @@ export const useCommitments = () => {
       )
     }
 
-    const currentCount = (commitment.demand_commitment_liquidations || []).length
-    if (commitment.disbursement_program_number && currentCount <= MIN_LIQUIDATIONS_FOR_PD) {
+    const allLiquidations = commitment.demand_commitment_liquidations || []
+    const targetNl = allLiquidations.find((nl) => nl.id === params.liquidationId)
+    const isTargetOrdinary = targetNl ? isOrdinaryLiquidationNote(targetNl) : true
+    const currentOrdinaryCount = allLiquidations.filter(isOrdinaryLiquidationNote).length
+
+    if (
+      commitment.disbursement_program_number &&
+      isTargetOrdinary &&
+      currentOrdinaryCount <= MIN_LIQUIDATIONS_FOR_PD
+    ) {
       throw new Error(
         `Não é possível remover esta Nota de Liquidação pois o Programa de Desembolso (${commitment.disbursement_program_number}) exige no mínimo ${MIN_LIQUIDATIONS_FOR_PD} Notas de Liquidação.`,
       )
@@ -542,10 +708,16 @@ export const useCommitments = () => {
     disbursementProgramNumber: string
     issuedAt: string
     paidAt?: string | null
+    bankOrderNumber?: string | null
     observation?: string | null
   }) => {
     const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
     const normalizedPD = normalizeSiafemNumber(params.disbursementProgramNumber)
+    const cleanPaidAt = params.paidAt?.trim() || null
+    const cleanObservation = params.observation?.trim() || null
+    const normalizedOB = params.bankOrderNumber?.trim()
+      ? normalizeSiafemNumber(params.bankOrderNumber)
+      : null
 
     if (!isValidDisbursementProgramNumber(normalizedPD)) {
       throw new Error(
@@ -553,20 +725,35 @@ export const useCommitments = () => {
       )
     }
 
-    const { data: commitment, error: checkErr } = await supabase
+    if (normalizedOB && !isValidBankOrderNumber(normalizedOB)) {
+      throw new Error('O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000.')
+    }
+
+    if (normalizedOB && !cleanPaidAt) {
+      throw new Error('Informe a data de pagamento da PD para registrar a Ordem Bancária (OB).')
+    }
+
+    const { data: commitmentData, error: checkErr } = await supabase
       .from('demand_commitments')
-      .select('id, status, bank_order_number, demand_commitment_liquidations(id)')
+      .select(
+        'id, status, bank_order_number, demand_commitment_liquidations(id, is_cancellation, is_ir_retention)',
+      )
       .eq('id', params.commitmentId)
       .single()
 
-    if (checkErr || !commitment) {
+    if (checkErr || !commitmentData) {
       throw new Error('Nota de Empenho não encontrada.')
     }
 
-    if (commitment.bank_order_number || commitment.status === 'completed') {
-      throw new Error(
-        'Esta Nota de Empenho já possui Ordem Bancária emitida e encontra-se concluída.',
-      )
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      bank_order_number: string | null
+      demand_commitment_liquidations?: Array<{
+        id: string
+        is_cancellation?: boolean | null
+        is_ir_retention?: boolean | null
+      }>
     }
 
     if (commitment.status === 'cancelled') {
@@ -575,17 +762,70 @@ export const useCommitments = () => {
       )
     }
 
-    if (commitment.status !== 'delivered') {
+    if ((commitment.bank_order_number || commitment.status === 'completed') && !normalizedOB) {
+      throw new Error(
+        'Esta Nota de Empenho já possui Ordem Bancária emitida e encontra-se concluída.',
+      )
+    }
+
+    if (commitment.status !== 'delivered' && commitment.status !== 'completed') {
       throw new Error(
         'O Programa de Desembolso só pode ser registrado após a entrega da mercadoria (status "Entregue").',
       )
     }
 
-    const liquidationsCount = (commitment.demand_commitment_liquidations || []).length
-    if (liquidationsCount < MIN_LIQUIDATIONS_FOR_PD) {
+    const ordinaryLiquidationsCount = (commitment.demand_commitment_liquidations || []).filter(
+      isOrdinaryLiquidationNote,
+    ).length
+    if (ordinaryLiquidationsCount < MIN_LIQUIDATIONS_FOR_PD) {
       throw new Error(
-        `É necessário cadastrar no mínimo ${MIN_LIQUIDATIONS_FOR_PD} Notas de Liquidação (NL) antes de emitir o Programa de Desembolso (PD). Atualmente há ${liquidationsCount}.`,
+        `É necessário cadastrar no mínimo ${MIN_LIQUIDATIONS_FOR_PD} Notas de Liquidação (NL) antes de emitir o Programa de Desembolso (PD). Atualmente há ${ordinaryLiquidationsCount}.`,
       )
+    }
+
+    const now = new Date().toISOString()
+
+    if (normalizedOB && cleanPaidAt) {
+      const { error: updateErr } = await supabase
+        .from('demand_commitments')
+        .update({
+          disbursement_program_number: normalizedPD,
+          disbursement_program_issued_at: params.issuedAt,
+          disbursement_program_paid_at: cleanPaidAt,
+          disbursement_program_observation: cleanObservation,
+          bank_order_number: normalizedOB,
+          bank_order_issued_at: cleanPaidAt,
+          bank_order_paid_at: cleanPaidAt,
+          bank_order_observation: cleanObservation,
+          status: 'completed',
+          error_details: null,
+          updated_at: now,
+        })
+        .eq('id', params.commitmentId)
+
+      if (updateErr) {
+        if (updateErr.code === '23505') {
+          throw new Error(
+            `O Programa de Desembolso "${normalizedPD}" ou a Ordem Bancária "${normalizedOB}" já está vinculado(a) a outra Nota de Empenho.`,
+          )
+        }
+        throw updateErr
+      }
+
+      const completedCount = await completeCommitmentItems({
+        normalizedNE,
+        normalizedOB,
+        pdNumber: normalizedPD,
+        observation: cleanObservation,
+        now,
+      })
+
+      await logAction(
+        'COMPLETE_COMMITMENT_BANK_ORDER',
+        `Pagamento do PD ${normalizedPD} (em ${cleanPaidAt}) e Ordem Bancária ${normalizedOB} registrados na Nota de Empenho ${normalizedNE}, encerrando ${completedCount} item(ns) como Concluído`,
+        user.value?.id,
+      )
+      return
     }
 
     const { error: updateErr } = await supabase
@@ -593,9 +833,9 @@ export const useCommitments = () => {
       .update({
         disbursement_program_number: normalizedPD,
         disbursement_program_issued_at: params.issuedAt,
-        disbursement_program_paid_at: params.paidAt?.trim() || null,
-        disbursement_program_observation: params.observation?.trim() || null,
-        updated_at: new Date().toISOString(),
+        disbursement_program_paid_at: cleanPaidAt,
+        disbursement_program_observation: cleanObservation,
+        updated_at: now,
       })
       .eq('id', params.commitmentId)
 
@@ -678,24 +918,39 @@ export const useCommitments = () => {
       throw new Error('O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000.')
     }
 
-    const { data: commitment, error: checkErr } = await supabase
+    const { data: commitmentData, error: checkErr } = await supabase
       .from('demand_commitments')
       .select(
-        'id, status, disbursement_program_number, bank_order_number, demand_commitment_liquidations(id)',
+        'id, status, disbursement_program_number, disbursement_program_paid_at, bank_order_number, demand_commitment_liquidations(id, is_cancellation, is_ir_retention)',
       )
       .eq('id', params.commitmentId)
       .single()
 
-    if (checkErr || !commitment) {
+    if (checkErr || !commitmentData) {
       throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      disbursement_program_number: string | null
+      disbursement_program_paid_at?: string | null
+      bank_order_number: string | null
+      demand_commitment_liquidations?: Array<{
+        id: string
+        is_cancellation?: boolean | null
+        is_ir_retention?: boolean | null
+      }>
     }
 
     if (commitment.status === 'cancelled') {
       throw new Error('Notas de Empenho canceladas não permitem emissão de Ordem Bancária (OB).')
     }
 
-    const liquidationsCount = (commitment.demand_commitment_liquidations || []).length
-    if (liquidationsCount < MIN_LIQUIDATIONS_FOR_PD) {
+    const ordinaryLiquidationsCount = (commitment.demand_commitment_liquidations || []).filter(
+      isOrdinaryLiquidationNote,
+    ).length
+    if (ordinaryLiquidationsCount < MIN_LIQUIDATIONS_FOR_PD) {
       throw new Error(
         `É necessário possuir no mínimo ${MIN_LIQUIDATIONS_FOR_PD} Notas de Liquidação (NL) antes de registrar a Ordem Bancária (OB).`,
       )
@@ -709,13 +964,17 @@ export const useCommitments = () => {
 
     const now = new Date().toISOString()
     const cleanObservation = params.observation?.trim() || null
+    const cleanPaidAt = params.paidAt?.trim() || null
+    const effectivePdPaidAt =
+      cleanPaidAt || commitment.disbursement_program_paid_at || params.issuedAt
 
     const { error: updateCommitmentErr } = await supabase
       .from('demand_commitments')
       .update({
+        disbursement_program_paid_at: effectivePdPaidAt,
         bank_order_number: normalizedOB,
         bank_order_issued_at: params.issuedAt,
-        bank_order_paid_at: params.paidAt?.trim() || null,
+        bank_order_paid_at: cleanPaidAt,
         bank_order_observation: cleanObservation,
         status: 'completed',
         error_details: null,
@@ -732,55 +991,17 @@ export const useCommitments = () => {
       throw updateCommitmentErr
     }
 
-    const { data: linkedItems, error: fetchItemsErr } = await supabase
-      .from('demand_products')
-      .select(
-        'id, execution_status, quantity, demand_product_bids(id, supplier_id, amount, status, created_at)',
-      )
-      .eq('commitment_number', normalizedNE)
-
-    if (fetchItemsErr) throw fetchItemsErr
-
-    const validItemIds = ((linkedItems || []) as unknown as DemandProductRow[])
-      .filter((i) => getItemDisputeResult(i).outcome === 'winner')
-      .map((i) => i.id)
-
-    if (validItemIds.length > 0) {
-      const { error: updateItemsErr } = await supabase
-        .from('demand_products')
-        .update({
-          execution_status: 'completed',
-          execution_error_details: null,
-          execution_status_updated_at: now,
-        })
-        .in('id', validItemIds)
-
-      if (updateItemsErr) throw updateItemsErr
-
-      const historyObservation = `Encerrado via Ordem Bancária ${normalizedOB} (PD: ${commitment.disbursement_program_number})${cleanObservation ? ` — ${cleanObservation}` : ''}`
-
-      const historyPayload: Database['public']['Tables']['demand_item_status_history']['Insert'][] =
-        validItemIds.map((itemId) => ({
-          demand_product_id: itemId,
-          status: 'completed',
-          commitment_number: normalizedNE,
-          observation: historyObservation,
-          error_details: null,
-          created_by: user.value?.id || null,
-        }))
-
-      const { error: historyErr } = await supabase
-        .from('demand_item_status_history')
-        .insert(historyPayload)
-
-      if (historyErr) {
-        console.error('Erro ao registrar histórico de conclusão por OB:', historyErr)
-      }
-    }
+    const completedCount = await completeCommitmentItems({
+      normalizedNE,
+      normalizedOB,
+      pdNumber: commitment.disbursement_program_number,
+      observation: cleanObservation,
+      now,
+    })
 
     await logAction(
       'COMPLETE_COMMITMENT_BANK_ORDER',
-      `Ordem Bancária ${normalizedOB} registrada na Nota de Empenho ${normalizedNE}, encerrando ${validItemIds.length} item(ns) como Concluído`,
+      `Ordem Bancária ${normalizedOB} registrada na Nota de Empenho ${normalizedNE}, encerrando ${completedCount} item(ns) como Concluído`,
       user.value?.id,
     )
   }
@@ -808,6 +1029,7 @@ export const useCommitments = () => {
     const { error: updateCommitmentErr } = await supabase
       .from('demand_commitments')
       .update({
+        disbursement_program_paid_at: null,
         bank_order_number: null,
         bank_order_issued_at: null,
         bank_order_paid_at: null,

@@ -1,7 +1,11 @@
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue'
   import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
-  import { useCommitments, type CommitmentListItem } from '~/composables/useCommitments'
+  import {
+    isOrdinaryLiquidationNote,
+    useCommitments,
+    type CommitmentListItem,
+  } from '~/composables/useCommitments'
   import {
     DEMAND_ITEM_EXECUTION_STATUS_OPTIONS,
     formatDemandItemExecutionStatus,
@@ -377,12 +381,27 @@
           <div v-else class="d-flex flex-wrap ga-1 align-center">
             <UiChip
               :color="
-                (item.demand_commitment_liquidations?.length || 0) >= 2 ? 'success' : 'default'
+                (item.demand_commitment_liquidations || []).filter(isOrdinaryLiquidationNote)
+                  .length >= 2
+                  ? 'success'
+                  : 'default'
               "
               size="xs"
               variant="soft"
             >
-              NL: {{ item.demand_commitment_liquidations?.length || 0 }}/2+
+              NL:
+              {{
+                (item.demand_commitment_liquidations || []).filter(isOrdinaryLiquidationNote)
+                  .length
+              }}/2+
+            </UiChip>
+            <UiChip
+              v-if="(item.demand_commitment_liquidations || []).some((nl) => nl.is_ir_retention)"
+              color="warning"
+              size="xs"
+              variant="soft"
+            >
+              IR
             </UiChip>
             <UiChip
               :color="item.disbursement_program_number ? 'info' : 'default'"

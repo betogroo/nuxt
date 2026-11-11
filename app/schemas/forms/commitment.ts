@@ -21,6 +21,24 @@ export const isValidDisbursementProgramNumber = (value: string): boolean =>
 export const isValidBankOrderNumber = (value: string): boolean =>
   BANK_ORDER_REGEX.test(value.trim())
 
+export const parseRetentionAmount = (val: unknown): number | null => {
+  if (val === null || val === undefined || val === '') return null
+  if (typeof val === 'number') {
+    return Number.isFinite(val) ? Math.round(val * 100) / 100 : null
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    if (!trimmed) return null
+    const normalized =
+      trimmed.includes(',') && trimmed.includes('.')
+        ? trimmed.replace(/\./g, '').replace(',', '.')
+        : trimmed.replace(',', '.')
+    const num = Number(normalized)
+    return Number.isFinite(num) ? Math.round(num * 100) / 100 : null
+  }
+  return null
+}
+
 export const commitmentNumberSchema = z
   .string({ error: 'Informe o número da Nota de Empenho.' })
   .trim()
@@ -59,36 +77,87 @@ export const commitmentLogisticsStatusFormSchema = z
     },
   )
 
-export const liquidationNoteFormSchema = z.object({
-  liquidation_number: z
-    .string({ error: 'Informe o número da Nota de Liquidação.' })
-    .trim()
-    .transform((val) => val.toUpperCase())
-    .refine((val) => LIQUIDATION_NUMBER_REGEX.test(val), {
-      message: 'Formato inválido. Utilize o padrão SIAFEM: 2026NL00000.',
-    }),
-  issue_date: z
-    .string({ error: 'Informe a data de emissão.' })
-    .trim()
-    .min(1, 'A data de emissão é obrigatória.'),
-  observation: z.string().optional().default(''),
-})
+export const liquidationNoteFormSchema = z
+  .object({
+    liquidation_number: z
+      .string({ error: 'Informe o número da Nota de Liquidação.' })
+      .trim()
+      .transform((val) => val.toUpperCase())
+      .refine((val) => LIQUIDATION_NUMBER_REGEX.test(val), {
+        message: 'Formato inválido. Utilize o padrão SIAFEM: 2026NL00000.',
+      }),
+    issue_date: z
+      .string({ error: 'Informe a data de emissão.' })
+      .trim()
+      .min(1, 'A data de emissão é obrigatória.'),
+    observation: z.string().optional().default(''),
+    is_ir_retention: z.boolean().optional().default(false),
+    ir_retention_amount: z
+      .union([z.number(), z.string(), z.null(), z.undefined()])
+      .optional()
+      .transform((val) => parseRetentionAmount(val)),
+  })
+  .superRefine((data, ctx) => {
+    if (data.is_ir_retention) {
+      if (data.ir_retention_amount === null || data.ir_retention_amount <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Informe o valor da retenção de Imposto de Renda (maior que zero).',
+          path: ['ir_retention_amount'],
+        })
+      }
+    }
+  })
 
-export const disbursementProgramFormSchema = z.object({
-  disbursement_program_number: z
-    .string({ error: 'Informe o número do Programa de Desembolso.' })
-    .trim()
-    .transform((val) => val.toUpperCase())
-    .refine((val) => DISBURSEMENT_PROGRAM_REGEX.test(val), {
-      message: 'Formato inválido. Utilize o padrão SIAFEM: 2026PD00000.',
-    }),
-  disbursement_program_issued_at: z
-    .string({ error: 'Informe a data de emissão.' })
-    .trim()
-    .min(1, 'A data de emissão é obrigatória.'),
-  disbursement_program_paid_at: z.string().optional().default(''),
-  disbursement_program_observation: z.string().optional().default(''),
-})
+export const disbursementProgramFormSchema = z
+  .object({
+    disbursement_program_number: z
+      .string({ error: 'Informe o número do Programa de Desembolso.' })
+      .trim()
+      .transform((val) => val.toUpperCase())
+      .refine((val) => DISBURSEMENT_PROGRAM_REGEX.test(val), {
+        message: 'Formato inválido. Utilize o padrão SIAFEM: 2026PD00000.',
+      }),
+    disbursement_program_issued_at: z
+      .string({ error: 'Informe a data de emissão.' })
+      .trim()
+      .min(1, 'A data de emissão é obrigatória.'),
+    disbursement_program_paid_at: z.string().optional().default(''),
+    bank_order_number: z
+      .string()
+      .optional()
+      .default('')
+      .transform((val) => val.trim().toUpperCase()),
+    disbursement_program_observation: z.string().optional().default(''),
+  })
+  .superRefine((data, ctx) => {
+    const hasPaidDate = data.disbursement_program_paid_at.trim().length > 0
+    const hasObNumber = data.bank_order_number.trim().length > 0
+
+    if (hasPaidDate && !hasObNumber) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe o número da Ordem Bancária (OB) ao registrar a data de pagamento.',
+        path: ['bank_order_number'],
+      })
+    }
+
+    if (hasObNumber && !BANK_ORDER_REGEX.test(data.bank_order_number)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Formato inválido para a OB. Utilize o padrão SIAFEM: 2026OB00000.',
+        path: ['bank_order_number'],
+      })
+    }
+
+    if (hasObNumber && !hasPaidDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Informe a data de pagamento da PD para registrar a Ordem Bancária (OB).',
+        path: ['disbursement_program_paid_at'],
+      })
+    }
+  })
 
 export const bankOrderFormSchema = z.object({
   bank_order_number: z

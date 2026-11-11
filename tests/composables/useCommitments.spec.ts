@@ -1101,6 +1101,7 @@ describe('useCommitments Composable', () => {
 
     expect(updateCommitment).toHaveBeenCalledWith(
       expect.objectContaining({
+        disbursement_program_paid_at: null,
         bank_order_number: null,
         bank_order_issued_at: null,
         bank_order_paid_at: null,
@@ -1126,5 +1127,292 @@ describe('useCommitments Composable', () => {
       expect.stringContaining('2026OB00001 removida'),
       'user-1',
     )
+  })
+
+  it('blocks NL de Retenção de IR when supplier is Simples Nacional optant (is_simples_optant === true)', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  bank_order_number: null,
+                  suppliers: {
+                    id: 'sup-1',
+                    is_simples_optant: true,
+                  },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { addLiquidationNote } = useCommitments()
+
+    await expect(
+      addLiquidationNote({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        liquidationNumber: '2026NL00015',
+        issueDate: '2026-11-05',
+        isIrRetention: true,
+        irRetentionAmount: 24.5,
+      }),
+    ).rejects.toThrow(
+      /Fornecedores optantes pelo Simples Nacional não permitem cadastro de NL de Retenção de IR/,
+    )
+  })
+
+  it('requires irRetentionAmount > 0 when adding NL de Retenção de IR and saves it for non-Simples supplier', async () => {
+    const insertNlSpy = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({
+          data: {
+            id: 'nl-ir-1',
+            commitment_id: 'comm-1',
+            liquidation_number: '2026NL00015',
+            issue_date: '2026-11-05',
+            is_ir_retention: true,
+            ir_retention_amount: 24.5,
+          },
+          error: null,
+        }),
+      }),
+    })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  bank_order_number: null,
+                  suppliers: {
+                    id: 'sup-1',
+                    is_simples_optant: false,
+                  },
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'demand_commitment_liquidations') {
+        return {
+          insert: insertNlSpy,
+        }
+      }
+      return {}
+    })
+
+    const { addLiquidationNote } = useCommitments()
+
+    await expect(
+      addLiquidationNote({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        liquidationNumber: '2026NL00015',
+        issueDate: '2026-11-05',
+        isIrRetention: true,
+        irRetentionAmount: 0,
+      }),
+    ).rejects.toThrow(/É obrigatório informar o valor da retenção para NL de Retenção de IR/)
+
+    const inserted = await addLiquidationNote({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+      liquidationNumber: '2026nl00015',
+      issueDate: '2026-11-05',
+      isIrRetention: true,
+      irRetentionAmount: '24,50',
+    })
+
+    expect(inserted.is_ir_retention).toBe(true)
+    expect(inserted.ir_retention_amount).toBe(24.5)
+    expect(insertNlSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        liquidation_number: '2026NL00015',
+        is_ir_retention: true,
+        ir_retention_amount: 24.5,
+      }),
+    )
+  })
+
+  it('does not count NL de Retenção de IR toward the minimum of 2 ordinary NLs required for PD', async () => {
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  bank_order_number: null,
+                  demand_commitment_liquidations: [
+                    { id: 'nl-1', is_cancellation: false, is_ir_retention: false },
+                    { id: 'nl-ir', is_cancellation: false, is_ir_retention: true },
+                  ],
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { saveDisbursementProgram } = useCommitments()
+
+    await expect(
+      saveDisbursementProgram({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        disbursementProgramNumber: '2026PD00001',
+        issuedAt: '2026-11-05',
+      }),
+    ).rejects.toThrow(/mínimo 2 Notas de Liquidação/)
+  })
+
+  it('allows removing an IR retention NL even when PD exists and exactly 2 ordinary NLs remain', async () => {
+    const deleteEqMock = vi.fn().mockResolvedValue({ error: null })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  disbursement_program_number: '2026PD00001',
+                  bank_order_number: null,
+                  demand_commitment_liquidations: [
+                    { id: 'nl-1', is_cancellation: false, is_ir_retention: false },
+                    { id: 'nl-2', is_cancellation: false, is_ir_retention: false },
+                    { id: 'nl-ir', is_cancellation: false, is_ir_retention: true },
+                  ],
+                },
+                error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'demand_commitment_liquidations') {
+        return {
+          delete: vi.fn().mockReturnValue({
+            eq: deleteEqMock,
+          }),
+        }
+      }
+      return {}
+    })
+
+    const { removeLiquidationNote } = useCommitments()
+
+    await removeLiquidationNote({
+      liquidationId: 'nl-ir',
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+      liquidationNumber: '2026NL00015',
+    })
+
+    expect(deleteEqMock).toHaveBeenCalledWith('id', 'nl-ir')
+  })
+
+  it('completes commitment and items when saveDisbursementProgram receives paidAt and bankOrderNumber', async () => {
+    const updateCommitmentEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateCommitmentSpy = vi.fn().mockReturnValue({
+      eq: updateCommitmentEqMock,
+    })
+    const updateItemsInMock = vi.fn().mockResolvedValue({ error: null })
+    const insertHistoryMock = vi.fn().mockResolvedValue({ error: null })
+
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'demand_commitments') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  id: 'comm-1',
+                  status: 'delivered',
+                  bank_order_number: null,
+                  demand_commitment_liquidations: [
+                    { id: 'nl-1', is_cancellation: false, is_ir_retention: false },
+                    { id: 'nl-2', is_cancellation: false, is_ir_retention: false },
+                  ],
+                },
+                error: null,
+              }),
+            }),
+          }),
+          update: updateCommitmentSpy,
+        }
+      }
+      if (table === 'demand_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'item-1',
+                  demand_product_bids: [{ id: 'b1', amount: 10, status: 'classified' }],
+                },
+              ],
+              error: null,
+            }),
+          }),
+          update: vi.fn().mockReturnValue({
+            in: updateItemsInMock,
+          }),
+        }
+      }
+      if (table === 'demand_item_status_history') {
+        return {
+          insert: insertHistoryMock,
+        }
+      }
+      return {}
+    })
+
+    const { saveDisbursementProgram } = useCommitments()
+
+    await saveDisbursementProgram({
+      commitmentId: 'comm-1',
+      commitmentNumber: '2026NE00313',
+      disbursementProgramNumber: '2026pd00010',
+      issuedAt: '2026-04-20',
+      paidAt: '2026-04-24',
+      bankOrderNumber: '2026ob00777',
+      observation: 'Pago com OB',
+    })
+
+    expect(updateCommitmentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        disbursement_program_number: '2026PD00010',
+        disbursement_program_issued_at: '2026-04-20',
+        disbursement_program_paid_at: '2026-04-24',
+        bank_order_number: '2026OB00777',
+        bank_order_issued_at: '2026-04-24',
+        bank_order_paid_at: '2026-04-24',
+        status: 'completed',
+      }),
+    )
+    expect(updateItemsInMock).toHaveBeenCalledWith('id', ['item-1'])
   })
 })

@@ -162,6 +162,10 @@ const stubs = {
   UiChip: { template: '<span class="ui-chip"><slot /></span>' },
   UiIcon: { template: '<i class="ui-icon" />' },
   UiInput: { template: '<input class="ui-input" />' },
+  UiCheckbox: {
+    template: '<label class="ui-checkbox">{{ label }}<input type="checkbox" /></label>',
+    props: ['label', 'modelValue'],
+  },
   UiTextField: { template: '<input class="ui-text-field" />' },
   UiTextarea: { template: '<textarea class="ui-textarea" />' },
   UiSelect: { template: '<select class="ui-select" />' },
@@ -559,11 +563,12 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
     expect(text).toContain('Data do Pagamento: 14/04/2026')
     expect(text).toContain('Data do Pagamento: 18/04/2026')
 
-    // Test saving PD with paidAt
+    // Test saving PD with paidAt and bankOrderNumber
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
     vm.openPdModal()
     expect(vm.pdPaidDate).toBe('2026-04-14')
+    expect(vm.pdBankOrderNumber).toBe('2026OB00088')
     vm.pdPaidDate = '2026-04-16'
     await vm.handleSavePd()
 
@@ -572,12 +577,13 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
         commitmentId: 'comm-1',
         commitmentNumber: '2026NE00313',
         paidAt: '2026-04-16',
+        bankOrderNumber: '2026OB00088',
       }),
     )
 
     // Test saving OB with paidAt
     vm.openObModal()
-    expect(vm.obPaidDate).toBe('2026-04-18')
+    expect(vm.obPaidDate).toBe('2026-04-14')
     vm.obPaidDate = '2026-04-20'
     await vm.handleSaveOb()
 
@@ -588,5 +594,52 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
         paidAt: '2026-04-20',
       }),
     )
+  })
+
+  it('displays IR retention NL badge, links it to PD payment date, and blocks IR checkbox for Simples Nacional suppliers', async () => {
+    mockDetailData.value.liquidations.push({
+      id: 'nl-ir-1',
+      commitment_id: 'comm-1',
+      liquidation_number: '2026NL00105',
+      issue_date: '2026-04-11',
+      observation: 'Retenção IR',
+      is_cancellation: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      is_ir_retention: true as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ir_retention_amount: 24.5 as any,
+      created_at: '2026-04-11T12:00:00Z',
+    })
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('2026NL00105')
+    expect(text).toContain('(IR)')
+    expect(text).toContain('24,50')
+    expect(text).toContain('Pagto. PD: 14/04/2026')
+    expect(text).toContain('Retenção de IR vinculada:')
+    expect(text).toContain('NL de Retenção de Imposto de Renda (IR)')
+
+    // Now test when supplier is Simples Nacional optant
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(mockDetailData.value.commitment.suppliers as any).is_simples_optant = true
+
+    const wrapperSimples = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+
+    const simplesText = wrapperSimples.text()
+    expect(simplesText).toContain('Simples Nacional')
+    expect(simplesText).toContain(
+      'Fornecedor optante pelo Simples Nacional — opção de NL de Retenção de IR indisponível.',
+    )
+    expect(simplesText).not.toContain('NL de Retenção de Imposto de Renda (IR)')
   })
 })
