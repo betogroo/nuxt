@@ -34,7 +34,7 @@
 
   const { createDemand } = useIirgdDemands()
   const { fetchCitizenByDocument } = useIirgdCitizens()
-  const { fetchAllActiveDocumentTypes, createPendingDocumentType } = useIirgdDocumentTypes()
+  const { fetchActiveDocumentTypesByUsage, createPendingDocumentType } = useIirgdDocumentTypes()
   const toast = useToast()
 
   const isSaving = ref(false)
@@ -47,7 +47,7 @@
 
   const { data: documentTypes } = useAsyncData(
     'active-document-types',
-    fetchAllActiveDocumentTypes,
+    fetchActiveDocumentTypesByUsage,
     {
       default: () => [],
     },
@@ -340,7 +340,18 @@
             :items="documentTypes"
             label="Tipo do Documento *"
             placeholder="Selecione ou digite um novo tipo..."
-          />
+          >
+            <template #item="{ item, props: itemProps }">
+              <UiListItem v-bind="itemProps">
+                <template v-if="item.raw?.is_frequent" #append>
+                  <UiChip class="text-caption" color="primary" size="xs" variant="soft">
+                    <UiIcon class="me-1" name="trendingUp" size="xs" />
+                    Mais usado
+                  </UiChip>
+                </template>
+              </UiListItem>
+            </template>
+          </UiCombobox>
         </UiCol>
 
         <UiCol cols="12">

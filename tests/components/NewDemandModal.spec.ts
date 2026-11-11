@@ -25,14 +25,18 @@ mockNuxtImport('useIirgdDocumentTypes', () => () => ({
     { id: DOC_TYPE_1, name: 'Primeira Via' },
     { id: DOC_TYPE_2, name: 'Antecedentes Numeral' },
   ]),
+  fetchActiveDocumentTypesByUsage: vi.fn().mockResolvedValue([
+    { id: DOC_TYPE_1, name: 'Primeira Via', usage_count: 10, is_frequent: true },
+    { id: DOC_TYPE_2, name: 'Antecedentes Numeral', usage_count: 0, is_frequent: false },
+  ]),
   createPendingDocumentType: vi
     .fn()
     .mockResolvedValue({ id: '33333333-3333-3333-3333-333333333333' }),
 }))
 mockNuxtImport('useAsyncData', () => () => ({
   data: ref([
-    { id: DOC_TYPE_1, name: 'Primeira Via' },
-    { id: DOC_TYPE_2, name: 'Antecedentes Numeral' },
+    { id: DOC_TYPE_1, name: 'Primeira Via', usage_count: 10, is_frequent: true },
+    { id: DOC_TYPE_2, name: 'Antecedentes Numeral', usage_count: 0, is_frequent: false },
   ]),
   pending: ref(false),
   refresh: vi.fn(),
@@ -273,5 +277,36 @@ describe('NewDemandModal', () => {
     expect(mockCreateDemand).toHaveBeenCalled()
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.emitted('created')).toBeDefined()
+  })
+
+  it('provides document types ordered by usage and renders "Mais usado" badge for frequent items in combobox', () => {
+    const wrapper = mount(NewDemandModal, {
+      props: {
+        modelValue: true,
+      },
+      global: {
+        plugins: [vuetify],
+        stubs: {
+          UiModal: { template: '<div><slot /><slot name="actions" /></div>' },
+          UiButton: {
+            template: '<button @click="$emit(\'click\', $event)"><slot /></button>',
+            emits: ['click'],
+          },
+        },
+      },
+    })
+
+    const combobox = wrapper.findComponent({ name: 'UiCombobox' })
+    expect(combobox.exists()).toBe(true)
+    const items = combobox.props('items') as Array<{
+      id: string
+      name: string
+      is_frequent: boolean
+    }>
+    expect(items).toHaveLength(2)
+    expect(items[0].name).toBe('Primeira Via')
+    expect(items[0].is_frequent).toBe(true)
+    expect(items[1].name).toBe('Antecedentes Numeral')
+    expect(items[1].is_frequent).toBe(false)
   })
 })

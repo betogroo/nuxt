@@ -8,6 +8,15 @@ import {
 export type IirgdDocumentTypeRow = Database['public']['Tables']['iirgd_document_types']['Row']
 export type IirgdDocumentTypeInsert = Database['public']['Tables']['iirgd_document_types']['Insert']
 
+export interface IirgdDocumentTypeWithStats extends IirgdDocumentTypeRow {
+  usage_count: number
+  is_frequent: boolean
+}
+
+interface RawDocumentTypeWithCount extends IirgdDocumentTypeRow {
+  iirgd_demands?: { count: number }[] | null
+}
+
 export const useIirgdDocumentTypes = () => {
   const supabase = useSupabaseClient<Database>()
   const { logAction } = useLogger()
@@ -58,6 +67,56 @@ export const useIirgdDocumentTypes = () => {
 
     if (error) throw error
     return (data || []) as IirgdDocumentTypeRow[]
+  }
+
+  const fetchActiveDocumentTypesByUsage = async (): Promise<IirgdDocumentTypeWithStats[]> => {
+    const { data, error } = await supabase
+      .from('iirgd_document_types')
+      .select('*, iirgd_demands(count)')
+      .eq('is_active', true)
+      .eq('is_pending', false)
+
+    if (error) throw error
+
+    const rows: IirgdDocumentTypeWithStats[] = (
+      (data as unknown as RawDocumentTypeWithCount[]) || []
+    ).map((row) => {
+      const countArr = row.iirgd_demands
+      const usageCount =
+        Array.isArray(countArr) && countArr.length > 0 && typeof countArr[0]?.count === 'number'
+          ? countArr[0].count
+          : 0
+      return {
+        id: row.id,
+        name: row.name,
+        is_active: row.is_active,
+        is_pending: row.is_pending,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        usage_count: usageCount,
+        is_frequent: false,
+      }
+    })
+
+    rows.sort((a, b) => {
+      if (b.usage_count !== a.usage_count) {
+        return b.usage_count - a.usage_count
+      }
+      return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
+    })
+
+    const TOP_FREQUENT_LIMIT = 3
+    let frequentAssigned = 0
+    for (const item of rows) {
+      if (item.usage_count > 0 && frequentAssigned < TOP_FREQUENT_LIMIT) {
+        item.is_frequent = true
+        frequentAssigned++
+      } else {
+        break
+      }
+    }
+
+    return rows
   }
 
   const createDocumentType = async (payload: IirgdDocumentTypeInsert) => {
@@ -161,6 +220,7 @@ export const useIirgdDocumentTypes = () => {
     fetchDocumentTypes,
     fetchPendingDocumentTypes,
     fetchAllActiveDocumentTypes,
+    fetchActiveDocumentTypesByUsage,
     createDocumentType,
     createPendingDocumentType,
     updateDocumentType,
