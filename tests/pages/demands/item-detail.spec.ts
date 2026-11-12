@@ -581,12 +581,20 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     // Direct flat item (Vuetify 3 default)
     expect(vm.getSupplierOption(flatSupplier)).toEqual(flatSupplier)
     expect(vm.getSupplierTitle(flatSupplier)).toBe('Empresa Teste LTDA')
-    expect(vm.getSupplierSubtitle(flatSupplier)).toBe('12.345.678/0001-90')
+    expect(vm.getSupplierSubtitle(flatSupplier)).toBe('12.345.678/0001-90 • Matriz')
 
     // Wrapped raw item (Vuetify internalItem)
     expect(vm.getSupplierOption(wrappedSupplier)).toEqual(wrappedSupplier.raw)
     expect(vm.getSupplierTitle(wrappedSupplier)).toBe('Fornecedor Envelopado SA')
-    expect(vm.getSupplierSubtitle(wrappedSupplier)).toBe('98.765.432/0001-10')
+    expect(vm.getSupplierSubtitle(wrappedSupplier)).toBe('98.765.432/0001-10 • Matriz')
+
+    // Filial item (0002)
+    const branchSupplier = {
+      id: 'supp-branch',
+      company_name: 'Empresa X Filial',
+      cnpj: '08822824000230',
+    }
+    expect(vm.getSupplierSubtitle(branchSupplier)).toBe('08.822.824/0002-30 • Filial 0002')
 
     // Item without CNPJ must return undefined for subtitle (never a lone '-')
     expect(vm.getSupplierTitle(supplierWithoutCnpj)).toBe('Fornecedor Sem CNPJ')
@@ -595,5 +603,40 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     // Fallback to itemProps.title if supplier company_name is missing
     expect(vm.getSupplierTitle({}, { title: 'Props Fallback Name' })).toBe('Props Fallback Name')
     expect(vm.getSupplierSubtitle(null)).toBeUndefined()
+  })
+
+  it('detects Matriz/Filial siblings of the same CNPJ root (08822824) and supports 1-click switch', async () => {
+    mockDemandItemsList.value = [
+      {
+        id: 'item-1',
+        product_name_snapshot: 'Notebook',
+        quantity: 2,
+        demand_product_bids: [{ id: 'b-other', supplier_id: 'sup-filial' }],
+      } as unknown as (typeof mockDemandItemsList.value)[number],
+    ]
+
+    const wrapper = shallowMount(ItemDetailPage)
+    await flushPromises()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.suppliers = [
+      { id: 'sup-matriz', company_name: 'Empresa X Matriz', cnpj: '08822824000159' },
+      { id: 'sup-filial', company_name: 'Empresa X Filial', cnpj: '08822824000230' },
+    ]
+
+    vm.bidSupplierId = 'sup-matriz'
+    await flushPromises()
+
+    expect(vm.hasMultipleEstablishments('08822824000159')).toBe(true)
+    expect(vm.selectedBidSupplierSiblings).toHaveLength(1)
+    expect(vm.selectedBidSupplierSiblings[0].id).toBe('sup-filial')
+    expect(vm.siblingsAlreadyInDemand).toHaveLength(1)
+    expect(vm.siblingsAlreadyInDemand[0].id).toBe('sup-filial')
+
+    // 1-click switch to the sibling establishment
+    vm.switchBidSupplierTo('sup-filial')
+    expect(vm.bidSupplierId).toBe('sup-filial')
   })
 })

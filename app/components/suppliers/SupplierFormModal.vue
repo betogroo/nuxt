@@ -3,6 +3,8 @@
   import { useToast } from '~/composables/useToast'
   import { supplierFormSchema, type SupplierFormInput } from '~/schemas/forms/supplier'
   import type { SupplierRow } from '~/composables/useSuppliers'
+  import { formatCnpj } from '~/utils/formatters'
+  import { getCnpjEstablishmentInfo, getCnpjRoot, formatCnpjRoot } from '~/utils/cnpj'
 
   const props = defineProps<{
     supplier?: SupplierRow | null
@@ -15,10 +17,12 @@
   const isOpen = defineModel<boolean>({ default: false })
 
   const toast = useToast()
-  const { createSupplier, updateSupplier } = useSuppliers()
+  const { createSupplier, updateSupplier, fetchSuppliersByCnpjRoot } = useSuppliers()
 
   const isSaving = ref(false)
   const saveError = ref('')
+  const sameRootSuppliers = ref<SupplierRow[]>([])
+  const isCheckingSameRoot = ref(false)
 
   const isEditing = computed(() => !!props.supplier?.id)
 
@@ -52,6 +56,42 @@
   const [hasBbAccount, hasBbAccountProps] = defineField('has_bb_account')
   const [isSimplesOptant, isSimplesOptantProps] = defineField('is_simples_optant')
   const [isActive, isActiveProps] = defineField('is_active')
+
+  const cnpjEstablishmentInfo = computed(() => getCnpjEstablishmentInfo(cnpj.value))
+
+  watch(
+    () => [cnpj.value, isOpen.value] as const,
+    async ([currentCnpj, open]) => {
+      if (!open) {
+        sameRootSuppliers.value = []
+        return
+      }
+      const root = getCnpjRoot(currentCnpj)
+      if (!root) {
+        sameRootSuppliers.value = []
+        return
+      }
+      isCheckingSameRoot.value = true
+      try {
+        sameRootSuppliers.value = await fetchSuppliersByCnpjRoot(root, props.supplier?.id)
+      } catch {
+        sameRootSuppliers.value = []
+      } finally {
+        isCheckingSameRoot.value = false
+      }
+    },
+  )
+
+  const copyDataFromSibling = (sibling: SupplierRow) => {
+    companyName.value = sibling.company_name
+    if (sibling.responsible_name) responsibleName.value = sibling.responsible_name
+    if (sibling.email) email.value = sibling.email
+    if (sibling.cell_phone) cellPhone.value = sibling.cell_phone
+    if (sibling.landline) landline.value = sibling.landline
+    if (sibling.address) address.value = sibling.address
+    isSimplesOptant.value = sibling.is_simples_optant ?? false
+    toast.info(`Dados cadastrais copiados de ${formatCnpj(sibling.cnpj)}!`)
+  }
 
   watch(
     () => [isOpen.value, props.supplier] as const,
@@ -159,6 +199,18 @@
               label="CNPJ *"
               required
             />
+            <div v-if="cnpjEstablishmentInfo" class="d-flex align-center ga-1 mt-n2 mb-2">
+              <UiChip
+                :color="cnpjEstablishmentInfo.isHeadquarters ? 'info' : 'warning'"
+                size="xs"
+                variant="soft"
+              >
+                {{ cnpjEstablishmentInfo.badgeLabel }}
+              </UiChip>
+              <span class="text-caption text-grey">
+                Raiz: {{ cnpjEstablishmentInfo.formattedRoot }}
+              </span>
+            </div>
           </UiCol>
           <UiCol cols="12" md="8">
             <UiInput
@@ -168,6 +220,50 @@
               label="Nome da Empresa *"
               required
             />
+          </UiCol>
+
+          <!-- Alerta de Mesma Faixa de CNPJ (Matriz / Filial) -->
+          <UiCol v-if="sameRootSuppliers.length > 0" cols="12">
+            <UiAlert
+              icon="building"
+              size="sm"
+              title="Empresa da mesma faixa de CNPJ (Matriz / Filial) encontrada"
+              type="info"
+              variant="soft"
+            >
+              <div class="text-caption">
+                Já existe(m) estabelecimento(s) cadastrado(s) com a raiz de CNPJ
+                <strong>{{ formatCnpjRoot(cnpj) }}</strong
+                >:
+              </div>
+              <div
+                v-for="sib in sameRootSuppliers"
+                :key="sib.id"
+                class="d-flex align-center justify-space-between flex-wrap ga-2 mt-2 pa-2 rounded bg-surface border"
+              >
+                <div class="d-flex align-center flex-wrap ga-2">
+                  <span class="text-body-2 font-weight-bold">{{ sib.company_name }}</span>
+                  <span class="text-caption text-grey font-mono">{{ formatCnpj(sib.cnpj) }}</span>
+                  <UiChip
+                    v-if="getCnpjEstablishmentInfo(sib.cnpj)"
+                    :color="getCnpjEstablishmentInfo(sib.cnpj)?.isHeadquarters ? 'info' : 'warning'"
+                    size="xs"
+                    variant="soft"
+                  >
+                    {{ getCnpjEstablishmentInfo(sib.cnpj)?.badgeLabel }}
+                  </UiChip>
+                </div>
+                <UiButton
+                  color="primary"
+                  prepend-icon="copy"
+                  size="xs"
+                  variant="soft"
+                  @click="copyDataFromSibling(sib)"
+                >
+                  Copiar Dados da Matriz/Filial
+                </UiButton>
+              </div>
+            </UiAlert>
           </UiCol>
 
           <UiCol cols="12" md="6">

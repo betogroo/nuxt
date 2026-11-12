@@ -1,6 +1,12 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast'
   import { formatDate, formatCnpj } from '~/utils/formatters'
+  import {
+    getCnpjEstablishmentInfo,
+    buildCnpjRootCountMap,
+    getCnpjRoot,
+    formatCnpjRoot,
+  } from '~/utils/cnpj'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
   import SupplierBatchAddModal from '~/components/suppliers/SupplierBatchAddModal.vue'
   const toast = useToast()
@@ -53,6 +59,13 @@
 
   const activeSuppliers = computed(() => suppliers.value?.filter((s) => s.is_active) || [])
   const inactiveSuppliers = computed(() => suppliers.value?.filter((s) => !s.is_active) || [])
+
+  const cnpjRootCountMap = computed(() => buildCnpjRootCountMap(suppliers.value || []))
+  const hasSameRootSiblings = (cnpj: string | null | undefined) => {
+    const root = getCnpjRoot(cnpj)
+    if (!root) return false
+    return (cnpjRootCountMap.value.get(root)?.length || 0) > 1
+  }
 
   // Modal State
   const isModalOpen = ref(false)
@@ -150,8 +163,8 @@
             </template>
 
             <template #item-cnpj="{ item }">
-              <div class="d-flex align-center ga-1 text-no-wrap">
-                <span>{{ formatCnpj(item.cnpj) }}</span>
+              <div class="d-flex align-center flex-wrap ga-1">
+                <span class="text-no-wrap">{{ formatCnpj(item.cnpj) }}</span>
                 <UiCopyButton
                   v-if="item.cnpj"
                   clean-digits-only
@@ -161,6 +174,24 @@
                   tooltip="Copiar CNPJ (apenas números)"
                   :value="item.cnpj"
                 />
+                <UiChip
+                  v-if="getCnpjEstablishmentInfo(item.cnpj)"
+                  :color="getCnpjEstablishmentInfo(item.cnpj)?.isHeadquarters ? 'info' : 'warning'"
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ getCnpjEstablishmentInfo(item.cnpj)?.badgeLabel }}
+                </UiChip>
+                <UiChip
+                  v-if="hasSameRootSiblings(item.cnpj)"
+                  color="warning"
+                  prepend-icon="building"
+                  size="xs"
+                  :title="`Múltiplos estabelecimentos com a raiz ${formatCnpjRoot(item.cnpj)}`"
+                  variant="outline"
+                >
+                  Matriz/Filial
+                </UiChip>
               </div>
             </template>
 
@@ -246,8 +277,8 @@
             :loading="pending"
           >
             <template #item-cnpj="{ item }">
-              <div class="d-flex align-center ga-1 text-no-wrap">
-                <span>{{ formatCnpj(item.cnpj) }}</span>
+              <div class="d-flex align-center flex-wrap ga-1">
+                <span class="text-no-wrap">{{ formatCnpj(item.cnpj) }}</span>
                 <UiCopyButton
                   v-if="item.cnpj"
                   clean-digits-only
@@ -257,6 +288,24 @@
                   tooltip="Copiar CNPJ (apenas números)"
                   :value="item.cnpj"
                 />
+                <UiChip
+                  v-if="getCnpjEstablishmentInfo(item.cnpj)"
+                  :color="getCnpjEstablishmentInfo(item.cnpj)?.isHeadquarters ? 'info' : 'warning'"
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ getCnpjEstablishmentInfo(item.cnpj)?.badgeLabel }}
+                </UiChip>
+                <UiChip
+                  v-if="hasSameRootSiblings(item.cnpj)"
+                  color="warning"
+                  prepend-icon="building"
+                  size="xs"
+                  :title="`Múltiplos estabelecimentos com a raiz ${formatCnpjRoot(item.cnpj)}`"
+                  variant="outline"
+                >
+                  Matriz/Filial
+                </UiChip>
               </div>
             </template>
 

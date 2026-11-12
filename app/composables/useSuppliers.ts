@@ -1,5 +1,6 @@
 import type { Database } from '~/types/database.types'
 import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
+import { findSameRootSuppliers, formatCnpjRoot, getCnpjRoot } from '~/utils/cnpj'
 import { formatCnpj } from '~/utils/formatters'
 
 export type SupplierRow = Database['public']['Tables']['suppliers']['Row']
@@ -82,9 +83,17 @@ export const useSuppliers = () => {
       .range(from, to)
 
     if (params.searchQuery) {
-      query = query.or(
-        `company_name.ilike.%${params.searchQuery}%,cnpj.ilike.%${params.searchQuery}%,email.ilike.%${params.searchQuery}%`,
-      )
+      const cleanRoot = getCnpjRoot(params.searchQuery)
+      if (cleanRoot) {
+        const formattedRoot = formatCnpjRoot(cleanRoot)
+        query = query.or(
+          `company_name.ilike.%${params.searchQuery}%,cnpj.ilike.%${params.searchQuery}%,cnpj.ilike.${cleanRoot}%,cnpj.ilike.${formattedRoot}%,email.ilike.%${params.searchQuery}%`,
+        )
+      } else {
+        query = query.or(
+          `company_name.ilike.%${params.searchQuery}%,cnpj.ilike.%${params.searchQuery}%,email.ilike.%${params.searchQuery}%`,
+        )
+      }
     }
 
     const { data, count, error } = await query
@@ -391,11 +400,78 @@ export const useSuppliers = () => {
     return (data || []) as SupplierRow[]
   }
 
+  const fetchSuppliersByCnpjRoot = async (
+    cnpjOrRoot: string | null | undefined,
+    excludeSupplierId?: string | null,
+  ): Promise<SupplierRow[]> => {
+    const root = getCnpjRoot(cnpjOrRoot)
+    if (!root) return []
+
+    const formattedRoot = formatCnpjRoot(root)
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('*')
+      .or(`cnpj.ilike.${root}%,cnpj.ilike.${formattedRoot}%`)
+
+    if (error) {
+      console.error('Erro ao buscar fornecedores pela raiz do CNPJ:', error)
+      throw error
+    }
+
+    return findSameRootSuppliers(root, (data || []) as SupplierRow[], {
+      excludeId: excludeSupplierId || undefined,
+    })
+  }
+
+  const replaceSupplierInDemandBids = async (params: {
+    demandId: string
+    fromSupplierId: string
+    toSupplierId: string
+    fromSupplierLabel?: string
+    toSupplierLabel?: string
+  }): Promise<number> => {
+    const { data: demandProducts, error: productsErr } = await supabase
+      .from('demand_products')
+      .select('id, commitment_number')
+      .eq('demand_id', params.demandId)
+
+    if (productsErr) throw productsErr
+
+    const uncommittedProductIds = (demandProducts || [])
+      .filter((p) => !p.commitment_number)
+      .map((p) => p.id)
+
+    if (uncommittedProductIds.length === 0) return 0
+
+    const { data: updatedBids, error: updateErr } = await supabase
+      .from('demand_product_bids')
+      .update({ supplier_id: params.toSupplierId })
+      .in('demand_product_id', uncommittedProductIds)
+      .eq('supplier_id', params.fromSupplierId)
+      .select('id')
+
+    if (updateErr) throw updateErr
+
+    const updatedCount = updatedBids?.length || 0
+
+    if (updatedCount > 0) {
+      await logAction(
+        'REPLACE_DEMAND_SUPPLIER_ESTABLISHMENT',
+        `Estabelecimento do fornecedor substituído na demanda (${params.demandId}): de ${params.fromSupplierLabel || params.fromSupplierId} para ${params.toSupplierLabel || params.toSupplierId} em ${updatedCount} lance(s)`,
+        user.value?.id,
+      )
+    }
+
+    return updatedCount
+  }
+
   return {
     fetchSuppliers,
     fetchAllActiveSuppliers,
     fetchSupplierById,
     fetchSupplierWonDemands,
+    fetchSuppliersByCnpjRoot,
+    replaceSupplierInDemandBids,
     createSupplier,
     createSupplierFast,
     updateSupplier,

@@ -2,6 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import { formatCurrency, formatCnpj, formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
+  import { getCnpjEstablishmentInfo, formatCnpjRoot } from '~/utils/cnpj'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
 
   definePageMeta({
@@ -15,7 +16,12 @@
 
   const supplierId = computed(() => route.params.id as string)
 
-  const { fetchSupplierById, fetchSupplierWonDemands, toggleSupplierStatus } = useSuppliers()
+  const {
+    fetchSupplierById,
+    fetchSupplierWonDemands,
+    toggleSupplierStatus,
+    fetchSuppliersByCnpjRoot,
+  } = useSuppliers()
 
   // Fetch supplier registration data
   const {
@@ -23,6 +29,16 @@
     pending: isSupplierLoading,
     refresh: refreshSupplier,
   } = useAsyncData(`supplier-detail-${supplierId.value}`, () => fetchSupplierById(supplierId.value))
+
+  // Fetch other establishments of the same company (same 8-digit CNPJ root)
+  const { data: relatedEstablishments } = useAsyncData(
+    `supplier-related-establishments-${supplierId.value}`,
+    async () => {
+      if (!supplier.value?.cnpj) return []
+      return await fetchSuppliersByCnpjRoot(supplier.value.cnpj, supplier.value.id)
+    },
+    { watch: [supplier] },
+  )
 
   // Fetch won demands and metrics
   const { data: wonSummary, pending: isWonLoading } = useAsyncData(
@@ -107,6 +123,14 @@
             <UiChip v-if="supplier?.is_simples_optant" color="info" size="sm" variant="soft">
               Simples Nacional
             </UiChip>
+            <UiChip
+              v-if="getCnpjEstablishmentInfo(supplier?.cnpj)"
+              :color="getCnpjEstablishmentInfo(supplier?.cnpj)?.isHeadquarters ? 'info' : 'warning'"
+              size="sm"
+              variant="soft"
+            >
+              {{ getCnpjEstablishmentInfo(supplier?.cnpj)?.badgeLabel }}
+            </UiChip>
           </div>
           <div class="d-flex align-center ga-1 text-caption text-medium-emphasis">
             <span>CNPJ: {{ formatCnpj(supplier?.cnpj) }}</span>
@@ -119,6 +143,9 @@
               tooltip="Copiar CNPJ (apenas números)"
               :value="supplier.cnpj"
             />
+            <span v-if="supplier?.cnpj" class="ml-2 text-grey">
+              (Faixa Raiz: {{ formatCnpjRoot(supplier.cnpj) }})
+            </span>
           </div>
         </div>
       </div>
@@ -269,6 +296,62 @@
                   </div>
                 </UiCol>
               </UiRow>
+            </div>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+
+      <!-- Outros Estabelecimentos da Mesma Empresa (Matriz / Filial) -->
+      <UiRow v-if="relatedEstablishments && relatedEstablishments.length > 0" class="mb-4">
+        <UiCol cols="12">
+          <UiCard
+            :title="`Outros Estabelecimentos da Mesma Empresa (Raiz CNPJ: ${formatCnpjRoot(supplier.cnpj)})`"
+            variant="outline"
+          >
+            <div class="pa-4">
+              <UiAlert class="mb-3" icon="building" size="sm" type="warning" variant="soft">
+                Esta empresa possui outro(s) estabelecimento(s) (Matriz/Filial) cadastrado(s) no
+                sistema. Certifique-se de utilizar o CNPJ correto nas demandas e empenhos.
+              </UiAlert>
+              <div class="d-flex flex-column ga-2">
+                <div
+                  v-for="rel in relatedEstablishments"
+                  :key="rel.id"
+                  class="d-flex align-center justify-space-between flex-wrap ga-2 pa-3 rounded border"
+                >
+                  <div class="d-flex align-center flex-wrap ga-2">
+                    <NuxtLink
+                      class="text-body-1 font-weight-bold text-primary text-decoration-none"
+                      :to="`/suppliers/${rel.id}`"
+                    >
+                      {{ rel.company_name }}
+                    </NuxtLink>
+                    <span class="text-body-2 font-mono text-grey">{{ formatCnpj(rel.cnpj) }}</span>
+                    <UiChip
+                      v-if="getCnpjEstablishmentInfo(rel.cnpj)"
+                      :color="
+                        getCnpjEstablishmentInfo(rel.cnpj)?.isHeadquarters ? 'info' : 'warning'
+                      "
+                      size="xs"
+                      variant="soft"
+                    >
+                      {{ getCnpjEstablishmentInfo(rel.cnpj)?.badgeLabel }}
+                    </UiChip>
+                    <UiChip :color="rel.is_active ? 'success' : 'error'" size="xs" variant="solid">
+                      {{ rel.is_active ? 'ATIVO' : 'INATIVO' }}
+                    </UiChip>
+                  </div>
+                  <UiButton
+                    color="primary"
+                    prepend-icon="externalLink"
+                    size="xs"
+                    :to="`/suppliers/${rel.id}`"
+                    variant="soft"
+                  >
+                    Ver Cadastro
+                  </UiButton>
+                </div>
+              </div>
             </div>
           </UiCard>
         </UiCol>

@@ -11,6 +11,12 @@
     validateOfferOpeningRules,
   } from '~/utils/formatters'
   import {
+    getCnpjEstablishmentInfo,
+    findSameRootSuppliers,
+    formatCnpjRoot,
+    getCnpjRoot,
+  } from '~/utils/cnpj'
+  import {
     DEMAND_ITEM_EXECUTION_STATUS_LABELS,
     DEMAND_ITEM_EXECUTION_STATUS_COLORS,
     DEMAND_ITEM_EXECUTION_STATUS_ICONS,
@@ -48,6 +54,7 @@
   const { fetchAllActiveProductClasses } = useProductClasses()
   const { fetchAllActiveExpenseNatures } = useExpenseNatures()
   const { fetchUnits, resolveOrCreateUnit } = useMeasurementUnits()
+  const { fetchAllActiveSuppliers, replaceSupplierInDemandBids } = useSuppliers()
   const { getBecProductUrl, fetchProductClassAnnualCeilings, getCeilingForYear } =
     useSystemSettings()
   const { fetchDemandsForClassSpending, resolveDemandYear } = useDemandReports()
@@ -263,6 +270,10 @@
 
   const { data: productClasses } = useAsyncData('active-product-classes', async () => {
     return await fetchAllActiveProductClasses()
+  })
+
+  const { data: allActiveSuppliers } = useAsyncData('all-active-suppliers-demand', async () => {
+    return await fetchAllActiveSuppliers()
   })
 
   // Modal State
@@ -919,6 +930,81 @@
   const openConvocationEmailModal = (supplier: WinningSupplierSummaryItem) => {
     selectedSupplierForConvocationEmail.value = supplier
     isConvocationEmailModalOpen.value = true
+  }
+
+  // --- DETECÇÃO E SUBSTITUIÇÃO DE ESTABELECIMENTO (MATRIZ / FILIAL - MESMA FAIXA DE CNPJ) ---
+  const getRelatedEstablishments = (supplier: { id: string; cnpj: string }) => {
+    if (!allActiveSuppliers.value || !supplier.cnpj) return []
+    return findSameRootSuppliers(supplier.cnpj, allActiveSuppliers.value, supplier.id)
+  }
+
+  const demandSameRootDivergences = computed(() => {
+    const groups = new Map<string, WinningSupplierSummaryItem[]>()
+    for (const s of winningSuppliersSummary.value) {
+      const root = getCnpjRoot(s.cnpj)
+      if (!root) continue
+      const existing = groups.get(root) || []
+      existing.push(s)
+      groups.set(root, existing)
+    }
+    return Array.from(groups.entries())
+      .filter(([, list]) => list.length > 1)
+      .map(([root, suppliers]) => ({
+        root,
+        formattedRoot: formatCnpjRoot(root),
+        suppliers,
+      }))
+  })
+
+  const replaceEstablishmentModal = useFormModal<WinningSupplierSummaryItem>()
+  const targetReplacementSupplierId = ref<string | null>(null)
+
+  const availableReplacementOptions = computed(() => {
+    const current = replaceEstablishmentModal.targetItem.value
+    if (!current) return []
+    return getRelatedEstablishments(current).map((s) => {
+      const info = getCnpjEstablishmentInfo(s.cnpj)
+      return {
+        title: `${s.company_name} — ${formatCnpj(s.cnpj)} (${info?.badgeLabel || 'Mesma Faixa'})`,
+        value: s.id,
+        supplier: s,
+      }
+    })
+  })
+
+  const openReplaceEstablishmentModal = (supplier: WinningSupplierSummaryItem) => {
+    const related = getRelatedEstablishments(supplier)
+    targetReplacementSupplierId.value = related[0]?.id || null
+    replaceEstablishmentModal.openForTarget(supplier)
+  }
+
+  const handleConfirmReplaceEstablishment = async () => {
+    const fromSupplier = replaceEstablishmentModal.targetItem.value
+    if (!fromSupplier || !targetReplacementSupplierId.value) return
+    const toOption = availableReplacementOptions.value.find(
+      (opt) => opt.value === targetReplacementSupplierId.value,
+    )
+    if (!toOption) return
+
+    await replaceEstablishmentModal.executeSave(async () => {
+      const result = await replaceSupplierInDemandBids({
+        demandId,
+        fromSupplierId: fromSupplier.id,
+        toSupplierId: toOption.supplier.id,
+        fromSupplierLabel: `${fromSupplier.company_name} (${formatCnpj(fromSupplier.cnpj)})`,
+        toSupplierLabel: `${toOption.supplier.company_name} (${formatCnpj(toOption.supplier.cnpj)})`,
+      })
+      await refreshItems()
+      if (result.skippedCommittedCount > 0) {
+        toast.warning(
+          `${result.updatedCount} lance(s) migrado(s) para ${formatCnpj(toOption.supplier.cnpj)}. ${result.skippedCommittedCount} item(ns) já empenhado(s) foram mantidos.`,
+        )
+      } else {
+        toast.success(
+          `Estabelecimento atualizado com sucesso! ${result.updatedCount} lance(s) migrado(s) para ${formatCnpj(toOption.supplier.cnpj)}.`,
+        )
+      }
+    })
   }
 
   const handleGenerateReport = () => {
@@ -2021,6 +2107,39 @@
           </UiCol>
         </UiRow>
 
+        <!-- Alerta de Divergência de Estabelecimento (Matriz e Filial na mesma Demanda) -->
+        <UiAlert
+          v-for="div in demandSameRootDivergences"
+          :key="div.root"
+          class="mb-4"
+          icon="alert"
+          title="Atenção: Matriz e Filial da mesma empresa nesta demanda"
+          type="warning"
+          variant="soft"
+        >
+          <div class="text-body-2">
+            Foram identificados múltiplos estabelecimentos com a mesma raiz de CNPJ (<strong>{{
+              div.formattedRoot
+            }}</strong
+            >) vencendo itens nesta demanda:
+            <ul class="mt-1 mb-0 pl-4">
+              <li v-for="s in div.suppliers" :key="s.id">
+                <strong>{{ s.company_name }}</strong> — {{ formatCnpj(s.cnpj) }}
+                <UiChip
+                  v-if="getCnpjEstablishmentInfo(s.cnpj)"
+                  class="ml-1"
+                  :color="getCnpjEstablishmentInfo(s.cnpj)?.isHeadquarters ? 'info' : 'warning'"
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ getCnpjEstablishmentInfo(s.cnpj)?.badgeLabel }}
+                </UiChip>
+                ({{ s.wonCount }} {{ s.wonCount === 1 ? 'item vencido' : 'itens vencidos' }})
+              </li>
+            </ul>
+          </div>
+        </UiAlert>
+
         <!-- Resumo de Fornecedores da Demanda -->
         <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outline">
           <div v-if="itemsPending" class="text-center py-4">
@@ -2060,7 +2179,7 @@
                   tooltip="Cadastro do Fornecedor"
                 />
               </div>
-              <div class="d-flex align-center ga-1 text-caption text-grey">
+              <div class="d-flex align-center flex-wrap ga-1 text-caption text-grey">
                 <span>{{ formatCnpj(supplier.cnpj) }}</span>
                 <UiCopyButton
                   v-if="supplier.cnpj"
@@ -2071,6 +2190,26 @@
                   tooltip="Copiar CNPJ (apenas números)"
                   :value="supplier.cnpj"
                 />
+                <UiChip
+                  v-if="getCnpjEstablishmentInfo(supplier.cnpj)"
+                  :color="
+                    getCnpjEstablishmentInfo(supplier.cnpj)?.isHeadquarters ? 'info' : 'warning'
+                  "
+                  size="xs"
+                  variant="soft"
+                >
+                  {{ getCnpjEstablishmentInfo(supplier.cnpj)?.badgeLabel }}
+                </UiChip>
+                <UiChip
+                  v-if="getRelatedEstablishments(supplier).length > 0"
+                  color="warning"
+                  prepend-icon="building"
+                  size="xs"
+                  title="Esta empresa possui outro estabelecimento (Matriz/Filial) cadastrado"
+                  variant="outline"
+                >
+                  Possui Matriz/Filial
+                </UiChip>
               </div>
             </template>
 
@@ -2151,6 +2290,21 @@
 
             <template #item-actions="{ item: supplier }">
               <div class="d-flex align-center ga-1">
+                <UiButton
+                  v-if="
+                    canEditDemand(demand) &&
+                    getRelatedEstablishments(supplier).length > 0 &&
+                    (supplier.allPendingCommitments || supplier.hasPendingCommitments)
+                  "
+                  color="warning"
+                  prepend-icon="swapHorizontal"
+                  size="xs"
+                  tooltip="Trocar estabelecimento (Matriz ↔ Filial) nos lances não empenhados"
+                  variant="soft"
+                  @click="openReplaceEstablishmentModal(supplier)"
+                >
+                  Trocar Matriz/Filial
+                </UiButton>
                 <UiButton
                   color="primary"
                   prepend-icon="document"
@@ -3008,5 +3162,87 @@
       :demand="demand"
       :items="items || []"
     />
+
+    <!-- Modal de Substituição de Estabelecimento (Matriz ↔ Filial) na Demanda -->
+    <UiModal
+      v-model="replaceEstablishmentModal.isOpen.value"
+      max-width="560px"
+      persistent
+      title="Trocar Estabelecimento (Matriz ↔ Filial)"
+    >
+      <UiAlert
+        v-if="replaceEstablishmentModal.saveError.value"
+        class="mb-4"
+        size="sm"
+        type="error"
+        variant="soft"
+      >
+        {{ replaceEstablishmentModal.saveError.value }}
+      </UiAlert>
+
+      <div v-if="replaceEstablishmentModal.targetItem.value" class="d-flex flex-column ga-3">
+        <UiAlert icon="building" size="sm" type="info" variant="soft">
+          Esta ação atualizará os lances (não empenhados) desta demanda que foram lançados com o
+          cadastro incorreto entre Matriz e Filial da mesma empresa (Raiz CNPJ:
+          <strong>{{ formatCnpjRoot(replaceEstablishmentModal.targetItem.value.cnpj) }}</strong
+          >).
+        </UiAlert>
+
+        <div class="pa-3 rounded border">
+          <div class="text-caption text-grey font-weight-medium">Cadastro Atual na Demanda</div>
+          <div class="text-body-2 font-weight-bold mt-1">
+            {{ replaceEstablishmentModal.targetItem.value.company_name }}
+          </div>
+          <div class="d-flex align-center ga-2 mt-1">
+            <span class="text-caption font-mono">{{
+              formatCnpj(replaceEstablishmentModal.targetItem.value.cnpj)
+            }}</span>
+            <UiChip
+              v-if="getCnpjEstablishmentInfo(replaceEstablishmentModal.targetItem.value.cnpj)"
+              :color="
+                getCnpjEstablishmentInfo(replaceEstablishmentModal.targetItem.value.cnpj)
+                  ?.isHeadquarters
+                  ? 'info'
+                  : 'warning'
+              "
+              size="xs"
+              variant="soft"
+            >
+              {{
+                getCnpjEstablishmentInfo(replaceEstablishmentModal.targetItem.value.cnpj)
+                  ?.badgeLabel
+              }}
+            </UiChip>
+          </div>
+        </div>
+
+        <UiSelect
+          v-model="targetReplacementSupplierId"
+          item-title="title"
+          item-value="value"
+          :items="availableReplacementOptions"
+          label="Substituir pelo estabelecimento*"
+        />
+      </div>
+
+      <template #actions>
+        <UiButton
+          :disabled="replaceEstablishmentModal.isSaving.value"
+          variant="ghost"
+          @click="replaceEstablishmentModal.close()"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="warning"
+          :disabled="!targetReplacementSupplierId"
+          :loading="replaceEstablishmentModal.isSaving.value"
+          prepend-icon="swapHorizontal"
+          @click="handleConfirmReplaceEstablishment"
+        >
+          Confirmar Troca de CNPJ
+        </UiButton>
+      </template>
+    </UiModal>
   </UiContainer>
 </template>

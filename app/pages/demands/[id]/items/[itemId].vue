@@ -12,6 +12,14 @@
     type DemandItemExecutionStatus,
   } from '~/constants/demand-item-status'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+  import {
+    buildCnpjRootCountMap,
+    cleanCnpjDigits,
+    findSameRootSuppliers,
+    formatCnpjRoot,
+    getCnpjEstablishmentInfo,
+    getCnpjRoot,
+  } from '~/utils/cnpj'
   import { formatUnitPrice, formatCurrency, formatCnpj } from '~/utils/formatters'
   import { filterSupplierOption } from '~/utils/supplierFilter'
   definePageMeta({ middleware: ['uge'] })
@@ -455,9 +463,80 @@
   const getSupplierSubtitle = (supplierItem: unknown): string | undefined => {
     const supplier = getSupplierOption(supplierItem)
     if (supplier?.cnpj) {
-      return formatCnpj(supplier.cnpj)
+      const info = getCnpjEstablishmentInfo(supplier.cnpj)
+      return info ? `${formatCnpj(supplier.cnpj)} • ${info.label}` : formatCnpj(supplier.cnpj)
     }
     return undefined
+  }
+
+  const suppliersByRootMap = computed(() => buildCnpjRootCountMap(suppliers.value))
+
+  const hasMultipleEstablishments = (cnpj: string | null | undefined): boolean => {
+    const root = getCnpjRoot(cnpj)
+    if (!root) return false
+    return (suppliersByRootMap.value.get(root)?.length ?? 0) > 1
+  }
+
+  const getSupplierEstablishmentInfo = (supplierItem: unknown) => {
+    const supplier = getSupplierOption(supplierItem)
+    return getCnpjEstablishmentInfo(supplier?.cnpj)
+  }
+
+  const selectedBidSupplier = computed(
+    () => suppliers.value.find((s) => s.id === bidSupplierId.value) || null,
+  )
+
+  const selectedBidSupplierInfo = computed(() =>
+    getCnpjEstablishmentInfo(selectedBidSupplier.value?.cnpj),
+  )
+
+  const selectedBidSupplierSiblings = computed(() => {
+    if (!selectedBidSupplier.value) return []
+    return findSameRootSuppliers(selectedBidSupplier.value.cnpj, suppliers.value, {
+      excludeId: selectedBidSupplier.value.id,
+    })
+  })
+
+  const demandParticipatingSupplierIds = computed(() => {
+    const ids = new Set<string>()
+    for (const demandItem of demandItems.value || []) {
+      for (const bid of demandItem.demand_product_bids || []) {
+        if (bid.supplier_id) ids.add(bid.supplier_id)
+      }
+    }
+    for (const bid of bids.value || []) {
+      if (bid.supplier_id) ids.add(bid.supplier_id)
+    }
+    return ids
+  })
+
+  const siblingsAlreadyInDemand = computed(() =>
+    selectedBidSupplierSiblings.value.filter((s) => demandParticipatingSupplierIds.value.has(s.id)),
+  )
+
+  const newBidExactSupplierMatch = computed(() => {
+    const clean = cleanCnpjDigits(bidCnpj.value)
+    if (clean.length !== 14) return null
+    return suppliers.value.find((s) => cleanCnpjDigits(s.cnpj) === clean) || null
+  })
+
+  const newBidSameRootSuppliers = computed(() => {
+    if (!bidCnpj.value || cleanCnpjDigits(bidCnpj.value).length < 8) return []
+    return findSameRootSuppliers(bidCnpj.value, suppliers.value, {
+      excludeExactCnpj: true,
+    })
+  })
+
+  const switchBidSupplierTo = (targetSupplierId: string) => {
+    bidIsNew.value = false
+    bidSupplierId.value = targetSupplierId
+  }
+
+  const copyFromRelatedSupplierInBid = (related: SupplierRow) => {
+    bidName.value = related.company_name
+    if (!bidEmail.value && related.email) {
+      bidEmail.value = related.email
+    }
   }
 
   const focusSupplierField = async () => {
@@ -1103,8 +1182,18 @@
 
           <template #item-supplier="{ item: bid }">
             <div class="font-weight-bold">{{ bid.suppliers?.company_name }}</div>
-            <div class="d-flex align-center ga-1 text-caption text-grey">
+            <div class="d-flex align-center flex-wrap ga-1 text-caption text-grey">
               <span>{{ formatCnpj(bid.suppliers?.cnpj) }}</span>
+              <UiChip
+                v-if="getCnpjEstablishmentInfo(bid.suppliers?.cnpj)"
+                :color="
+                  getCnpjEstablishmentInfo(bid.suppliers?.cnpj)?.isBranch ? 'warning' : 'default'
+                "
+                size="xs"
+                variant="soft"
+              >
+                {{ getCnpjEstablishmentInfo(bid.suppliers?.cnpj)?.badgeLabel }}
+              </UiChip>
               <UiCopyButton
                 v-if="bid.suppliers?.cnpj"
                 clean-digits-only
@@ -1383,31 +1472,138 @@
         ></UiSwitch>
 
         <!-- Fornecedor Existente -->
-        <UiAutocomplete
-          v-if="!bidIsNew"
-          ref="supplierAutocompleteRef"
-          v-model="bidSupplierId"
-          v-bind="bidSupplierIdProps"
-          class="mb-3"
-          color="primary"
-          :custom-filter="filterSupplierOption"
-          :error-messages="bidErrors.supplierId"
-          item-title="company_name"
-          item-value="id"
-          :items="suppliers"
-          label="Selecionar Fornecedor*"
-          placeholder="Busque pela razão social ou CNPJ..."
-          size="md"
-          variant="outline"
-        >
-          <template #item="{ props: itemProps, item: supplierItem }">
-            <UiListItem
-              v-bind="itemProps"
-              :subtitle="getSupplierSubtitle(supplierItem)"
-              :title="getSupplierTitle(supplierItem, itemProps)"
-            />
-          </template>
-        </UiAutocomplete>
+        <template v-if="!bidIsNew">
+          <UiAutocomplete
+            ref="supplierAutocompleteRef"
+            v-model="bidSupplierId"
+            v-bind="bidSupplierIdProps"
+            class="mb-3"
+            color="primary"
+            :custom-filter="filterSupplierOption"
+            :error-messages="bidErrors.supplierId"
+            item-title="company_name"
+            item-value="id"
+            :items="suppliers"
+            label="Selecionar Fornecedor*"
+            placeholder="Busque pela razão social ou CNPJ..."
+            size="md"
+            variant="outline"
+          >
+            <template #item="{ props: itemProps, item: supplierItem }">
+              <UiListItem
+                v-bind="itemProps"
+                :subtitle="getSupplierSubtitle(supplierItem)"
+                :title="getSupplierTitle(supplierItem, itemProps)"
+              >
+                <template #append>
+                  <div class="d-flex align-center ga-1">
+                    <UiChip
+                      v-if="hasMultipleEstablishments(getSupplierOption(supplierItem)?.cnpj)"
+                      color="warning"
+                      size="xs"
+                      variant="solid"
+                    >
+                      Matriz/Filial
+                    </UiChip>
+                    <UiChip
+                      v-if="getSupplierEstablishmentInfo(supplierItem)"
+                      :color="
+                        getSupplierEstablishmentInfo(supplierItem)?.isBranch ? 'warning' : 'info'
+                      "
+                      size="xs"
+                      variant="soft"
+                    >
+                      {{ getSupplierEstablishmentInfo(supplierItem)?.badgeLabel }}
+                    </UiChip>
+                  </div>
+                </template>
+              </UiListItem>
+            </template>
+          </UiAutocomplete>
+
+          <!-- Alerta Crítico: Outro CNPJ da mesma raiz já utilizado nesta demanda -->
+          <UiAlert
+            v-if="siblingsAlreadyInDemand.length > 0 && selectedBidSupplier"
+            class="mb-3"
+            size="sm"
+            type="error"
+            variant="soft"
+          >
+            <div class="font-weight-bold mb-1">
+              Divergência de Matriz/Filial nesta Demanda ({{
+                formatCnpjRoot(selectedBidSupplier.cnpj)
+              }})
+            </div>
+            <div class="text-caption mb-2">
+              Você selecionou
+              <strong>{{ selectedBidSupplierInfo?.label || 'este estabelecimento' }}</strong>
+              ({{ formatCnpj(selectedBidSupplier.cnpj) }}), mas outro CNPJ desta mesma empresa já
+              possui lance registrado nesta licitação. Usar CNPJs distintos (Matriz vs Filial)
+              dividirá os itens em Notas de Empenho separadas:
+            </div>
+            <div class="d-flex flex-column ga-1">
+              <div
+                v-for="sib in siblingsAlreadyInDemand"
+                :key="sib.id"
+                class="d-flex align-center justify-space-between flex-wrap ga-2 pa-2 rounded bg-surface border"
+              >
+                <div class="text-caption">
+                  <strong>{{ getCnpjEstablishmentInfo(sib.cnpj)?.badgeLabel }}</strong> •
+                  {{ formatCnpj(sib.cnpj) }} — {{ sib.company_name }}
+                </div>
+                <UiButton
+                  color="error"
+                  size="xs"
+                  variant="solid"
+                  @click="switchBidSupplierTo(sib.id)"
+                >
+                  Usar este CNPJ ({{ getCnpjEstablishmentInfo(sib.cnpj)?.label }})
+                </UiButton>
+              </div>
+            </div>
+          </UiAlert>
+
+          <!-- Alerta Preventivo: Existem outros estabelecimentos (Matriz/Filial) cadastrados no sistema -->
+          <UiAlert
+            v-else-if="selectedBidSupplierSiblings.length > 0 && selectedBidSupplier"
+            class="mb-3"
+            size="sm"
+            type="warning"
+            variant="soft"
+          >
+            <div class="font-weight-bold mb-1">
+              Atenção: Empresa possui Matriz e Filial cadastradas (Faixa
+              {{ formatCnpjRoot(selectedBidSupplier.cnpj) }})
+            </div>
+            <div class="text-caption mb-2">
+              Selecionado:
+              <strong>{{ selectedBidSupplierInfo?.badgeLabel }}</strong> ({{
+                formatCnpj(selectedBidSupplier.cnpj)
+              }}). Confira se o documento da proposta refere-se a este estabelecimento ou a outro da
+              mesma faixa:
+            </div>
+            <div class="d-flex flex-column ga-1">
+              <div
+                v-for="sib in selectedBidSupplierSiblings"
+                :key="sib.id"
+                class="d-flex align-center justify-space-between flex-wrap ga-2 pa-2 rounded bg-surface border"
+              >
+                <div class="text-caption">
+                  <strong>{{ getCnpjEstablishmentInfo(sib.cnpj)?.badgeLabel }}</strong> •
+                  {{ formatCnpj(sib.cnpj) }} — {{ sib.company_name }}
+                </div>
+                <UiButton
+                  color="warning"
+                  size="xs"
+                  variant="outline"
+                  @click="switchBidSupplierTo(sib.id)"
+                >
+                  Alternar para {{ getCnpjEstablishmentInfo(sib.cnpj)?.label }}
+                </UiButton>
+              </div>
+            </div>
+          </UiAlert>
+        </template>
 
         <!-- Novo Fornecedor -->
         <template v-else>
@@ -1419,6 +1615,87 @@
             label="CNPJ do Fornecedor*"
             placeholder="Apenas números"
           />
+
+          <!-- Alerta: CNPJ exato já existe no sistema -->
+          <UiAlert
+            v-if="newBidExactSupplierMatch"
+            class="mb-3"
+            size="sm"
+            type="warning"
+            variant="soft"
+          >
+            <div class="d-flex align-center justify-space-between flex-wrap ga-2">
+              <div class="text-caption">
+                Este CNPJ (<strong>{{ formatCnpj(newBidExactSupplierMatch.cnpj) }}</strong> —
+                {{ newBidExactSupplierMatch.company_name }}) já está cadastrado no sistema.
+              </div>
+              <UiButton
+                color="primary"
+                size="xs"
+                variant="solid"
+                @click="switchBidSupplierTo(newBidExactSupplierMatch.id)"
+              >
+                Selecionar Cadastro Existente
+              </UiButton>
+            </div>
+          </UiAlert>
+
+          <!-- Alerta: Mesma raiz de CNPJ (Matriz/Filial) encontrada no sistema -->
+          <UiAlert
+            v-else-if="newBidSameRootSuppliers.length > 0"
+            class="mb-3"
+            size="sm"
+            type="info"
+            variant="soft"
+          >
+            <div class="font-weight-bold mb-1">
+              Mesma Faixa de CNPJ Detectada ({{ formatCnpjRoot(bidCnpj) }})
+              <UiChip
+                v-if="getCnpjEstablishmentInfo(bidCnpj)"
+                class="ml-1"
+                color="info"
+                size="xs"
+                variant="solid"
+              >
+                Novo: {{ getCnpjEstablishmentInfo(bidCnpj)?.badgeLabel }}
+              </UiChip>
+            </div>
+            <div class="text-caption mb-2">
+              Já existe(m) outro(s) estabelecimento(s) desta empresa no sistema. Verifique se deseja
+              utilizar o cadastro existente ou reaproveitar a Razão Social para esta filial/matriz:
+            </div>
+            <div class="d-flex flex-column ga-1">
+              <div
+                v-for="rel in newBidSameRootSuppliers"
+                :key="rel.id"
+                class="d-flex align-center justify-space-between flex-wrap ga-2 pa-2 rounded bg-surface border"
+              >
+                <div class="text-caption">
+                  <strong>{{ getCnpjEstablishmentInfo(rel.cnpj)?.badgeLabel }}</strong> •
+                  {{ formatCnpj(rel.cnpj) }} — {{ rel.company_name }}
+                </div>
+                <div class="d-flex align-center ga-1">
+                  <UiButton
+                    color="secondary"
+                    size="xs"
+                    variant="outline"
+                    @click="copyFromRelatedSupplierInBid(rel)"
+                  >
+                    Copiar Razão Social
+                  </UiButton>
+                  <UiButton
+                    color="primary"
+                    size="xs"
+                    variant="solid"
+                    @click="switchBidSupplierTo(rel.id)"
+                  >
+                    Usar {{ getCnpjEstablishmentInfo(rel.cnpj)?.label }}
+                  </UiButton>
+                </div>
+              </div>
+            </div>
+          </UiAlert>
+
           <UiInput
             v-model="bidName"
             v-bind="bidNameProps"
