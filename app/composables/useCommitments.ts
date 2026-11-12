@@ -726,7 +726,9 @@ export const useCommitments = () => {
     }
 
     if (normalizedOB && !isValidBankOrderNumber(normalizedOB)) {
-      throw new Error('O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000.')
+      throw new Error(
+        'O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000 ou 2026OBC0000.',
+      )
     }
 
     if (normalizedOB && !cleanPaidAt) {
@@ -915,7 +917,9 @@ export const useCommitments = () => {
     const normalizedOB = normalizeSiafemNumber(params.bankOrderNumber)
 
     if (!isValidBankOrderNumber(normalizedOB)) {
-      throw new Error('O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000.')
+      throw new Error(
+        'O número da Ordem Bancária deve seguir o padrão SIAFEM: 2026OB00000 ou 2026OBC0000.',
+      )
     }
 
     const { data: commitmentData, error: checkErr } = await supabase

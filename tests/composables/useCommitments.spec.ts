@@ -259,7 +259,7 @@ describe('useCommitments Composable', () => {
     await saveBankOrderAndComplete({
       commitmentId: 'comm-1',
       commitmentNumber: '2026NE00313',
-      bankOrderNumber: '2026ob00999',
+      bankOrderNumber: '2026obc2148',
       issuedAt: '2026-11-01',
       paidAt: '2026-11-06',
       observation: 'Pago',
@@ -267,7 +267,7 @@ describe('useCommitments Composable', () => {
 
     expect(updateCommitmentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        bank_order_number: '2026OB00999',
+        bank_order_number: '2026OBC2148',
         bank_order_issued_at: '2026-11-01',
         bank_order_paid_at: '2026-11-06',
         bank_order_observation: 'Pago',
@@ -291,7 +291,7 @@ describe('useCommitments Composable', () => {
     )
     expect(logActionMock).toHaveBeenCalledWith(
       'COMPLETE_COMMITMENT_BANK_ORDER',
-      expect.stringContaining('2026OB00999'),
+      expect.stringContaining('2026OBC2148'),
       'user-1',
     )
   })

@@ -127,7 +127,13 @@ describe('useBackup Composable', () => {
           { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Azul' },
         ],
         demands: [{ id: 'dem-1' }],
-        demand_commitments: [{ id: 'dc-1', commitment_number: '2026NE00313' }],
+        demand_commitments: [
+          {
+            id: 'dc-1',
+            commitment_number: '2026NE00313',
+            bank_order_number: '2026OBC2148',
+          },
+        ],
         demand_commitment_liquidations: [
           {
             id: 'nl-1',

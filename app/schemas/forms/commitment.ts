@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const COMMITMENT_NUMBER_REGEX = /^\d{4}NE\d{5}$/i
 export const LIQUIDATION_NUMBER_REGEX = /^\d{4}NL\d{5}$/i
 export const DISBURSEMENT_PROGRAM_REGEX = /^\d{4}PD\d{5}$/i
-export const BANK_ORDER_REGEX = /^\d{4}OB\d{5}$/i
+export const BANK_ORDER_REGEX = /^\d{4}OB[A-Z0-9]\d{4}$/i
 
 export const MIN_LIQUIDATIONS_FOR_PD = 2
 
@@ -145,7 +145,7 @@ export const disbursementProgramFormSchema = z
     if (hasObNumber && !BANK_ORDER_REGEX.test(data.bank_order_number)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Formato inválido para a OB. Utilize o padrão SIAFEM: 2026OB00000.',
+        message: 'Formato inválido para a OB. Utilize o padrão SIAFEM: 2026OB00000 ou 2026OBC0000.',
         path: ['bank_order_number'],
       })
     }
@@ -165,7 +165,7 @@ export const bankOrderFormSchema = z.object({
     .trim()
     .transform((val) => val.toUpperCase())
     .refine((val) => BANK_ORDER_REGEX.test(val), {
-      message: 'Formato inválido. Utilize o padrão SIAFEM: 2026OB00000.',
+      message: 'Formato inválido. Utilize o padrão SIAFEM: 2026OB00000 ou 2026OBC0000.',
     }),
   bank_order_issued_at: z
     .string({ error: 'Informe a data de emissão.' })

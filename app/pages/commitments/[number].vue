@@ -1218,8 +1218,8 @@
                 </UiChip>
               </div>
               <div class="text-caption text-grey mb-3">
-                Padrão <code>2026OB00000</code>. Informada ao registrar a data de pagamento da PD,
-                encerrando a Nota de Empenho e todos os seus itens.
+                Padrão <code>2026OB00000</code> ou <code>2026OBC0000</code>. Informada ao registrar
+                a data de pagamento da PD, encerrando a Nota de Empenho e todos os seus itens.
               </div>
 
               <div v-if="commitment.bank_order_number" class="pa-3 rounded border mb-3">
@@ -1559,10 +1559,10 @@
         v-if="pdPaidDate || pdBankOrderNumber"
         v-model="pdBankOrderNumber"
         class="mb-3"
-        hint="Obrigatório ao registrar a data de pagamento da PD (Padrão: 2026OB00000)"
+        hint="Obrigatório ao registrar a data de pagamento da PD (Padrão: 2026OB00000 ou 2026OBC0000)"
         label="Número da Ordem Bancária (OB)"
         persistent-hint
-        placeholder="2026OB00000"
+        placeholder="2026OB00000 / 2026OBC0000"
         variant="outline"
       />
 
@@ -1596,10 +1596,10 @@
       <UiInput
         v-model="obNumber"
         class="mb-3"
-        hint="Formato obrigatório: 2026OB00000"
+        hint="Formato obrigatório: 2026OB00000 ou 2026OBC0000"
         label="Número da Ordem Bancária"
         persistent-hint
-        placeholder="2026OB00000"
+        placeholder="2026OB00000 / 2026OBC0000"
         variant="outline"
       />
 

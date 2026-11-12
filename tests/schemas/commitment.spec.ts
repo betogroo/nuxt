@@ -105,32 +105,35 @@ describe('Commitment & Financial Execution SIAFEM Schemas', () => {
       )
     }
 
-    // PD with payment date and valid OB should pass
+    // PD with payment date and valid OB (numeric or alphanumeric first char after OB) should pass
     const paidWithOb = disbursementProgramFormSchema.safeParse({
       disbursement_program_number: '2026PD00099',
       disbursement_program_issued_at: '2026-11-01',
       disbursement_program_paid_at: '2026-11-10',
-      bank_order_number: '2026ob00555',
+      bank_order_number: '2026obc2148',
     })
     expect(paidWithOb.success).toBe(true)
     if (paidWithOb.success) {
-      expect(paidWithOb.data.bank_order_number).toBe('2026OB00555')
+      expect(paidWithOb.data.bank_order_number).toBe('2026OBC2148')
     }
   })
 
-  it('validates Ordem Bancária (YYYYOB00000)', () => {
+  it('validates Ordem Bancária (YYYYOB00000 and YYYYOBX0000)', () => {
     expect(isValidBankOrderNumber('2026OB00500')).toBe(true)
     expect(isValidBankOrderNumber('2026ob00500')).toBe(true)
+    expect(isValidBankOrderNumber('2026OBC2148')).toBe(true)
+    expect(isValidBankOrderNumber('2026obc2148')).toBe(true)
     expect(isValidBankOrderNumber('2026PD00500')).toBe(false)
+    expect(isValidBankOrderNumber('2026OBCC148')).toBe(false)
 
     const validOb = bankOrderFormSchema.safeParse({
-      bank_order_number: '2026ob00500',
+      bank_order_number: '2026obc2148',
       bank_order_issued_at: '2026-11-01',
       bank_order_observation: 'Pagamento efetuado',
     })
     expect(validOb.success).toBe(true)
     if (validOb.success) {
-      expect(validOb.data.bank_order_number).toBe('2026OB00500')
+      expect(validOb.data.bank_order_number).toBe('2026OBC2148')
     }
   })
 
