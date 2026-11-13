@@ -7,6 +7,7 @@
     getCnpjRoot,
     formatCnpjRoot,
   } from '~/utils/cnpj'
+  import { parseSupplierEmails, getFirstSupplierEmail } from '~/utils/supplierEmail'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
   import SupplierBatchAddModal from '~/components/suppliers/SupplierBatchAddModal.vue'
   const toast = useToast()
@@ -205,7 +206,21 @@
             </template>
 
             <template #item-email="{ item }">
-              <span :class="{ 'text-grey': !item.email }">{{ item.email || '-' }}</span>
+              <template v-if="item.email">
+                <div class="d-flex align-center ga-1 flex-wrap">
+                  <span>{{ getFirstSupplierEmail(item.email) }}</span>
+                  <UiChip
+                    v-if="parseSupplierEmails(item.email).length > 1"
+                    color="secondary"
+                    size="xs"
+                    :title="parseSupplierEmails(item.email).join('\n')"
+                    variant="soft"
+                  >
+                    +{{ parseSupplierEmails(item.email).length - 1 }}
+                  </UiChip>
+                </div>
+              </template>
+              <span v-else class="text-grey">-</span>
             </template>
 
             <template #item-is_simples_optant="{ item }">
@@ -319,7 +334,21 @@
             </template>
 
             <template #item-email="{ item }">
-              <span :class="{ 'text-grey': !item.email }">{{ item.email || '-' }}</span>
+              <template v-if="item.email">
+                <div class="d-flex align-center ga-1 flex-wrap">
+                  <span>{{ getFirstSupplierEmail(item.email) }}</span>
+                  <UiChip
+                    v-if="parseSupplierEmails(item.email).length > 1"
+                    color="secondary"
+                    size="xs"
+                    :title="parseSupplierEmails(item.email).join('\n')"
+                    variant="soft"
+                  >
+                    +{{ parseSupplierEmails(item.email).length - 1 }}
+                  </UiChip>
+                </div>
+              </template>
+              <span v-else class="text-grey">-</span>
             </template>
 
             <template #item-is_simples_optant="{ item }">

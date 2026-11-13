@@ -136,6 +136,21 @@ describe('demandConvocationEmail utility', () => {
       expect(emailData.mailtoLink).toContain('CONVO')
     })
 
+    it('handles multiple supplier emails and generates mailto link with all recipients', () => {
+      const demand = { contract_number: '90001/2026' }
+      const supplier = {
+        company_name: 'Papelaria Central LTDA',
+        email: 'vendas@papelaria.com.br, financeiro@papelaria.com.br',
+        commitments: [],
+      }
+
+      const emailData = generateConvocationEmail(demand, supplier)
+      expect(emailData.recipientEmail).toBe('vendas@papelaria.com.br, financeiro@papelaria.com.br')
+      expect(emailData.mailtoLink).toContain(
+        'mailto:vendas%40papelaria.com.br,financeiro%40papelaria.com.br?subject=',
+      )
+    })
+
     it('handles missing supplier email gracefully', () => {
       const emailData = generateConvocationEmail(
         { contract_number: '123/2026' },

@@ -35,6 +35,11 @@ const stubs = {
     props: ['modelValue', 'label'],
   },
   UiDivider: { template: '<hr />' },
+  UiChip: {
+    template:
+      '<div class="ui-chip" :data-color="color"><slot /><button class="close-btn" @click="$emit(\'click:close\')">x</button></div>',
+    props: ['color', 'closable', 'size', 'variant'],
+  },
   UiButton: {
     template: '<button class="ui-button" @click="$emit(\'click\')"><slot /></button>',
     props: ['loading', 'disabled', 'color', 'variant'],
@@ -89,5 +94,35 @@ describe('components/suppliers/SupplierFormModal.vue', () => {
 
     const cnpjInput = inputs.find((i) => i.attributes('data-label') === 'CNPJ *')
     expect(cnpjInput?.attributes('data-required')).toBeDefined()
+  })
+
+  it('renders chips for multiple emails and allows removing one', async () => {
+    const wrapper = mount(SupplierFormModal, {
+      props: {
+        modelValue: true,
+        supplier: {
+          id: 'sup-1',
+          cnpj: '00.000.000/0001-91',
+          company_name: 'Empresa Teste',
+          email: 'contato@teste.com, financeiro@teste.com',
+          is_active: true,
+          created_at: '',
+          updated_at: '',
+        },
+      },
+      global: { stubs },
+    })
+
+    const chips = wrapper.findAll('.supplier-email-chip')
+    expect(chips.length).toBe(2)
+    expect(chips[0].text()).toContain('contato@teste.com')
+    expect(chips[1].text()).toContain('financeiro@teste.com')
+
+    const closeBtn = chips[0].find('button.close-btn')
+    await closeBtn.trigger('click')
+
+    const inputs = wrapper.findAll('input.ui-input')
+    const emailInput = inputs.find((i) => i.attributes('data-label') === 'E-mail')
+    expect((emailInput?.element as HTMLInputElement).value).toBe('financeiro@teste.com')
   })
 })

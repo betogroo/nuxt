@@ -1,4 +1,5 @@
 import { formatCurrency } from './formatters'
+import { formatSupplierEmails, formatMailtoRecipients } from './supplierEmail'
 import type { SupplierCommitmentGroup } from '~/composables/useDemandDetail'
 
 export interface DemandForConvocationEmail {
@@ -101,7 +102,7 @@ export function generateConvocationEmail(
 ): ConvocationEmailData {
   const contractNumberWithYear = resolveProcurementNumberWithYear(demand)
   const companyName = supplier?.company_name?.trim() || '[NOME DA EMPRESA]'
-  const recipientEmail = supplier?.email?.trim() || null
+  const recipientEmail = formatSupplierEmails(supplier?.email)
   const commitmentsList = formatCommitmentsList(supplier?.commitments || [])
 
   const subject = `CONVOCAÇÃO: Envio de Nota de Empenho - Dispensa Eletrônica nº ${contractNumberWithYear}`
@@ -135,7 +136,13 @@ Atenciosamente,`
 
   const fullText = `Assunto: ${subject}\n\n${body}`
 
-  const mailtoRecipient = recipientEmail ? encodeURIComponent(recipientEmail) : ''
+  const mailtoRecipients = formatMailtoRecipients(supplier?.email)
+  const mailtoRecipient = mailtoRecipients
+    ? mailtoRecipients
+        .split(',')
+        .map((e) => encodeURIComponent(e))
+        .join(',')
+    : ''
   const mailtoSubject = encodeURIComponent(subject)
   const mailtoBody = encodeURIComponent(body)
   const mailtoLink = `mailto:${mailtoRecipient}?subject=${mailtoSubject}&body=${mailtoBody}`

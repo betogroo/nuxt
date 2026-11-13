@@ -107,7 +107,50 @@ describe('supplierFormSchema validation', () => {
     if (!result.success) {
       const emailError = result.error.issues.find((i) => i.path.includes('email'))
       expect(emailError).toBeDefined()
-      expect(emailError?.message).toBe('Formato de e-mail inválido.')
+      expect(emailError?.message).toContain('Formato de e-mail inválido')
+    }
+  })
+
+  it('deve aceitar múltiplos e-mails válidos e normalizar separados por vírgula e espaço', () => {
+    const result = supplierFormSchema.safeParse({
+      ...validSupplierBase,
+      cnpj: '00.000.000/0001-91',
+      email: 'Comercial@empresa.com.br; financeiro@empresa.com.br, contato@empresa.com.br',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.email).toBe(
+        'comercial@empresa.com.br, financeiro@empresa.com.br, contato@empresa.com.br',
+      )
+    }
+  })
+
+  it('deve aceitar múltiplos e-mails como array e normalizar', () => {
+    const result = supplierFormSchema.safeParse({
+      ...validSupplierBase,
+      cnpj: '00.000.000/0001-91',
+      email: ['licitacao@empresa.com', 'diretoria@empresa.com'],
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.email).toBe('licitacao@empresa.com, diretoria@empresa.com')
+    }
+  })
+
+  it('deve rejeitar se um dos múltiplos e-mails for inválido', () => {
+    const result = supplierFormSchema.safeParse({
+      ...validSupplierBase,
+      cnpj: '00.000.000/0001-91',
+      email: 'valido@empresa.com, invalido-sem-arroba',
+    })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const emailError = result.error.issues.find((i) => i.path.includes('email'))
+      expect(emailError).toBeDefined()
+      expect(emailError?.message).toContain('invalido-sem-arroba')
     }
   })
 })

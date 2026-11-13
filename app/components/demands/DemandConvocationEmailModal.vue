@@ -3,6 +3,7 @@
   import { useToast } from '~/composables/useToast'
   import { useCopyToClipboard } from '~/composables/useCopyToClipboard'
   import { formatCnpj } from '~/utils/formatters'
+  import { parseSupplierEmails } from '~/utils/supplierEmail'
   import {
     generateConvocationEmail,
     type DemandForConvocationEmail,
@@ -100,11 +101,19 @@
           </div>
         </div>
 
-        <div class="d-flex align-center ga-2">
-          <UiChip v-if="supplier.email" color="info" size="xs" variant="soft">
-            <UiIcon class="mr-1" name="email" size="xs" />
-            {{ supplier.email }}
-          </UiChip>
+        <div class="d-flex align-center flex-wrap ga-2">
+          <template v-if="supplier.email && parseSupplierEmails(supplier.email).length > 0">
+            <UiChip
+              v-for="emailItem in parseSupplierEmails(supplier.email)"
+              :key="emailItem"
+              color="info"
+              size="xs"
+              variant="soft"
+            >
+              <UiIcon class="mr-1" name="email" size="xs" />
+              {{ emailItem }}
+            </UiChip>
+          </template>
           <UiChip
             v-if="supplier.commitments && supplier.commitments.length > 0"
             color="purple"

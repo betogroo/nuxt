@@ -3,6 +3,7 @@
   import { formatCurrency, formatCnpj, formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
   import { getCnpjEstablishmentInfo, formatCnpjRoot } from '~/utils/cnpj'
+  import { parseSupplierEmails } from '~/utils/supplierEmail'
   import SupplierFormModal from '~/components/suppliers/SupplierFormModal.vue'
 
   definePageMeta({
@@ -223,11 +224,33 @@
 
                 <UiCol cols="12" md="4" sm="6">
                   <div class="text-caption text-medium-emphasis font-weight-bold text-uppercase">
-                    E-mail
+                    {{ parseSupplierEmails(supplier?.email).length > 1 ? 'E-mails' : 'E-mail' }}
                   </div>
-                  <div class="text-body-1">
-                    {{ supplier.email || '-' }}
+                  <div
+                    v-if="parseSupplierEmails(supplier?.email).length > 0"
+                    class="d-flex flex-column ga-1 mt-1"
+                  >
+                    <div
+                      v-for="mail in parseSupplierEmails(supplier?.email)"
+                      :key="mail"
+                      class="d-flex align-center ga-1 text-body-2"
+                    >
+                      <a
+                        class="text-primary text-decoration-none font-weight-medium"
+                        :href="`mailto:${mail}`"
+                      >
+                        {{ mail }}
+                      </a>
+                      <UiCopyButton
+                        color="secondary"
+                        size="xs"
+                        success-message="E-mail copiado!"
+                        tooltip="Copiar e-mail"
+                        :value="mail"
+                      />
+                    </div>
                   </div>
+                  <div v-else class="text-body-1 text-grey">-</div>
                 </UiCol>
 
                 <UiCol cols="12" md="4" sm="6">

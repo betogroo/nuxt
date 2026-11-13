@@ -5,6 +5,7 @@
   import type { SupplierRow } from '~/composables/useSuppliers'
   import { formatCnpj } from '~/utils/formatters'
   import { getCnpjEstablishmentInfo, getCnpjRoot, formatCnpjRoot } from '~/utils/cnpj'
+  import { parseSupplierEmails, isValidEmail } from '~/utils/supplierEmail'
 
   const props = defineProps<{
     supplier?: SupplierRow | null
@@ -56,6 +57,13 @@
   const [hasBbAccount, hasBbAccountProps] = defineField('has_bb_account')
   const [isSimplesOptant, isSimplesOptantProps] = defineField('is_simples_optant')
   const [isActive, isActiveProps] = defineField('is_active')
+
+  const parsedEmailChips = computed(() => parseSupplierEmails(email.value))
+
+  const handleRemoveEmailChip = (target: string) => {
+    const remaining = parsedEmailChips.value.filter((e) => e !== target)
+    email.value = remaining.length > 0 ? remaining.join(', ') : ''
+  }
 
   const cnpjEstablishmentInfo = computed(() => getCnpjEstablishmentInfo(cnpj.value))
 
@@ -279,9 +287,28 @@
               v-model="email"
               v-bind="emailProps"
               :error-messages="errors.email"
+              hint="Para múltiplos e-mails, separe por vírgula ou ponto e vírgula"
               label="E-mail"
-              type="email"
+              persistent-hint
+              placeholder="ex: contato@empresa.com, financeiro@empresa.com"
             />
+            <div
+              v-if="parsedEmailChips.length > 0"
+              class="supplier-email-chips-container d-flex flex-wrap ga-1 mt-1"
+            >
+              <UiChip
+                v-for="chip in parsedEmailChips"
+                :key="chip"
+                class="supplier-email-chip"
+                closable
+                :color="isValidEmail(chip) ? 'info' : 'error'"
+                size="xs"
+                variant="soft"
+                @click:close="handleRemoveEmailChip(chip)"
+              >
+                {{ chip }}
+              </UiChip>
+            </div>
           </UiCol>
 
           <UiCol cols="12" md="6">
