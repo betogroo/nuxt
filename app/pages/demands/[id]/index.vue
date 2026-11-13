@@ -2245,7 +2245,7 @@
                   :key="c.commitmentNumber"
                   class="d-flex align-center justify-space-between ga-2"
                 >
-                  <div class="d-flex align-center ga-1">
+                  <div class="d-flex align-center flex-wrap ga-1">
                     <NuxtLink
                       class="text-decoration-none"
                       :to="APP_ROUTES.commitments.detail(c.commitmentNumber)"
@@ -2261,6 +2261,29 @@
                         {{ c.commitmentNumber }}
                       </UiChip>
                     </NuxtLink>
+                    <template v-if="c.statuses && c.statuses.length > 1">
+                      <UiChip
+                        v-for="st in c.statuses"
+                        :key="st"
+                        :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[st]"
+                        :prepend-icon="DEMAND_ITEM_EXECUTION_STATUS_ICONS[st]"
+                        size="xs"
+                        :title="`Status da Execução: ${DEMAND_ITEM_EXECUTION_STATUS_LABELS[st]}`"
+                        variant="soft"
+                      >
+                        {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[st] }}
+                      </UiChip>
+                    </template>
+                    <UiChip
+                      v-else-if="c.status"
+                      :color="DEMAND_ITEM_EXECUTION_STATUS_COLORS[c.status]"
+                      :prepend-icon="DEMAND_ITEM_EXECUTION_STATUS_ICONS[c.status]"
+                      size="xs"
+                      :title="`Status da Execução: ${DEMAND_ITEM_EXECUTION_STATUS_LABELS[c.status]}`"
+                      variant="soft"
+                    >
+                      {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[c.status] }}
+                    </UiChip>
                     <span v-if="c.itemsCount > 1" class="text-caption text-grey font-weight-medium">
                       ({{ c.itemsCount }} itens)
                     </span>

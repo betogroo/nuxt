@@ -1,6 +1,7 @@
 import { onMounted, getCurrentInstance } from 'vue'
 import type { Database } from '~/types/database.types'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
+import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import { useToast } from '~/composables/useToast'
 import { getItemSubtotal, getItemDisputeResult } from '~/utils/bids'
 
@@ -9,6 +10,8 @@ export interface SupplierCommitmentGroup {
   itemsCount: number
   totalAmount: number
   itemNames: string[]
+  status: DemandItemExecutionStatus
+  statuses: DemandItemExecutionStatus[]
 }
 
 export interface WinningSupplierSummaryItem {
@@ -195,7 +198,12 @@ export function useDemandDetail(demandId: string) {
         totalAmountWon: number
         commitmentsMap: Map<
           string,
-          { itemsCount: number; totalAmount: number; itemNames: string[] }
+          {
+            itemsCount: number
+            totalAmount: number
+            itemNames: string[]
+            statuses: Set<DemandItemExecutionStatus>
+          }
         >
         pendingCommitmentsCount: number
         pendingCommitmentsAmount: number
@@ -238,6 +246,8 @@ export function useDemandDetail(demandId: string) {
 
           const trimmedCommitment = product.commitment_number?.trim() || null
           const itemName = product.product_name_snapshot || product.product?.name || 'Item'
+          const itemStatus = (product.execution_status ||
+            'homologated') as DemandItemExecutionStatus
 
           if (trimmedCommitment) {
             const existing = stats.commitmentsMap.get(trimmedCommitment)
@@ -245,11 +255,13 @@ export function useDemandDetail(demandId: string) {
               existing.itemsCount += 1
               existing.totalAmount = Number((existing.totalAmount + subtotal).toFixed(2))
               existing.itemNames.push(itemName)
+              existing.statuses.add(itemStatus)
             } else {
               stats.commitmentsMap.set(trimmedCommitment, {
                 itemsCount: 1,
                 totalAmount: subtotal,
                 itemNames: [itemName],
+                statuses: new Set([itemStatus]),
               })
             }
           } else {
@@ -266,12 +278,17 @@ export function useDemandDetail(demandId: string) {
       .filter((s) => s.won.size > 0)
       .map((s) => {
         const commitments: SupplierCommitmentGroup[] = Array.from(s.commitmentsMap.entries())
-          .map(([commitmentNumber, group]) => ({
-            commitmentNumber,
-            itemsCount: group.itemsCount,
-            totalAmount: group.totalAmount,
-            itemNames: group.itemNames,
-          }))
+          .map(([commitmentNumber, group]) => {
+            const statuses = Array.from(group.statuses)
+            return {
+              commitmentNumber,
+              itemsCount: group.itemsCount,
+              totalAmount: group.totalAmount,
+              itemNames: group.itemNames,
+              status: statuses[0] || 'homologated',
+              statuses,
+            }
+          })
           .sort((a, b) => a.commitmentNumber.localeCompare(b.commitmentNumber))
 
         const wonCount = s.won.size

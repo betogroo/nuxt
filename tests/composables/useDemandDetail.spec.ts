@@ -185,6 +185,8 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
         itemsCount: 2,
         totalAmount: 300,
         itemNames: ['Papel A4', 'Caneta Azul'],
+        status: 'homologated',
+        statuses: ['homologated'],
       })
     })
 
@@ -288,12 +290,16 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
         itemsCount: 1,
         totalAmount: 6000,
         itemNames: ['Notebook'],
+        status: 'homologated',
+        statuses: ['homologated'],
       })
       expect(winnerA.commitments[1]).toEqual({
         commitmentNumber: '2026-NE-00002',
         itemsCount: 1,
         totalAmount: 1200,
         itemNames: ['Monitor'],
+        status: 'homologated',
+        statuses: ['homologated'],
       })
     })
 
@@ -368,6 +374,8 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
         itemsCount: 1,
         totalAmount: 1000,
         itemNames: ['Cadeira Ergonômica'],
+        status: 'homologated',
+        statuses: ['homologated'],
       })
     })
 
@@ -392,6 +400,31 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
 
       const { winningSuppliersSummary } = useDemandDetail('demand-1')
       expect(winningSuppliersSummary.value).toEqual([])
+    })
+
+    it('captures custom execution status in commitment groups', () => {
+      mockItems.value = [
+        {
+          id: 'item-1',
+          quantity: 2,
+          commitment_number: '2026-NE-00050',
+          execution_status: 'shipped',
+          product_name_snapshot: 'Teclado Mecânico',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-a',
+              amount: 250.0,
+              status: 'classified',
+              suppliers: mockSupplierA,
+            },
+          ],
+        },
+      ]
+
+      const { winningSuppliersSummary } = useDemandDetail('demand-1')
+      expect(winningSuppliersSummary.value[0].commitments[0].status).toBe('shipped')
+      expect(winningSuppliersSummary.value[0].commitments[0].statuses).toEqual(['shipped'])
     })
   })
 })
