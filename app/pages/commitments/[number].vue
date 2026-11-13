@@ -143,14 +143,59 @@
     ),
   )
 
-  const openLogisticsStatusModal = () => {
+  const openLogisticsStatusModal = (initialStatus?: DemandItemExecutionStatus) => {
     if (!commitment.value) return
-    selectedNewStatus.value =
-      commitment.value.status === 'completed' ? 'delivered' : commitment.value.status
+    if (initialStatus) {
+      selectedNewStatus.value = initialStatus
+    } else {
+      selectedNewStatus.value =
+        commitment.value.status === 'completed' ? 'delivered' : commitment.value.status
+    }
     statusNotes.value = commitment.value.observation || ''
     statusErrorDetails.value = commitment.value.error_details || ''
     statusModal.openAdd()
   }
+
+  const isStepClickable = (stepKey: DemandItemExecutionStatus) => {
+    if (!commitment.value) return false
+    if (commitment.value.status === 'completed' || commitment.value.status === 'cancelled') {
+      return false
+    }
+    return stepKey !== 'completed'
+  }
+
+  const handleStepClick = (stepKey: DemandItemExecutionStatus) => {
+    if (!commitment.value) return
+    if (stepKey === 'completed') {
+      toast.info(
+        'A etapa "Concluído" é aplicada automaticamente ao registrar a Ordem Bancária (OB).',
+      )
+      return
+    }
+    if (!isStepClickable(stepKey)) return
+    openLogisticsStatusModal(stepKey)
+  }
+
+  const getStepTooltip = (stepKey: DemandItemExecutionStatus) => {
+    if (!commitment.value) return undefined
+    if (stepKey === 'completed') {
+      return 'Conclusão automática mediante emissão da Ordem Bancária (OB)'
+    }
+    if (commitment.value.status === 'completed' || commitment.value.status === 'cancelled') {
+      return undefined
+    }
+    if (commitment.value.status === stepKey) {
+      return 'Etapa atual (clique para registrar observação)'
+    }
+    return `Clique para alterar para: ${formatDemandItemExecutionStatus(stepKey)}`
+  }
+
+  const isRetrocedingStatus = computed(() => {
+    if (!commitment.value || !selectedNewStatus.value) return false
+    const currentIdx = getDemandItemExecutionStatusStepIndex(commitment.value.status)
+    const newIdx = getDemandItemExecutionStatusStepIndex(selectedNewStatus.value)
+    return newIdx >= 0 && currentIdx >= 0 && newIdx < currentIdx
+  })
 
   const handleSaveLogisticsStatus = async () => {
     if (!commitment.value) return
@@ -844,6 +889,10 @@
         <div class="d-flex flex-wrap ga-2 align-center">
           <template v-for="(stepKey, idx) in DEMAND_ITEM_EXECUTION_FLOW" :key="stepKey">
             <UiChip
+              :class="{
+                'cursor-pointer': isStepClickable(stepKey),
+                'opacity-75': !isStepClickable(stepKey) && stepKey === 'completed',
+              }"
               :color="
                 commitment.status === stepKey
                   ? getDemandItemExecutionStatusColor(stepKey)
@@ -855,7 +904,9 @@
                 idx < currentStepIndex ? 'checkCircle' : getDemandItemExecutionStatusIcon(stepKey)
               "
               size="sm"
+              :title="getStepTooltip(stepKey)"
               :variant="commitment.status === stepKey ? 'solid' : 'soft'"
+              @click="handleStepClick(stepKey)"
             >
               {{ idx + 1 }}. {{ formatDemandItemExecutionStatus(stepKey) }}
             </UiChip>
@@ -1387,6 +1438,36 @@
     >
       <UiAlert v-if="statusModal.error.value" class="mb-3" type="error" variant="soft">
         {{ statusModal.error.value }}
+      </UiAlert>
+
+      <!-- Resumo visual da Transição -->
+      <UiCard v-if="commitment" class="pa-3 mb-3" elevation="0" variant="tonal">
+        <div class="text-caption text-grey-darken-1 mb-1 font-weight-medium">
+          Transição de Etapa:
+        </div>
+        <div class="d-flex align-center flex-wrap ga-2">
+          <UiChip
+            :color="getDemandItemExecutionStatusColor(commitment.status)"
+            :prepend-icon="getDemandItemExecutionStatusIcon(commitment.status)"
+            size="xs"
+            variant="soft"
+          >
+            {{ formatDemandItemExecutionStatus(commitment.status) }}
+          </UiChip>
+          <UiIcon color="grey" name="chevronRight" size="14" />
+          <UiChip
+            :color="getDemandItemExecutionStatusColor(selectedNewStatus)"
+            :prepend-icon="getDemandItemExecutionStatusIcon(selectedNewStatus)"
+            size="xs"
+            variant="solid"
+          >
+            {{ formatDemandItemExecutionStatus(selectedNewStatus) }}
+          </UiChip>
+        </div>
+      </UiCard>
+
+      <UiAlert v-if="isRetrocedingStatus" class="mb-3" type="warning" variant="soft">
+        <strong>Atenção:</strong> Você está retrocedendo a etapa logística deste empenho.
       </UiAlert>
 
       <UiSelect

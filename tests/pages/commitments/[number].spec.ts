@@ -159,7 +159,11 @@ const stubs = {
       'tooltip',
     ],
   },
-  UiChip: { template: '<span class="ui-chip"><slot /></span>' },
+  UiChip: {
+    template:
+      '<span class="ui-chip" :class="$attrs.class" :title="$attrs.title" @click="$emit(\'click\')"><slot /></span>',
+    emits: ['click'],
+  },
   UiIcon: { template: '<i class="ui-icon" />' },
   UiInput: { template: '<input class="ui-input" />' },
   UiCheckbox: {
@@ -641,5 +645,83 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
       'Fornecedor optante pelo Simples Nacional — opção de NL de Retenção de IR indisponível.',
     )
     expect(simplesText).not.toContain('NL de Retenção de Imposto de Renda (IR)')
+  })
+
+  it('opens logistics status modal pre-selected with target step when clicking a valid execution status chip', async () => {
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    // commitment.status is 'delivered'
+    expect(vm.statusModal.isOpen.value).toBe(false)
+
+    // Find chip for 'commitment_sent' (3. Empenho Enviado)
+    const chips = wrapper.findAll('.ui-chip')
+    const sentChip = chips.find((c) => c.text().includes('Empenho Enviado'))
+    expect(sentChip).toBeDefined()
+
+    await sentChip!.trigger('click')
+
+    expect(vm.statusModal.isOpen.value).toBe(true)
+    expect(vm.selectedNewStatus).toBe('commitment_sent')
+    expect(vm.isRetrocedingStatus).toBe(true)
+
+    // Save status
+    vm.statusNotes = 'Revertendo para empenho enviado devido a conferência adicional'
+    await vm.handleSaveLogisticsStatus()
+
+    expect(mockUpdateCommitmentLogisticsStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        status: 'commitment_sent',
+        observation: 'Revertendo para empenho enviado devido a conferência adicional',
+      }),
+    )
+  })
+
+  it('shows info toast and does not open modal when clicking completed step chip', async () => {
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    const chips = wrapper.findAll('.ui-chip')
+    const completedChip = chips.find((c) => c.text().includes('Concluído'))
+    expect(completedChip).toBeDefined()
+
+    await completedChip!.trigger('click')
+
+    expect(vm.statusModal.isOpen.value).toBe(false)
+    expect(mockToast.info).toHaveBeenCalledWith(
+      'A etapa "Concluído" é aplicada automaticamente ao registrar a Ordem Bancária (OB).',
+    )
+  })
+
+  it('blocks clicking steps when commitment is cancelled', async () => {
+    mockDetailData.value.commitment.status = 'cancelled'
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    const chips = wrapper.findAll('.ui-chip')
+    const shippedChip = chips.find((c) => c.text().includes('Enviado'))
+    expect(shippedChip).toBeDefined()
+
+    await shippedChip!.trigger('click')
+
+    expect(vm.statusModal.isOpen.value).toBe(false)
   })
 })
