@@ -117,11 +117,14 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
       company_name: 'Fornecedor A LTDA',
       cnpj: '11111111000111',
       email: 'contato@fornecedora.com',
+      is_simples_optant: true,
+      simples_optant_verified_at: '2026-03-01T10:00:00Z',
     }
     const mockSupplierB = {
       id: 'sup-b',
       company_name: 'Fornecedor B LTDA',
       cnpj: '22222222000122',
+      is_simples_optant: false,
     }
 
     it('returns empty array when items are null or empty', () => {
@@ -170,6 +173,8 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
       const winnerA = winningSuppliersSummary.value[0]
       expect(winnerA.id).toBe('sup-a')
       expect(winnerA.wonCount).toBe(2)
+      expect(winnerA.is_simples_optant).toBe(true)
+      expect(winnerA.simples_optant_verified_at).toBe('2026-03-01T10:00:00Z')
       // item-1: 10 * 25 = 250; item-2: 5 * 10 = 50 => Total 300
       expect(winnerA.totalAmountWon).toBe(300)
       expect(winnerA.allPendingCommitments).toBe(false)
@@ -207,6 +212,8 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
 
       const winnerB = winningSuppliersSummary.value[0]
       expect(winnerB.id).toBe('sup-b')
+      expect(winnerB.is_simples_optant).toBe(false)
+      expect(winnerB.simples_optant_verified_at).toBeNull()
       expect(winnerB.totalAmountWon).toBe(2000)
       expect(winnerB.allPendingCommitments).toBe(true)
       expect(winnerB.hasPendingCommitments).toBe(true)

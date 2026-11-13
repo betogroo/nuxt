@@ -16,6 +16,8 @@ export interface WinningSupplierSummaryItem {
   company_name: string
   cnpj: string
   email?: string | null
+  is_simples_optant?: boolean
+  simples_optant_verified_at?: string | null
   participatedCount: number
   wonCount: number
   totalAmountWon: number
@@ -285,6 +287,9 @@ export function useDemandDetail(demandId: string) {
           company_name: String(s.supplier.company_name || ''),
           cnpj: String(s.supplier.cnpj || ''),
           email: (s.supplier.email as string | null) || null,
+          is_simples_optant: Boolean(s.supplier.is_simples_optant),
+          simples_optant_verified_at:
+            (s.supplier.simples_optant_verified_at as string | null) || null,
           participatedCount: s.participated.size,
           wonCount,
           totalAmountWon: Number(s.totalAmountWon.toFixed(2)),

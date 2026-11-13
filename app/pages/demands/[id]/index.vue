@@ -2190,6 +2190,10 @@
                   tooltip="Copiar CNPJ (apenas números)"
                   :value="supplier.cnpj"
                 />
+                <UiChip v-if="supplier.is_simples_optant" color="info" size="xs" variant="soft">
+                  Simples Nacional
+                </UiChip>
+                <UiChip v-else color="default" size="xs" variant="soft"> Não Optante </UiChip>
                 <UiChip
                   v-if="getCnpjEstablishmentInfo(supplier.cnpj)"
                   :color="
