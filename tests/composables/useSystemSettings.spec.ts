@@ -1,9 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { useSystemSettings, parseAnnualCeilingsJson } from '../../app/composables/useSystemSettings'
+import {
+  useSystemSettings,
+  parseAnnualCeilingsJson,
+  parseDemandBatchSubfolders,
+} from '../../app/composables/useSystemSettings'
 import {
   DEFAULT_BEC_CATALOG_URL,
   DEFAULT_CLASS_CEILING_2026,
+  DEFAULT_DEMAND_BATCH_SUBFOLDERS,
   DEFAULT_IR_RETENTION_RATE,
 } from '../../app/schemas/forms/system-settings'
 
@@ -288,6 +293,81 @@ describe('useSystemSettings', () => {
 
       await resetIrRetentionRate()
       expect(irRetentionRate.value).toBe(DEFAULT_IR_RETENTION_RATE)
+    })
+  })
+
+  describe('demandBatchSubfolders', () => {
+    it('parseDemandBatchSubfolders handles json, csv and fallback', () => {
+      expect(parseDemandBatchSubfolders('["itens","sei","siafem"]')).toEqual([
+        'itens',
+        'sei',
+        'siafem',
+      ])
+      expect(parseDemandBatchSubfolders('itens, sei, siafem')).toEqual(['itens', 'sei', 'siafem'])
+      expect(parseDemandBatchSubfolders(null)).toEqual([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
+      expect(parseDemandBatchSubfolders('')).toEqual([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
+    })
+
+    it('fetches subfolders from system_settings or defaults to ["itens", "sei", "siafem"]', async () => {
+      const { fetchDemandBatchSubfolders } = useSystemSettings()
+
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { value: JSON.stringify(['itens', 'sei', 'siafem', 'documentos']) },
+        error: null,
+      })
+      const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle })
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+      mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+      const folders = await fetchDemandBatchSubfolders()
+      expect(folders).toEqual(['itens', 'sei', 'siafem', 'documentos'])
+    })
+
+    it('falls back to default subfolders when data is null or empty', async () => {
+      const { fetchDemandBatchSubfolders } = useSystemSettings()
+
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      })
+      const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle })
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+      mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+      const folders = await fetchDemandBatchSubfolders()
+      expect(folders).toEqual([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
+    })
+
+    it('updates subfolders in system_settings and logs action', async () => {
+      const { updateDemandBatchSubfolders, demandBatchSubfolders } = useSystemSettings()
+
+      const mockUpsert = vi.fn().mockResolvedValue({ error: null })
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert })
+
+      await updateDemandBatchSubfolders(['itens', 'sei', 'siafem', 'cotacoes'])
+
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: 'demand_batch_subfolders',
+          value: JSON.stringify(['itens', 'sei', 'siafem', 'cotacoes']),
+        }),
+      )
+      expect(demandBatchSubfolders.value).toEqual(['itens', 'sei', 'siafem', 'cotacoes'])
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'UPDATE_SYSTEM_SETTING',
+        expect.stringContaining('cotacoes'),
+        'admin-user-id',
+      )
+    })
+
+    it('resets subfolders back to defaults', async () => {
+      const { resetDemandBatchSubfolders, demandBatchSubfolders } = useSystemSettings()
+
+      const mockUpsert = vi.fn().mockResolvedValue({ error: null })
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert })
+
+      await resetDemandBatchSubfolders()
+      expect(demandBatchSubfolders.value).toEqual([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
     })
   })
 })

@@ -2,7 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import SettingsAdminPage from '~/pages/admin/settings.vue'
-import { DEFAULT_BEC_CATALOG_URL, DEFAULT_IR_RETENTION_RATE } from '~/schemas/forms/system-settings'
+import {
+  DEFAULT_BEC_CATALOG_URL,
+  DEFAULT_DEMAND_BATCH_SUBFOLDERS,
+  DEFAULT_IR_RETENTION_RATE,
+} from '~/schemas/forms/system-settings'
 
 const mockFetchBecCatalogUrl = vi.fn().mockResolvedValue(DEFAULT_BEC_CATALOG_URL)
 const mockUpdateBecCatalogUrl = vi.fn().mockResolvedValue(undefined)
@@ -11,6 +15,12 @@ const mockResetBecCatalogUrl = vi.fn().mockResolvedValue(undefined)
 const mockFetchIrRetentionRate = vi.fn().mockResolvedValue(DEFAULT_IR_RETENTION_RATE)
 const mockUpdateIrRetentionRate = vi.fn().mockResolvedValue(undefined)
 const mockResetIrRetentionRate = vi.fn().mockResolvedValue(undefined)
+
+const mockFetchDemandBatchSubfolders = vi
+  .fn()
+  .mockResolvedValue([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
+const mockUpdateDemandBatchSubfolders = vi.fn().mockResolvedValue(undefined)
+const mockResetDemandBatchSubfolders = vi.fn().mockResolvedValue(undefined)
 
 const mockFetchProductClassAnnualCeilings = vi.fn().mockResolvedValue({ '2026': 65492.11 })
 const mockUpsertProductClassAnnualCeiling = vi.fn().mockResolvedValue({ '2026': 65492.11 })
@@ -33,6 +43,9 @@ mockNuxtImport('useSystemSettings', () => () => ({
   fetchIrRetentionRate: mockFetchIrRetentionRate,
   updateIrRetentionRate: mockUpdateIrRetentionRate,
   resetIrRetentionRate: mockResetIrRetentionRate,
+  fetchDemandBatchSubfolders: mockFetchDemandBatchSubfolders,
+  updateDemandBatchSubfolders: mockUpdateDemandBatchSubfolders,
+  resetDemandBatchSubfolders: mockResetDemandBatchSubfolders,
   fetchProductClassAnnualCeilings: mockFetchProductClassAnnualCeilings,
   upsertProductClassAnnualCeiling: mockUpsertProductClassAnnualCeiling,
   removeProductClassAnnualCeiling: mockRemoveProductClassAnnualCeiling,
@@ -61,7 +74,7 @@ describe('SettingsAdminPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders settings page and loads existing BEC catalog URL and IR rate', async () => {
+  it('renders settings page and loads existing BEC catalog URL, IR rate and subfolders', async () => {
     const wrapper = mount(SettingsAdminPage, {
       global: { stubs: defaultStubs },
     })
@@ -72,8 +85,10 @@ describe('SettingsAdminPage', () => {
 
     expect(mockFetchBecCatalogUrl).toHaveBeenCalled()
     expect(mockFetchIrRetentionRate).toHaveBeenCalled()
+    expect(mockFetchDemandBatchSubfolders).toHaveBeenCalled()
     expect(vm.urlInput).toBe(DEFAULT_BEC_CATALOG_URL)
     expect(vm.irRetentionRateInput).toBe(String(DEFAULT_IR_RETENTION_RATE))
+    expect(vm.subfoldersList).toEqual(['itens', 'sei', 'siafem'])
     expect(vm.previewUrl).toContain('6460526')
   })
 
@@ -127,6 +142,29 @@ describe('SettingsAdminPage', () => {
     expect(mockUpdateIrRetentionRate).toHaveBeenCalledWith(2.5)
     expect(mockToast.success).toHaveBeenCalledWith(
       'Alíquota de retenção de IR atualizada para 2.5%.',
+    )
+  })
+
+  it('allows adding and removing subfolders and saving them', async () => {
+    const wrapper = mount(SettingsAdminPage, {
+      global: { stubs: defaultStubs },
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    vm.newSubfolderInput = 'documentos'
+    vm.onAddSubfolder()
+    expect(vm.subfoldersList).toContain('documentos')
+
+    vm.onRemoveSubfolder('sei')
+    expect(vm.subfoldersList).not.toContain('sei')
+
+    await vm.onSaveSubfolders()
+    expect(mockUpdateDemandBatchSubfolders).toHaveBeenCalledWith(vm.subfoldersList)
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Estrutura de pastas da demanda atualizada com sucesso!',
     )
   })
 })

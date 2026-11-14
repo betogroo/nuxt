@@ -5,6 +5,7 @@
     becCatalogUrlFormSchema,
     DEFAULT_BEC_CATALOG_URL,
     DEFAULT_CLASS_CEILING_2026,
+    DEFAULT_DEMAND_BATCH_SUBFOLDERS,
     DEFAULT_IR_RETENTION_RATE,
     type BecCatalogUrlFormValues,
   } from '~/schemas/forms/system-settings'
@@ -33,6 +34,9 @@
     fetchIrRetentionRate,
     updateIrRetentionRate,
     resetIrRetentionRate,
+    fetchDemandBatchSubfolders,
+    updateDemandBatchSubfolders,
+    resetDemandBatchSubfolders,
     fetchProductClassAnnualCeilings,
     upsertProductClassAnnualCeiling,
     removeProductClassAnnualCeiling,
@@ -53,6 +57,11 @@
   const irRetentionRateInput = ref<string>(String(DEFAULT_IR_RETENTION_RATE))
   const isSavingIrRate = ref(false)
 
+  // Demand Batch Subfolders state
+  const subfoldersList = ref<string[]>([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
+  const newSubfolderInput = ref('')
+  const isSavingSubfolders = ref(false)
+
   const sortedCeilingEntries = computed(() => {
     return Object.entries(ceilingsMap.value)
       .map(([year, amount]) => ({
@@ -71,10 +80,11 @@
 
   onMounted(async () => {
     try {
-      const [currentUrl, loadedCeilings, loadedIrRate] = await Promise.all([
+      const [currentUrl, loadedCeilings, loadedIrRate, loadedSubfolders] = await Promise.all([
         fetchBecCatalogUrl(),
         fetchProductClassAnnualCeilings(),
         fetchIrRetentionRate(),
+        fetchDemandBatchSubfolders(),
       ])
       resetForm({
         values: {
@@ -83,6 +93,7 @@
       })
       ceilingsMap.value = { ...loadedCeilings }
       irRetentionRateInput.value = String(loadedIrRate)
+      subfoldersList.value = [...loadedSubfolders]
     } catch {
       toast.error('Erro ao carregar configurações.')
     } finally {
@@ -234,6 +245,53 @@
       toast.error(err instanceof Error ? err.message : 'Erro ao restaurar alíquota.')
     } finally {
       isSavingIrRate.value = false
+    }
+  }
+
+  const onAddSubfolder = () => {
+    const trimmed = newSubfolderInput.value.trim().toLowerCase()
+    if (!trimmed) return
+    if (subfoldersList.value.includes(trimmed)) {
+      toast.error(`A subpasta "${trimmed}" já está na lista.`)
+      return
+    }
+    subfoldersList.value.push(trimmed)
+    newSubfolderInput.value = ''
+  }
+
+  const onRemoveSubfolder = (name: string) => {
+    subfoldersList.value = subfoldersList.value.filter((s) => s !== name)
+  }
+
+  const onSaveSubfolders = async () => {
+    isSavingSubfolders.value = true
+    try {
+      await updateDemandBatchSubfolders(subfoldersList.value)
+      toast.success('Estrutura de pastas da demanda atualizada com sucesso!')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar pastas.')
+    } finally {
+      isSavingSubfolders.value = false
+    }
+  }
+
+  const onResetSubfoldersDefault = async () => {
+    if (
+      !(await toast.confirm(
+        'Deseja restaurar a estrutura padrão de subpastas (itens, sei, siafem)?',
+      ))
+    ) {
+      return
+    }
+    isSavingSubfolders.value = true
+    try {
+      await resetDemandBatchSubfolders()
+      subfoldersList.value = [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
+      toast.success('Estrutura de subpastas restaurada para o padrão com sucesso.')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao restaurar subpastas.')
+    } finally {
+      isSavingSubfolders.value = false
     }
   }
 </script>
@@ -433,7 +491,95 @@
           </UiRow>
         </UiCard>
 
-        <!-- Card 3: Catálogo BEC SP -->
+        <!-- Card 3: Estrutura de Pastas da Demanda (.bat) -->
+        <UiCard title="Estrutura de Pastas da Demanda (Arquivo Batch)">
+          <template #header>
+            <UiIcon color="primary" name="folder" />
+            <span class="ml-2 font-weight-medium">Estrutura de Pastas da Demanda (.bat)</span>
+          </template>
+
+          <UiAlert class="mb-4" size="sm" type="info" variant="soft">
+            Configure as subpastas criadas automaticamente pelo arquivo batch (.bat) disponível na
+            aba
+            <strong>Processo & Planejamento</strong> da demanda. A pasta principal é nomeada com o
+            número do processo interno e o nome da demanda.
+          </UiAlert>
+
+          <UiRow align="center" dense>
+            <UiCol cols="12" sm="8">
+              <UiInput
+                v-model="newSubfolderInput"
+                hint="Digite o nome da pasta (ex: documentos, atas, cotações) e pressione Enter ou Adicionar"
+                label="Nova Subpasta"
+                placeholder="Ex: documentos"
+                @keyup.enter="onAddSubfolder"
+              />
+            </UiCol>
+            <UiCol class="d-flex align-start pt-1" cols="12" sm="4">
+              <UiButton
+                block
+                color="primary"
+                prepend-icon="add"
+                variant="solid"
+                @click="onAddSubfolder"
+              >
+                Adicionar Pasta
+              </UiButton>
+            </UiCol>
+          </UiRow>
+
+          <div class="mt-4">
+            <div class="text-caption font-weight-bold text-uppercase mb-2 text-medium-emphasis">
+              Pastas Configuradas ({{ subfoldersList.length }})
+            </div>
+            <div class="d-flex flex-wrap ga-2 align-center pa-3 border rounded-lg bg-surface">
+              <div v-if="subfoldersList.length === 0" class="text-caption text-grey">
+                Nenhuma subpasta configurada.
+              </div>
+              <UiChip
+                v-for="folder in subfoldersList"
+                :key="folder"
+                color="primary"
+                size="sm"
+                variant="soft"
+              >
+                <UiIcon class="mr-1" name="folder" size="xs" />
+                {{ folder }}
+                <UiButton
+                  class="ml-1"
+                  color="error"
+                  icon="close"
+                  size="xs"
+                  variant="ghost"
+                  @click="onRemoveSubfolder(folder)"
+                />
+              </UiChip>
+            </div>
+          </div>
+
+          <template #actions>
+            <UiButton
+              :disabled="isSavingSubfolders"
+              prepend-icon="refresh"
+              variant="ghost"
+              @click="onResetSubfoldersDefault"
+            >
+              Restaurar Padrão (itens, sei, siafem)
+            </UiButton>
+            <UiSpacer />
+            <UiButton
+              color="primary"
+              :loading="isSavingSubfolders"
+              prepend-icon="save"
+              variant="solid"
+              @click="onSaveSubfolders"
+            >
+              Salvar Pastas
+            </UiButton>
+          </template>
+        </UiCard>
+
+        <!-- Card 4: Catálogo BEC SP -->
         <UiCard title="Catálogo BEC SP">
           <template #header>
             <UiIcon color="primary" name="settings" />

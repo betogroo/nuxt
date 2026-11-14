@@ -31,6 +31,7 @@
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
+  import { downloadDemandFolderBatch } from '~/utils/demandFolderBatch'
   import { useRowSelection } from '~/composables/useRowSelection'
   import {
     type DemandTab,
@@ -1029,6 +1030,30 @@
     )
   }
 
+  const isGeneratingFolderBatch = ref(false)
+  const handleDownloadFolderBatch = async () => {
+    if (!demand.value) return
+    isGeneratingFolderBatch.value = true
+    try {
+      const { fetchDemandBatchSubfolders } = useSystemSettings()
+      const subfolders = await fetchDemandBatchSubfolders()
+      downloadDemandFolderBatch({
+        demand: demand.value,
+        subfolders,
+      })
+      await logAction(
+        'GENERATE_FOLDER_BATCH_SCRIPT',
+        `Script batch de criação de pastas gerado para a demanda "${demand.value.name}" (${demand.value.internal_process_number || 'Sem processo interno'})`,
+        profile.value?.id,
+      )
+      toast.success('Arquivo batch (.bat) gerado com sucesso!')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao gerar arquivo batch de pastas.')
+    } finally {
+      isGeneratingFolderBatch.value = false
+    }
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1401,6 +1426,15 @@
                 @click="handleGenerateClassBalanceTable"
               >
                 Gerar Tabela de Saldo por Classe
+              </UiButton>
+              <UiButton
+                color="primary"
+                :loading="isGeneratingFolderBatch"
+                prepend-icon="folder"
+                variant="soft"
+                @click="handleDownloadFolderBatch"
+              >
+                Criar Pastas (.bat)
               </UiButton>
             </div>
           </div>

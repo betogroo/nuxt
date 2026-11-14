@@ -3,6 +3,7 @@ import type { Database } from '~/types/database.types'
 import {
   DEFAULT_BEC_CATALOG_URL,
   DEFAULT_CLASS_CEILING_2026,
+  DEFAULT_DEMAND_BATCH_SUBFOLDERS,
   DEFAULT_IR_RETENTION_RATE,
   DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS,
 } from '~/schemas/forms/system-settings'
@@ -11,10 +12,12 @@ export const SYSTEM_SETTING_KEYS = {
   BEC_CATALOG_URL: 'bec_catalog_url',
   PRODUCT_CLASS_ANNUAL_CEILINGS: 'product_class_annual_ceilings',
   IR_RETENTION_RATE: 'ir_retention_rate_percent',
+  DEMAND_BATCH_SUBFOLDERS: 'demand_batch_subfolders',
 } as const
 
 const becCatalogUrl = ref<string>(DEFAULT_BEC_CATALOG_URL)
 const irRetentionRate = ref<number>(DEFAULT_IR_RETENTION_RATE)
+const demandBatchSubfolders = ref<string[]>([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
 const productClassAnnualCeilings = ref<Record<string, number>>({
   ...DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS,
 })
@@ -57,6 +60,24 @@ export function parseIrRetentionRate(raw: string | null | undefined): number {
     return Number(num.toFixed(2))
   }
   return DEFAULT_IR_RETENTION_RATE
+}
+
+export function parseDemandBatchSubfolders(raw: string | null | undefined): string[] {
+  if (!raw || typeof raw !== 'string') return [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (Array.isArray(parsed)) {
+      const cleaned = parsed.map((s) => String(s).trim()).filter((s) => s.length > 0)
+      return cleaned.length > 0 ? cleaned : [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
+    }
+  } catch {
+    const split = raw
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+    if (split.length > 0) return split
+  }
+  return [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
 }
 
 export const useSystemSettings = () => {
@@ -185,6 +206,67 @@ export const useSystemSettings = () => {
 
   const resetIrRetentionRate = async (): Promise<void> => {
     await updateIrRetentionRate(DEFAULT_IR_RETENTION_RATE)
+  }
+
+  const fetchDemandBatchSubfolders = async (): Promise<string[]> => {
+    try {
+      const supabase = useSupabaseClient<Database>()
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', SYSTEM_SETTING_KEYS.DEMAND_BATCH_SUBFOLDERS)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Erro ao buscar subpastas padrão da demanda:', error)
+        return demandBatchSubfolders.value
+      }
+
+      if (data?.value !== undefined && data?.value !== null) {
+        demandBatchSubfolders.value = parseDemandBatchSubfolders(data.value)
+      } else {
+        demandBatchSubfolders.value = [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
+      }
+      return demandBatchSubfolders.value
+    } catch (err) {
+      console.error('Erro inesperado ao buscar subpastas padrão da demanda:', err)
+      return demandBatchSubfolders.value
+    }
+  }
+
+  const updateDemandBatchSubfolders = async (subfolders: string[]): Promise<void> => {
+    const supabase = useSupabaseClient<Database>()
+    const user = useSupabaseUser()
+    const { logAction } = useLogger()
+
+    const cleaned = subfolders.map((s) => s.trim()).filter((s) => s.length > 0)
+
+    const listToSave = cleaned.length > 0 ? cleaned : [...DEFAULT_DEMAND_BATCH_SUBFOLDERS]
+    const serialized = JSON.stringify(listToSave)
+    const now = new Date().toISOString()
+
+    const { error } = await supabase.from('system_settings').upsert({
+      key: SYSTEM_SETTING_KEYS.DEMAND_BATCH_SUBFOLDERS,
+      value: serialized,
+      description:
+        'Lista de subpastas criadas automaticamente pelo script batch (.bat) da demanda.',
+      updated_at: now,
+      updated_by: user.value?.id || null,
+    })
+
+    if (error) throw error
+
+    demandBatchSubfolders.value = listToSave
+
+    await logAction(
+      'UPDATE_SYSTEM_SETTING',
+      `Estrutura de subpastas do arquivo batch atualizada para [${listToSave.join(', ')}]`,
+      user.value?.id,
+    )
+  }
+
+  const resetDemandBatchSubfolders = async (): Promise<void> => {
+    await updateDemandBatchSubfolders([...DEFAULT_DEMAND_BATCH_SUBFOLDERS])
   }
 
   const fetchProductClassAnnualCeilings = async (): Promise<Record<string, number>> => {
@@ -320,6 +402,10 @@ export const useSystemSettings = () => {
     fetchIrRetentionRate,
     updateIrRetentionRate,
     resetIrRetentionRate,
+    demandBatchSubfolders,
+    fetchDemandBatchSubfolders,
+    updateDemandBatchSubfolders,
+    resetDemandBatchSubfolders,
     productClassAnnualCeilings,
     fetchProductClassAnnualCeilings,
     upsertProductClassAnnualCeiling,

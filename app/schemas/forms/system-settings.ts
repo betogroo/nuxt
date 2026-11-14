@@ -7,6 +7,8 @@ export const DEFAULT_CLASS_CEILING_2026 = 65492.11
 
 export const DEFAULT_IR_RETENTION_RATE = 1.2
 
+export const DEFAULT_DEMAND_BATCH_SUBFOLDERS: readonly string[] = ['itens', 'sei', 'siafem']
+
 export const DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS: Record<string, number> = {
   '2026': DEFAULT_CLASS_CEILING_2026,
 }
