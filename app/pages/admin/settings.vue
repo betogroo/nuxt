@@ -5,6 +5,7 @@
     becCatalogUrlFormSchema,
     DEFAULT_BEC_CATALOG_URL,
     DEFAULT_CLASS_CEILING_2026,
+    DEFAULT_IR_RETENTION_RATE,
     type BecCatalogUrlFormValues,
   } from '~/schemas/forms/system-settings'
   import { formatCurrency } from '~/utils/formatters'
@@ -29,6 +30,9 @@
     fetchBecCatalogUrl,
     updateBecCatalogUrl,
     resetBecCatalogUrl,
+    fetchIrRetentionRate,
+    updateIrRetentionRate,
+    resetIrRetentionRate,
     fetchProductClassAnnualCeilings,
     upsertProductClassAnnualCeiling,
     removeProductClassAnnualCeiling,
@@ -44,6 +48,10 @@
   const ceilingYearInput = ref<string>('2026')
   const ceilingAmountInput = ref<string>(String(DEFAULT_CLASS_CEILING_2026))
   const isSavingCeiling = ref(false)
+
+  // IR Retention Rate state
+  const irRetentionRateInput = ref<string>(String(DEFAULT_IR_RETENTION_RATE))
+  const isSavingIrRate = ref(false)
 
   const sortedCeilingEntries = computed(() => {
     return Object.entries(ceilingsMap.value)
@@ -63,9 +71,10 @@
 
   onMounted(async () => {
     try {
-      const [currentUrl, loadedCeilings] = await Promise.all([
+      const [currentUrl, loadedCeilings, loadedIrRate] = await Promise.all([
         fetchBecCatalogUrl(),
         fetchProductClassAnnualCeilings(),
+        fetchIrRetentionRate(),
       ])
       resetForm({
         values: {
@@ -73,6 +82,7 @@
         },
       })
       ceilingsMap.value = { ...loadedCeilings }
+      irRetentionRateInput.value = String(loadedIrRate)
     } catch {
       toast.error('Erro ao carregar configurações.')
     } finally {
@@ -188,6 +198,44 @@
       isSavingCeiling.value = false
     }
   }
+
+  const onSaveIrRate = async () => {
+    const parsed = Number(String(irRetentionRateInput.value).replace(',', '.').trim())
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+      toast.error('Informe uma alíquota válida entre 0% e 100%.')
+      return
+    }
+    isSavingIrRate.value = true
+    try {
+      await updateIrRetentionRate(parsed)
+      irRetentionRateInput.value = String(parsed)
+      toast.success(`Alíquota de retenção de IR atualizada para ${parsed}%.`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao salvar alíquota de IR.')
+    } finally {
+      isSavingIrRate.value = false
+    }
+  }
+
+  const onResetIrRateDefault = async () => {
+    if (
+      !(await toast.confirm(
+        `Deseja restaurar a alíquota padrão de retenção de IR para ${DEFAULT_IR_RETENTION_RATE}%?`,
+      ))
+    ) {
+      return
+    }
+    isSavingIrRate.value = true
+    try {
+      await resetIrRetentionRate()
+      irRetentionRateInput.value = String(DEFAULT_IR_RETENTION_RATE)
+      toast.success(`Alíquota de retenção de IR restaurada para ${DEFAULT_IR_RETENTION_RATE}%.`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao restaurar alíquota.')
+    } finally {
+      isSavingIrRate.value = false
+    }
+  }
 </script>
 
 <template>
@@ -204,6 +252,7 @@
       </div>
 
       <div v-else class="d-flex flex-column ga-6 mx-auto" style="max-width: 800px">
+        <!-- Card 1: Tetos por Classe -->
         <UiCard title="Teto Anual por Classe de Produtos">
           <template #header>
             <UiIcon color="primary" name="finances" />
@@ -333,6 +382,58 @@
           </div>
         </UiCard>
 
+        <!-- Card 2: Retenção de IR -->
+        <UiCard title="Retenção de Imposto de Renda (IR)">
+          <template #header>
+            <UiIcon color="warning" name="receipt" />
+            <span class="ml-2 font-weight-medium">Alíquota Padrão de Retenção de IR</span>
+          </template>
+
+          <UiAlert class="mb-4" size="sm" type="info" variant="soft">
+            Esta alíquota percentual é utilizada para sugerir automaticamente o valor da Nota de
+            Liquidação (NL) de Retenção de IR no momento do cadastro para fornecedores não optantes
+            pelo Simples Nacional. O valor padrão de referência da Receita Federal / SIAFEM é
+            <strong>1,2%</strong>.
+          </UiAlert>
+
+          <UiRow align="center" dense>
+            <UiCol cols="12" sm="6">
+              <UiInput
+                v-model="irRetentionRateInput"
+                hint="Alíquota percentual aplicada sobre o valor do empenho (ex: 1.2)"
+                label="Alíquota de Retenção de IR (%) *"
+                max="100"
+                min="0"
+                placeholder="1.2"
+                step="0.01"
+                type="number"
+              />
+            </UiCol>
+            <UiCol class="d-flex align-start pt-1 ga-2" cols="12" sm="6">
+              <UiButton
+                color="primary"
+                :loading="isSavingIrRate"
+                prepend-icon="save"
+                variant="solid"
+                @click="onSaveIrRate"
+              >
+                Salvar Alíquota
+              </UiButton>
+              <UiButton
+                v-if="Number(irRetentionRateInput) !== DEFAULT_IR_RETENTION_RATE"
+                color="warning"
+                :disabled="isSavingIrRate"
+                prepend-icon="refresh"
+                variant="ghost"
+                @click="onResetIrRateDefault"
+              >
+                Padrão (1,2%)
+              </UiButton>
+            </UiCol>
+          </UiRow>
+        </UiCard>
+
+        <!-- Card 3: Catálogo BEC SP -->
         <UiCard title="Catálogo BEC SP">
           <template #header>
             <UiIcon color="primary" name="settings" />

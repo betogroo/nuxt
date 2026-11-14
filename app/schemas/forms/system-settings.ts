@@ -5,6 +5,8 @@ export const DEFAULT_BEC_CATALOG_URL =
 
 export const DEFAULT_CLASS_CEILING_2026 = 65492.11
 
+export const DEFAULT_IR_RETENTION_RATE = 1.2
+
 export const DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS: Record<string, number> = {
   '2026': DEFAULT_CLASS_CEILING_2026,
 }
@@ -28,7 +30,16 @@ export const annualClassCeilingFormSchema = z.object({
     .positive('O valor do teto por classe deve ser maior que zero.'),
 })
 
+export const irRetentionRateFormSchema = z.object({
+  ir_retention_rate: z.coerce
+    .number({ message: 'Informe uma alíquota válida.' })
+    .min(0, 'A alíquota não pode ser negativa.')
+    .max(100, 'A alíquota não pode exceder 100%.'),
+})
+
 export type BecCatalogUrlFormInput = z.input<typeof becCatalogUrlFormSchema>
 export type BecCatalogUrlFormValues = z.output<typeof becCatalogUrlFormSchema>
 export type AnnualClassCeilingFormInput = z.input<typeof annualClassCeilingFormSchema>
 export type AnnualClassCeilingFormValues = z.output<typeof annualClassCeilingFormSchema>
+export type IrRetentionRateFormInput = z.input<typeof irRetentionRateFormSchema>
+export type IrRetentionRateFormValues = z.output<typeof irRetentionRateFormSchema>

@@ -1415,4 +1415,235 @@ describe('useCommitments Composable', () => {
     )
     expect(updateItemsInMock).toHaveBeenCalledWith('id', ['item-1'])
   })
+
+  describe('addMultipleLiquidationNotes', () => {
+    it('throws error when items array is empty', async () => {
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      await expect(
+        addMultipleLiquidationNotes({
+          commitmentId: 'comm-1',
+          commitmentNumber: '2026NE00313',
+          issueDate: '2026-11-05',
+          items: [],
+        }),
+      ).rejects.toThrow('Nenhuma Nota de Liquidação informada para cadastro.')
+    })
+
+    it('throws error when any liquidation number is invalid SIAFEM format', async () => {
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      await expect(
+        addMultipleLiquidationNotes({
+          commitmentId: 'comm-1',
+          commitmentNumber: '2026NE00313',
+          issueDate: '2026-11-05',
+          items: [{ liquidationNumber: 'invalid-nl' }],
+        }),
+      ).rejects.toThrow(/deve seguir o padrão SIAFEM: 2026NL00000/)
+    })
+
+    it('throws error when duplicate numbers are supplied in the same batch', async () => {
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      await expect(
+        addMultipleLiquidationNotes({
+          commitmentId: 'comm-1',
+          commitmentNumber: '2026NE00313',
+          issueDate: '2026-11-05',
+          items: [{ liquidationNumber: '2026NL00045' }, { liquidationNumber: '2026nl00045' }],
+        }),
+      ).rejects.toThrow(/foi informado mais de uma vez no mesmo cadastro/)
+    })
+
+    it('throws error when a number is already registered in the commitment', async () => {
+      fromMock.mockImplementation((table: string) => {
+        if (table === 'demand_commitments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'comm-1',
+                    status: 'delivered',
+                    bank_order_number: null,
+                    suppliers: { id: 'supp-1', is_simples_optant: true },
+                    demand_commitment_liquidations: [
+                      { id: 'nl-1', liquidation_number: '2026NL00045' },
+                    ],
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        return {}
+      })
+
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      await expect(
+        addMultipleLiquidationNotes({
+          commitmentId: 'comm-1',
+          commitmentNumber: '2026NE00313',
+          issueDate: '2026-11-05',
+          items: [{ liquidationNumber: '2026NL00045' }, { liquidationNumber: '2026NL00046' }],
+        }),
+      ).rejects.toThrow(/já está cadastrada nesta Nota de Empenho/)
+    })
+
+    it('successfully inserts 4 ordinary NLs for Simples Nacional supplier', async () => {
+      const insertSpy = vi.fn().mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: [
+            { id: 'nl-1', liquidation_number: '2026NL00045', is_ir_retention: false },
+            { id: 'nl-2', liquidation_number: '2026NL00046', is_ir_retention: false },
+            { id: 'nl-3', liquidation_number: '2026NL00078', is_ir_retention: false },
+            { id: 'nl-4', liquidation_number: '2026NL00079', is_ir_retention: false },
+          ],
+          error: null,
+        }),
+      })
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === 'demand_commitments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'comm-1',
+                    status: 'delivered',
+                    bank_order_number: null,
+                    suppliers: { id: 'supp-1', is_simples_optant: true },
+                    demand_commitment_liquidations: [],
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'demand_commitment_liquidations') {
+          return {
+            insert: insertSpy,
+          }
+        }
+        return {}
+      })
+
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      const result = await addMultipleLiquidationNotes({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        issueDate: '2026-11-05',
+        items: [
+          { liquidationNumber: '2026nl00045' },
+          { liquidationNumber: '2026nl00046' },
+          { liquidationNumber: '2026nl00078' },
+          { liquidationNumber: '2026nl00079' },
+        ],
+      })
+
+      expect(result).toHaveLength(4)
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            commitment_id: 'comm-1',
+            liquidation_number: '2026NL00045',
+            is_ir_retention: false,
+          }),
+          expect.objectContaining({
+            commitment_id: 'comm-1',
+            liquidation_number: '2026NL00079',
+            is_ir_retention: false,
+          }),
+        ]),
+      )
+      expect(logActionMock).toHaveBeenCalledWith(
+        'ADD_MULTIPLE_COMMITMENT_LIQUIDATIONS',
+        expect.stringContaining('4 Notas de Liquidação'),
+        'user-1',
+      )
+    })
+
+    it('successfully inserts 4 ordinary NLs + 1 IR retention NL for non-Simples supplier', async () => {
+      const insertSpy = vi.fn().mockReturnValue({
+        select: vi.fn().mockResolvedValue({
+          data: [
+            { id: 'nl-1', liquidation_number: '2026NL00045', is_ir_retention: false },
+            { id: 'nl-2', liquidation_number: '2026NL00046', is_ir_retention: false },
+            { id: 'nl-3', liquidation_number: '2026NL00078', is_ir_retention: false },
+            { id: 'nl-4', liquidation_number: '2026NL00079', is_ir_retention: false },
+            {
+              id: 'nl-5',
+              liquidation_number: '2026NL00080',
+              is_ir_retention: true,
+              ir_retention_amount: 120,
+            },
+          ],
+          error: null,
+        }),
+      })
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === 'demand_commitments') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: {
+                    id: 'comm-1',
+                    status: 'delivered',
+                    bank_order_number: null,
+                    suppliers: { id: 'supp-2', is_simples_optant: false },
+                    demand_commitment_liquidations: [],
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }
+        }
+        if (table === 'demand_commitment_liquidations') {
+          return {
+            insert: insertSpy,
+          }
+        }
+        return {}
+      })
+
+      const { addMultipleLiquidationNotes } = useCommitments()
+
+      const result = await addMultipleLiquidationNotes({
+        commitmentId: 'comm-1',
+        commitmentNumber: '2026NE00313',
+        issueDate: '2026-11-05',
+        items: [
+          { liquidationNumber: '2026nl00045' },
+          { liquidationNumber: '2026nl00046' },
+          { liquidationNumber: '2026nl00078' },
+          { liquidationNumber: '2026nl00079' },
+          {
+            liquidationNumber: '2026nl00080',
+            isIrRetention: true,
+            irRetentionAmount: '120,00',
+          },
+        ],
+      })
+
+      expect(result).toHaveLength(5)
+      expect(insertSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            liquidation_number: '2026NL00080',
+            is_ir_retention: true,
+            ir_retention_amount: 120,
+          }),
+        ]),
+      )
+    })
+  })
 })

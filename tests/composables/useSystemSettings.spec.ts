@@ -4,6 +4,7 @@ import { useSystemSettings, parseAnnualCeilingsJson } from '../../app/composable
 import {
   DEFAULT_BEC_CATALOG_URL,
   DEFAULT_CLASS_CEILING_2026,
+  DEFAULT_IR_RETENTION_RATE,
 } from '../../app/schemas/forms/system-settings'
 
 const mockLogAction = vi.fn()
@@ -212,6 +213,81 @@ describe('useSystemSettings', () => {
         amount: 65492.11,
         isConfigured: false,
       })
+    })
+  })
+
+  describe('irRetentionRate', () => {
+    it('fetches IR retention rate or defaults to 1.2%', async () => {
+      const { fetchIrRetentionRate } = useSystemSettings()
+
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: { value: '1.5' },
+        error: null,
+      })
+      const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle })
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+      mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+      const rate = await fetchIrRetentionRate()
+      expect(rate).toBe(1.5)
+    })
+
+    it('falls back to default 1.2% when data is null', async () => {
+      const { fetchIrRetentionRate } = useSystemSettings()
+
+      const mockMaybeSingle = vi.fn().mockResolvedValue({
+        data: null,
+        error: null,
+      })
+      const mockEq = vi.fn().mockReturnValue({ maybeSingle: mockMaybeSingle })
+      const mockSelect = vi.fn().mockReturnValue({ eq: mockEq })
+      mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+      const rate = await fetchIrRetentionRate()
+      expect(rate).toBe(DEFAULT_IR_RETENTION_RATE)
+    })
+
+    it('updates IR retention rate and logs action', async () => {
+      const { updateIrRetentionRate, irRetentionRate } = useSystemSettings()
+
+      const mockUpsert = vi.fn().mockResolvedValue({ error: null })
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert })
+
+      await updateIrRetentionRate(2.4)
+
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: 'ir_retention_rate_percent',
+          value: '2.4',
+        }),
+      )
+      expect(irRetentionRate.value).toBe(2.4)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'UPDATE_SYSTEM_SETTING',
+        expect.stringContaining('2.4%'),
+        'admin-user-id',
+      )
+    })
+
+    it('rejects invalid retention rate numbers', async () => {
+      const { updateIrRetentionRate } = useSystemSettings()
+
+      await expect(updateIrRetentionRate(-1)).rejects.toThrow(
+        /alíquota de retenção de IR deve ser um percentual válido/,
+      )
+      await expect(updateIrRetentionRate(101)).rejects.toThrow(
+        /alíquota de retenção de IR deve ser um percentual válido/,
+      )
+    })
+
+    it('resets retention rate back to default 1.2%', async () => {
+      const { resetIrRetentionRate, irRetentionRate } = useSystemSettings()
+
+      const mockUpsert = vi.fn().mockResolvedValue({ error: null })
+      mockSupabase.from.mockReturnValue({ upsert: mockUpsert })
+
+      await resetIrRetentionRate()
+      expect(irRetentionRate.value).toBe(DEFAULT_IR_RETENTION_RATE)
     })
   })
 })

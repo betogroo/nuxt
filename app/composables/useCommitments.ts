@@ -15,6 +15,13 @@ import {
 export type CommitmentLiquidationRow =
   Database['public']['Tables']['demand_commitment_liquidations']['Row']
 
+export interface BatchLiquidationItemInput {
+  liquidationNumber: string
+  isIrRetention?: boolean
+  irRetentionAmount?: number | string | null
+  observation?: string | null
+}
+
 export type CommitmentRow = Database['public']['Tables']['demand_commitments']['Row'] & {
   demands?: {
     id: string
@@ -533,6 +540,148 @@ export const useCommitments = () => {
     )
 
     return inserted
+  }
+
+  const addMultipleLiquidationNotes = async (params: {
+    commitmentId: string
+    commitmentNumber: string
+    issueDate: string
+    items: BatchLiquidationItemInput[]
+    observation?: string | null
+  }): Promise<CommitmentLiquidationRow[]> => {
+    if (!params.items || params.items.length === 0) {
+      throw new Error('Nenhuma Nota de Liquidação informada para cadastro.')
+    }
+
+    const normalizedNE = normalizeSiafemNumber(params.commitmentNumber)
+
+    const normalizedItems = params.items.map((item) => ({
+      ...item,
+      liquidationNumber: normalizeSiafemNumber(item.liquidationNumber),
+    }))
+
+    for (const item of normalizedItems) {
+      if (!isValidLiquidationNumber(item.liquidationNumber)) {
+        throw new Error(
+          `O número da Nota de Liquidação "${item.liquidationNumber}" deve seguir o padrão SIAFEM: 2026NL00000.`,
+        )
+      }
+    }
+
+    const uniqueNlSet = new Set<string>()
+    for (const item of normalizedItems) {
+      if (uniqueNlSet.has(item.liquidationNumber)) {
+        throw new Error(
+          `O número de Nota de Liquidação "${item.liquidationNumber}" foi informado mais de uma vez no mesmo cadastro.`,
+        )
+      }
+      uniqueNlSet.add(item.liquidationNumber)
+    }
+
+    const { data: commitmentData, error: checkErr } = await supabase
+      .from('demand_commitments')
+      .select(
+        'id, status, bank_order_number, suppliers(id, is_simples_optant), demand_commitment_liquidations(id, liquidation_number)',
+      )
+      .eq('id', params.commitmentId)
+      .single()
+
+    if (checkErr || !commitmentData) {
+      throw new Error('Nota de Empenho não encontrada.')
+    }
+
+    const commitment = commitmentData as unknown as {
+      id: string
+      status: DemandItemExecutionStatus
+      bank_order_number: string | null
+      suppliers?: { id: string; is_simples_optant?: boolean } | null
+      demand_commitment_liquidations?: Array<{ id: string; liquidation_number: string }>
+    }
+
+    if (commitment.bank_order_number || commitment.status === 'completed') {
+      throw new Error(
+        'Esta Nota de Empenho já possui Ordem Bancária emitida e encontra-se concluída.',
+      )
+    }
+
+    if (commitment.status === 'cancelled') {
+      throw new Error(
+        'Notas de Empenho canceladas não permitem registro de Notas de Liquidação (NL).',
+      )
+    }
+
+    if (commitment.status !== 'delivered') {
+      throw new Error(
+        'As Notas de Liquidação só podem ser registradas após a entrega da mercadoria (status "Entregue").',
+      )
+    }
+
+    const existingNls = new Set(
+      (commitment.demand_commitment_liquidations || []).map((nl) =>
+        nl.liquidation_number.toUpperCase(),
+      ),
+    )
+    for (const item of normalizedItems) {
+      if (existingNls.has(item.liquidationNumber)) {
+        throw new Error(
+          `A Nota de Liquidação "${item.liquidationNumber}" já está cadastrada nesta Nota de Empenho.`,
+        )
+      }
+    }
+
+    const insertPayload = normalizedItems.map((item) => {
+      const isIrRetention = Boolean(item.isIrRetention)
+      let irRetentionAmount: number | null = null
+
+      if (isIrRetention) {
+        if (commitment.suppliers?.is_simples_optant === true) {
+          throw new Error(
+            'Fornecedores optantes pelo Simples Nacional não permitem cadastro de NL de Retenção de IR.',
+          )
+        }
+        const parsedAmount = parseRetentionAmount(item.irRetentionAmount)
+        if (parsedAmount === null || parsedAmount <= 0) {
+          throw new Error(
+            `É obrigatório informar o valor da retenção para a NL de Retenção de IR "${item.liquidationNumber}".`,
+          )
+        }
+        irRetentionAmount = parsedAmount
+      }
+
+      return {
+        commitment_id: params.commitmentId,
+        liquidation_number: item.liquidationNumber,
+        issue_date: params.issueDate,
+        observation: (item.observation || params.observation)?.trim() || null,
+        is_cancellation: false,
+        is_ir_retention: isIrRetention,
+        ir_retention_amount: irRetentionAmount,
+        created_by: user.value?.id || null,
+      }
+    })
+
+    const { data: insertedList, error: insertErr } = await supabase
+      .from('demand_commitment_liquidations')
+      .insert(insertPayload)
+      .select('*')
+
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        throw new Error('Uma ou mais Notas de Liquidação já estão cadastradas no sistema.')
+      }
+      throw insertErr
+    }
+
+    const insertedCount = (insertedList || []).length
+    const nlSummary = normalizedItems.map((it) => it.liquidationNumber).join(', ')
+
+    await logAction(
+      'ADD_MULTIPLE_COMMITMENT_LIQUIDATIONS',
+      `${insertedCount} Notas de Liquidação (${nlSummary}) vinculadas à Nota de Empenho ${normalizedNE}`,
+      user.value?.id,
+    )
+
+    return (insertedList || []) as CommitmentLiquidationRow[]
   }
 
   const updateLiquidationNote = async (params: {
@@ -1250,6 +1399,7 @@ export const useCommitments = () => {
     fetchCommitmentByNumber,
     updateCommitmentLogisticsStatus,
     addLiquidationNote,
+    addMultipleLiquidationNotes,
     updateLiquidationNote,
     removeLiquidationNote,
     saveDisbursementProgram,

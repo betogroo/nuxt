@@ -94,6 +94,7 @@ export const iconMap = {
   closeCircle: 'mdi-close-circle-outline',
   folder: 'mdi-folder-outline',
   filter: 'mdi-filter-outline',
+  receipt: 'mdi-receipt-text-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

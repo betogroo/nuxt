@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { becCatalogUrlFormSchema, DEFAULT_BEC_CATALOG_URL } from '~/schemas/forms/system-settings'
+import {
+  becCatalogUrlFormSchema,
+  DEFAULT_BEC_CATALOG_URL,
+  DEFAULT_IR_RETENTION_RATE,
+  irRetentionRateFormSchema,
+} from '~/schemas/forms/system-settings'
 
 describe('becCatalogUrlFormSchema', () => {
   it('accepts the default BEC catalog URL', () => {
@@ -39,5 +44,39 @@ describe('becCatalogUrlFormSchema', () => {
         'Informe uma URL válida iniciada por http:// ou https://',
       )
     }
+  })
+})
+
+describe('irRetentionRateFormSchema', () => {
+  it('accepts valid default IR retention rate (1.2%)', () => {
+    const result = irRetentionRateFormSchema.safeParse({
+      ir_retention_rate: DEFAULT_IR_RETENTION_RATE,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.ir_retention_rate).toBe(1.2)
+    }
+  })
+
+  it('coerces string representations of numbers', () => {
+    const result = irRetentionRateFormSchema.safeParse({
+      ir_retention_rate: '2.5',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.ir_retention_rate).toBe(2.5)
+    }
+  })
+
+  it('rejects negative rates and rates exceeding 100%', () => {
+    const negativeResult = irRetentionRateFormSchema.safeParse({
+      ir_retention_rate: -0.5,
+    })
+    expect(negativeResult.success).toBe(false)
+
+    const overHundredResult = irRetentionRateFormSchema.safeParse({
+      ir_retention_rate: 101,
+    })
+    expect(overHundredResult.success).toBe(false)
   })
 })

@@ -141,6 +141,7 @@ mockNuxtImport('useAsyncData', () => {
 })
 
 const stubs = {
+  CommitmentLiquidationBatchModal: { template: '<div class="batch-nl-modal-stub" />' },
   UiRow: { template: '<div class="ui-row"><slot /></div>' },
   UiCol: { template: '<div class="ui-col"><slot /></div>' },
   UiCard: { template: '<div class="ui-card"><slot /></div>' },

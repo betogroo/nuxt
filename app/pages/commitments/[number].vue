@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import CommitmentLiquidationBatchModal from '~/components/commitments/CommitmentLiquidationBatchModal.vue'
   import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
   import { isOrdinaryLiquidationNote, useCommitments } from '~/composables/useCommitments'
   import { useFormModal } from '~/composables/useFormModal'
@@ -215,6 +216,7 @@
 
   // --- Modal de Nota de Liquidação (NL) ---
   const nlModal = useFormModal()
+  const isBatchNlModalOpen = ref(false)
   const isEditingNl = ref(false)
   const editingNlId = ref<string | null>(null)
   const nlNumber = ref('')
@@ -224,15 +226,7 @@
   const nlIrRetentionAmount = ref<string | number>('')
 
   const openAddNlModal = () => {
-    isEditingNl.value = false
-    editingNlId.value = null
-    const yearPrefix = commitment.value?.commitment_number.slice(0, 4) || '2026'
-    nlNumber.value = `${yearPrefix}NL`
-    nlIssueDate.value = getTodayDateString()
-    nlNotes.value = ''
-    nlIsIrRetention.value = false
-    nlIrRetentionAmount.value = ''
-    nlModal.openAdd()
+    isBatchNlModalOpen.value = true
   }
 
   const openEditNlModal = (nl: {
@@ -1529,6 +1523,18 @@
         </UiButton>
       </template>
     </UiModal>
+
+    <!-- Modal 2.1: Cadastrar Notas de Liquidação (NL) em Lote -->
+    <CommitmentLiquidationBatchModal
+      v-if="commitment"
+      v-model="isBatchNlModalOpen"
+      :commitment-id="commitment.id"
+      :commitment-number="commitment.commitment_number"
+      :existing-liquidations="liquidations"
+      :is-simples-optant="isSupplierSimplesOptant"
+      :total-amount="totalAmount"
+      @saved="refresh"
+    />
 
     <!-- Modal 2: Adicionar / Editar Nota de Liquidação (NL) -->
     <UiModal

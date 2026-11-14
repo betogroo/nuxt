@@ -3,15 +3,18 @@ import type { Database } from '~/types/database.types'
 import {
   DEFAULT_BEC_CATALOG_URL,
   DEFAULT_CLASS_CEILING_2026,
+  DEFAULT_IR_RETENTION_RATE,
   DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS,
 } from '~/schemas/forms/system-settings'
 
 export const SYSTEM_SETTING_KEYS = {
   BEC_CATALOG_URL: 'bec_catalog_url',
   PRODUCT_CLASS_ANNUAL_CEILINGS: 'product_class_annual_ceilings',
+  IR_RETENTION_RATE: 'ir_retention_rate_percent',
 } as const
 
 const becCatalogUrl = ref<string>(DEFAULT_BEC_CATALOG_URL)
+const irRetentionRate = ref<number>(DEFAULT_IR_RETENTION_RATE)
 const productClassAnnualCeilings = ref<Record<string, number>>({
   ...DEFAULT_PRODUCT_CLASS_ANNUAL_CEILINGS,
 })
@@ -44,6 +47,16 @@ export function parseAnnualCeilingsJson(raw: string | null | undefined): Record<
   }
 
   return result
+}
+
+export function parseIrRetentionRate(raw: string | null | undefined): number {
+  if (raw === null || raw === undefined) return DEFAULT_IR_RETENTION_RATE
+  const str = String(raw).trim().replace(',', '.')
+  const num = Number(str)
+  if (Number.isFinite(num) && num >= 0 && num <= 100) {
+    return Number(num.toFixed(2))
+  }
+  return DEFAULT_IR_RETENTION_RATE
 }
 
 export const useSystemSettings = () => {
@@ -109,6 +122,69 @@ export const useSystemSettings = () => {
 
     const base = becCatalogUrl.value || DEFAULT_BEC_CATALOG_URL
     return `${base}${str}`
+  }
+
+  const fetchIrRetentionRate = async (): Promise<number> => {
+    try {
+      const supabase = useSupabaseClient<Database>()
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', SYSTEM_SETTING_KEYS.IR_RETENTION_RATE)
+        .maybeSingle()
+
+      if (error) {
+        console.error('Erro ao buscar alíquota de retenção de IR:', error)
+        return irRetentionRate.value
+      }
+
+      if (data?.value !== undefined && data?.value !== null) {
+        irRetentionRate.value = parseIrRetentionRate(data.value)
+      } else {
+        irRetentionRate.value = DEFAULT_IR_RETENTION_RATE
+      }
+      return irRetentionRate.value
+    } catch (err) {
+      console.error('Erro inesperado ao buscar alíquota de retenção de IR:', err)
+      return irRetentionRate.value
+    }
+  }
+
+  const updateIrRetentionRate = async (newRate: number): Promise<void> => {
+    const supabase = useSupabaseClient<Database>()
+    const user = useSupabaseUser()
+    const { logAction } = useLogger()
+
+    const numericRate = Number(newRate)
+    if (!Number.isFinite(numericRate) || numericRate < 0 || numericRate > 100) {
+      throw new Error('A alíquota de retenção de IR deve ser um percentual válido entre 0% e 100%.')
+    }
+
+    const rounded = Number(numericRate.toFixed(2))
+    const now = new Date().toISOString()
+
+    const { error } = await supabase.from('system_settings').upsert({
+      key: SYSTEM_SETTING_KEYS.IR_RETENTION_RATE,
+      value: String(rounded),
+      description:
+        'Alíquota padrão para cálculo sugerido de retenção de Imposto de Renda (IR) em Notas de Liquidação (%).',
+      updated_at: now,
+      updated_by: user.value?.id || null,
+    })
+
+    if (error) throw error
+
+    irRetentionRate.value = rounded
+
+    await logAction(
+      'UPDATE_SYSTEM_SETTING',
+      `Alíquota padrão de retenção de IR atualizada para ${rounded}%`,
+      user.value?.id,
+    )
+  }
+
+  const resetIrRetentionRate = async (): Promise<void> => {
+    await updateIrRetentionRate(DEFAULT_IR_RETENTION_RATE)
   }
 
   const fetchProductClassAnnualCeilings = async (): Promise<Record<string, number>> => {
@@ -240,6 +316,10 @@ export const useSystemSettings = () => {
     updateBecCatalogUrl,
     resetBecCatalogUrl,
     getBecProductUrl,
+    irRetentionRate,
+    fetchIrRetentionRate,
+    updateIrRetentionRate,
+    resetIrRetentionRate,
     productClassAnnualCeilings,
     fetchProductClassAnnualCeilings,
     upsertProductClassAnnualCeiling,
