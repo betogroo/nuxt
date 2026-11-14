@@ -3,6 +3,7 @@
     ProductCharacteristicKeyRow,
     ProductCharacteristicKeyWithStats,
   } from '~/composables/useProductCharacteristics'
+  import { useRowSelection } from '~/composables/useRowSelection'
   import { useZodForm } from '~/composables/useZodForm'
   import { useFormModal } from '~/composables/useFormModal'
   import {
@@ -40,6 +41,7 @@
     toggleCharacteristicKeyStatus,
     deleteCharacteristicKey,
     approvePendingCharacteristicKey,
+    approveMultiplePendingCharacteristicKeys,
     mergeCharacteristicKeys,
   } = useProductCharacteristics()
 
@@ -284,6 +286,67 @@
       closeMergeModal()
     })
   })
+
+  // --- Row Selection (Pending Characteristics) ---
+  const pendingItemsList = computed(() => pendingKeys.value || [])
+
+  const {
+    selectedIds: selectedPendingIds,
+    isAllPageSelected: isAllPendingSelected,
+    isSomePageSelected: isSomePendingSelected,
+    isRowSelected: isPendingRowSelected,
+    toggleSelectRow: toggleSelectPendingRow,
+    toggleSelectAllPage: toggleSelectAllPending,
+    clearSelection: clearPendingSelection,
+  } = useRowSelection<ProductCharacteristicKeyWithStats>(pendingItemsList, (item) => item.id)
+
+  const selectedPendingItems = computed(() =>
+    pendingItemsList.value.filter((k) => selectedPendingIds.value.includes(k.id)),
+  )
+
+  watch(activeTab, () => {
+    clearPendingSelection()
+  })
+
+  // --- Batch Approval Modal ---
+  const isBatchApproveModalOpen = ref(false)
+  const isApprovingBatch = ref(false)
+  const batchApproveError = ref('')
+
+  const openBatchApproveModal = () => {
+    if (selectedPendingIds.value.length === 0) return
+    batchApproveError.value = ''
+    isBatchApproveModalOpen.value = true
+  }
+
+  const closeBatchApproveModal = () => {
+    isBatchApproveModalOpen.value = false
+    batchApproveError.value = ''
+  }
+
+  const submitBatchApprove = async () => {
+    if (selectedPendingItems.value.length === 0) return
+    isApprovingBatch.value = true
+    batchApproveError.value = ''
+    try {
+      const count = selectedPendingItems.value.length
+      await approveMultiplePendingCharacteristicKeys(selectedPendingItems.value)
+      toast.success(
+        count === 1
+          ? '1 característica aprovada com sucesso!'
+          : `${count} características aprovadas com sucesso!`,
+      )
+      clearPendingSelection()
+      await refreshAll()
+      const { refreshAll: refreshPendingTasks } = usePendingTasks()
+      await refreshPendingTasks()
+      closeBatchApproveModal()
+    } catch (e: unknown) {
+      batchApproveError.value = getErrorMessage(e)
+    } finally {
+      isApprovingBatch.value = false
+    }
+  }
 </script>
 
 <template>
@@ -414,6 +477,18 @@
           <UiIcon class="mr-2" color="warning" name="time" />
           Chaves Sugeridas por Usuários
           <UiSpacer />
+          <UiButton
+            v-if="selectedPendingIds.length > 0"
+            class="mr-2"
+            color="primary"
+            data-testid="btn-approve-batch-header"
+            prepend-icon="check"
+            size="sm"
+            variant="solid"
+            @click="openBatchApproveModal"
+          >
+            Aprovar Selecionadas ({{ selectedPendingIds.length }})
+          </UiButton>
           <UiActionButton
             action="refresh"
             tooltip="Atualizar lista"
@@ -422,8 +497,44 @@
           />
         </template>
 
+        <!-- Barra de Ações em Lote -->
+        <div
+          v-if="selectedPendingIds.length > 0"
+          class="pa-3 px-4 bg-surface-variant border-b d-flex align-center justify-space-between flex-wrap ga-3"
+          data-testid="batch-action-bar"
+        >
+          <div class="d-flex align-center ga-2">
+            <UiIcon color="primary" name="check" size="20" />
+            <span class="font-weight-bold text-body-2">
+              <strong>{{ selectedPendingIds.length }}</strong>
+              {{
+                selectedPendingIds.length === 1
+                  ? 'característica selecionada'
+                  : 'características selecionadas'
+              }}
+            </span>
+            <UiButton color="default" size="xs" variant="ghost" @click="clearPendingSelection">
+              Limpar seleção
+            </UiButton>
+          </div>
+
+          <div class="d-flex align-center ga-2">
+            <UiButton
+              color="primary"
+              data-testid="btn-approve-batch"
+              prepend-icon="check"
+              size="sm"
+              variant="solid"
+              @click="openBatchApproveModal"
+            >
+              Aprovar em Lote ({{ selectedPendingIds.length }})
+            </UiButton>
+          </div>
+        </div>
+
         <UiTable
           :headers="[
+            { text: '', value: 'select', width: 48, align: 'center', sortable: false },
             { text: 'Chave Sugerida', value: 'name' },
             { text: 'Produtos Vinculados', value: 'usage_count', align: 'center' },
             { text: 'Data da Sugestão', value: 'created_at' },
@@ -431,6 +542,28 @@
           ]"
           :items="pendingKeys || []"
         >
+          <template #header-select>
+            <div class="d-flex justify-center">
+              <UiCheckbox
+                data-testid="select-all-pending"
+                hide-details
+                :indeterminate="isSomePendingSelected"
+                :model-value="isAllPendingSelected"
+                @update:model-value="toggleSelectAllPending"
+              />
+            </div>
+          </template>
+
+          <template #item-select="{ item }">
+            <div class="d-flex justify-center">
+              <UiCheckbox
+                :data-testid="`select-pending-${item.id}`"
+                hide-details
+                :model-value="isPendingRowSelected(item.id)"
+                @update:model-value="toggleSelectPendingRow(item.id)"
+              />
+            </div>
+          </template>
           <template #item-name="{ item }">
             <UiChip color="warning" label size="sm" variant="soft">
               {{ item.name }}
@@ -620,6 +753,61 @@
         <UiButton color="grey" variant="ghost" @click="closeMergeModal"> Cancelar </UiButton>
         <UiButton color="primary" :loading="isMerging" @click="submitDirectMerge">
           Confirmar Unificação
+        </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Aprovação em Lote de Chaves Pendentes -->
+    <UiModal v-model="isBatchApproveModalOpen" title="Aprovar Características em Lote">
+      <UiAlert v-if="batchApproveError" class="mb-4" type="error">
+        {{ batchApproveError }}
+      </UiAlert>
+
+      <div class="text-body-2 mb-3">
+        Você está prestes a aprovar <strong>{{ selectedPendingItems.length }}</strong>
+        {{
+          selectedPendingItems.length === 1
+            ? 'característica sugerida'
+            : 'características sugeridas'
+        }}
+        como oficiais no sistema:
+      </div>
+
+      <div class="d-flex flex-wrap ga-2 mb-4 pa-3 bg-surface-variant rounded">
+        <UiChip
+          v-for="item in selectedPendingItems"
+          :key="item.id"
+          color="primary"
+          label
+          size="sm"
+          variant="soft"
+        >
+          {{ item.name }}
+        </UiChip>
+      </div>
+
+      <div class="text-caption text-medium-emphasis">
+        Todas as características selecionadas serão ativadas e padronizadas com os nomes atuais.
+        Caso alguma já possua nome idêntico a uma chave oficial existente, ela será unificada
+        automaticamente.
+      </div>
+
+      <template #actions>
+        <UiButton
+          color="grey"
+          :disabled="isApprovingBatch"
+          variant="ghost"
+          @click="closeBatchApproveModal"
+        >
+          Cancelar
+        </UiButton>
+        <UiButton
+          color="primary"
+          data-testid="btn-confirm-approve-batch"
+          :loading="isApprovingBatch"
+          @click="submitBatchApprove"
+        >
+          Confirmar Aprovação ({{ selectedPendingItems.length }})
         </UiButton>
       </template>
     </UiModal>

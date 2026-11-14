@@ -1,4 +1,5 @@
 import type { Database } from '~/types/database.types'
+import { buildApprovePayload } from '~/utils/pendingCatalog'
 
 export type ProductCharacteristicKeyRow =
   Database['public']['Tables']['product_characteristic_keys']['Row']
@@ -345,13 +346,11 @@ export const useProductCharacteristics = () => {
       return
     }
 
+    const payload = buildApprovePayload(finalName)
+
     const { error } = await supabase
       .from('product_characteristic_keys')
-      .update({
-        name: finalName,
-        is_pending: false,
-        is_active: true,
-      })
+      .update(payload)
       .eq('id', targetKey.id)
 
     if (error) throw error
@@ -359,6 +358,22 @@ export const useProductCharacteristics = () => {
     await logAction(
       'APPROVE_CHARACTERISTIC_KEY',
       `Chave de característica sugerida aprovada: "${finalName}"`,
+      user.value?.id,
+    )
+  }
+
+  const approveMultiplePendingCharacteristicKeys = async (
+    keysToApprove: ProductCharacteristicKeyRow[],
+  ) => {
+    if (!keysToApprove || keysToApprove.length === 0) return
+
+    for (const key of keysToApprove) {
+      await approvePendingCharacteristicKey(key)
+    }
+
+    await logAction(
+      'APPROVE_BATCH_CHARACTERISTIC_KEYS',
+      `Aprovação em lote de ${keysToApprove.length} chaves de características: ${keysToApprove.map((k) => k.name).join(', ')}`,
       user.value?.id,
     )
   }
@@ -375,6 +390,7 @@ export const useProductCharacteristics = () => {
     toggleCharacteristicKeyStatus,
     deleteCharacteristicKey,
     approvePendingCharacteristicKey,
+    approveMultiplePendingCharacteristicKeys,
     mergeCharacteristicKeys,
   }
 }

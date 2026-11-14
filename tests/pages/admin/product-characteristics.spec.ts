@@ -12,6 +12,7 @@ const {
   toggleKeyStatusMock,
   deleteKeyMock,
   approvePendingKeyMock,
+  approveMultiplePendingKeysMock,
   mergeKeysMock,
 } = vi.hoisted(() => ({
   mockOfficialKeys: [
@@ -44,12 +45,22 @@ const {
       updated_at: '2026-10-25T11:00:00Z',
       usage_count: 2,
     },
+    {
+      id: 'k-gramatura',
+      name: 'Gramatura',
+      is_active: false,
+      is_pending: true,
+      created_at: '2026-10-25T12:00:00Z',
+      updated_at: '2026-10-25T12:00:00Z',
+      usage_count: 4,
+    },
   ],
   createKeyMock: vi.fn().mockResolvedValue({}),
   updateKeyMock: vi.fn().mockResolvedValue({}),
   toggleKeyStatusMock: vi.fn().mockResolvedValue({}),
   deleteKeyMock: vi.fn().mockResolvedValue({}),
   approvePendingKeyMock: vi.fn().mockResolvedValue({}),
+  approveMultiplePendingKeysMock: vi.fn().mockResolvedValue({}),
   mergeKeysMock: vi.fn().mockResolvedValue({}),
 }))
 
@@ -59,6 +70,9 @@ mockNuxtImport('useToast', () => () => ({
   success: vi.fn(),
   error: vi.fn(),
   info: vi.fn(),
+}))
+mockNuxtImport('usePendingTasks', () => () => ({
+  refreshAll: vi.fn().mockResolvedValue(undefined),
 }))
 mockNuxtImport('usePagination', () => () => ({
   currentPage: ref(1),
@@ -101,6 +115,7 @@ mockNuxtImport('useProductCharacteristics', () => () => ({
   toggleCharacteristicKeyStatus: toggleKeyStatusMock,
   deleteCharacteristicKey: deleteKeyMock,
   approvePendingCharacteristicKey: approvePendingKeyMock,
+  approveMultiplePendingCharacteristicKeys: approveMultiplePendingKeysMock,
   mergeCharacteristicKeys: mergeKeysMock,
 }))
 
@@ -109,31 +124,34 @@ describe('Product Characteristics Admin Page', () => {
     vi.clearAllMocks()
   })
 
+  const commonStubs = {
+    PageHeader: true,
+    UiTabs: true,
+    UiTab: true,
+    UiBadge: true,
+    UiCard: true,
+    UiIcon: true,
+    UiChip: true,
+    UiSpacer: true,
+    UiInput: true,
+    UiActionButton: true,
+    UiButton: true,
+    UiTable: true,
+    UiSwitch: true,
+    UiPagination: true,
+    UiModal: true,
+    UiAlert: true,
+    UiForm: true,
+    UiRadioGroup: true,
+    UiRadio: true,
+    UiAutocomplete: true,
+    UiCheckbox: true,
+  }
+
   it('should mount and expose official and pending keys', () => {
     const wrapper = shallowMount(ProductCharacteristicsAdminPage, {
       global: {
-        stubs: {
-          PageHeader: true,
-          UiTabs: true,
-          UiTab: true,
-          UiBadge: true,
-          UiCard: true,
-          UiIcon: true,
-          UiChip: true,
-          UiSpacer: true,
-          UiInput: true,
-          UiActionButton: true,
-          UiButton: true,
-          UiTable: true,
-          UiSwitch: true,
-          UiPagination: true,
-          UiModal: true,
-          UiAlert: true,
-          UiForm: true,
-          UiRadioGroup: true,
-          UiRadio: true,
-          UiAutocomplete: true,
-        },
+        stubs: commonStubs,
       },
     })
 
@@ -148,7 +166,7 @@ describe('Product Characteristics Admin Page', () => {
     }
 
     expect(vm.officialKeys).toHaveLength(2)
-    expect(vm.pendingKeys).toHaveLength(1)
+    expect(vm.pendingKeys).toHaveLength(2)
 
     vm.openAddModal()
     expect(vm.isModalOpen).toBe(true)
@@ -162,28 +180,7 @@ describe('Product Characteristics Admin Page', () => {
   it('should open resolve modal and mergemodal for unifying keys', async () => {
     const wrapper = shallowMount(ProductCharacteristicsAdminPage, {
       global: {
-        stubs: {
-          PageHeader: true,
-          UiTabs: true,
-          UiTab: true,
-          UiBadge: true,
-          UiCard: true,
-          UiIcon: true,
-          UiChip: true,
-          UiSpacer: true,
-          UiInput: true,
-          UiActionButton: true,
-          UiButton: true,
-          UiTable: true,
-          UiSwitch: true,
-          UiPagination: true,
-          UiModal: true,
-          UiAlert: true,
-          UiForm: true,
-          UiRadioGroup: true,
-          UiRadio: true,
-          UiAutocomplete: true,
-        },
+        stubs: commonStubs,
       },
     })
 
@@ -206,5 +203,92 @@ describe('Product Characteristics Admin Page', () => {
     expect(vm.sourceMergeKey?.name).toBe('Cor')
     expect(vm.availableMergeTargets).toHaveLength(1)
     expect(vm.availableMergeTargets[0]?.name).toBe('Ponta')
+  })
+
+  it('supports selecting pending keys individually and selecting all via useRowSelection', async () => {
+    const wrapper = shallowMount(ProductCharacteristicsAdminPage, {
+      global: {
+        stubs: commonStubs,
+      },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      selectedPendingIds: string[]
+      isAllPendingSelected: boolean
+      isSomePendingSelected: boolean
+      toggleSelectPendingRow: (id: string) => void
+      toggleSelectAllPending: () => void
+      clearPendingSelection: () => void
+      activeTab: string
+    }
+
+    expect(vm.selectedPendingIds).toHaveLength(0)
+    expect(vm.isAllPendingSelected).toBe(false)
+    expect(vm.isSomePendingSelected).toBe(false)
+
+    // Select first row
+    vm.toggleSelectPendingRow('k-tipo-ponta')
+    expect(vm.selectedPendingIds).toEqual(['k-tipo-ponta'])
+    expect(vm.isSomePendingSelected).toBe(true)
+    expect(vm.isAllPendingSelected).toBe(false)
+
+    // Select all
+    vm.toggleSelectAllPending()
+    expect(vm.selectedPendingIds).toHaveLength(2)
+    expect(vm.isAllPendingSelected).toBe(true)
+
+    // Clear selection
+    vm.clearPendingSelection()
+    expect(vm.selectedPendingIds).toHaveLength(0)
+
+    // Resets selection on tab switch
+    vm.activeTab = 'pending'
+    await wrapper.vm.$nextTick()
+    vm.toggleSelectPendingRow('k-tipo-ponta')
+    expect(vm.selectedPendingIds).toHaveLength(1)
+    vm.activeTab = 'active'
+    await wrapper.vm.$nextTick()
+    expect(vm.selectedPendingIds).toHaveLength(0)
+  })
+
+  it('opens batch approve modal and approves all selected characteristics', async () => {
+    const wrapper = shallowMount(ProductCharacteristicsAdminPage, {
+      global: {
+        stubs: commonStubs,
+      },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      selectedPendingIds: string[]
+      selectedPendingItems: typeof mockPendingKeys
+      isBatchApproveModalOpen: boolean
+      isApprovingBatch: boolean
+      openBatchApproveModal: () => void
+      closeBatchApproveModal: () => void
+      submitBatchApprove: () => Promise<void>
+      toggleSelectAllPending: () => void
+    }
+
+    // Attempt to open with nothing selected
+    vm.openBatchApproveModal()
+    expect(vm.isBatchApproveModalOpen).toBe(false)
+
+    // Select all
+    vm.toggleSelectAllPending()
+    expect(vm.selectedPendingItems).toHaveLength(2)
+
+    vm.openBatchApproveModal()
+    expect(vm.isBatchApproveModalOpen).toBe(true)
+
+    await vm.submitBatchApprove()
+
+    expect(approveMultiplePendingKeysMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'k-tipo-ponta' }),
+        expect.objectContaining({ id: 'k-gramatura' }),
+      ]),
+    )
+    expect(vm.selectedPendingIds).toHaveLength(0)
+    expect(vm.isBatchApproveModalOpen).toBe(false)
   })
 })

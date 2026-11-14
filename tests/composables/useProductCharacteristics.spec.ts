@@ -256,4 +256,59 @@ describe('useProductCharacteristics Composable', () => {
       'admin-123',
     )
   })
+
+  it('approveMultiplePendingCharacteristicKeys should approve multiple keys and log batch action', async () => {
+    const updateEqMock = vi.fn().mockResolvedValue({ error: null })
+    const updateMock = vi.fn().mockReturnValue({ eq: updateEqMock })
+
+    mockSupabase.from.mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        ilike: vi.fn().mockReturnValue({
+          neq: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
+        }),
+      }),
+      update: updateMock,
+    })
+
+    const { approveMultiplePendingCharacteristicKeys } = useProductCharacteristics()
+
+    const keysToApprove: ProductCharacteristicKeyRow[] = [
+      {
+        id: 'k-1',
+        name: 'Gramatura',
+        is_active: false,
+        is_pending: true,
+        created_at: '2026-10-25T10:00:00Z',
+        updated_at: '2026-10-25T10:00:00Z',
+      },
+      {
+        id: 'k-2',
+        name: 'Tamanho',
+        is_active: false,
+        is_pending: true,
+        created_at: '2026-10-25T10:00:00Z',
+        updated_at: '2026-10-25T10:00:00Z',
+      },
+    ]
+
+    await approveMultiplePendingCharacteristicKeys(keysToApprove)
+
+    expect(updateEqMock).toHaveBeenCalledTimes(2)
+    expect(updateEqMock).toHaveBeenCalledWith('id', 'k-1')
+    expect(updateEqMock).toHaveBeenCalledWith('id', 'k-2')
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'APPROVE_BATCH_CHARACTERISTIC_KEYS',
+      expect.stringContaining('2 chaves de características: Gramatura, Tamanho'),
+      'admin-123',
+    )
+  })
+
+  it('approveMultiplePendingCharacteristicKeys does nothing when list is empty', async () => {
+    const { approveMultiplePendingCharacteristicKeys } = useProductCharacteristics()
+    await approveMultiplePendingCharacteristicKeys([])
+    expect(mockSupabase.from).not.toHaveBeenCalled()
+    expect(mockLogAction).not.toHaveBeenCalled()
+  })
 })
