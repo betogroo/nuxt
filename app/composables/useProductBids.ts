@@ -92,11 +92,8 @@ export const useProductBids = () => {
       demand_product_id: demandProductId,
       supplier_id,
       amount: finalAmount,
-    }
-
-    if (isAboveReference) {
-      payload.status = 'disqualified'
-      payload.disqualification_reason = DISQUALIFICATION_REASON_ABOVE_REFERENCE
+      status: isAboveReference ? 'disqualified' : 'classified',
+      disqualification_reason: isAboveReference ? DISQUALIFICATION_REASON_ABOVE_REFERENCE : null,
     }
 
     const { error } = await supabase.from('demand_product_bids').insert(payload)
@@ -148,18 +145,13 @@ export const useProductBids = () => {
         numericRefPrice > 0 &&
         Math.round(finalAmount * 10000) > Math.round(numericRefPrice * 10000)
 
-      const payload: DemandProductBidInsert = {
+      return {
         demand_product_id: demandProductId,
         supplier_id: b.supplier_id,
         amount: finalAmount,
+        status: isAboveReference ? 'disqualified' : 'classified',
+        disqualification_reason: isAboveReference ? DISQUALIFICATION_REASON_ABOVE_REFERENCE : null,
       }
-
-      if (isAboveReference) {
-        payload.status = 'disqualified'
-        payload.disqualification_reason = DISQUALIFICATION_REASON_ABOVE_REFERENCE
-      }
-
-      return payload
     })
 
     const { error } = await supabase.from('demand_product_bids').insert(payloads)

@@ -93,6 +93,8 @@ describe('useProductBids', () => {
       demand_product_id: 'item-123',
       supplier_id: 'supp-456',
       amount: 405.5,
+      status: 'classified',
+      disqualification_reason: null,
     })
     expect(logActionMock).toHaveBeenCalledWith(
       'ADD_PRODUCT_BID',
@@ -113,6 +115,8 @@ describe('useProductBids', () => {
       demand_product_id: 'item-123',
       supplier_id: 'supp-456',
       amount: 405.5,
+      status: 'classified',
+      disqualification_reason: null,
     })
     expect(logActionMock).toHaveBeenCalledWith(
       'ADD_PRODUCT_BID',
@@ -162,6 +166,8 @@ describe('useProductBids', () => {
       demand_product_id: 'item-123',
       supplier_id: 'supp-456',
       amount: 10.2545,
+      status: 'classified',
+      disqualification_reason: null,
     })
     expect(logActionMock).toHaveBeenCalledWith(
       'ADD_PRODUCT_BID',
@@ -260,11 +266,15 @@ describe('useProductBids', () => {
           demand_product_id: 'item-1',
           supplier_id: 'supp-1',
           amount: 18.0,
+          status: 'classified',
+          disqualification_reason: null,
         },
         {
           demand_product_id: 'item-1',
           supplier_id: 'supp-2',
           amount: 18.99,
+          status: 'classified',
+          disqualification_reason: null,
         },
       ])
       expect(logActionMock).toHaveBeenCalledWith(
@@ -291,6 +301,8 @@ describe('useProductBids', () => {
           demand_product_id: 'item-1',
           supplier_id: 'supp-1',
           amount: 18.0,
+          status: 'classified',
+          disqualification_reason: null,
         },
         {
           demand_product_id: 'item-1',
