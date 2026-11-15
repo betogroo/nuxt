@@ -12,6 +12,9 @@ const {
   mockRoute,
   mockRouterPush,
   mockRouterReplace,
+  mockDownloadDemandCatalogCsv,
+  mockToast,
+  mockLogAction,
 } = vi.hoisted(() => ({
   mockProductsList: { value: [] as unknown[] },
   mockDemandData: { value: null as Record<string, unknown> | null },
@@ -24,6 +27,18 @@ const {
   },
   mockRouterPush: vi.fn(),
   mockRouterReplace: vi.fn(),
+  mockDownloadDemandCatalogCsv: vi.fn(),
+  mockToast: {
+    success: vi.fn(),
+    warning: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
+  mockLogAction: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('~/utils/demandCatalogCsv', () => ({
+  downloadDemandCatalogCsv: mockDownloadDemandCatalogCsv,
 }))
 
 mockNuxtImport('useAsyncData', () => (key: string) => {
@@ -112,8 +127,9 @@ mockNuxtImport('useProducts', () => () => ({
 mockNuxtImport('useExpenseNatures', () => () => ({
   fetchExpenseNatures: vi.fn().mockResolvedValue([]),
 }))
+mockNuxtImport('useToast', () => () => mockToast)
 mockNuxtImport('useLogger', () => () => ({
-  logAction: vi.fn().mockResolvedValue(undefined),
+  logAction: mockLogAction,
 }))
 
 describe('Demand Items Page', () => {
@@ -1172,6 +1188,48 @@ describe('Demand Items Page', () => {
       expect(vm.totalSavings).not.toBeNull()
       expect(vm.totalSavings.amount).toBe(200)
       expect(vm.totalSavings.percentage).toBeCloseTo(20.0, 1)
+    })
+
+    it('warns when exporting catalog CSV with no items in demand', async () => {
+      mockDemandProducts.value = []
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      await vm.handleExportCatalogCsv()
+
+      expect(mockToast.warning).toHaveBeenCalledWith('A demanda não possui itens para exportação.')
+      expect(mockDownloadDemandCatalogCsv).not.toHaveBeenCalled()
+    })
+
+    it('exports catalog CSV and logs action when items exist', async () => {
+      mockDemandData.value = { id: 'demand-123', name: 'Demanda de Teste' }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          demand_id: 'demand-123',
+          product: { id: 'p1', name: 'Gasolina Especial', cat_mat: 69019 },
+          reference_price: 12.8976,
+        },
+      ]
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      await vm.handleExportCatalogCsv()
+
+      expect(mockDownloadDemandCatalogCsv).toHaveBeenCalledWith(
+        expect.objectContaining({
+          demand: expect.objectContaining({ name: 'Demanda de Teste' }),
+          items: expect.arrayContaining([expect.objectContaining({ id: 'item-1' })]),
+        }),
+      )
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'EXPORT_DEMAND_CATALOG_CSV',
+        expect.stringContaining('Exportou catálogo CSV (1 itens)'),
+        'user-1',
+      )
+      expect(mockToast.success).toHaveBeenCalledWith('Catálogo CSV exportado com sucesso!')
     })
   })
 })

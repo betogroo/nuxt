@@ -32,6 +32,7 @@
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
   import { downloadDemandFolderBatch } from '~/utils/demandFolderBatch'
+  import { downloadDemandCatalogCsv } from '~/utils/demandCatalogCsv'
   import { useRowSelection } from '~/composables/useRowSelection'
   import {
     type DemandTab,
@@ -1054,6 +1055,29 @@
     }
   }
 
+  const handleExportCatalogCsv = async () => {
+    const list = items.value || []
+    if (list.length === 0) {
+      toast.warning('A demanda não possui itens para exportação.')
+      return
+    }
+
+    try {
+      downloadDemandCatalogCsv({
+        demand: demand.value || {},
+        items: list,
+      })
+      await logAction(
+        'EXPORT_DEMAND_CATALOG_CSV',
+        `Exportou catálogo CSV (${list.length} itens) da demanda "${demand.value?.name || demandId}"`,
+        profile.value?.id,
+      )
+      toast.success('Catálogo CSV exportado com sucesso!')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao exportar catálogo CSV.')
+    }
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1435,6 +1459,15 @@
                 @click="handleDownloadFolderBatch"
               >
                 Criar Pastas (.bat)
+              </UiButton>
+              <UiButton
+                color="primary"
+                data-testid="btn-export-catalog-csv"
+                prepend-icon="download"
+                variant="soft"
+                @click="handleExportCatalogCsv"
+              >
+                Exportar Catálogo (CSV)
               </UiButton>
             </div>
           </div>
