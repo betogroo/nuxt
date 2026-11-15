@@ -31,9 +31,12 @@ describe('demandCatalogCsv', () => {
       expect(formatCatalogCsvField(69019)).toBe('69019')
     })
 
-    it('wraps and escapes values containing commas, quotes or newlines (RFC 4180)', () => {
+    it('wraps and escapes values containing semicolons, quotes or newlines', () => {
+      expect(formatCatalogCsvField('Gasolina Especial; Aditivada')).toBe(
+        '"Gasolina Especial; Aditivada"',
+      )
       expect(formatCatalogCsvField('Gasolina Especial, Aditivada')).toBe(
-        '"Gasolina Especial, Aditivada"',
+        'Gasolina Especial, Aditivada',
       )
       expect(formatCatalogCsvField('Ponta 1.0mm "Fina"')).toBe('"Ponta 1.0mm ""Fina"""')
       expect(formatCatalogCsvField('Linha 1\nLinha 2')).toBe('"Linha 1\nLinha 2"')
@@ -41,26 +44,26 @@ describe('demandCatalogCsv', () => {
   })
 
   describe('formatCatalogUnitPrice', () => {
-    it('returns empty quotes for null, undefined or empty string', () => {
-      expect(formatCatalogUnitPrice(null)).toBe('""')
-      expect(formatCatalogUnitPrice(undefined)).toBe('""')
-      expect(formatCatalogUnitPrice('')).toBe('""')
+    it('returns empty string for null, undefined or empty string', () => {
+      expect(formatCatalogUnitPrice(null)).toBe('')
+      expect(formatCatalogUnitPrice(undefined)).toBe('')
+      expect(formatCatalogUnitPrice('')).toBe('')
     })
 
-    it('formats numbers with comma as decimal separator and wrapped in double quotes', () => {
-      expect(formatCatalogUnitPrice(12.8976)).toBe('"12,8976"')
-      expect(formatCatalogUnitPrice(10)).toBe('"10"')
-      expect(formatCatalogUnitPrice(0.5)).toBe('"0,5"')
-      expect(formatCatalogUnitPrice(0)).toBe('"0"')
+    it('formats numbers with comma as decimal separator without quotes', () => {
+      expect(formatCatalogUnitPrice(12.8976)).toBe('12,8976')
+      expect(formatCatalogUnitPrice(10)).toBe('10')
+      expect(formatCatalogUnitPrice(0.5)).toBe('0,5')
+      expect(formatCatalogUnitPrice(0)).toBe('0')
     })
 
     it('accepts string representations of numbers', () => {
-      expect(formatCatalogUnitPrice('12.8976')).toBe('"12,8976"')
-      expect(formatCatalogUnitPrice('12,8976')).toBe('"12,8976"')
+      expect(formatCatalogUnitPrice('12.8976')).toBe('12,8976')
+      expect(formatCatalogUnitPrice('12,8976')).toBe('12,8976')
     })
 
-    it('returns empty quotes for NaN strings', () => {
-      expect(formatCatalogUnitPrice('invalid-price')).toBe('""')
+    it('returns empty string for NaN strings', () => {
+      expect(formatCatalogUnitPrice('invalid-price')).toBe('')
     })
   })
 
@@ -120,12 +123,12 @@ describe('demandCatalogCsv', () => {
 
       const lines = csv.replace('\uFEFF', '').split('\r\n')
       expect(lines[0]).toBe(
-        'CODIGO_ITEM_CATALOGO,APELIDO,TIPO_ITEM_CATALOGO,DESCRICAO_UNIDADE,VALOR_UNITARIO,INFORMACOES_COMPLEMENTARES',
+        'CODIGO_ITEM_CATALOGO;APELIDO;TIPO_ITEM_CATALOGO;DESCRICAO_UNIDADE;VALOR_UNITARIO;INFORMACOES_COMPLEMENTARES',
       )
-      expect(lines[1]).toBe('69019,Gasolina Especial,MATERIAL,litro,"12,8976",Gasolina Especial')
+      expect(lines[1]).toBe('69019;Gasolina Especial;MATERIAL;litro;12,8976;Gasolina Especial')
     })
 
-    it('handles fallback snapshots when relations are missing', () => {
+    it('handles fallback snapshots and semicolons escaping', () => {
       const items: DemandProductRow[] = [
         {
           id: 'item-2',
@@ -148,7 +151,7 @@ describe('demandCatalogCsv', () => {
           execution_status: null,
           execution_status_updated_at: null,
           expense_nature_name_snapshot: null,
-          product_name_snapshot: 'Papel A4, 75g',
+          product_name_snapshot: 'Papel A4; 75g',
           unit_name_snapshot: 'resma',
           product: null,
           measurement_units: null,
@@ -158,7 +161,7 @@ describe('demandCatalogCsv', () => {
       const csv = buildDemandCatalogCsv(items)
       const lines = csv.replace('\uFEFF', '').split('\r\n')
 
-      expect(lines[1]).toBe(',"Papel A4, 75g",MATERIAL,resma,"","Papel A4, 75g"')
+      expect(lines[1]).toBe(';"Papel A4; 75g";MATERIAL;resma;;"Papel A4; 75g"')
     })
 
     it('handles multiple items and maintains sort order', () => {
@@ -217,8 +220,8 @@ describe('demandCatalogCsv', () => {
       const lines = csv.replace('\uFEFF', '').split('\r\n')
 
       expect(lines).toHaveLength(3)
-      expect(lines[1]).toBe(',Caneta Azul,MATERIAL,unidade,"5,5",Caneta Azul')
-      expect(lines[2]).toBe(',Lápis Preto,MATERIAL,caixa,"2,25",Lápis Preto')
+      expect(lines[1]).toBe(';Caneta Azul;MATERIAL;unidade;5,5;Caneta Azul')
+      expect(lines[2]).toBe(';Lápis Preto;MATERIAL;caixa;2,25;Lápis Preto')
     })
   })
 

@@ -4,12 +4,12 @@ import { toSafeFilename } from '~/utils/reportFilename'
 
 /**
  * Formata um campo de texto para o CSV do catálogo, aplicando aspas e escape de aspas
- * duplas se contiver vírgula, quebras de linha ou aspas (RFC 4180).
+ * duplas se contiver ponto e vírgula, quebras de linha ou aspas.
  */
 export function formatCatalogCsvField(val: string | number | null | undefined): string {
   if (val == null) return ''
   const str = String(val).trim()
-  if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+  if (str.includes(';') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`
   }
   return str
@@ -17,23 +17,22 @@ export function formatCatalogCsvField(val: string | number | null | undefined): 
 
 /**
  * Formata o valor unitário de referência com vírgula nas casas decimais
- * e sempre envolvido entre aspas duplas, conforme padrão exigido: ex: "12,8976".
+ * sem aspas duplas, conforme padrão exigido: ex: 12,8976.
  */
 export function formatCatalogUnitPrice(price: number | string | null | undefined): string {
-  if (price == null || price === '') return '""'
+  if (price == null || price === '') return ''
   const num = typeof price === 'number' ? price : Number(String(price).replace(',', '.'))
-  if (isNaN(num)) return '""'
-  const formatted = String(num).replace('.', ',')
-  return `"${formatted}"`
+  if (isNaN(num)) return ''
+  return String(num).replace('.', ',')
 }
 
 /**
  * Gera a string do arquivo CSV de catálogo dos itens da demanda com cabeçalho padrão,
- * separador por vírgula e BOM UTF-8 para compatibilidade com o Excel no Windows.
+ * separador por ponto e vírgula e BOM UTF-8 para compatibilidade com o Excel no Windows.
  */
 export function buildDemandCatalogCsv(items: DemandProductRow[]): string {
   const header =
-    'CODIGO_ITEM_CATALOGO,APELIDO,TIPO_ITEM_CATALOGO,DESCRICAO_UNIDADE,VALOR_UNITARIO,INFORMACOES_COMPLEMENTARES'
+    'CODIGO_ITEM_CATALOGO;APELIDO;TIPO_ITEM_CATALOGO;DESCRICAO_UNIDADE;VALOR_UNITARIO;INFORMACOES_COMPLEMENTARES'
 
   const rows = (items || []).map((item) => {
     const catMat = item.product?.cat_mat != null ? String(item.product.cat_mat) : ''
@@ -48,7 +47,7 @@ export function buildDemandCatalogCsv(items: DemandProductRow[]): string {
       formatCatalogCsvField(unitName),
       unitPrice,
       formatCatalogCsvField(productName),
-    ].join(',')
+    ].join(';')
   })
 
   // Prefixo BOM UTF-8 (\uFEFF) para exibição sem mojibake no Excel
