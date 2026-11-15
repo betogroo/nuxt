@@ -114,6 +114,69 @@ export const useProductBids = () => {
     )
   }
 
+  const addBidsBatch = async (
+    demandProductId: string,
+    bids: Array<{
+      supplier_id: string
+      amount: number | string
+    }>,
+    options?: AddBidOptions,
+  ): Promise<number> => {
+    if (!bids || bids.length === 0) return 0
+
+    let refPrice = options?.referencePrice
+    if (refPrice === undefined) {
+      try {
+        const { data: prod } = await supabase
+          .from('demand_products')
+          .select('reference_price')
+          .eq('id', demandProductId)
+          .maybeSingle()
+        refPrice = prod?.reference_price ?? null
+      } catch {
+        refPrice = null
+      }
+    }
+
+    const numericRefPrice = refPrice != null ? Number(refPrice) : null
+
+    const payloads: DemandProductBidInsert[] = bids.map((b) => {
+      const finalAmount = Number(b.amount)
+      const isAboveReference =
+        numericRefPrice !== null &&
+        !Number.isNaN(numericRefPrice) &&
+        numericRefPrice > 0 &&
+        Math.round(finalAmount * 10000) > Math.round(numericRefPrice * 10000)
+
+      const payload: DemandProductBidInsert = {
+        demand_product_id: demandProductId,
+        supplier_id: b.supplier_id,
+        amount: finalAmount,
+      }
+
+      if (isAboveReference) {
+        payload.status = 'disqualified'
+        payload.disqualification_reason = DISQUALIFICATION_REASON_ABOVE_REFERENCE
+      }
+
+      return payload
+    })
+
+    const { error } = await supabase.from('demand_product_bids').insert(payloads)
+
+    if (error) throw error
+
+    await syncProductCommitmentIfFailed(demandProductId)
+
+    await logAction(
+      'ADD_PRODUCT_BIDS_BATCH',
+      `${payloads.length} lances adicionados em lote para o produto da demanda (ID: ${demandProductId})`,
+      user.value?.id,
+    )
+
+    return payloads.length
+  }
+
   const syncProductCommitmentIfFailed = async (demandProductId: string) => {
     try {
       const { data: prod } = await supabase
@@ -213,6 +276,7 @@ export const useProductBids = () => {
   return {
     fetchBidsByProduct,
     addBid,
+    addBidsBatch,
     updateBidStatus,
     removeBid,
   }

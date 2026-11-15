@@ -12,6 +12,7 @@
     type DemandItemExecutionStatus,
   } from '~/constants/demand-item-status'
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
+  import DemandItemBatchBidsModal from '~/components/demands/DemandItemBatchBidsModal.vue'
   import {
     buildCnpjRootCountMap,
     cleanCnpjDigits,
@@ -302,6 +303,22 @@
   const isBidSaving = ref(false)
   const isBidSavingAndContinuing = ref(false)
   const bidError = ref('')
+
+  const isBatchBidModalOpen = ref(false)
+
+  const openBatchBidModal = () => {
+    if (!canRegisterBids.value) {
+      toast.warning('O registro de lances é permitido apenas durante a fase de Disputa.')
+      return
+    }
+    isBatchBidModalOpen.value = true
+  }
+
+  const handleBatchBidsSaved = async () => {
+    await refreshBids()
+    await invalidateParentDemandItems()
+    await fetchSuppliersList()
+  }
 
   // Disqualification Modal State
   const isDisqualifyModalOpen = ref(false)
@@ -1138,6 +1155,16 @@
               <UiButton
                 v-if="canRegisterBids"
                 color="primary"
+                prepend-icon="playlistAdd"
+                size="sm"
+                variant="outlined"
+                @click="openBatchBidModal"
+              >
+                Lances em Lote
+              </UiButton>
+              <UiButton
+                v-if="canRegisterBids"
+                color="primary"
                 prepend-icon="add"
                 size="sm"
                 @click="openBidModal"
@@ -1797,6 +1824,15 @@
       v-model="isExecutionStatusModalOpen"
       :item="item"
       @saved="handleExecutionStatusSaved"
+    />
+
+    <!-- Modal Inserir Lances em Lote -->
+    <DemandItemBatchBidsModal
+      v-model="isBatchBidModalOpen"
+      :can-register-bids="canRegisterBids"
+      :demand-product-id="itemId"
+      :reference-price="item?.reference_price"
+      @saved="handleBatchBidsSaved"
     />
   </UiContainer>
 </template>

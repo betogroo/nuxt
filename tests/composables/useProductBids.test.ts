@@ -234,4 +234,72 @@ describe('useProductBids', () => {
       'user-admin',
     )
   })
+
+  describe('addBidsBatch', () => {
+    it('returns 0 when empty array is provided', async () => {
+      const { addBidsBatch } = useProductBids()
+      const count = await addBidsBatch('item-1', [])
+      expect(count).toBe(0)
+      expect(insertMock).not.toHaveBeenCalled()
+    })
+
+    it('inserts multiple bids and logs action', async () => {
+      const { addBidsBatch } = useProductBids()
+      const count = await addBidsBatch(
+        'item-1',
+        [
+          { supplier_id: 'supp-1', amount: 18.0 },
+          { supplier_id: 'supp-2', amount: 18.99 },
+        ],
+        { referencePrice: 20.0 },
+      )
+
+      expect(count).toBe(2)
+      expect(insertMock).toHaveBeenCalledWith([
+        {
+          demand_product_id: 'item-1',
+          supplier_id: 'supp-1',
+          amount: 18.0,
+        },
+        {
+          demand_product_id: 'item-1',
+          supplier_id: 'supp-2',
+          amount: 18.99,
+        },
+      ])
+      expect(logActionMock).toHaveBeenCalledWith(
+        'ADD_PRODUCT_BIDS_BATCH',
+        '2 lances adicionados em lote para o produto da demanda (ID: item-1)',
+        'user-admin',
+      )
+    })
+
+    it('marks bids above reference price as disqualified', async () => {
+      const { addBidsBatch } = useProductBids()
+      const count = await addBidsBatch(
+        'item-1',
+        [
+          { supplier_id: 'supp-1', amount: 18.0 },
+          { supplier_id: 'supp-2', amount: 25.0 },
+        ],
+        { referencePrice: 20.0 },
+      )
+
+      expect(count).toBe(2)
+      expect(insertMock).toHaveBeenCalledWith([
+        {
+          demand_product_id: 'item-1',
+          supplier_id: 'supp-1',
+          amount: 18.0,
+        },
+        {
+          demand_product_id: 'item-1',
+          supplier_id: 'supp-2',
+          amount: 25.0,
+          status: 'disqualified',
+          disqualification_reason: 'Valor ofertado acima do valor referencial.',
+        },
+      ])
+    })
+  })
 })

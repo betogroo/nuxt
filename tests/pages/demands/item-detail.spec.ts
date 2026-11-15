@@ -639,4 +639,20 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     vm.switchBidSupplierTo('sup-filial')
     expect(vm.bidSupplierId).toBe('sup-filial')
   })
+
+  it('manages batch bids modal state and updates bids upon save', async () => {
+    const wrapper = shallowMount(ItemDetailPage)
+    await flushPromises()
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    expect(vm.isBatchBidModalOpen).toBe(false)
+    vm.openBatchBidModal()
+    expect(vm.isBatchBidModalOpen).toBe(true)
+
+    await vm.handleBatchBidsSaved()
+    expect(mockRefreshBids).toHaveBeenCalled()
+    expect(mockRefreshDemandItems).toHaveBeenCalled()
+  })
 })
