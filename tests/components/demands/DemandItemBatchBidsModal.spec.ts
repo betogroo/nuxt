@@ -158,4 +158,67 @@ describe('DemandItemBatchBidsModal', () => {
     expect(wrapper.emitted('saved')?.[0]).toEqual([2])
     expect(mockToast.success).toHaveBeenCalledWith('2 lance(s) registrado(s) com sucesso!')
   })
+
+  it('processes multiline Compras.gov blocks and auto-populates extracted company names for new suppliers', async () => {
+    mockCreateSuppliersBatch.mockResolvedValue([
+      {
+        id: 'supp-new-gui',
+        cnpj: '64.883.946/0001-26',
+        company_name: '64.883.946 GUILHERME DANILO GODOY',
+      },
+    ])
+    mockAddBidsBatch.mockResolvedValue(1)
+
+    const wrapper = shallowMount(DemandItemBatchBidsModal, {
+      props: {
+        modelValue: true,
+        demandProductId: 'prod-item-1',
+        referencePrice: 25.0,
+      },
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+    vm.rawText = `64.883.946/0001-26
+ME/EPP
+64.883.946 GUILHERME DANILO GODOY
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 20,0000
+-`
+
+    // Test conversion action
+    vm.handleFormatText()
+    expect(vm.rawText).toBe('64.883.946/0001-26; 64.883.946 GUILHERME DANILO GODOY; 20,0000')
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Texto convertido para o padrão CNPJ; Razão Social; Valor!',
+    )
+
+    // Process converted text
+    await vm.handleProcessText()
+    await flushPromises()
+
+    expect(vm.readyItems).toHaveLength(1)
+    expect(vm.readyItems[0].isNewSupplier).toBe(true)
+    expect(vm.readyItems[0].supplierName).toBe('64.883.946 GUILHERME DANILO GODOY')
+    expect(vm.readyItems[0].amount).toBe(20)
+
+    // Save batch
+    await vm.handleSaveBatch()
+    await flushPromises()
+
+    expect(mockCreateSuppliersBatch).toHaveBeenCalledWith([
+      {
+        cnpj: '64883946000126',
+        company_name: '64.883.946 GUILHERME DANILO GODOY',
+      },
+    ])
+
+    expect(mockAddBidsBatch).toHaveBeenCalledWith(
+      'prod-item-1',
+      [{ supplier_id: 'supp-new-gui', amount: 20 }],
+      { referencePrice: 25.0 },
+    )
+  })
 })

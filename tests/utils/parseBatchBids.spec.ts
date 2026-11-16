@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { parseBidAmount, parseBatchBidsText } from '~/utils/parseBatchBids'
+import {
+  parseBidAmount,
+  parseBatchBidsText,
+  convertRawBidsTextToStandardFormat,
+  formatBidDecimal,
+} from '~/utils/parseBatchBids'
 
 describe('parseBatchBids', () => {
   describe('parseBidAmount', () => {
@@ -146,6 +151,158 @@ describe('parseBatchBids', () => {
         invalidCount: 0,
         ignoredLines: [],
       })
+    })
+
+    it('correctly parses multiline blocks from Compras.gov with company names and values', () => {
+      const multilineText = `64.883.946/0001-26
+ME/EPP
+64.883.946 GUILHERME DANILO GODOY
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 20,0000
+-
+
+60.876.096/0001-88
+ME/EPP
+60.876.096 ANNA LUISA FRANCA BARROS SOUZA
+RJ
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 22,9000
+-
+
+60.201.006/0001-59
+ME/EPP
+60.201.006 MIRIAN LINHARES RAIN
+PR
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 24,9500
+-
+
+50.076.064/0001-44
+ME/EPP
+THHD COMERCIAL LTDA
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 24,9500
+-`
+
+      const result = parseBatchBidsText(multilineText)
+
+      expect(result.items).toHaveLength(4)
+      expect(result.readyCount).toBe(4)
+      expect(result.invalidCount).toBe(0)
+
+      expect(result.items[0]).toMatchObject({
+        cleanCnpj: '64883946000126',
+        formattedCnpj: '64.883.946/0001-26',
+        supplierName: '64.883.946 GUILHERME DANILO GODOY',
+        amount: 20,
+        isValid: true,
+        status: 'ready',
+      })
+
+      expect(result.items[1]).toMatchObject({
+        cleanCnpj: '60876096000188',
+        formattedCnpj: '60.876.096/0001-88',
+        supplierName: '60.876.096 ANNA LUISA FRANCA BARROS SOUZA',
+        amount: 22.9,
+        isValid: true,
+        status: 'ready',
+      })
+
+      expect(result.items[2]).toMatchObject({
+        cleanCnpj: '60201006000159',
+        formattedCnpj: '60.201.006/0001-59',
+        supplierName: '60.201.006 MIRIAN LINHARES RAIN',
+        amount: 24.95,
+        isValid: true,
+        status: 'ready',
+      })
+
+      expect(result.items[3]).toMatchObject({
+        cleanCnpj: '50076064000144',
+        formattedCnpj: '50.076.064/0001-44',
+        supplierName: 'THHD COMERCIAL LTDA',
+        amount: 24.95,
+        isValid: true,
+        status: 'ready',
+      })
+    })
+
+    it('prioritizes negotiated value when filled with valid numeric amount in multiline block', () => {
+      const textWithNegotiation = `64.883.946/0001-26
+ME/EPP
+FORNECEDOR COM NEGOCIACAO LTDA
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 20,0000
+R$ 18,5000`
+
+      const result = parseBatchBidsText(textWithNegotiation)
+      expect(result.readyCount).toBe(1)
+      expect(result.items[0].amount).toBe(18.5)
+      expect(result.items[0].supplierName).toBe('FORNECEDOR COM NEGOCIACAO LTDA')
+    })
+
+    it('parses single lines with semicolon-separated 3 columns (cnpj; supplier_name; amount)', () => {
+      const text = `64.883.946/0001-26; 64.883.946 GUILHERME DANILO GODOY; 20,0000
+50.076.064/0001-44; THHD COMERCIAL LTDA; R$ 24,9500`
+
+      const result = parseBatchBidsText(text)
+      expect(result.readyCount).toBe(2)
+      expect(result.items[0].supplierName).toBe('64.883.946 GUILHERME DANILO GODOY')
+      expect(result.items[0].amount).toBe(20)
+      expect(result.items[1].supplierName).toBe('THHD COMERCIAL LTDA')
+      expect(result.items[1].amount).toBe(24.95)
+    })
+  })
+
+  describe('convertRawBidsTextToStandardFormat', () => {
+    it('converts multiline blocks to standard format (cnpj; supplier_name; amount)', () => {
+      const multilineText = `64.883.946/0001-26
+ME/EPP
+64.883.946 GUILHERME DANILO GODOY
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 20,0000
+-
+
+50.076.064/0001-44
+ME/EPP
+THHD COMERCIAL LTDA
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 24,9500
+-`
+
+      const converted = convertRawBidsTextToStandardFormat(multilineText)
+      const lines = converted.split('\n')
+
+      expect(lines).toHaveLength(2)
+      expect(lines[0]).toBe('64.883.946/0001-26; 64.883.946 GUILHERME DANILO GODOY; 20,0000')
+      expect(lines[1]).toBe('50.076.064/0001-44; THHD COMERCIAL LTDA; 24,9500')
+    })
+
+    it('converts 2-column single lines to standard format', () => {
+      const text = '37.862.590/0001-71 R$ 18,0000'
+      const converted = convertRawBidsTextToStandardFormat(text)
+      expect(converted).toBe('37.862.590/0001-71; 18,0000')
+    })
+  })
+
+  describe('formatBidDecimal', () => {
+    it('formats amount with exactly 4 decimal places in pt-BR', () => {
+      expect(formatBidDecimal(20)).toBe('20,0000')
+      expect(formatBidDecimal(22.9)).toBe('22,9000')
+      expect(formatBidDecimal(24.95)).toBe('24,9500')
+      expect(formatBidDecimal(null)).toBe('')
     })
   })
 })

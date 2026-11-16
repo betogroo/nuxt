@@ -4,6 +4,7 @@
   import { useProductBids } from '~/composables/useProductBids'
   import {
     parseBatchBidsText,
+    convertRawBidsTextToStandardFormat,
     type ParsedBatchBidItem,
     type ParseBatchBidsResult,
   } from '~/utils/parseBatchBids'
@@ -87,6 +88,15 @@
     },
   )
 
+  const handleFormatText = () => {
+    if (!rawText.value.trim()) return
+    const converted = convertRawBidsTextToStandardFormat(rawText.value)
+    if (converted) {
+      rawText.value = converted
+      toast.success('Texto convertido para o padrão CNPJ; Razão Social; Valor!')
+    }
+  }
+
   const handleProcessText = async () => {
     saveError.value = ''
     if (!rawText.value.trim()) {
@@ -99,6 +109,12 @@
     try {
       const result: ParseBatchBidsResult = parseBatchBidsText(rawText.value)
       ignoredLines.value = result.ignoredLines
+
+      // Normaliza o texto no formato padrão caso o usuário volte para editar
+      const standardText = convertRawBidsTextToStandardFormat(rawText.value)
+      if (standardText && result.readyCount > 0) {
+        rawText.value = standardText
+      }
 
       const candidateCleanCnpjs = result.items
         .filter((item) => item.isValid && item.cleanCnpj.length === 14)
@@ -118,9 +134,11 @@
               isNewSupplier: false,
             }
           } else {
+            const defaultName =
+              item.supplierName?.trim() || `Fornecedor ${formatCnpj(item.cleanCnpj)}`
             return {
               ...item,
-              supplierName: `Fornecedor ${formatCnpj(item.cleanCnpj)}`,
+              supplierName: defaultName,
               supplierId: null,
               isNewSupplier: true,
             }
@@ -254,26 +272,39 @@
         <UiAlert class="mb-4" size="sm" type="info" variant="soft">
           <div class="font-weight-medium mb-1">Como colar os lances:</div>
           <div class="text-caption">
-            Cole a lista contendo <strong>CNPJ</strong> e <strong>Valor</strong> (um por linha),
-            copiada de planilhas, relatórios ou do portal de compras. Caso o valor venha acompanhado
-            de <strong>R$</strong>, ele será automaticamente desconsiderado. Separadores aceitos:
-            espaço, tabulação ou ponto e vírgula.
+            Cole a lista de lances copiada de planilhas ou diretamente da ata/tela de disputa do
+            <strong>Compras.gov / BEC</strong>. O sistema reconhece tanto o padrão em blocos
+            multilinhas (com CNPJ, Razão Social e Valor) quanto linhas simples com delimitador
+            (espaço, tabulação ou ponto e vírgula). Valores com <strong>R$</strong> são tratados
+            automaticamente.
           </div>
         </UiAlert>
 
         <UiCard class="mb-3" variant="outline">
           <div class="pa-3">
             <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
-              Exemplo de formato esperado:
+              Formatos aceitos (selecione e copie direto):
             </div>
+            <pre
+              class="text-caption text-grey-darken-1 bg-grey-lighten-4 pa-2 rounded mb-2"
+              style="overflow-x: auto; font-family: monospace"
+            >
+Padrão Compras.gov (multilinha):
+64.883.946/0001-26
+ME/EPP
+64.883.946 GUILHERME DANILO GODOY
+SP
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 20,0000
+-</pre>
             <pre
               class="text-caption text-grey-darken-1 bg-grey-lighten-4 pa-2 rounded"
               style="overflow-x: auto; font-family: monospace"
             >
-37.862.590/0001-71 R$ 18,0000
-62.341.521/0001-60 R$ 18,9900
-54.107.641/0001-79 R$ 19,9900
-50.024.982/0001-20 R$ 22,5000</pre>
+Padrão em linha única:
+64.883.946/0001-26; GUILHERME DANILO GODOY; 20,0000
+37.862.590/0001-71 R$ 18,0000</pre>
           </div>
         </UiCard>
 
@@ -282,22 +313,32 @@
           class="mb-3"
           hide-details="auto"
           label="Cole a lista de lances aqui"
-          placeholder="Cole aqui o CNPJ e o Valor..."
+          placeholder="Cole aqui o texto copiado do Compras.gov, planilha ou CNPJ e Valor..."
           rows="8"
           variant="outlined"
         />
 
         <div class="d-flex justify-space-between align-center mt-2">
           <UiButton variant="ghost" @click="isOpen = false"> Cancelar </UiButton>
-          <UiButton
-            color="primary"
-            :disabled="!rawText.trim()"
-            :loading="isProcessing"
-            prepend-icon="arrowForward"
-            @click="handleProcessText"
-          >
-            Processar Lote
-          </UiButton>
+          <div class="d-flex align-center ga-2">
+            <UiButton
+              :disabled="!rawText.trim() || isProcessing"
+              prepend-icon="formatListBulleted"
+              variant="outlined"
+              @click="handleFormatText"
+            >
+              Converter para Padrão
+            </UiButton>
+            <UiButton
+              color="primary"
+              :disabled="!rawText.trim()"
+              :loading="isProcessing"
+              prepend-icon="arrowForward"
+              @click="handleProcessText"
+            >
+              Processar Lote
+            </UiButton>
+          </div>
         </div>
       </div>
 
