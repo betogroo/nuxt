@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   extractDemandFinancialDocumentNumbers,
+  groupDemandDocumentsByNe,
   buildDemandFinancialDocsCsv,
   downloadDemandFinancialDocsCsv,
 } from '~/utils/demandFinancialDocsCsv'
@@ -142,6 +143,54 @@ describe('demandFinancialDocsCsv', () => {
     ],
   }
 
+  describe('groupDemandDocumentsByNe', () => {
+    it('returns empty array when commitments list is empty', () => {
+      expect(groupDemandDocumentsByNe([])).toEqual([])
+    })
+
+    it('groups documents per NE and keeps logical order (NLs, PD, OB)', () => {
+      const groups = groupDemandDocumentsByNe([mockCommitment1])
+      expect(groups).toEqual([
+        {
+          neNumber: '2026NE00010',
+          documents: ['2026NL00011', '2026NL00012', '2026PD00010', '2026OB00010'],
+        },
+      ])
+    })
+
+    it('sorts columns alphabetically by NE number and merges any duplicated commitment rows', () => {
+      const duplicateComm: CommitmentRow = {
+        ...mockCommitment1,
+        demand_commitment_liquidations: [
+          {
+            ...mockCommitment1.demand_commitment_liquidations![0],
+            liquidation_number: '2026nl00011',
+          },
+          {
+            id: 'liq-extra',
+            commitment_id: 'comm-1',
+            liquidation_number: '2026NL00019',
+            issue_date: '2026-03-08',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-08',
+            created_by: null,
+          },
+        ],
+      }
+
+      const groups = groupDemandDocumentsByNe([mockCommitment2, duplicateComm, mockCommitment1])
+      expect(groups).toHaveLength(2)
+      expect(groups[0].neNumber).toBe('2026NE00010')
+      expect(groups[0].documents).toContain('2026NL00011')
+      expect(groups[0].documents).toContain('2026NL00019')
+      expect(groups[1].neNumber).toBe('2026NE00020')
+      expect(groups[1].documents).toEqual(['2026NL00021', '2026PD00020', '2026OB00020'])
+    })
+  })
+
   describe('extractDemandFinancialDocumentNumbers', () => {
     it('returns empty array when commitments list is empty', () => {
       expect(extractDemandFinancialDocumentNumbers([])).toEqual([])
@@ -180,21 +229,6 @@ describe('demandFinancialDocsCsv', () => {
         '2026OB00010',
       ])
     })
-
-    it('aggregates documents from multiple distinct commitments', () => {
-      const numbers = extractDemandFinancialDocumentNumbers([mockCommitment1, mockCommitment2])
-      expect(numbers).toEqual([
-        '2026NE00010',
-        '2026NL00011',
-        '2026NL00012',
-        '2026PD00010',
-        '2026OB00010',
-        '2026NE00020',
-        '2026NL00021',
-        '2026PD00020',
-        '2026OB00020',
-      ])
-    })
   })
 
   describe('buildDemandFinancialDocsCsv', () => {
@@ -213,20 +247,25 @@ describe('demandFinancialDocsCsv', () => {
       ).toBe('')
     })
 
-    it('generates simple single-column CSV with DOCUMENTO header by default', () => {
-      const csv = buildDemandFinancialDocsCsv([mockCommitment1])
+    it('generates multi-column CSV with each NE as a column and its documents below', () => {
+      const csv = buildDemandFinancialDocsCsv([mockCommitment1, mockCommitment2])
       expect(csv.startsWith('\uFEFF')).toBe(true)
 
       const lines = csv.replace('\uFEFF', '').split('\r\n')
-      expect(lines[0]).toBe('DOCUMENTO')
-      expect(lines).toEqual([
-        'DOCUMENTO',
-        '2026NE00010',
-        '2026NL00011',
-        '2026NL00012',
-        '2026PD00010',
-        '2026OB00010',
-      ])
+      // Linha 0 (Cabeçalho): cada NE em uma coluna
+      expect(lines[0]).toBe('2026NE00010;2026NE00020')
+
+      // Linha 1: primeiro documento de cada NE
+      expect(lines[1]).toBe('2026NL00011;2026NL00021')
+
+      // Linha 2: segundo documento de cada NE
+      expect(lines[2]).toBe('2026NL00012;2026PD00020')
+
+      // Linha 3: terceiro documento de cada NE
+      expect(lines[3]).toBe('2026PD00010;2026OB00020')
+
+      // Linha 4: quarto documento (comm1 tem OB, comm2 não tem mais documentos -> vazio)
+      expect(lines[4]).toBe('2026OB00010;')
     })
 
     it('generates detailed multi-column CSV when detailed option is true', () => {
@@ -276,17 +315,15 @@ describe('demandFinancialDocsCsv', () => {
           internal_process_number: 'PROC. 2026/045',
           name: 'Material de Escritório',
         },
-        commitments: [mockCommitment1],
+        commitments: [mockCommitment1, mockCommitment2],
       })
 
       expect(success).toBe(true)
       expect(downloadModule.downloadFile).toHaveBeenCalledTimes(1)
 
       const [content, filename, mimeType] = vi.mocked(downloadModule.downloadFile).mock.calls[0]
-      expect(content).toContain('2026NE00010')
-      expect(content).toContain('2026NL00011')
-      expect(content).toContain('2026PD00010')
-      expect(content).toContain('2026OB00010')
+      expect(content).toContain('2026NE00010;2026NE00020')
+      expect(content).toContain('2026NL00011;2026NL00021')
       expect(filename).toMatch(/^documentos-siafem-proc__2026_045-\d{4}-\d{2}-\d{2}\.csv$/)
       expect(mimeType).toBe('text/csv;charset=utf-8;')
     })

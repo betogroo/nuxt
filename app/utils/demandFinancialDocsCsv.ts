@@ -9,6 +9,59 @@ export interface DemandFinancialDocsOptions {
   detailed?: boolean
 }
 
+export interface NeColumnGroup {
+  neNumber: string
+  documents: string[]
+}
+
+/**
+ * Agrupa os documentos financeiros da demanda por Nota de Empenho (NE),
+ * organizando cada NE com sua lista respectiva de NLs, PD e OB.
+ */
+export function groupDemandDocumentsByNe(commitments: CommitmentRow[]): NeColumnGroup[] {
+  const groupsMap = new Map<string, { neNumber: string; documents: string[]; seen: Set<string> }>()
+
+  for (const c of commitments || []) {
+    if (!c.commitment_number) continue
+    const neNumber = normalizeSiafemNumber(c.commitment_number)
+    if (!neNumber) continue
+
+    if (!groupsMap.has(neNumber)) {
+      groupsMap.set(neNumber, {
+        neNumber,
+        documents: [],
+        seen: new Set<string>(),
+      })
+    }
+
+    const group = groupsMap.get(neNumber)!
+    const addDoc = (docNumber: string | null | undefined) => {
+      if (!docNumber) return
+      const normalized = normalizeSiafemNumber(docNumber)
+      if (normalized && !group.seen.has(normalized)) {
+        group.seen.add(normalized)
+        group.documents.push(normalized)
+      }
+    }
+
+    // 1. Notas de Liquidação / Lançamento (NL)
+    const liquidations = c.demand_commitment_liquidations || []
+    for (const nl of liquidations) {
+      addDoc(nl.liquidation_number)
+    }
+
+    // 2. Programa de Desembolso (PD)
+    addDoc(c.disbursement_program_number)
+
+    // 3. Ordem Bancária (OB)
+    addDoc(c.bank_order_number)
+  }
+
+  return Array.from(groupsMap.values())
+    .map(({ neNumber, documents }) => ({ neNumber, documents }))
+    .sort((a, b) => a.neNumber.localeCompare(b.neNumber))
+}
+
 /**
  * Extrai todos os números únicos de documentos financeiros (NE, NL, PD, OB)
  * vinculados aos empenhos de uma demanda, mantendo a ordem lógica de emissão.
@@ -48,9 +101,9 @@ export function extractDemandFinancialDocumentNumbers(commitments: CommitmentRow
 
 /**
  * Constrói o conteúdo CSV dos documentos financeiros de uma demanda.
- * Por padrão (detailed = false), gera um CSV simples com cabeçalho DOCUMENTO
- * contendo uma coluna única com os números dos documentos (NE, NL, PD, OB),
- * ideal para consulta e download em lote no siafem.net.
+ * Por padrão (detailed = false), cada Nota de Empenho (NE) da demanda
+ * ocupa uma coluna própria, com seus respectivos documentos (NLs, PD e OB)
+ * dispostos nas linhas abaixo, ideal para consulta e download no siafem.net.
  *
  * Quando detailed = true, gera a planilha completa com metadados do documento.
  */
@@ -62,13 +115,20 @@ export function buildDemandFinancialDocsCsv(
     return ''
   }
 
-  // Modo simples: apenas a coluna com os números de documentos (SIAFEM.net)
+  // Modo padrão: cada NE em uma coluna com seus respectivos documentos abaixo
   if (!options?.detailed) {
-    const docNumbers = extractDemandFinancialDocumentNumbers(commitments)
-    if (docNumbers.length === 0) return ''
+    const groups = groupDemandDocumentsByNe(commitments)
+    if (groups.length === 0) return ''
 
-    const header = 'DOCUMENTO'
-    const rows = docNumbers.map((num) => num.trim())
+    const header = groups.map((g) => g.neNumber).join(';')
+    const maxRows = Math.max(...groups.map((g) => g.documents.length), 0)
+
+    const rows: string[] = []
+    for (let i = 0; i < maxRows; i++) {
+      const row = groups.map((g) => g.documents[i] || '').join(';')
+      rows.push(row)
+    }
+
     return '\uFEFF' + [header, ...rows].join('\r\n')
   }
 
