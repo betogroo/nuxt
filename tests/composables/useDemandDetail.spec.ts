@@ -427,4 +427,150 @@ describe('useDemandDetail - isPlanningIncomplete', () => {
       expect(winningSuppliersSummary.value[0].commitments[0].statuses).toEqual(['shipped'])
     })
   })
+
+  describe('isReadyForCompletion', () => {
+    const mockSupplier = {
+      id: 'sup-1',
+      company_name: 'Empresa Teste LTDA',
+      cnpj: '11.222.333/0001-44',
+    }
+
+    beforeEach(() => {
+      mockDemand.value = {
+        id: 'demand-1',
+        status: 'homologation',
+      }
+    })
+
+    it('returns false if demand is null or already completed/cancelled', () => {
+      mockDemand.value = null
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(false)
+
+      mockDemand.value = { id: 'demand-1', status: 'completed' }
+      expect(isReadyForCompletion.value).toBe(false)
+
+      mockDemand.value = { id: 'demand-1', status: 'cancelled' }
+      expect(isReadyForCompletion.value).toBe(false)
+    })
+
+    it('returns false if there are no winner items / commitments', () => {
+      mockDemand.value = { id: 'demand-1', status: 'homologation' }
+      mockItems.value = []
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(false)
+    })
+
+    it('returns false if any winner has pending commitments (no commitment_number)', () => {
+      mockDemand.value = { id: 'demand-1', status: 'homologation' }
+      mockItems.value = [
+        {
+          id: 'item-1',
+          quantity: 1,
+          commitment_number: null,
+          execution_status: 'homologated',
+          product_name_snapshot: 'Item 1',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-1',
+              amount: 100,
+              status: 'classified',
+              suppliers: mockSupplier,
+            },
+          ],
+        },
+      ]
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(false)
+    })
+
+    it('returns false if commitments exist but have status homologated, delivered, or error', () => {
+      mockDemand.value = { id: 'demand-1', status: 'homologation' }
+      mockItems.value = [
+        {
+          id: 'item-1',
+          quantity: 1,
+          commitment_number: '2026NE0001',
+          execution_status: 'delivered',
+          product_name_snapshot: 'Item 1',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-1',
+              amount: 100,
+              status: 'classified',
+              suppliers: mockSupplier,
+            },
+          ],
+        },
+      ]
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(false)
+    })
+
+    it('returns true when all commitments are completed', () => {
+      mockDemand.value = { id: 'demand-1', status: 'homologation' }
+      mockItems.value = [
+        {
+          id: 'item-1',
+          quantity: 1,
+          commitment_number: '2026NE0001',
+          execution_status: 'completed',
+          product_name_snapshot: 'Item 1',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-1',
+              amount: 100,
+              status: 'classified',
+              suppliers: mockSupplier,
+            },
+          ],
+        },
+      ]
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(true)
+    })
+
+    it('returns true when commitments are a mix of completed and cancelled', () => {
+      mockDemand.value = { id: 'demand-1', status: 'homologation' }
+      mockItems.value = [
+        {
+          id: 'item-1',
+          quantity: 1,
+          commitment_number: '2026NE0001',
+          execution_status: 'completed',
+          product_name_snapshot: 'Item 1',
+          demand_product_bids: [
+            {
+              id: 'bid-1',
+              supplier_id: 'sup-1',
+              amount: 100,
+              status: 'classified',
+              suppliers: mockSupplier,
+            },
+          ],
+        },
+        {
+          id: 'item-2',
+          quantity: 2,
+          commitment_number: '2026NE0002',
+          execution_status: 'cancelled',
+          product_name_snapshot: 'Item 2',
+          demand_product_bids: [
+            {
+              id: 'bid-2',
+              supplier_id: 'sup-1',
+              amount: 50,
+              status: 'classified',
+              suppliers: mockSupplier,
+            },
+          ],
+        },
+      ]
+      const { isReadyForCompletion } = useDemandDetail('demand-1')
+      expect(isReadyForCompletion.value).toBe(true)
+    })
+  })
 })

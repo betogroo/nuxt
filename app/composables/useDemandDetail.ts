@@ -321,6 +321,36 @@ export function useDemandDetail(demandId: string) {
     return winners.sort((a, b) => b.wonCount - a.wonCount)
   })
 
+  const isReadyForCompletion = computed<boolean>(() => {
+    if (
+      !demand.value ||
+      demand.value.status === 'completed' ||
+      demand.value.status === 'cancelled'
+    ) {
+      return false
+    }
+
+    const winners = winningSuppliersSummary.value
+    if (!winners || winners.length === 0) return false
+
+    let totalCommitments = 0
+    for (const w of winners) {
+      if (w.hasPendingCommitments || w.pendingCommitmentsCount > 0) {
+        return false
+      }
+      totalCommitments += w.commitments?.length || 0
+      for (const group of w.commitments || []) {
+        const statuses = group.statuses?.length ? group.statuses : [group.status]
+        const allDoneOrCancelled = statuses.every((st) => st === 'completed' || st === 'cancelled')
+        if (!allDoneOrCancelled) {
+          return false
+        }
+      }
+    }
+
+    return totalCommitments > 0
+  })
+
   // Ensure fresh data on component mount (client navigation / return)
   if (getCurrentInstance()) {
     onMounted(async () => {
@@ -334,6 +364,7 @@ export function useDemandDetail(demandId: string) {
     refreshDemand,
     updateDemand,
     isPlanningIncomplete,
+    isReadyForCompletion,
 
     responsibles,
     refreshResponsibles,

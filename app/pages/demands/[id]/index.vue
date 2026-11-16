@@ -69,6 +69,7 @@
     refreshDemand,
     updateDemand,
     isPlanningIncomplete,
+    isReadyForCompletion,
     responsibles,
     refreshResponsibles: _refreshResponsibles,
     isAddingResponsible,
@@ -1380,6 +1381,38 @@
           </div>
         </div>
       </UiCard>
+
+      <!-- Alerta de Conclusão da Demanda quando todos os empenhos estão finalizados -->
+      <UiAlert
+        v-if="isReadyForCompletion"
+        border="start"
+        class="mb-4"
+        data-testid="alert-ready-for-completion"
+        icon="checkCircle"
+        type="success"
+        variant="soft"
+      >
+        <div class="d-flex flex-wrap align-center justify-space-between ga-3 w-100">
+          <div>
+            <div class="font-weight-bold text-subtitle-2">
+              Todas as notas de empenho foram finalizadas!
+            </div>
+            <div class="text-body-2 text-grey-darken-1">
+              Todos os empenhos desta demanda constam como concluídos ou cancelados. A demanda já
+              pode ser concluída.
+            </div>
+          </div>
+          <UiButton
+            color="success"
+            data-testid="btn-advance-to-completed"
+            prepend-icon="checkCircle"
+            size="sm"
+            @click="openAdvanceModal"
+          >
+            Avançar para Concluída
+          </UiButton>
+        </div>
+      </UiAlert>
 
       <!-- Navegação por Abas -->
       <UiTabs v-model="activeTab" class="mb-4" color="primary">
