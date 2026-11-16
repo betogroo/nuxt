@@ -3,7 +3,7 @@ import {
   parseBidAmount,
   parseBatchBidsText,
   convertRawBidsTextToStandardFormat,
-  formatBidDecimal,
+  cleanSupplierName,
 } from '~/utils/parseBatchBids'
 
 describe('parseBatchBids', () => {
@@ -199,7 +199,7 @@ R$ 24,9500
       expect(result.items[0]).toMatchObject({
         cleanCnpj: '64883946000126',
         formattedCnpj: '64.883.946/0001-26',
-        supplierName: '64.883.946 GUILHERME DANILO GODOY',
+        supplierName: 'GUILHERME DANILO GODOY',
         amount: 20,
         isValid: true,
         status: 'ready',
@@ -208,7 +208,7 @@ R$ 24,9500
       expect(result.items[1]).toMatchObject({
         cleanCnpj: '60876096000188',
         formattedCnpj: '60.876.096/0001-88',
-        supplierName: '60.876.096 ANNA LUISA FRANCA BARROS SOUZA',
+        supplierName: 'ANNA LUISA FRANCA BARROS SOUZA',
         amount: 22.9,
         isValid: true,
         status: 'ready',
@@ -217,7 +217,7 @@ R$ 24,9500
       expect(result.items[2]).toMatchObject({
         cleanCnpj: '60201006000159',
         formattedCnpj: '60.201.006/0001-59',
-        supplierName: '60.201.006 MIRIAN LINHARES RAIN',
+        supplierName: 'MIRIAN LINHARES RAIN',
         amount: 24.95,
         isValid: true,
         status: 'ready',
@@ -255,7 +255,7 @@ R$ 18,5000`
 
       const result = parseBatchBidsText(text)
       expect(result.readyCount).toBe(2)
-      expect(result.items[0].supplierName).toBe('64.883.946 GUILHERME DANILO GODOY')
+      expect(result.items[0].supplierName).toBe('GUILHERME DANILO GODOY')
       expect(result.items[0].amount).toBe(20)
       expect(result.items[1].supplierName).toBe('THHD COMERCIAL LTDA')
       expect(result.items[1].amount).toBe(24.95)
@@ -263,7 +263,7 @@ R$ 18,5000`
   })
 
   describe('convertRawBidsTextToStandardFormat', () => {
-    it('converts multiline blocks to standard format (cnpj; supplier_name; amount)', () => {
+    it('converts multiline blocks to standard format (cnpj; supplier_name; amount) with cleaned name', () => {
       const multilineText = `64.883.946/0001-26
 ME/EPP
 64.883.946 GUILHERME DANILO GODOY
@@ -286,7 +286,7 @@ R$ 24,9500
       const lines = converted.split('\n')
 
       expect(lines).toHaveLength(2)
-      expect(lines[0]).toBe('64.883.946/0001-26; 64.883.946 GUILHERME DANILO GODOY; 20,0000')
+      expect(lines[0]).toBe('64.883.946/0001-26; GUILHERME DANILO GODOY; 20,0000')
       expect(lines[1]).toBe('50.076.064/0001-44; THHD COMERCIAL LTDA; 24,9500')
     })
 
@@ -295,14 +295,86 @@ R$ 24,9500
       const converted = convertRawBidsTextToStandardFormat(text)
       expect(converted).toBe('37.862.590/0001-71; 18,0000')
     })
+
+    it('correctly parses historical demands with Desclassificada status and Envio de anexos noise', () => {
+      const historicalText = `37.862.590/0001-71
+ME/EPP
+Desclassificada
+CRISTIANE MARINA GEMAQUE DE MATOS GATTO
+DF
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 4,5000
+-
+Envio de anexos:
+Encerrado
+
+60.876.096/0001-88
+ME/EPP
+Desclassificada
+60.876.096 ANNA LUISA FRANCA BARROS SOUZA
+RJ
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 4,5900
+-
+Envio de anexos:
+Encerrado`
+
+      const result = parseBatchBidsText(historicalText)
+
+      expect(result.items).toHaveLength(2)
+      expect(result.readyCount).toBe(2)
+
+      expect(result.items[0]).toMatchObject({
+        cleanCnpj: '37862590000171',
+        formattedCnpj: '37.862.590/0001-71',
+        supplierName: 'CRISTIANE MARINA GEMAQUE DE MATOS GATTO',
+        amount: 4.5,
+        isHistoricalDisqualified: true,
+        isValid: true,
+        status: 'ready',
+      })
+
+      expect(result.items[1]).toMatchObject({
+        cleanCnpj: '60876096000188',
+        formattedCnpj: '60.876.096/0001-88',
+        supplierName: 'ANNA LUISA FRANCA BARROS SOUZA',
+        amount: 4.59,
+        isHistoricalDisqualified: true,
+        isValid: true,
+        status: 'ready',
+      })
+
+      const converted = convertRawBidsTextToStandardFormat(historicalText)
+      expect(converted).toBe(
+        '37.862.590/0001-71; CRISTIANE MARINA GEMAQUE DE MATOS GATTO; 4,5000\n60.876.096/0001-88; ANNA LUISA FRANCA BARROS SOUZA; 4,5900',
+      )
+    })
   })
 
-  describe('formatBidDecimal', () => {
-    it('formats amount with exactly 4 decimal places in pt-BR', () => {
-      expect(formatBidDecimal(20)).toBe('20,0000')
-      expect(formatBidDecimal(22.9)).toBe('22,9000')
-      expect(formatBidDecimal(24.95)).toBe('24,9500')
-      expect(formatBidDecimal(null)).toBe('')
+  describe('cleanSupplierName', () => {
+    it('removes cnpj root prefix from MEI supplier names', () => {
+      expect(cleanSupplierName('64.883.946 GUILHERME DANILO GODOY', '64883946000126')).toBe(
+        'GUILHERME DANILO GODOY',
+      )
+      expect(cleanSupplierName('60.876.096 ANNA LUISA FRANCA BARROS SOUZA', '60876096000188')).toBe(
+        'ANNA LUISA FRANCA BARROS SOUZA',
+      )
+      expect(cleanSupplierName('60.201.006 MIRIAN LINHARES RAIN', '60201006000159')).toBe(
+        'MIRIAN LINHARES RAIN',
+      )
+    })
+
+    it('preserves names that do not start with CNPJ root', () => {
+      expect(cleanSupplierName('THHD COMERCIAL LTDA', '50076064000144')).toBe('THHD COMERCIAL LTDA')
+      expect(cleanSupplierName('EMPRESA MODELO S.A.')).toBe('EMPRESA MODELO S.A.')
+    })
+
+    it('handles empty or null rawName safely', () => {
+      expect(cleanSupplierName(null)).toBe('')
+      expect(cleanSupplierName('')).toBe('')
+      expect(cleanSupplierName('   ')).toBe('')
     })
   })
 })

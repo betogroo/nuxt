@@ -11,6 +11,8 @@
     rows?: number | string
   }>()
 
+  const modelValue = defineModel<string | number | null | undefined>({ default: '' })
+
   type VTextareaVariant = 'solo' | 'outlined' | 'plain' | 'filled'
   type VTextareaDensity = 'compact' | 'default' | 'comfortable'
 
@@ -38,6 +40,7 @@
 
 <template>
   <v-textarea
+    v-model="modelValue"
     v-bind="$attrs"
     :density="vuetifyDensity"
     :rounded="vuetifyRounded"

@@ -229,6 +229,10 @@
         return {
           supplier_id: finalSupplierId,
           amount: item.amount!,
+          status: item.isHistoricalDisqualified ? ('disqualified' as const) : undefined,
+          disqualification_reason: item.isHistoricalDisqualified
+            ? 'Desclassificada na ata de origem (Compras.gov)'
+            : undefined,
         }
       })
 
@@ -421,8 +425,11 @@ Padrão em linha única:
             </template>
 
             <template #item-status="{ item }">
+              <UiChip v-if="item.isHistoricalDisqualified" color="warning" size="sm" variant="soft">
+                Desclassificada (Ata)
+              </UiChip>
               <UiChip
-                v-if="isBidAboveReference(item.amount)"
+                v-else-if="isBidAboveReference(item.amount)"
                 color="error"
                 size="sm"
                 variant="soft"

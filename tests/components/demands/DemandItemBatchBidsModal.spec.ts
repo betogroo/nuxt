@@ -190,7 +190,7 @@ R$ 20,0000
 
     // Test conversion action
     vm.handleFormatText()
-    expect(vm.rawText).toBe('64.883.946/0001-26; 64.883.946 GUILHERME DANILO GODOY; 20,0000')
+    expect(vm.rawText).toBe('64.883.946/0001-26; GUILHERME DANILO GODOY; 20,0000')
     expect(mockToast.success).toHaveBeenCalledWith(
       'Texto convertido para o padrão CNPJ; Razão Social; Valor!',
     )
@@ -201,7 +201,7 @@ R$ 20,0000
 
     expect(vm.readyItems).toHaveLength(1)
     expect(vm.readyItems[0].isNewSupplier).toBe(true)
-    expect(vm.readyItems[0].supplierName).toBe('64.883.946 GUILHERME DANILO GODOY')
+    expect(vm.readyItems[0].supplierName).toBe('GUILHERME DANILO GODOY')
     expect(vm.readyItems[0].amount).toBe(20)
 
     // Save batch
@@ -211,7 +211,7 @@ R$ 20,0000
     expect(mockCreateSuppliersBatch).toHaveBeenCalledWith([
       {
         cnpj: '64883946000126',
-        company_name: '64.883.946 GUILHERME DANILO GODOY',
+        company_name: 'GUILHERME DANILO GODOY',
       },
     ])
 
@@ -219,6 +219,62 @@ R$ 20,0000
       'prod-item-1',
       [{ supplier_id: 'supp-new-gui', amount: 20 }],
       { referencePrice: 25.0 },
+    )
+  })
+
+  it('handles historical bids marked as Desclassificada preserving true company name and passing disqualified status', async () => {
+    mockCreateSuppliersBatch.mockResolvedValue([
+      {
+        id: 'supp-cris',
+        cnpj: '37.862.590/0001-71',
+        company_name: 'CRISTIANE MARINA GEMAQUE DE MATOS GATTO',
+      },
+    ])
+    mockAddBidsBatch.mockResolvedValue(1)
+
+    const wrapper = shallowMount(DemandItemBatchBidsModal, {
+      props: {
+        modelValue: true,
+        demandProductId: 'prod-item-1',
+        referencePrice: 10.0,
+      },
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+    vm.rawText = `37.862.590/0001-71
+ME/EPP
+Desclassificada
+CRISTIANE MARINA GEMAQUE DE MATOS GATTO
+DF
+Valor ofertado (unitário)
+Valor negociado (unitário)
+R$ 4,5000
+-
+Envio de anexos:
+Encerrado`
+
+    await vm.handleProcessText()
+    await flushPromises()
+
+    expect(vm.readyItems).toHaveLength(1)
+    expect(vm.readyItems[0].supplierName).toBe('CRISTIANE MARINA GEMAQUE DE MATOS GATTO')
+    expect(vm.readyItems[0].isHistoricalDisqualified).toBe(true)
+
+    await vm.handleSaveBatch()
+    await flushPromises()
+
+    expect(mockAddBidsBatch).toHaveBeenCalledWith(
+      'prod-item-1',
+      [
+        {
+          supplier_id: 'supp-cris',
+          amount: 4.5,
+          status: 'disqualified',
+          disqualification_reason: 'Desclassificada na ata de origem (Compras.gov)',
+        },
+      ],
+      { referencePrice: 10.0 },
     )
   })
 })

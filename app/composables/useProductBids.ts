@@ -116,6 +116,8 @@ export const useProductBids = () => {
     bids: Array<{
       supplier_id: string
       amount: number | string
+      status?: Database['public']['Enums']['bid_status'] | null
+      disqualification_reason?: string | null
     }>,
     options?: AddBidOptions,
   ): Promise<number> => {
@@ -145,12 +147,26 @@ export const useProductBids = () => {
         numericRefPrice > 0 &&
         Math.round(finalAmount * 10000) > Math.round(numericRefPrice * 10000)
 
+      let status = b.status
+      let disqualificationReason = b.disqualification_reason
+
+      if (!status) {
+        if (isAboveReference) {
+          status = 'disqualified'
+          disqualificationReason = DISQUALIFICATION_REASON_ABOVE_REFERENCE
+        } else {
+          status = 'classified'
+          disqualificationReason = null
+        }
+      }
+
       return {
         demand_product_id: demandProductId,
         supplier_id: b.supplier_id,
         amount: finalAmount,
-        status: isAboveReference ? 'disqualified' : 'classified',
-        disqualification_reason: isAboveReference ? DISQUALIFICATION_REASON_ABOVE_REFERENCE : null,
+        status,
+        disqualification_reason:
+          status === 'disqualified' ? disqualificationReason || 'Desclassificado' : null,
       }
     })
 

@@ -12,6 +12,7 @@ export interface ParsedBatchBidItem {
   amount: number | null
   rawAmount: string
   supplierName?: string | null
+  isHistoricalDisqualified?: boolean
   isValid: boolean
   status: BatchBidItemStatus
   errorReason: string | null
@@ -105,13 +106,69 @@ function isNoiseBlockLine(line: string): boolean {
     'unitario',
     'situacao',
     'disputa',
-    'classificado',
-    'desclassificado',
+    'classificad',
+    'desclassificad',
+    'fracassad',
+    'adjudicad',
+    'homologad',
+    'desert',
+    'negociad',
+    'inabilitad',
+    'habilitad',
+    'cancelad',
+    'recusad',
+    'aceit',
     'arrematante',
     'vencedor',
+    'enviodeanexos',
+    'anexos',
+    'anexo',
+    'encerrado',
+    'encerrada',
+    'emandamento',
+    'aberto',
+    'aberta',
+    'aguardando',
+    'pendente',
+    'faserecursal',
+    'recursal',
+    'recurso',
+    'motivorecusa',
+    'motivo',
+    'observacao',
+    'prazo',
   ]
 
   return noiseKeywords.some((kw) => normalized.includes(kw))
+}
+
+/**
+ * Remove o prefixo da raiz do CNPJ que portais públicos e a Receita Federal
+ * frequentemente inserem no nome de MEI (ex.: "64.883.946 GUILHERME DANILO GODOY" -> "GUILHERME DANILO GODOY").
+ */
+export function cleanSupplierName(rawName: string | null | undefined, cleanCnpj?: string): string {
+  if (!rawName || !rawName.trim()) return ''
+
+  let cleaned = rawName.trim()
+
+  if (cleanCnpj && cleanCnpj.length >= 8) {
+    const root = cleanCnpj.slice(0, 8)
+    const formattedRoot = `${root.slice(0, 2)}.${root.slice(2, 5)}.${root.slice(5, 8)}`
+
+    const regex = new RegExp(`^(${formattedRoot.replace(/\./g, '\\.')}|${root})[\\s\\-–—:]+`, 'i')
+    if (regex.test(cleaned)) {
+      cleaned = cleaned.replace(regex, '').trim()
+    }
+  }
+
+  const genericRootRegex = /^\d{2}\.\d{3}\.\d{3}[\s\-–—:]+/
+  if (genericRootRegex.test(cleaned)) {
+    cleaned = cleaned.replace(genericRootRegex, '').trim()
+  }
+
+  cleaned = cleaned.replace(/^[\s\-–—:;]+|[\s\-–—:;]+$/g, '').trim()
+
+  return cleaned || rawName.trim()
 }
 
 /**
@@ -289,7 +346,7 @@ function parseMultilineBidsResult(lines: string[]): ParseBatchBidsResult {
 
       // Caso não seja ruído nem valor monetário, é candidato a Nome / Razão Social
       if (!supplierName && lineText.length >= 2 && !/^[-—–]+$/.test(lineText)) {
-        supplierName = lineText
+        supplierName = cleanSupplierName(lineText, cleanCnpj)
       }
     }
 
@@ -330,6 +387,10 @@ function parseMultilineBidsResult(lines: string[]): ParseBatchBidsResult {
       seenCleanCnpjs.add(cleanCnpj)
     }
 
+    const isHistoricalDisqualified = block.lines.some((l) =>
+      /desclassificad|inabilitad/i.test(l.text),
+    )
+
     items.push({
       lineNumber: block.startLineNumber,
       originalLine: block.lines.map((l) => l.text).join(' | '),
@@ -339,6 +400,7 @@ function parseMultilineBidsResult(lines: string[]): ParseBatchBidsResult {
       amount: finalAmount,
       rawAmount: rawAmountPart,
       supplierName: supplierName || null,
+      isHistoricalDisqualified,
       isValid,
       status,
       errorReason,
@@ -428,11 +490,14 @@ function parseSingleLineBatchBids(lines: string[]): ParseBatchBidsResult {
           rawAmountPart = segmentsWithoutCnpj[amountIdx]
           const nameSegments = segmentsWithoutCnpj.filter((_, idx) => idx !== amountIdx)
           if (nameSegments.length > 0) {
-            supplierName = nameSegments.join(' ').trim()
+            supplierName = cleanSupplierName(nameSegments.join(' ').trim(), cleanCnpj)
           }
         } else {
           rawAmountPart = segmentsWithoutCnpj[segmentsWithoutCnpj.length - 1]
-          supplierName = segmentsWithoutCnpj.slice(0, -1).join(' ').trim()
+          supplierName = cleanSupplierName(
+            segmentsWithoutCnpj.slice(0, -1).join(' ').trim(),
+            cleanCnpj,
+          )
         }
       }
     } else {
@@ -480,6 +545,7 @@ function parseSingleLineBatchBids(lines: string[]): ParseBatchBidsResult {
       amount: parsedAmount,
       rawAmount: rawAmountPart,
       supplierName: supplierName || null,
+      isHistoricalDisqualified: false,
       isValid,
       status,
       errorReason,
@@ -553,9 +619,10 @@ export function convertRawBidsTextToStandardFormat(rawText: string): string {
 
     const cnpj = item.formattedCnpj || item.rawCnpj
     const formattedAmount = formatBidDecimal(item.amount)
+    const name = item.supplierName ? cleanSupplierName(item.supplierName, item.cleanCnpj) : ''
 
-    if (item.supplierName && item.supplierName.trim()) {
-      lines.push(`${cnpj}; ${item.supplierName.trim()}; ${formattedAmount}`)
+    if (name) {
+      lines.push(`${cnpj}; ${name}; ${formattedAmount}`)
     } else {
       lines.push(`${cnpj}; ${formattedAmount}`)
     }

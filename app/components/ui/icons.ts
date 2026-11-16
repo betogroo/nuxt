@@ -95,6 +95,7 @@ export const iconMap = {
   folder: 'mdi-folder-outline',
   filter: 'mdi-filter-outline',
   receipt: 'mdi-receipt-text-outline',
+  formatListBulleted: 'mdi-format-list-bulleted',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap
