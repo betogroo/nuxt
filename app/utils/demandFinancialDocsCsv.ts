@@ -44,8 +44,10 @@ export function groupDemandDocumentsByNe(commitments: CommitmentRow[]): NeColumn
       }
     }
 
-    // 1. Notas de Liquidação / Lançamento (NL)
-    const liquidations = c.demand_commitment_liquidations || []
+    // 1. Notas de Liquidação / Lançamento (NL) ordenadas crescentemente
+    const liquidations = [...(c.demand_commitment_liquidations || [])].sort((a, b) =>
+      (a.liquidation_number || '').localeCompare(b.liquidation_number || ''),
+    )
     for (const nl of liquidations) {
       addDoc(nl.liquidation_number)
     }

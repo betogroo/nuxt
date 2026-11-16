@@ -268,6 +268,146 @@ describe('demandFinancialDocsCsv', () => {
       expect(lines[4]).toBe('2026OB00010;')
     })
 
+    it('orders NLs ascending inside each column for multiple commitments (demand 00b9d76d scenario)', () => {
+      const comm313: CommitmentRow = {
+        ...mockCommitment1,
+        id: 'comm-313',
+        commitment_number: '2026NE00313',
+        disbursement_program_number: '2026PD00309',
+        bank_order_number: '2026OBC2148',
+        demand_commitment_liquidations: [
+          {
+            id: 'l1',
+            commitment_id: 'comm-313',
+            liquidation_number: '2026NL00995',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+          {
+            id: 'l2',
+            commitment_id: 'comm-313',
+            liquidation_number: '2026NL00981',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+          {
+            id: 'l3',
+            commitment_id: 'comm-313',
+            liquidation_number: '2026NL00996',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+          {
+            id: 'l4',
+            commitment_id: 'comm-313',
+            liquidation_number: '2026NL00982',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+        ],
+      }
+
+      const comm314: CommitmentRow = {
+        ...mockCommitment1,
+        id: 'comm-314',
+        commitment_number: '2026NE00314',
+        disbursement_program_number: '2026PD00324',
+        bank_order_number: '2026OBC8503',
+        demand_commitment_liquidations: [
+          {
+            id: 'l5',
+            commitment_id: 'comm-314',
+            liquidation_number: '2026NL01042',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+          {
+            id: 'l6',
+            commitment_id: 'comm-314',
+            liquidation_number: '2026NL01037',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+        ],
+      }
+
+      const comm315: CommitmentRow = {
+        ...mockCommitment1,
+        id: 'comm-315',
+        commitment_number: '2026NE00315',
+        disbursement_program_number: '2026PD00323',
+        bank_order_number: '2026OBC3431',
+        demand_commitment_liquidations: [
+          {
+            id: 'l7',
+            commitment_id: 'comm-315',
+            liquidation_number: '2026NL01040',
+            issue_date: '2026-03-01',
+            is_cancellation: false,
+            is_ir_retention: false,
+            ir_retention_amount: null,
+            observation: null,
+            created_at: '2026-03-01',
+            created_by: null,
+          },
+        ],
+      }
+
+      const csv = buildDemandFinancialDocsCsv([comm315, comm313, comm314])
+      const lines = csv.replace('\uFEFF', '').split('\r\n')
+
+      // Colunas ordenadas por NE
+      expect(lines[0]).toBe('2026NE00313;2026NE00314;2026NE00315')
+
+      // Linha 1: menor NL de cada coluna
+      expect(lines[1]).toBe('2026NL00981;2026NL01037;2026NL01040')
+
+      // Linha 2: segunda menor NL (ou PD na coluna 315)
+      expect(lines[2]).toBe('2026NL00982;2026NL01042;2026PD00323')
+
+      // Linha 3: terceira NL na col 313, PD na col 314, OB na col 315
+      expect(lines[3]).toBe('2026NL00995;2026PD00324;2026OBC3431')
+
+      // Linha 4: quarta NL na col 313, OB na col 314, vazio na col 315
+      expect(lines[4]).toBe('2026NL00996;2026OBC8503;')
+
+      // Linha 5: PD na col 313, vazios nas outras
+      expect(lines[5]).toBe('2026PD00309;;')
+
+      // Linha 6: OB na col 313, vazios nas outras
+      expect(lines[6]).toBe('2026OBC2148;;')
+    })
+
     it('generates detailed multi-column CSV when detailed option is true', () => {
       const csv = buildDemandFinancialDocsCsv([mockCommitment1], { detailed: true })
       expect(csv.startsWith('\uFEFF')).toBe(true)
