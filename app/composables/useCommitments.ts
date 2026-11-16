@@ -188,6 +188,19 @@ export const useCommitments = () => {
     })
   }
 
+  const fetchCommitmentsByDemand = async (demandId: string): Promise<CommitmentRow[]> => {
+    const { data, error } = await supabase
+      .from('demand_commitments')
+      .select(
+        '*, demands(id, name, internal_process_number, process_number, status), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
+      )
+      .eq('demand_id', demandId)
+      .order('commitment_number', { ascending: true })
+
+    if (error) throw error
+    return (data || []) as unknown as CommitmentRow[]
+  }
+
   const fetchCommitmentByNumber = async (
     commitmentNumber: string,
   ): Promise<CommitmentDetail | null> => {
@@ -1396,6 +1409,7 @@ export const useCommitments = () => {
   return {
     isValidCommitmentNumber,
     fetchCommitments,
+    fetchCommitmentsByDemand,
     fetchCommitmentByNumber,
     updateCommitmentLogisticsStatus,
     addLiquidationNote,

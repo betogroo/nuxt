@@ -1646,4 +1646,53 @@ describe('useCommitments Composable', () => {
       )
     })
   })
+
+  describe('fetchCommitmentsByDemand', () => {
+    it('fetches commitments filtered by demand_id and ordered by commitment_number', async () => {
+      const orderMock = vi.fn().mockResolvedValue({
+        data: [
+          {
+            id: 'comm-1',
+            demand_id: 'dem-100',
+            commitment_number: '2026NE00010',
+            demand_commitment_liquidations: [{ id: 'nl-1', liquidation_number: '2026NL00011' }],
+          },
+          {
+            id: 'comm-2',
+            demand_id: 'dem-100',
+            commitment_number: '2026NE00020',
+            demand_commitment_liquidations: [],
+          },
+        ],
+        error: null,
+      })
+
+      const eqMock = vi.fn().mockReturnValue({
+        order: orderMock,
+      })
+
+      const selectMock = vi.fn().mockReturnValue({
+        eq: eqMock,
+      })
+
+      fromMock.mockImplementation((table: string) => {
+        if (table === 'demand_commitments') {
+          return {
+            select: selectMock,
+          }
+        }
+        return {}
+      })
+
+      const { fetchCommitmentsByDemand } = useCommitments()
+      const result = await fetchCommitmentsByDemand('dem-100')
+
+      expect(fromMock).toHaveBeenCalledWith('demand_commitments')
+      expect(eqMock).toHaveBeenCalledWith('demand_id', 'dem-100')
+      expect(orderMock).toHaveBeenCalledWith('commitment_number', { ascending: true })
+      expect(result).toHaveLength(2)
+      expect(result[0].commitment_number).toBe('2026NE00010')
+      expect(result[1].commitment_number).toBe('2026NE00020')
+    })
+  })
 })

@@ -33,6 +33,7 @@
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
   import { downloadDemandFolderBatch } from '~/utils/demandFolderBatch'
   import { downloadDemandCatalogCsv } from '~/utils/demandCatalogCsv'
+  import { downloadDemandFinancialDocsCsv } from '~/utils/demandFinancialDocsCsv'
   import { useRowSelection } from '~/composables/useRowSelection'
   import {
     type DemandTab,
@@ -49,6 +50,7 @@
   const { logAction } = useLogger()
   const { profile, fetchAllProfiles } = useProfile()
   const { canEditDemand } = usePermissions()
+  const { fetchCommitmentsByDemand } = useCommitments()
 
   const { addDemandItemWithDependencies, updateDemandItemWithDependencies } = useDemandProducts()
 
@@ -1079,6 +1081,48 @@
     }
   }
 
+  const isExportingFinancialDocs = ref(false)
+
+  const handleExportFinancialDocsCsv = async () => {
+    if (isExportingFinancialDocs.value) return
+    isExportingFinancialDocs.value = true
+
+    try {
+      const demandCommitments = await fetchCommitmentsByDemand(demandId)
+      const baseDemand = demand.value || {}
+      const downloaded = downloadDemandFinancialDocsCsv({
+        demand: baseDemand,
+        commitments: demandCommitments,
+      })
+
+      if (!downloaded) {
+        toast.info(
+          'Nenhum documento financeiro (NE, NL, PD, OB) encontrado nesta demanda para exportação.',
+        )
+        return
+      }
+
+      const processNumber =
+        baseDemand.internal_process_number ||
+        baseDemand.process_number ||
+        baseDemand.name ||
+        demandId
+      await logAction(
+        'EXPORT_DEMAND_FINANCIAL_DOCS_CSV',
+        `Exportou lista CSV de documentos SIAFEM (NE, NL, PD, OB) da demanda "${baseDemand.name || demandId}" (${processNumber})`,
+        profile.value?.id,
+      )
+      toast.success('Lista de documentos SIAFEM baixada com sucesso!')
+    } catch (err: unknown) {
+      console.error('Erro ao exportar documentos SIAFEM:', err)
+      toast.error(
+        err instanceof Error ? err.message : 'Erro ao exportar documentos financeiros da demanda.',
+      )
+    } finally {
+      isExportingFinancialDocs.value = false
+    }
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1239,6 +1283,14 @@
                       subtitle="Planilha com itens da demanda"
                       title="Exportar Catálogo (CSV)"
                       @click="handleExportCatalogCsv"
+                    />
+                    <UiListItem
+                      data-testid="menu-item-export-financial-docs-csv"
+                      :loading="isExportingFinancialDocs"
+                      prepend-icon="download"
+                      subtitle="Lista de NE, NL, PD e OB para o SIAFEM.net"
+                      title="Documentos SIAFEM (CSV)"
+                      @click="handleExportFinancialDocsCsv"
                     />
                     <UiListItem
                       :loading="isGeneratingFolderBatch"
@@ -2233,7 +2285,25 @@
         </UiAlert>
 
         <!-- Resumo de Fornecedores da Demanda -->
-        <UiCard class="mb-4" title="Fornecedores Vencedores na Demanda" variant="outline">
+        <UiCard class="mb-4" variant="outline">
+          <template #header>
+            <div class="d-flex align-center justify-space-between w-100 flex-wrap ga-2">
+              <span class="text-subtitle-1 font-weight-bold"
+                >Fornecedores Vencedores na Demanda</span
+              >
+              <UiButton
+                color="primary"
+                data-testid="btn-export-financial-docs-csv"
+                :loading="isExportingFinancialDocs"
+                prepend-icon="download"
+                size="sm"
+                variant="soft"
+                @click="handleExportFinancialDocsCsv"
+              >
+                Documentos SIAFEM (CSV)
+              </UiButton>
+            </div>
+          </template>
           <div v-if="itemsPending" class="text-center py-4">
             <UiProgressCircular color="primary" indeterminate></UiProgressCircular>
           </div>
