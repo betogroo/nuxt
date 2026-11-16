@@ -1190,16 +1190,67 @@
             </UiChip>
 
             <div class="d-flex flex-wrap gap-2 ml-auto">
-              <UiButton
-                v-if="['homologation', 'completed'].includes(demand.status)"
-                color="primary"
-                prepend-icon="document"
-                size="sm"
-                variant="outlined"
-                @click="handleGenerateReport"
-              >
-                Relatório da Disputa
-              </UiButton>
+              <!-- Dropdown Unificado: Relatórios & Exportações -->
+              <UiMenu>
+                <template #activator="{ props: menuProps }">
+                  <UiButton
+                    v-bind="menuProps"
+                    append-icon="chevronDown"
+                    color="primary"
+                    data-testid="btn-demand-reports-menu"
+                    prepend-icon="document"
+                    size="sm"
+                    variant="outlined"
+                  >
+                    Relatórios & Exportações
+                  </UiButton>
+                </template>
+                <UiCard elevation="4" min-width="270" rounded="lg">
+                  <UiList nav size="sm">
+                    <UiListItem
+                      v-if="['homologation', 'completed', 'dispute'].includes(demand.status)"
+                      prepend-icon="document"
+                      subtitle="Ata e homologação de vencedores"
+                      title="Relatório da Disputa"
+                      @click="handleGenerateReport"
+                    />
+                    <UiListItem
+                      prepend-icon="searchDocument"
+                      subtitle="Tabela padronizada para TR"
+                      title="Termo de Referência"
+                      @click="handleGenerateTermsTable"
+                    />
+                    <UiListItem
+                      prepend-icon="recordsList"
+                      subtitle="Modelo resumido de itens"
+                      title="Tabela para Informação"
+                      @click="handleGenerateInfoTable"
+                    />
+                    <UiListItem
+                      prepend-icon="balance"
+                      subtitle="Tabela de consumo anual"
+                      title="Saldo por Classe"
+                      @click="handleGenerateClassBalanceTable"
+                    />
+                    <UiDivider class="my-1" />
+                    <UiListItem
+                      data-testid="menu-item-export-catalog-csv"
+                      prepend-icon="download"
+                      subtitle="Planilha com itens da demanda"
+                      title="Exportar Catálogo (CSV)"
+                      @click="handleExportCatalogCsv"
+                    />
+                    <UiListItem
+                      :loading="isGeneratingFolderBatch"
+                      prepend-icon="folder"
+                      subtitle="Script de pastas da contratação"
+                      title="Criar Pastas (.bat)"
+                      @click="handleDownloadFolderBatch"
+                    />
+                  </UiList>
+                </UiCard>
+              </UiMenu>
+
               <UiButton
                 v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
                 color="orange-darken-3"
@@ -1447,65 +1498,6 @@
 
       <!-- ABA 1: PROCESSO & PLANEJAMENTO -->
       <div v-show="activeTab === 'planning'">
-        <!-- Card: Geração de Modelos & Documentos -->
-        <UiCard class="mb-4" variant="outline">
-          <template #header>
-            <div class="d-flex align-center w-100">
-              <UiIcon class="mr-2 text-primary" left name="document" />
-              <span class="font-weight-semibold">Geração de Modelos & Documentos</span>
-            </div>
-          </template>
-          <div class="pa-4">
-            <div class="text-caption text-grey mb-3">
-              Gere tabelas e modelos padronizados a partir dos dados e itens desta demanda.
-            </div>
-            <div class="d-flex flex-wrap ga-3">
-              <UiButton
-                color="primary"
-                prepend-icon="recordsList"
-                variant="soft"
-                @click="handleGenerateInfoTable"
-              >
-                Gerar Tabela para Informação
-              </UiButton>
-              <UiButton
-                color="primary"
-                prepend-icon="searchDocument"
-                variant="soft"
-                @click="handleGenerateTermsTable"
-              >
-                Gerar Tabela para Termo de Referência
-              </UiButton>
-              <UiButton
-                color="primary"
-                prepend-icon="balance"
-                variant="soft"
-                @click="handleGenerateClassBalanceTable"
-              >
-                Gerar Tabela de Saldo por Classe
-              </UiButton>
-              <UiButton
-                color="primary"
-                :loading="isGeneratingFolderBatch"
-                prepend-icon="folder"
-                variant="soft"
-                @click="handleDownloadFolderBatch"
-              >
-                Criar Pastas (.bat)
-              </UiButton>
-              <UiButton
-                color="primary"
-                data-testid="btn-export-catalog-csv"
-                prepend-icon="download"
-                variant="soft"
-                @click="handleExportCatalogCsv"
-              >
-                Exportar Catálogo (CSV)
-              </UiButton>
-            </div>
-          </div>
-        </UiCard>
-
         <UiRow>
           <UiCol cols="12" md="8">
             <!-- Dados do Planejamento -->
