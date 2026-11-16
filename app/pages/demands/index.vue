@@ -32,11 +32,32 @@
   const { fetchDemands, fetchDemandDashboardSummary, createDemand, updateDemand, deleteDemand } =
     useDemands()
   const route = useRoute()
+  const router = useRouter()
 
   const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
   const statusFilter = ref<string | null>((route.query.filter as string) || null)
   const typeFilter = ref<string | null>(null)
   const searchQuery = ref('')
+  const hideCompleted = ref<boolean>(route.query.hide_completed === 'true')
+
+  watch(hideCompleted, (val) => {
+    const currentQuery = { ...route.query }
+    if (val) {
+      currentQuery.hide_completed = 'true'
+      if (statusFilter.value === 'completed') {
+        statusFilter.value = null
+      }
+    } else {
+      delete currentQuery.hide_completed
+    }
+    router.replace({ query: currentQuery })
+  })
+
+  watch(statusFilter, (val) => {
+    if (val === 'completed' && hideCompleted.value) {
+      hideCompleted.value = false
+    }
+  })
 
   const isDeleteModalOpen = ref(false)
   const demandToDelete = ref<DemandRow | null>(null)
@@ -76,12 +97,13 @@
         statusFilter.value,
         searchQuery.value,
         typeFilter.value,
+        hideCompleted.value,
       )
       totalItems.value = result.count
       return result.data
     },
     {
-      watch: [currentPage, statusFilter, typeFilter, searchQuery],
+      watch: [currentPage, statusFilter, typeFilter, searchQuery, hideCompleted],
     },
   )
 
@@ -89,21 +111,27 @@
     await Promise.all([refreshList(), refreshSummary()])
   }
 
-  watch([statusFilter, typeFilter, searchQuery], () => {
+  watch([statusFilter, typeFilter, searchQuery, hideCompleted], () => {
     resetPage()
   })
 
   const hasActiveFilters = computed(() => {
-    return Boolean(statusFilter.value || typeFilter.value || searchQuery.value.trim())
+    return Boolean(
+      statusFilter.value || typeFilter.value || searchQuery.value.trim() || hideCompleted.value,
+    )
   })
 
   const clearAllFilters = () => {
     statusFilter.value = null
     typeFilter.value = null
     searchQuery.value = ''
+    hideCompleted.value = false
   }
 
   const toggleStatusFilter = (target: string | null) => {
+    if (target === 'completed') {
+      hideCompleted.value = false
+    }
     if (target === null) {
       statusFilter.value = null
       typeFilter.value = null
@@ -622,6 +650,14 @@
 
         <!-- Filtros inline -->
         <div class="d-flex ga-2 align-center flex-wrap">
+          <UiSwitch
+            v-model="hideCompleted"
+            color="primary"
+            data-testid="switch-hide-completed"
+            hide-details
+            label="Ocultar concluídas"
+            size="sm"
+          />
           <UiInput
             v-model="searchQuery"
             clearable

@@ -105,6 +105,44 @@ describe('useDemands & Dashboard Summary', () => {
     )
   })
 
+  it('fetchDemands applies neq status completed when hideCompleted is true', async () => {
+    const queryChain = {
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      then: (resolve: (val: { data: unknown[]; count: number; error: null }) => void) =>
+        resolve({ data: [], count: 0, error: null }),
+    }
+    const mockSelect = vi.fn().mockReturnValue(queryChain)
+    mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+    const { fetchDemands } = useDemands()
+    await fetchDemands(1, 10, null, null, null, true)
+
+    expect(queryChain.neq).toHaveBeenCalledWith('status', 'completed')
+  })
+
+  it('fetchDemands does not apply neq completed when statusFilter is completed', async () => {
+    const queryChain = {
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      then: (resolve: (val: { data: unknown[]; count: number; error: null }) => void) =>
+        resolve({ data: [], count: 0, error: null }),
+    }
+    const mockSelect = vi.fn().mockReturnValue(queryChain)
+    mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+    const { fetchDemands } = useDemands()
+    await fetchDemands(1, 10, 'completed', null, null, true)
+
+    expect(queryChain.eq).toHaveBeenCalledWith('status', 'completed')
+    expect(queryChain.neq).not.toHaveBeenCalled()
+  })
+
   it('createDemand supports is_historical flag and direct status/dispute_date', async () => {
     const singleMock = vi.fn().mockResolvedValue({
       data: {

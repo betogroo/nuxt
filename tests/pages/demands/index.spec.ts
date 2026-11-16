@@ -7,6 +7,7 @@ import DemandsIndexPage from '~/pages/demands/index.vue'
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('definePageMeta', () => vi.fn())
 mockNuxtImport('useRoute', () => () => ({ query: {} }))
+mockNuxtImport('useRouter', () => () => ({ replace: vi.fn(), push: vi.fn() }))
 mockNuxtImport('useAsyncData', () => () => ({
   data: ref([]),
   pending: ref(false),
@@ -80,6 +81,7 @@ describe('Demands Index Page', () => {
           UiPagination: true,
           UiModal: true,
           UiAlert: true,
+          UiSwitch: true,
           NuxtLink: true,
         },
       },
@@ -106,6 +108,7 @@ describe('Demands Index Page', () => {
           UiPagination: true,
           UiModal: true,
           UiAlert: true,
+          UiSwitch: true,
           NuxtLink: true,
         },
       },
@@ -151,6 +154,7 @@ describe('Demands Index Page', () => {
           UiPagination: true,
           UiModal: true,
           UiAlert: true,
+          UiSwitch: true,
           NuxtLink: true,
         },
       },
@@ -198,6 +202,7 @@ describe('Demands Index Page', () => {
           UiPagination: true,
           UiModal: true,
           UiAlert: true,
+          UiSwitch: true,
           NuxtLink: true,
         },
       },
@@ -210,5 +215,54 @@ describe('Demands Index Page', () => {
     const testDemand = { id: 'dem-1', user_id: 'user-123' }
     expect(vm.canDelete(testDemand)).toBe(true)
     expect(canDeleteDemandMock).toHaveBeenCalledWith(testDemand)
+  })
+
+  it('manages hideCompleted filter and clears it on clearAllFilters', async () => {
+    const wrapper = shallowMount(DemandsIndexPage, {
+      global: {
+        stubs: {
+          PageHeader: true,
+          UiCard: true,
+          UiIcon: true,
+          UiChip: true,
+          UiSpacer: true,
+          UiInput: true,
+          UiSelect: true,
+          UiDivider: true,
+          UiActionButton: true,
+          UiButton: true,
+          UiTable: true,
+          UiPagination: true,
+          UiModal: true,
+          UiAlert: true,
+          UiSwitch: true,
+          NuxtLink: true,
+        },
+      },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      hideCompleted: boolean
+      hasActiveFilters: boolean
+      clearAllFilters: () => void
+      toggleStatusFilter: (target: string | null) => void
+      statusFilter: string | null
+    }
+
+    expect(vm.hideCompleted).toBe(false)
+    expect(vm.hasActiveFilters).toBe(false)
+
+    vm.hideCompleted = true
+    expect(vm.hasActiveFilters).toBe(true)
+
+    // Turning on status completed turns off hideCompleted
+    vm.toggleStatusFilter('completed')
+    expect(vm.statusFilter).toBe('completed')
+    expect(vm.hideCompleted).toBe(false)
+
+    vm.hideCompleted = true
+    vm.clearAllFilters()
+    expect(vm.hideCompleted).toBe(false)
+    expect(vm.hasActiveFilters).toBe(false)
   })
 })

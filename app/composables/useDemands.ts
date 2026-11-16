@@ -91,6 +91,7 @@ export const useDemands = () => {
     statusFilter?: string | null,
     searchQuery?: string | null,
     typeFilter?: DemandType | string | null,
+    hideCompleted?: boolean,
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -112,6 +113,10 @@ export const useDemands = () => {
       } else {
         query = query.eq('status', statusFilter as DemandStatus)
       }
+    }
+
+    if (hideCompleted && statusFilter !== 'completed') {
+      query = query.neq('status', 'completed')
     }
 
     if (typeFilter === 'consumption' || typeFilter === 'permanent') {
