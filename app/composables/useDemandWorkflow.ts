@@ -3,7 +3,9 @@ import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { splitDateTime, combineDateTime, validateOfferOpeningRules } from '~/utils/formatters'
+import { formatDemandStatus } from '~/utils/demandStatus'
 import { getItemDisputeResult } from '~/utils/bids'
+import { useToast } from '~/composables/useToast'
 
 export function useDemandWorkflow(
   demandId: string,
@@ -15,6 +17,7 @@ export function useDemandWorkflow(
     useDemands()
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
+  const toast = useToast()
 
   const statusList: Database['public']['Enums']['demand_status'][] = [
     'planning',
@@ -63,6 +66,7 @@ export function useDemandWorkflow(
     if (!prev) return
 
     revertModal.startSaving()
+    revertModal.error.value = ''
 
     try {
       await revertDemandStatus(demandId, prev as Database['public']['Enums']['demand_status'])
@@ -71,8 +75,11 @@ export function useDemandWorkflow(
       if (refreshItems) {
         await refreshItems()
       }
+      toast.success(`Demanda retornada para ${formatDemandStatus(prev)} com sucesso!`)
     } catch (err: unknown) {
-      revertModal.error.value = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : String(err)
+      revertModal.error.value = msg
+      toast.error(msg)
     } finally {
       revertModal.stopSaving()
     }
@@ -87,8 +94,10 @@ export function useDemandWorkflow(
     try {
       await requestDemandReturn(demandId)
       await reloadDemand()
+      toast.success('Solicitação de retorno enviada com sucesso!')
     } catch (err: unknown) {
-      console.error(err)
+      const msg = err instanceof Error ? err.message : String(err)
+      toast.error(msg)
     } finally {
       isReturnRequesting.value = false
     }
@@ -130,6 +139,7 @@ export function useDemandWorkflow(
 
   const confirmAdvanceStatus = async () => {
     advanceModal.startSaving()
+    advanceModal.error.value = ''
 
     try {
       const payload: Partial<Database['public']['Tables']['demands']['Update']> = {}
@@ -303,13 +313,17 @@ export function useDemandWorkflow(
         }
       }
 
+      const advancedStatusLabel = formatDemandStatus(targetStatus.value)
       advanceModal.close()
       await reloadDemand()
       if (refreshItems) {
         await refreshItems()
       }
+      toast.success(`Demanda avançada para ${advancedStatusLabel} com sucesso!`)
     } catch (err: unknown) {
-      advanceModal.error.value = err instanceof Error ? err.message : String(err)
+      const msg = err instanceof Error ? err.message : String(err)
+      advanceModal.error.value = msg
+      toast.error(msg)
     } finally {
       advanceModal.stopSaving()
     }

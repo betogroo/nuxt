@@ -90,6 +90,8 @@
     winningSuppliersSummary,
   } = useDemandDetail(demandId)
 
+  const canWorkOnDemand = computed(() => canEditDemand(demand.value, responsibles.value))
+
   // Modal de Edição Rápida de Planejamento
   const {
     errors: epErrors,
@@ -779,7 +781,7 @@
 
     const baseHeaders = []
 
-    if (isExecutionPhase.value && canEditDemand(demand.value)) {
+    if (isExecutionPhase.value && canWorkOnDemand.value) {
       baseHeaders.push({
         text: '',
         value: 'select',
@@ -795,7 +797,7 @@
         value: 'order',
         align: 'center' as const,
         sortable: false,
-        width: isQuotation ? 88 : 50,
+        width: isQuotation && canWorkOnDemand.value ? 88 : 50,
       },
       { text: 'Produto', value: 'product' },
       { text: 'BEC', value: 'cat_bec', align: 'center' as const, width: 110 },
@@ -827,7 +829,7 @@
       })
     }
 
-    if (isQuotation) {
+    if (isQuotation && canWorkOnDemand.value) {
       baseHeaders.push({
         text: 'Ações',
         value: 'actions',
@@ -1346,7 +1348,11 @@
                 Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
               </UiButton>
               <UiButton
-                v-if="profile?.role !== ROLES.ADMIN && getPreviousStatus(demand.status)"
+                v-if="
+                  profile?.role !== ROLES.ADMIN &&
+                  canWorkOnDemand &&
+                  getPreviousStatus(demand.status)
+                "
                 :color="demand.is_return_requested ? 'grey' : 'warning'"
                 :disabled="demand.is_return_requested || isReturnRequesting"
                 :loading="isReturnRequesting"
@@ -1358,14 +1364,19 @@
               </UiButton>
               <UiTooltip
                 v-if="getNextStatus(demand.status)"
-                :disabled="!isPlanningIncomplete"
-                text="Preencha todos os Dados do Planejamento para avançar"
+                :disabled="canWorkOnDemand && !isPlanningIncomplete"
+                :text="
+                  !canWorkOnDemand
+                    ? 'Apenas os responsáveis pela demanda podem avançar etapas'
+                    : 'Preencha todos os Dados do Planejamento para avançar'
+                "
               >
                 <template #activator="{ props }">
                   <span v-bind="props" class="d-inline-block">
                     <UiButton
                       v-if="demand.status === 'dispute'"
                       color="success"
+                      :disabled="!canWorkOnDemand"
                       prepend-icon="checkCircle"
                       size="sm"
                       @click="openAdvanceModal"
@@ -1375,7 +1386,7 @@
                     <UiButton
                       v-else
                       color="success"
-                      :disabled="isPlanningIncomplete"
+                      :disabled="!canWorkOnDemand || isPlanningIncomplete"
                       prepend-icon="arrowRightBold"
                       size="sm"
                       @click="openAdvanceModal"
@@ -1539,6 +1550,7 @@
             </div>
           </div>
           <UiButton
+            v-if="canWorkOnDemand"
             color="success"
             data-testid="btn-advance-to-completed"
             prepend-icon="checkCircle"
@@ -1595,7 +1607,7 @@
                   <UiButton
                     v-if="
                       demand &&
-                      canEditDemand(demand) &&
+                      canWorkOnDemand &&
                       demand.status !== 'completed' &&
                       demand.status !== 'cancelled'
                     "
@@ -1675,7 +1687,10 @@
                   <span>Dados do Aviso de Contratação e Disputa</span>
                   <UiSpacer />
                   <UiButton
-                    v-if="demand?.status === 'bidding_notice' || demand?.status === 'dispute'"
+                    v-if="
+                      canWorkOnDemand &&
+                      (demand?.status === 'bidding_notice' || demand?.status === 'dispute')
+                    "
                     color="primary"
                     prepend-icon="edit"
                     size="sm"
@@ -1736,7 +1751,13 @@
                   <UiIcon class="mr-2 text-primary" left name="userOutline" />
                   <span class="font-weight-semibold">Responsáveis</span>
                   <UiSpacer />
-                  <UiButton icon="add" size="xs" variant="ghost" @click="openResponsibleModal" />
+                  <UiButton
+                    v-if="canWorkOnDemand"
+                    icon="add"
+                    size="xs"
+                    variant="ghost"
+                    @click="openResponsibleModal"
+                  />
                 </div>
               </template>
               <UiList class="bg-transparent pa-2" size="sm">
@@ -1822,7 +1843,7 @@
               </div>
               <div class="ml-auto d-flex flex-wrap ga-2">
                 <UiButton
-                  v-if="isExecutionPhase && canEditDemand(demand)"
+                  v-if="isExecutionPhase && canWorkOnDemand"
                   color="primary"
                   :disabled="selectedItemIds.length === 0"
                   prepend-icon="edit"
@@ -1845,7 +1866,7 @@
                   Tabela de Saldo por Classe
                 </UiButton>
                 <UiButton
-                  v-if="demand?.status === 'quotation'"
+                  v-if="demand?.status === 'quotation' && canWorkOnDemand"
                   color="primary"
                   prepend-icon="add"
                   @click="openAddModal"
@@ -1981,7 +2002,10 @@
                   <span class="text-caption font-weight-bold text-medium-emphasis">
                     {{ getItemOriginalIndex(item.id) || index + 1 }}
                   </span>
-                  <div v-if="demand?.status === 'quotation'" class="d-flex align-center ga-1 ml-1">
+                  <div
+                    v-if="demand?.status === 'quotation' && canWorkOnDemand"
+                    class="d-flex align-center ga-1 ml-1"
+                  >
                     <UiActionButton
                       action="moveUp"
                       :disabled="index === 0 || isReordering"
@@ -2546,7 +2570,7 @@
               <div class="d-flex align-center ga-1">
                 <UiButton
                   v-if="
-                    canEditDemand(demand) &&
+                    canWorkOnDemand &&
                     getRelatedEstablishments(supplier).length > 0 &&
                     (supplier.allPendingCommitments || supplier.hasPendingCommitments)
                   "
@@ -3026,6 +3050,15 @@
       <UiAlert v-if="advanceModal.error.value" class="mb-4" size="sm" type="error" variant="soft">
         {{ advanceModal.error.value }}
       </UiAlert>
+
+      <div v-if="targetStatus === 'quotation'">
+        <UiAlert class="mb-4" size="sm" type="info" variant="soft">
+          A demanda avançará da etapa de <strong>Planejamento</strong> para
+          <strong>Cotação</strong>. Nesta próxima etapa você poderá inserir os produtos, unidades de
+          medida e valores referenciais.
+        </UiAlert>
+        <p class="text-body-2">Confirma o avanço desta demanda para a fase de Cotação?</p>
+      </div>
 
       <div v-if="targetStatus === 'bidding_notice'">
         <UiAlert class="mb-4" size="sm" type="info" variant="soft">

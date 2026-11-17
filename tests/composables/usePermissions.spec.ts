@@ -40,12 +40,44 @@ describe('composables/usePermissions', () => {
       expect(canEditDemand({ user_id: 'user-1' })).toBe(true)
     })
 
-    it('returns false for non-admin who did not create the demand', () => {
+    it('returns false for non-admin who did not create the demand and is not a responsible', () => {
       mockProfile.value = { id: 'user-1', role: ROLES.UGE }
       mockUserId.value = 'user-1'
       const { canEditDemand } = usePermissions()
 
       expect(canEditDemand({ user_id: 'other-user' })).toBe(false)
+      expect(
+        canEditDemand({
+          user_id: 'other-user',
+          demand_responsibles: [{ user_id: 'other-user' }],
+        }),
+      ).toBe(false)
+    })
+
+    it('returns true when user is listed in demand.demand_responsibles', () => {
+      mockProfile.value = { id: 'uge-user-1', role: ROLES.UGE }
+      mockUserId.value = 'uge-user-1'
+      const { canEditDemand } = usePermissions()
+
+      expect(
+        canEditDemand({
+          user_id: 'creator-99',
+          demand_responsibles: [{ user_id: 'creator-99' }, { user_id: 'uge-user-1' }],
+        }),
+      ).toBe(true)
+    })
+
+    it('returns true when user is listed in externalResponsibles parameter', () => {
+      mockProfile.value = { id: 'uge-user-2', role: ROLES.UGE }
+      mockUserId.value = 'uge-user-2'
+      const { canEditDemand } = usePermissions()
+
+      expect(
+        canEditDemand({ user_id: 'creator-99' }, [
+          { user_id: 'creator-99' },
+          { user_id: 'uge-user-2' },
+        ]),
+      ).toBe(true)
     })
   })
 

@@ -180,4 +180,16 @@ describe('useDemands & Dashboard Summary', () => {
     expect(result.is_historical).toBe(true)
     expect(result.status).toBe('completed')
   })
+
+  it('advanceDemandStatus throws an explicit error when 0 rows are updated by RLS', async () => {
+    const selectMock = vi.fn().mockResolvedValue({ data: [], error: null })
+    const eqMock = vi.fn().mockReturnValue({ select: selectMock })
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+    mockSupabase.from.mockReturnValue({ update: updateMock })
+
+    const { advanceDemandStatus } = useDemands()
+    await expect(advanceDemandStatus('dem-1', 'quotation', {})).rejects.toThrow(
+      'Não foi possível atualizar a demanda. Verifique se você é um dos responsáveis por esta demanda.',
+    )
+  })
 })

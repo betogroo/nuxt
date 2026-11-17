@@ -2,6 +2,15 @@ import { computed } from 'vue'
 import type { DemandRow } from '~/composables/useDemands'
 import { ROLES } from '~/constants/roles'
 
+export interface DemandResponsibleEntry {
+  user_id?: string | null
+}
+
+export interface DemandPermissionEntity {
+  user_id?: string | null
+  demand_responsibles?: DemandResponsibleEntry[] | null
+}
+
 /**
  * Composable centralizado para regras de permissão de domínio.
  */
@@ -32,12 +41,31 @@ export function usePermissions() {
     return !!currentId && entity.user_id === currentId
   }
 
+  const isResponsibleForDemand = (
+    demand: DemandPermissionEntity | null | undefined,
+    externalResponsibles?: Array<DemandResponsibleEntry | null> | null,
+  ): boolean => {
+    const currentId = userId.value || profile.value?.id
+    if (!currentId) return false
+
+    const responsiblesList = externalResponsibles ?? demand?.demand_responsibles
+    if (!Array.isArray(responsiblesList)) return false
+
+    return responsiblesList.some((r) => r?.user_id === currentId)
+  }
+
   /**
-   * Determina se o usuário logado tem permissão para editar uma demanda.
-   * Regra: administrador ou o próprio criador da demanda.
+   * Determina se o usuário logado tem permissão para trabalhar/editar uma demanda.
+   * Regra: administrador, o próprio criador da demanda ou um dos responsáveis vinculados à demanda.
    */
-  const canEditDemand = (demand: Pick<DemandRow, 'user_id'> | null | undefined): boolean =>
-    isOwnerOrAdmin(demand)
+  const canEditDemand = (
+    demand: DemandPermissionEntity | null | undefined,
+    externalResponsibles?: Array<DemandResponsibleEntry | null> | null,
+  ): boolean => {
+    if (!demand) return false
+    if (isOwnerOrAdmin(demand as Pick<DemandRow, 'user_id'>)) return true
+    return isResponsibleForDemand(demand, externalResponsibles)
+  }
 
   /**
    * Determina se o usuário logado tem permissão para excluir uma demanda.

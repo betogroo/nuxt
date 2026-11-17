@@ -495,5 +495,23 @@ describe('useDemandWorkflow', () => {
       expect(workflow.advanceModal.error.value).toBe('')
       expect(mockAdvanceDemandStatus).toHaveBeenCalledWith('demand-123', 'quotation', {})
     })
+
+    it('surfaces error message in advanceModal when advanceDemandStatus fails due to permission', async () => {
+      demandRef.value!.siafem_number = '2026NE000123'
+      mockAdvanceDemandStatus.mockRejectedValueOnce(
+        new Error(
+          'Não foi possível atualizar a demanda. Verifique se você é um dos responsáveis por esta demanda.',
+        ),
+      )
+
+      const workflow = useDemandWorkflow('demand-123', demandRef, itemsRef)
+      workflow.openAdvanceModal()
+      await workflow.confirmAdvanceStatus()
+
+      expect(workflow.advanceModal.error.value).toContain(
+        'Verifique se você é um dos responsáveis por esta demanda',
+      )
+      expect(workflow.advanceModal.isOpen.value).toBe(true)
+    })
   })
 })

@@ -1,7 +1,10 @@
 import type { Database } from '~/types/database.types'
 import type { DemandStatus } from '~/utils/demandStatus'
 
-export type DemandRow = Database['public']['Tables']['demands']['Row']
+export type DemandRow = Database['public']['Tables']['demands']['Row'] & {
+  profiles?: { name: string | null } | null
+  demand_responsibles?: { user_id: string }[] | null
+}
 export type DemandType = Database['public']['Enums']['demand_type']
 
 export interface DemandDashboardSummary {
@@ -98,7 +101,9 @@ export const useDemands = () => {
 
     let query = supabase
       .from('demands')
-      .select('*, profiles!demands_user_id_fkey(name)', { count: 'exact' })
+      .select('*, profiles!demands_user_id_fkey(name), demand_responsibles(user_id)', {
+        count: 'exact',
+      })
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(from, to)
@@ -179,12 +184,29 @@ export const useDemands = () => {
     return data as DemandRow
   }
 
+  const executeDemandUpdate = async (
+    demandId: string,
+    payload: Database['public']['Tables']['demands']['Update'],
+  ) => {
+    const query = supabase.from('demands').update(payload).eq('id', demandId)
+    const result =
+      typeof (query as { select?: unknown }).select === 'function'
+        ? await query.select('id')
+        : await query
+
+    if (result.error) throw result.error
+    if (Array.isArray(result.data) && result.data.length === 0) {
+      throw new Error(
+        'Não foi possível atualizar a demanda. Verifique se você é um dos responsáveis por esta demanda.',
+      )
+    }
+  }
+
   const updateDemand = async (
     demandId: string,
     payload: Database['public']['Tables']['demands']['Update'],
   ) => {
-    const { error } = await supabase.from('demands').update(payload).eq('id', demandId)
-    if (error) throw error
+    await executeDemandUpdate(demandId, payload)
 
     await logAction('UPDATE_DEMAND', `Demanda atualizada: ${demandId}`, user.value?.id)
   }
@@ -247,8 +269,7 @@ export const useDemands = () => {
     payload: Partial<Database['public']['Tables']['demands']['Update']>,
   ) => {
     payload.status = targetStatus
-    const { error } = await supabase.from('demands').update(payload).eq('id', demandId)
-    if (error) throw error
+    await executeDemandUpdate(demandId, payload)
 
     await logAction(
       'ADVANCE_DEMAND_STATUS',
@@ -261,15 +282,10 @@ export const useDemands = () => {
     demandId: string,
     previousStatus: Database['public']['Enums']['demand_status'],
   ) => {
-    const { error } = await supabase
-      .from('demands')
-      .update({
-        status: previousStatus,
-        is_return_requested: false,
-      })
-      .eq('id', demandId)
-
-    if (error) throw error
+    await executeDemandUpdate(demandId, {
+      status: previousStatus,
+      is_return_requested: false,
+    })
 
     const { refreshPendingReturns } = usePendingTasks()
     await refreshPendingReturns()
@@ -282,14 +298,9 @@ export const useDemands = () => {
   }
 
   const requestDemandReturn = async (demandId: string) => {
-    const { error } = await supabase
-      .from('demands')
-      .update({
-        is_return_requested: true,
-      })
-      .eq('id', demandId)
-
-    if (error) throw error
+    await executeDemandUpdate(demandId, {
+      is_return_requested: true,
+    })
 
     const { refreshPendingReturns } = usePendingTasks()
     await refreshPendingReturns()
