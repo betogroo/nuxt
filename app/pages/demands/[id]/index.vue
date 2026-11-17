@@ -2311,11 +2311,23 @@
             v-else
             :headers="[
               { text: 'Fornecedor', value: 'supplier' },
-              { text: 'Participou (Itens)', value: 'participated', align: 'center' },
-              { text: 'Venceu (Itens)', value: 'won', align: 'center' },
+              {
+                text: 'Participou',
+                value: 'participated',
+                align: 'center',
+                width: '90px',
+                nowrap: true,
+              },
+              { text: 'Venceu', value: 'won', align: 'center', width: '80px', nowrap: true },
               { text: 'Notas de Empenho', value: 'commitments' },
-              { text: 'Total Arrematado', value: 'total_amount', align: 'right' },
-              { text: '', value: 'actions', align: 'right' },
+              {
+                text: 'Total Arrematado',
+                value: 'total_amount',
+                align: 'right',
+                width: '140px',
+                nowrap: true,
+              },
+              { text: '', value: 'actions', align: 'right', width: '160px' },
             ]"
             :items="winningSuppliersSummary"
           >
@@ -2380,11 +2392,11 @@
             </template>
 
             <template #item-participated="{ item: supplier }">
-              <UiChip color="default" size="sm">{{ supplier.participatedCount }}</UiChip>
+              <UiChip color="default" size="xs">{{ supplier.participatedCount }}</UiChip>
             </template>
 
             <template #item-won="{ item: supplier }">
-              <UiChip color="success" size="sm">{{ supplier.wonCount }}</UiChip>
+              <UiChip color="success" size="xs">{{ supplier.wonCount }}</UiChip>
             </template>
 
             <template #item-commitments="{ item: supplier }">
@@ -2407,7 +2419,7 @@
                   :key="c.commitmentNumber"
                   class="d-flex align-center justify-space-between ga-2"
                 >
-                  <div class="d-flex align-center flex-wrap ga-1">
+                  <div class="d-flex align-center flex-nowrap ga-1">
                     <NuxtLink
                       class="text-decoration-none"
                       :to="APP_ROUTES.commitments.detail(c.commitmentNumber)"
@@ -2446,7 +2458,10 @@
                     >
                       {{ DEMAND_ITEM_EXECUTION_STATUS_LABELS[c.status] }}
                     </UiChip>
-                    <span v-if="c.itemsCount > 1" class="text-caption text-grey font-weight-medium">
+                    <span
+                      v-if="c.itemsCount > 1"
+                      class="text-caption text-grey font-weight-medium text-no-wrap"
+                    >
                       ({{ c.itemsCount }} itens)
                     </span>
                   </div>
