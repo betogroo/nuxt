@@ -12,15 +12,6 @@ describe('utils/demandItemDependencies', () => {
       expect((err as Error).message).toBe('Já existe um produto cadastrado com este código CATMAT.')
     })
 
-    it('maps 23505 cat_bec violation to user-friendly CATBEC error', () => {
-      const err = mapProductDuplicateError({
-        code: '23505',
-        details: 'Key (cat_bec)=(12345) already exists.',
-      })
-      expect(err).toBeInstanceOf(Error)
-      expect((err as Error).message).toBe('Já existe um produto cadastrado com este código CATBEC.')
-    })
-
     it('maps generic 23505 violation to generic identifier error', () => {
       const err = mapProductDuplicateError({
         code: '23505',

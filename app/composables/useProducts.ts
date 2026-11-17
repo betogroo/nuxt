@@ -118,9 +118,6 @@ export const useProducts = () => {
       if (detail.includes('cat_mat')) {
         return new Error('Já existe um produto cadastrado com este código CATMAT.')
       }
-      if (detail.includes('cat_bec')) {
-        return new Error('Já existe um produto cadastrado com este código CATBEC.')
-      }
       return new Error('Já existe um produto cadastrado com este identificador único.')
     }
     return error

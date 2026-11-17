@@ -274,7 +274,7 @@ describe('useProducts', () => {
     )
   })
 
-  it('createProduct and updateProduct throw friendly error on CATMAT or CATBEC duplicates', async () => {
+  it('createProduct and updateProduct throw friendly error on CATMAT duplicates and allow shared CATBEC', async () => {
     mockSupabase.from.mockReturnValue({
       insert: vi.fn().mockResolvedValue({
         error: {
@@ -286,7 +286,7 @@ describe('useProducts', () => {
         eq: vi.fn().mockResolvedValue({
           error: {
             code: '23505',
-            message: 'duplicate key value violates unique constraint "products_cat_bec_key"',
+            message: 'duplicate key value violates unique constraint "products_cat_mat_key"',
           },
         }),
       }),
@@ -301,10 +301,10 @@ describe('useProducts', () => {
     ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
 
     await expect(
-      updateProduct('p1', { name: 'Prod Dup', cat_bec: 456 } as unknown as Parameters<
+      updateProduct('p1', { name: 'Prod Dup', cat_mat: 123, cat_bec: 456 } as unknown as Parameters<
         typeof updateProduct
       >[1]),
-    ).rejects.toThrow('Já existe um produto cadastrado com este código CATBEC.')
+    ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
   })
 
   it('toggleProductStatus should update is_active status', async () => {

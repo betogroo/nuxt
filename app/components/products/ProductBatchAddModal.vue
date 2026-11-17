@@ -97,7 +97,6 @@
 
   const revalidateItems = () => {
     const catMatOccurrences = new Map<number, number[]>()
-    const catBecOccurrences = new Map<number, number[]>()
 
     parsedItems.value.forEach((item, index) => {
       const errors: string[] = []
@@ -124,9 +123,6 @@
           errors.push('CATBEC deve ser um número inteiro positivo.')
         } else {
           item.cat_bec = Number(item.cat_bec)
-          const list = catBecOccurrences.get(item.cat_bec) || []
-          list.push(index)
-          catBecOccurrences.set(item.cat_bec, list)
         }
       }
 
@@ -134,20 +130,11 @@
       item.isValid = errors.length === 0
     })
 
-    // Checagem de duplicidade entre linhas
+    // Checagem de duplicidade entre linhas apenas para CATMAT (CATBEC pode repetir)
     catMatOccurrences.forEach((indices, catMat) => {
       if (indices.length > 1) {
         indices.forEach((idx) => {
           parsedItems.value[idx].errors.push(`CATMAT ${catMat} duplicado nas linhas do lote.`)
-          parsedItems.value[idx].isValid = false
-        })
-      }
-    })
-
-    catBecOccurrences.forEach((indices, catBec) => {
-      if (indices.length > 1) {
-        indices.forEach((idx) => {
-          parsedItems.value[idx].errors.push(`CATBEC ${catBec} duplicado nas linhas do lote.`)
           parsedItems.value[idx].isValid = false
         })
       }

@@ -121,7 +121,10 @@ describe('useBackup Composable', () => {
       data: {
         profiles: [{ id: '1' }, { id: '2' }],
         suppliers: [{ id: 'sup-1', name: 'Fornecedor A' }],
-        products: [{ id: 'prod-1', name: 'Item 1' }],
+        products: [
+          { id: 'prod-1', name: 'Cobertor Casal', cat_mat: 1001, cat_bec: 55555 },
+          { id: 'prod-2', name: 'Cobertor Solteiro', cat_mat: 1002, cat_bec: 55555 },
+        ],
         product_characteristic_keys: [{ id: 'pck-1', name: 'Cor' }],
         product_characteristics: [
           { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Azul' },
@@ -169,7 +172,7 @@ describe('useBackup Composable', () => {
     expect(inspection.isValid).toBe(true)
     expect(inspection.counts.profiles).toBe(2)
     expect(inspection.counts.suppliers).toBe(1)
-    expect(inspection.counts.products).toBe(1)
+    expect(inspection.counts.products).toBe(2)
     expect(inspection.counts.product_characteristic_keys).toBe(1)
     expect(inspection.counts.product_characteristics).toBe(1)
     expect(inspection.counts.demands).toBe(1)

@@ -34,7 +34,7 @@ export interface AddDemandItemWithDependenciesParams {
 
 /**
  * Maps a PostgreSQL unique constraint violation (`23505`) on `products` into
- * a user-friendly error message for CATMAT, CATBEC, or generic identifier.
+ * a user-friendly error message for CATMAT or generic identifier.
  */
 export function mapProductDuplicateError(prodError: {
   code?: string
@@ -45,9 +45,6 @@ export function mapProductDuplicateError(prodError: {
     const detail = `${prodError.message || ''} ${prodError.details || ''}`
     if (detail.includes('cat_mat')) {
       return new Error('Já existe um produto cadastrado com este código CATMAT.')
-    }
-    if (detail.includes('cat_bec')) {
-      return new Error('Já existe um produto cadastrado com este código CATBEC.')
     }
     return new Error('Já existe um produto cadastrado com este código identificador.')
   }

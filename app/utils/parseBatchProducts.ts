@@ -217,9 +217,8 @@ export function parseBatchProductsText(
     })
   }
 
-  // Validação de duplicidades dentro do lote para CATMAT e CATBEC
+  // Validação de duplicidades dentro do lote para CATMAT (CATBEC pode se repetir entre produtos)
   const catMatOccurrences = new Map<number, number[]>()
-  const catBecOccurrences = new Map<number, number[]>()
 
   parsedItems.forEach((item, index) => {
     if (item.cat_mat !== null) {
@@ -227,26 +226,12 @@ export function parseBatchProductsText(
       list.push(index)
       catMatOccurrences.set(item.cat_mat, list)
     }
-    if (item.cat_bec !== null) {
-      const list = catBecOccurrences.get(item.cat_bec) || []
-      list.push(index)
-      catBecOccurrences.set(item.cat_bec, list)
-    }
   })
 
   catMatOccurrences.forEach((indices, catMat) => {
     if (indices.length > 1) {
       indices.forEach((idx) => {
         parsedItems[idx].errors.push(`CATMAT ${catMat} duplicado nas linhas do lote.`)
-        parsedItems[idx].isValid = false
-      })
-    }
-  })
-
-  catBecOccurrences.forEach((indices, catBec) => {
-    if (indices.length > 1) {
-      indices.forEach((idx) => {
-        parsedItems[idx].errors.push(`CATBEC ${catBec} duplicado nas linhas do lote.`)
         parsedItems[idx].isValid = false
       })
     }

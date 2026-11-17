@@ -108,11 +108,11 @@ describe('parseBatchProductsText utility', () => {
     expect(res.items[3].errors.some((e) => e.includes('CATBEC'))).toBe(true)
   })
 
-  it('detects and flags in-batch duplicates for CATMAT and CATBEC', () => {
+  it('detects and flags in-batch duplicates for CATMAT while allowing shared CATBEC across products', () => {
     const text = [
-      'Item A\t12345\t99999',
-      'Item B\t12345\t88888', // Duplicate CATMAT
-      'Item C\t54321\t99999', // Duplicate CATBEC
+      'Cobertor Casal\t12345\t99999',
+      'Cobertor Solteiro\t12345\t88888', // Duplicate CATMAT (invalid)
+      'Cobertor Infantil\t54321\t99999', // Same CATBEC as Cobertor Casal, unique CATMAT (valid!)
     ].join('\n')
 
     const res = parseBatchProductsText(text, 'nature-1')
@@ -124,8 +124,8 @@ describe('parseBatchProductsText utility', () => {
     expect(res.items[1].isValid).toBe(false)
     expect(res.items[1].errors.some((e) => e.includes('CATMAT 12345 duplicado'))).toBe(true)
 
-    expect(res.items[2].isValid).toBe(false)
-    expect(res.items[2].errors.some((e) => e.includes('CATBEC 99999 duplicado'))).toBe(true)
+    expect(res.items[2].isValid).toBe(true)
+    expect(res.items[2].errors).toHaveLength(0)
   })
 
   it('fails item if expense_nature is not set and no default provided', () => {

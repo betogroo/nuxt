@@ -160,9 +160,9 @@ describe('ProductDuplicateModal Component', () => {
     expect(vm.sourceProductName).toBe('Colchete numero 4')
     expect(vm.expenseNatureId).toBe('339030')
     expect(vm.productClassId).toBe('7510')
-    // CATMAT and CATBEC must be null by default to avoid unique constraint conflict
+    // CATMAT must be null by default to avoid unique constraint conflict; CATBEC is inherited for billing reuse
     expect(vm.catMat).toBeNull()
-    expect(vm.catBec).toBeNull()
+    expect(vm.catBec).toBe(22222)
 
     // Units pre-selected
     expect(vm.units).toHaveLength(2)
@@ -247,7 +247,7 @@ describe('ProductDuplicateModal Component', () => {
       expense_nature_id: '339030',
       product_class_id: '7510',
       cat_mat: null,
-      cat_bec: null,
+      cat_bec: 22222,
       is_active: true,
       unitIds: ['unit-un'],
       characteristics: [

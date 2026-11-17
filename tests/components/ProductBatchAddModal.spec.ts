@@ -172,4 +172,24 @@ describe('ProductBatchAddModal', () => {
     expect(vm.saveError).toBe('Já existe um produto cadastrado com este código CATMAT.')
     expect(vm.isSaving).toBe(false)
   })
+
+  it('allows multiple products in batch to share the same CATBEC while blocking duplicate CATMAT', () => {
+    const wrapper = shallowMount(ProductBatchAddModal, {
+      props: {
+        modelValue: true,
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.defaultExpenseNatureId = 'nat-1'
+    vm.rawText = 'Cobertor Casal\t1001\t77777\nCobertor Solteiro\t1002\t77777'
+    vm.handleParseText()
+
+    expect(vm.parsedItems).toHaveLength(2)
+    expect(vm.validItemsCount).toBe(2)
+    expect(vm.invalidItemsCount).toBe(0)
+    expect(vm.parsedItems[0].cat_bec).toBe(77777)
+    expect(vm.parsedItems[1].cat_bec).toBe(77777)
+  })
 })

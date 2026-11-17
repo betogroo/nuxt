@@ -90,7 +90,7 @@
       expenseNatureId.value = source.expense_nature_id || source.expense_natures?.id || null
       productClassId.value = source.product_class_id || source.product_classes?.id || null
       catMat.value = null
-      catBec.value = null
+      catBec.value = source.cat_bec ?? null
       isActive.value = true
 
       units.value = (source.units || []).map((u) => ({
@@ -282,7 +282,7 @@
           <div class="flex-grow-1" style="min-width: 200px">
             <UiInput
               v-model="catBec"
-              hint="Código único (opcional)"
+              hint="Código para faturamento (opcional)"
               label="CATBEC"
               persistent-hint
               type="number"
