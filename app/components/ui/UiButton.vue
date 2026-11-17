@@ -39,7 +39,9 @@
   const vuetifyVariant = computed(() => {
     const map: Record<UiVariant, string> = {
       solid: 'flat',
+      flat: 'flat',
       outline: 'outlined',
+      outlined: 'outlined',
       ghost: 'text',
       soft: 'tonal',
     }

@@ -1240,34 +1240,40 @@
       <!-- Cabeçalho Compacto da Demanda -->
       <UiCard class="mb-4" transparent-header>
         <template #header>
-          <div class="d-flex flex-wrap align-center ga-2 w-100">
-            <span class="text-wrap font-weight-bold">{{ demand.name }}</span>
-            <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">{{
-              formatDemandStatus(demand.status)
-            }}</UiChip>
-            <UiChip
-              v-if="demand.is_historical"
-              class="flex-shrink-0"
-              color="blue-grey"
-              label
-              size="sm"
-              variant="soft"
-            >
-              Histórica
-            </UiChip>
+          <div class="d-flex flex-wrap align-center justify-space-between ga-3 w-100">
+            <div class="d-flex flex-wrap align-center ga-2 flex-grow-1" style="min-width: 240px">
+              <span class="text-subtitle-1 text-wrap font-weight-bold">{{ demand.name }}</span>
+              <UiChip class="flex-shrink-0" color="primary" size="sm" variant="solid">{{
+                formatDemandStatus(demand.status)
+              }}</UiChip>
+              <UiChip
+                v-if="demand.is_historical"
+                class="flex-shrink-0"
+                color="blue-grey"
+                label
+                size="sm"
+                variant="soft"
+              >
+                Histórica
+              </UiChip>
+            </div>
 
-            <div class="d-flex flex-wrap gap-2 ml-auto">
+            <div
+              class="d-flex flex-wrap align-center justify-end ga-2 ml-auto"
+              style="line-height: normal; font-size: 0.875rem"
+            >
               <!-- Dropdown Unificado: Relatórios & Exportações -->
               <UiMenu>
                 <template #activator="{ props: menuProps }">
                   <UiButton
                     v-bind="menuProps"
                     append-icon="chevronDown"
+                    class="text-none font-weight-medium"
                     color="primary"
                     data-testid="btn-demand-reports-menu"
                     prepend-icon="document"
                     size="sm"
-                    variant="outlined"
+                    variant="outline"
                   >
                     Relatórios & Exportações
                   </UiButton>
@@ -1340,9 +1346,11 @@
 
               <UiButton
                 v-if="profile?.role === ROLES.ADMIN && getPreviousStatus(demand.status)"
+                class="text-none font-weight-medium"
                 color="orange-darken-3"
                 prepend-icon="arrowLeftBold"
                 size="sm"
+                variant="soft"
                 @click="openRevertModal"
               >
                 Retornar para {{ formatDemandStatus(getPreviousStatus(demand.status) || '') }}
@@ -1353,11 +1361,13 @@
                   canWorkOnDemand &&
                   getPreviousStatus(demand.status)
                 "
+                class="text-none font-weight-medium"
                 :color="demand.is_return_requested ? 'grey' : 'warning'"
                 :disabled="demand.is_return_requested || isReturnRequesting"
                 :loading="isReturnRequesting"
                 prepend-icon="arrowLeftBold"
                 size="sm"
+                variant="soft"
                 @click="requestReturn"
               >
                 {{ demand.is_return_requested ? 'Retorno Solicitado' : 'Solicitar Retorno' }}
@@ -1372,23 +1382,27 @@
                 "
               >
                 <template #activator="{ props }">
-                  <span v-bind="props" class="d-inline-block">
+                  <span v-bind="props" class="d-inline-flex align-center">
                     <UiButton
                       v-if="demand.status === 'dispute'"
+                      class="text-none font-weight-medium"
                       color="success"
                       :disabled="!canWorkOnDemand"
                       prepend-icon="checkCircle"
                       size="sm"
+                      variant="solid"
                       @click="openAdvanceModal"
                     >
                       Finalizar Disputa
                     </UiButton>
                     <UiButton
                       v-else
+                      class="text-none font-weight-medium"
                       color="success"
                       :disabled="!canWorkOnDemand || isPlanningIncomplete"
                       prepend-icon="arrowRightBold"
                       size="sm"
+                      variant="solid"
                       @click="openAdvanceModal"
                     >
                       Avançar para {{ formatDemandStatus(getNextStatus(demand.status) || '') }}

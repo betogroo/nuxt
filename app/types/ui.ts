@@ -1,4 +1,4 @@
-export type UiVariant = 'solid' | 'outline' | 'ghost' | 'soft'
+export type UiVariant = 'solid' | 'flat' | 'outline' | 'outlined' | 'ghost' | 'soft'
 export type UiSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 export type UiColor =
   'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | (string & {})
