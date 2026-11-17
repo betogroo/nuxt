@@ -25,6 +25,7 @@
   import DemandItemExecutionStatusModal from '~/components/demands/DemandItemExecutionStatusModal.vue'
   import DemandItemsBatchExecutionStatusModal from '~/components/demands/DemandItemsBatchExecutionStatusModal.vue'
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
+  import DemandCommitmentsReportModal from '~/components/demands/DemandCommitmentsReportModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
@@ -42,6 +43,7 @@
     resolveInitialDemandTab,
   } from '~/utils/demandTabs'
   import { useDemandReports, type DemandWithClassProductsRow } from '~/composables/useDemandReports'
+  import type { CommitmentRow } from '~/composables/useCommitments'
   import type { WinningSupplierSummaryItem } from '~/composables/useDemandDetail'
   definePageMeta({ middleware: ['uge'] })
   const route = useRoute()
@@ -1123,6 +1125,25 @@
     }
   }
 
+  // --- RELATÓRIO DE EXECUÇÃO DOS EMPENHOS ---
+  const isCommitmentsReportModalOpen = ref(false)
+  const demandCommitmentsList = ref<CommitmentRow[]>([])
+  const isLoadingCommitmentsReport = ref(false)
+
+  const handleOpenCommitmentsReportModal = async () => {
+    if (isLoadingCommitmentsReport.value) return
+    isLoadingCommitmentsReport.value = true
+    try {
+      demandCommitmentsList.value = await fetchCommitmentsByDemand(demandId)
+      isCommitmentsReportModalOpen.value = true
+    } catch (err: unknown) {
+      console.error('Erro ao carregar empenhos da demanda:', err)
+      toast.error('Erro ao carregar dados dos empenhos para o relatório.')
+    } finally {
+      isLoadingCommitmentsReport.value = false
+    }
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1257,6 +1278,18 @@
                       subtitle="Ata e homologação de vencedores"
                       title="Relatório da Disputa"
                       @click="handleGenerateReport"
+                    />
+                    <UiListItem
+                      v-if="
+                        demand.status === 'completed' ||
+                        winningSuppliersSummary.some((s) => s.commitments?.length > 0)
+                      "
+                      data-testid="menu-item-commitments-report"
+                      :loading="isLoadingCommitmentsReport"
+                      prepend-icon="finances"
+                      subtitle="Detalhamento de empenhos e documentos SIAFEM"
+                      title="Relatório de Empenhos"
+                      @click="handleOpenCommitmentsReportModal"
                     />
                     <UiListItem
                       prepend-icon="searchDocument"
@@ -2291,17 +2324,34 @@
               <span class="text-subtitle-1 font-weight-bold"
                 >Fornecedores Vencedores na Demanda</span
               >
-              <UiButton
-                color="primary"
-                data-testid="btn-export-financial-docs-csv"
-                :loading="isExportingFinancialDocs"
-                prepend-icon="download"
-                size="sm"
-                variant="soft"
-                @click="handleExportFinancialDocsCsv"
-              >
-                Documentos SIAFEM (CSV)
-              </UiButton>
+              <div class="d-flex align-center ga-2 flex-wrap">
+                <UiButton
+                  v-if="
+                    demand.status === 'completed' ||
+                    winningSuppliersSummary.some((s) => s.commitments?.length > 0)
+                  "
+                  color="indigo"
+                  data-testid="btn-open-commitments-report"
+                  :loading="isLoadingCommitmentsReport"
+                  prepend-icon="printer"
+                  size="sm"
+                  variant="soft"
+                  @click="handleOpenCommitmentsReportModal"
+                >
+                  Relatório de Empenhos
+                </UiButton>
+                <UiButton
+                  color="primary"
+                  data-testid="btn-export-financial-docs-csv"
+                  :loading="isExportingFinancialDocs"
+                  prepend-icon="download"
+                  size="sm"
+                  variant="soft"
+                  @click="handleExportFinancialDocsCsv"
+                >
+                  Documentos SIAFEM (CSV)
+                </UiButton>
+              </div>
             </div>
           </template>
           <div v-if="itemsPending" class="text-center py-4">
@@ -3322,6 +3372,14 @@
 
     <!-- Modal do Relatório de Homologação da Disputa -->
     <DemandDisputeReportModal v-model="isReportModalOpen" :demand="demand" :items="items" />
+
+    <!-- Modal do Relatório de Execução dos Empenhos -->
+    <DemandCommitmentsReportModal
+      v-model="isCommitmentsReportModalOpen"
+      :commitments="demandCommitmentsList"
+      :demand="demand"
+      :items="items"
+    />
 
     <!-- Modal de Atualização de Status de Execução do Item -->
     <DemandItemExecutionStatusModal

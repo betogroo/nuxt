@@ -1,10 +1,12 @@
 import type { Database } from '~/types/database.types'
 import type { DemandRow } from '~/composables/useDemands'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
+import type { CommitmentRow } from '~/composables/useCommitments'
 import type { DemandItemExecutionStatus } from '~/constants/demand-item-status'
 import { DEMAND_ITEM_EXECUTION_STATUS_LABELS } from '~/constants/demand-item-status'
 import type { jsPDF } from 'jspdf'
-import { getItemDisputeResult } from '~/utils/bids'
+import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
+import { normalizeSiafemNumber } from '~/schemas/forms/commitment'
 import { downloadBlob } from '~/utils/download'
 import { escapeCsvField } from '~/utils/reportCsv'
 import { escapeHtml, printHtmlViaIframe } from '~/utils/reportHtml'
@@ -87,6 +89,61 @@ export interface DisputeReportData {
   winnersCount: number
   failedCount: number
   desertedCount: number
+}
+
+export interface DemandCommitmentReportItem {
+  id: string
+  itemBec: string
+  description: string
+  unit: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+export interface DemandCommitmentReportLiquidation {
+  id: string
+  liquidationNumber: string
+  // CRITICAL / MANDATORY: Nenhuma data de emissão de NL é incluída
+  isIrRetention: boolean
+  irRetentionAmount: number | null
+  isCancellation: boolean
+  observation: string | null
+}
+
+export interface DemandCommitmentReportGroup {
+  id: string
+  commitmentNumber: string
+  issueDate: string | null
+  supplierName: string
+  supplierCnpj: string
+  supplierCnpjFormatted: string
+  expenseNatureName: string | null
+  status: string
+  statusLabel: string
+  totalAmount: number
+  disbursementProgramNumber: string | null
+  disbursementProgramPaidAt: string | null
+  bankOrderNumber: string | null
+  bankOrderPaidAt: string | null
+  liquidations: DemandCommitmentReportLiquidation[]
+  items: DemandCommitmentReportItem[]
+}
+
+export interface DemandCommitmentsReportData {
+  demandId: string
+  demandName: string
+  processNumber: string
+  internalProcessNumber: string
+  biddingNoticeNumber: string
+  status: string
+  statusLabel: string
+  commitments: DemandCommitmentReportGroup[]
+  totalCommitmentsCount: number
+  totalItemsCount: number
+  totalCommittedAmount: number
+  totalPaidAmount: number
+  generatedAt: string
 }
 
 /**
@@ -925,6 +982,34 @@ export const useDemandReports = () => {
     )
   }
 
+  const printDemandCommitmentsReport = async (
+    reportData: DemandCommitmentsReportData,
+  ): Promise<void> => {
+    const html = buildDemandCommitmentsReportHtml(reportData)
+    await printHtmlViaIframe(html)
+    await logAction(
+      'EXPORT_DEMAND_COMMITMENTS_REPORT_PDF',
+      `Relatório de empenhos da demanda "${reportData.demandName}" impresso/exportado para PDF.`,
+    )
+  }
+
+  const exportDemandCommitmentsReportToCsv = async (
+    reportData: DemandCommitmentsReportData,
+    customFilename?: string,
+  ): Promise<void> => {
+    const csvContent = buildDemandCommitmentsReportCsv(reportData)
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const safeName = toSafeFilename(reportData.demandName, 'demanda')
+    const filename = customFilename || `relatorio_empenhos_${safeName}.csv`
+
+    downloadBlob(blob, filename)
+
+    await logAction(
+      'EXPORT_DEMAND_COMMITMENTS_REPORT_CSV',
+      `Relatório de empenhos da demanda "${reportData.demandName}" exportado para CSV.`,
+    )
+  }
+
   return {
     fetchDemandsForClassSpending,
     generateDisputeReportData,
@@ -944,6 +1029,11 @@ export const useDemandReports = () => {
     printClassSpendingReport,
     exportClassSpendingToPdf,
     exportClassSpendingToCsv,
+    generateDemandCommitmentsReportData,
+    buildDemandCommitmentsReportHtml,
+    buildDemandCommitmentsReportCsv,
+    printDemandCommitmentsReport,
+    exportDemandCommitmentsReportToCsv,
   }
 }
 
@@ -2148,4 +2238,567 @@ export async function buildClassSpendingReportPdfDoc(
   )
 
   return doc
+}
+
+/**
+ * Generates structured data for the completed demand commitments report.
+ * Groups items and SIAFEM financial documents (NLs without issue dates, PD, OB) by commitment (NE).
+ */
+export function generateDemandCommitmentsReportData(
+  demand: DemandRow | null | undefined,
+  commitments: CommitmentRow[] | null | undefined,
+  items: DemandProductRow[] | null | undefined,
+): DemandCommitmentsReportData {
+  const demandId = demand?.id || ''
+  const demandName = demand?.name || 'Demanda'
+  const processNumber = demand?.process_number || '-'
+  const internalProcessNumber = demand?.internal_process_number || '-'
+  const biddingNoticeNumber = demand?.bidding_notice_number || '-'
+  const status = demand?.status || ''
+  const statusLabel = formatDemandStatus(status)
+
+  // 1. Group items by normalized commitment number
+  const itemsByCommitment = new Map<string, DemandCommitmentReportItem[]>()
+  for (const item of items || []) {
+    if (!item.commitment_number) continue
+    const norm = normalizeSiafemNumber(item.commitment_number)
+    if (!norm) continue
+
+    const dispute = getItemDisputeResult(item)
+    const unitPrice = dispute.winningAmount ?? 0
+    const totalPrice = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
+    const itemBec = item.product?.cat_bec
+      ? String(item.product.cat_bec)
+      : item.item_number != null
+        ? String(item.item_number)
+        : '-'
+    const description = item.product_name_snapshot || item.product?.name || 'Item sem descrição'
+    const unit = item.product?.measurement_unit || '-'
+
+    const reportItem: DemandCommitmentReportItem = {
+      id: item.id,
+      itemBec,
+      description,
+      unit,
+      quantity: item.quantity,
+      unitPrice,
+      totalPrice,
+    }
+
+    if (!itemsByCommitment.has(norm)) {
+      itemsByCommitment.set(norm, [])
+    }
+    itemsByCommitment.get(norm)!.push(reportItem)
+  }
+
+  // 2. Build commitment groups
+  let totalCommittedAmount = 0
+  let totalPaidAmount = 0
+  let totalItemsCount = 0
+
+  const groups: DemandCommitmentReportGroup[] = []
+
+  for (const c of commitments || []) {
+    const rawNumber = c.commitment_number || ''
+    const normNE = normalizeSiafemNumber(rawNumber) || rawNumber
+    const linkedItems = itemsByCommitment.get(normNE) || []
+
+    let commitmentTotal = 0
+    for (const it of linkedItems) {
+      commitmentTotal += it.totalPrice
+    }
+    if (
+      commitmentTotal === 0 &&
+      'total_amount' in c &&
+      typeof (c as unknown as { total_amount: number }).total_amount === 'number'
+    ) {
+      commitmentTotal = (c as unknown as { total_amount: number }).total_amount
+    }
+
+    totalCommittedAmount += commitmentTotal
+    totalItemsCount += linkedItems.length
+
+    const isPaid = Boolean(c.bank_order_number || c.bank_order_paid_at)
+    if (isPaid) {
+      totalPaidAmount += commitmentTotal
+    }
+
+    // Liquidations sorted by number (CRITICAL: NEVER include issue_date)
+    const rawLiquidations = [...(c.demand_commitment_liquidations || [])].sort((a, b) =>
+      (a.liquidation_number || '').localeCompare(b.liquidation_number || ''),
+    )
+    const liquidations: DemandCommitmentReportLiquidation[] = rawLiquidations.map((nl) => ({
+      id: nl.id,
+      liquidationNumber: nl.liquidation_number,
+      isIrRetention: Boolean(nl.is_ir_retention),
+      irRetentionAmount: nl.ir_retention_amount != null ? Number(nl.ir_retention_amount) : null,
+      isCancellation: Boolean(nl.is_cancellation),
+      observation: nl.observation || null,
+    }))
+
+    const supplierName = c.suppliers?.company_name || 'Fornecedor não identificado'
+    const supplierCnpj = c.suppliers?.cnpj || ''
+    const supplierCnpjFormatted = supplierCnpj ? formatCnpj(supplierCnpj) : '-'
+    const statusLabel =
+      DEMAND_ITEM_EXECUTION_STATUS_LABELS[c.status as DemandItemExecutionStatus] || c.status
+
+    groups.push({
+      id: c.id,
+      commitmentNumber: normNE,
+      issueDate: c.issue_date || null,
+      supplierName,
+      supplierCnpj,
+      supplierCnpjFormatted,
+      expenseNatureName: c.expense_natures?.name || null,
+      status: c.status,
+      statusLabel,
+      totalAmount: commitmentTotal,
+      disbursementProgramNumber: c.disbursement_program_number || null,
+      disbursementProgramPaidAt: c.disbursement_program_paid_at || null,
+      bankOrderNumber: c.bank_order_number || null,
+      bankOrderPaidAt: c.bank_order_paid_at || null,
+      liquidations,
+      items: linkedItems,
+    })
+  }
+
+  groups.sort((a, b) => a.commitmentNumber.localeCompare(b.commitmentNumber))
+
+  return {
+    demandId,
+    demandName,
+    processNumber,
+    internalProcessNumber,
+    biddingNoticeNumber,
+    status,
+    statusLabel,
+    commitments: groups,
+    totalCommitmentsCount: groups.length,
+    totalItemsCount,
+    totalCommittedAmount,
+    totalPaidAmount,
+    generatedAt: new Date().toLocaleString('pt-BR'),
+  }
+}
+
+/**
+ * Builds a clear, lean A4 print HTML document for demand commitments execution.
+ * MANDATORY: Does NOT display NL issue dates anywhere.
+ */
+export function buildDemandCommitmentsReportHtml(reportData: DemandCommitmentsReportData): string {
+  const commitmentsHtml =
+    reportData.commitments.length === 0
+      ? `<div style="padding: 24px; text-align: center; color: #64748b; font-style: italic;">Nenhum empenho cadastrado nesta demanda.</div>`
+      : reportData.commitments
+          .map((c) => {
+            const itemsRowsHtml =
+              c.items.length === 0
+                ? `<tr><td colspan="6" style="text-align: center; color: #64748b; font-style: italic; padding: 8px;">Nenhum item vinculado a este empenho.</td></tr>`
+                : c.items
+                    .map(
+                      (it) => `
+                <tr>
+                  <td style="font-weight: 600;">${escapeHtml(it.itemBec)}</td>
+                  <td>${escapeHtml(it.description)}</td>
+                  <td style="text-align: center;">${escapeHtml(it.unit)}</td>
+                  <td style="text-align: right; font-weight: 600;">${it.quantity}</td>
+                  <td style="text-align: right;">${formatUnitPrice(it.unitPrice)}</td>
+                  <td style="text-align: right; font-weight: 600;">${formatCurrency(it.totalPrice)}</td>
+                </tr>
+              `,
+                    )
+                    .join('')
+
+            // NLs formatting (NO ISSUE DATE!)
+            const nlsListHtml =
+              c.liquidations.length === 0
+                ? `<span style="color: #64748b; font-style: italic;">Nenhuma NL registrada</span>`
+                : c.liquidations
+                    .map((nl) => {
+                      let tag = ''
+                      if (nl.isIrRetention) {
+                        const amt =
+                          nl.irRetentionAmount != null ? formatCurrency(nl.irRetentionAmount) : ''
+                        tag = ` <span class="badge badge-warning">Retenção IR${amt ? `: ${amt}` : ''}</span>`
+                      } else if (nl.isCancellation) {
+                        tag = ` <span class="badge badge-error">Cancelamento</span>`
+                      }
+                      return `<span class="doc-chip">${escapeHtml(nl.liquidationNumber)}${tag}</span>`
+                    })
+                    .join(' ')
+
+            const pdText = c.disbursementProgramNumber
+              ? `${escapeHtml(c.disbursementProgramNumber)}${c.disbursementProgramPaidAt ? ` (Pago em ${formatDate(c.disbursementProgramPaidAt)})` : ' (Pendente)'}`
+              : '-'
+
+            const obText = c.bankOrderNumber
+              ? `${escapeHtml(c.bankOrderNumber)}${c.bankOrderPaidAt ? ` (Paga em ${formatDate(c.bankOrderPaidAt)})` : ' (Pendente)'}`
+              : '-'
+
+            return `
+        <div class="commitment-card">
+          <div class="commitment-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div>
+                <span class="ne-title">NE ${escapeHtml(c.commitmentNumber)}</span>
+                <span class="badge badge-primary" style="margin-left: 8px;">${escapeHtml(c.statusLabel)}</span>
+              </div>
+              <div style="font-size: 13px; font-weight: 700; color: #1e3a8a;">
+                Total: ${formatCurrency(c.totalAmount)}
+              </div>
+            </div>
+            <div class="info-grid">
+              <div><span class="label">Fornecedor:</span> ${escapeHtml(c.supplierName)}</div>
+              <div><span class="label">CNPJ:</span> ${escapeHtml(c.supplierCnpjFormatted)}</div>
+              <div><span class="label">Emissão NE:</span> ${c.issueDate ? formatDate(c.issueDate) : '-'}</div>
+              <div><span class="label">Natureza:</span> ${escapeHtml(c.expenseNatureName || '-')}</div>
+            </div>
+          </div>
+
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 70px;">Item</th>
+                <th>Especificação</th>
+                <th style="width: 60px; text-align: center;">Unid.</th>
+                <th style="width: 60px; text-align: right;">Qtd.</th>
+                <th style="width: 90px; text-align: right;">Unitário</th>
+                <th style="width: 100px; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRowsHtml}
+            </tbody>
+          </table>
+
+          <div class="financial-docs-box">
+            <div class="docs-row"><span class="docs-label">Notas de Liquidação (NL):</span> ${nlsListHtml}</div>
+            <div class="docs-row"><span class="docs-label">Programa de Desembolso (PD):</span> ${pdText}</div>
+            <div class="docs-row"><span class="docs-label">Ordem Bancária (OB):</span> ${obText}</div>
+          </div>
+        </div>
+      `
+          })
+          .join('')
+
+  return `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Relatório de Empenhos - ${escapeHtml(reportData.demandName)}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 10px;
+      color: #0f172a;
+      background: #ffffff;
+      padding: 10px;
+    }
+    .header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .report-title {
+      font-size: 15px;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #0f172a;
+      letter-spacing: 0.5px;
+    }
+    .demand-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 2px;
+    }
+    .header-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px 12px;
+      margin-top: 6px;
+      font-size: 9.5px;
+    }
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .summary-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .summary-card .value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 2px;
+    }
+    .summary-card .title {
+      font-size: 8.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .commitment-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      background: #ffffff;
+    }
+    .commitment-header {
+      background: #f1f5f9;
+      border-bottom: 1px solid #cbd5e1;
+      padding: 6px 8px;
+    }
+    .ne-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 8px;
+      font-size: 9px;
+      margin-top: 4px;
+    }
+    .label {
+      font-weight: 600;
+      color: #475569;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+    }
+    .items-table th {
+      background: #fafafa;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 4px 6px;
+      text-align: left;
+      font-weight: 700;
+      color: #334155;
+    }
+    .items-table td {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 4px 6px;
+      color: #1e293b;
+    }
+    .items-table tr:last-child td {
+      border-bottom: none;
+    }
+    .financial-docs-box {
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      font-size: 9px;
+    }
+    .docs-row {
+      margin-bottom: 3px;
+    }
+    .docs-row:last-child {
+      margin-bottom: 0;
+    }
+    .docs-label {
+      font-weight: 700;
+      color: #334155;
+      display: inline-block;
+      min-width: 160px;
+    }
+    .doc-chip {
+      display: inline-block;
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 3px;
+      padding: 1px 4px;
+      font-weight: 600;
+      font-size: 8.5px;
+      margin-right: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-primary { background: #dbeafe; color: #1e40af; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-error { background: #fee2e2; color: #991b1b; }
+    .footer {
+      margin-top: 16px;
+      border-top: 1px solid #cbd5e1;
+      padding-top: 4px;
+      font-size: 8px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-box">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div class="report-title">Relatório de Execução dos Empenhos</div>
+        <div class="demand-title">${escapeHtml(reportData.demandName)}</div>
+      </div>
+      <div style="text-align: right; font-size: 8.5px; color: #64748b;">
+        <div>Status: <strong>${escapeHtml(reportData.statusLabel)}</strong></div>
+        <div>Emissão: ${escapeHtml(reportData.generatedAt)}</div>
+      </div>
+    </div>
+    <div class="header-grid">
+      <div><span class="label">Nº Processo:</span> ${escapeHtml(reportData.processNumber)}</div>
+      <div><span class="label">Processo Interno:</span> ${escapeHtml(reportData.internalProcessNumber)}</div>
+      <div><span class="label">Aviso de Contratação:</span> ${escapeHtml(reportData.biddingNoticeNumber)}</div>
+      <div><span class="label">ID da Demanda:</span> ${escapeHtml(reportData.demandId)}</div>
+    </div>
+  </div>
+
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="title">Total Empenhado</div>
+      <div class="value">${formatCurrency(reportData.totalCommittedAmount)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="title">Total Pago com OB</div>
+      <div class="value" style="color: #166534;">${formatCurrency(reportData.totalPaidAmount)}</div>
+    </div>
+    <div class="summary-card">
+      <div class="title">Total de Empenhos</div>
+      <div class="value">${reportData.totalCommitmentsCount}</div>
+    </div>
+    <div class="summary-card">
+      <div class="title">Itens Empenhados</div>
+      <div class="value">${reportData.totalItemsCount}</div>
+    </div>
+  </div>
+
+  ${commitmentsHtml}
+
+  <div class="footer">
+    <span>Sistema de Licitações - Gestão de Contratações</span>
+    <span>Documento gerado em ${escapeHtml(reportData.generatedAt)}</span>
+  </div>
+</body>
+</html>
+  `.trim()
+}
+
+/**
+ * Builds CSV string for demand commitments report.
+ * MANDATORY: Does NOT contain any NL issue date column.
+ */
+export function buildDemandCommitmentsReportCsv(reportData: DemandCommitmentsReportData): string {
+  const headers = [
+    'Nota de Empenho',
+    'Data Emissão NE',
+    'Fornecedor',
+    'CNPJ',
+    'Natureza de Despesa',
+    'Status Execução',
+    'Valor Total NE (R$)',
+    'Item / BEC',
+    'Especificação',
+    'Unidade',
+    'Quantidade',
+    'Valor Unitário (R$)',
+    'Valor Total Item (R$)',
+    'Notas de Liquidação (NL)',
+    'Programa de Desembolso (PD)',
+    'Data Pagamento PD',
+    'Ordem Bancária (OB)',
+    'Data Pagamento OB',
+  ]
+
+  const csvRows: string[] = [headers.map(escapeCsvField).join(';')]
+
+  for (const c of reportData.commitments) {
+    const nlsSummary =
+      c.liquidations
+        .map((nl) => {
+          let text = nl.liquidationNumber
+          if (nl.isIrRetention) {
+            text += ` (Retenção IR: ${nl.irRetentionAmount != null ? formatCurrency(nl.irRetentionAmount) : '-'})`
+          } else if (nl.isCancellation) {
+            text += ' (Cancelamento)'
+          }
+          return text
+        })
+        .join(' | ') || '-'
+
+    const pdNumber = c.disbursementProgramNumber || '-'
+    const pdPaidDate = c.disbursementProgramPaidAt ? formatDate(c.disbursementProgramPaidAt) : '-'
+    const obNumber = c.bankOrderNumber || '-'
+    const obPaidDate = c.bankOrderPaidAt ? formatDate(c.bankOrderPaidAt) : '-'
+
+    if (c.items.length === 0) {
+      const row = [
+        c.commitmentNumber,
+        c.issueDate ? formatDate(c.issueDate) : '-',
+        c.supplierName,
+        c.supplierCnpjFormatted,
+        c.expenseNatureName || '-',
+        c.statusLabel,
+        formatDecimalBr(c.totalAmount),
+        '-',
+        '-',
+        '-',
+        '0',
+        '0,00',
+        '0,00',
+        nlsSummary,
+        pdNumber,
+        pdPaidDate,
+        obNumber,
+        obPaidDate,
+      ]
+      csvRows.push(row.map(escapeCsvField).join(';'))
+    } else {
+      for (const it of c.items) {
+        const row = [
+          c.commitmentNumber,
+          c.issueDate ? formatDate(c.issueDate) : '-',
+          c.supplierName,
+          c.supplierCnpjFormatted,
+          c.expenseNatureName || '-',
+          c.statusLabel,
+          formatDecimalBr(c.totalAmount),
+          it.itemBec,
+          it.description,
+          it.unit,
+          String(it.quantity),
+          formatDecimalBr(it.unitPrice),
+          formatDecimalBr(it.totalPrice),
+          nlsSummary,
+          pdNumber,
+          pdPaidDate,
+          obNumber,
+          obPaidDate,
+        ]
+        csvRows.push(row.map(escapeCsvField).join(';'))
+      }
+    }
+  }
+
+  return '\uFEFF' + csvRows.join('\r\n')
 }
