@@ -1296,5 +1296,21 @@ describe('Demand Items Page', () => {
         expect.stringContaining('Abriu a tabela de intervalos entre lances'),
       )
     })
+
+    it('opens tables hub modal and logs action when handleOpenTablesHub is called', () => {
+      mockDemandData.value = { id: 'demand-123', name: 'Demanda de Teste' }
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.isTablesHubModalOpen).toBe(false)
+      vm.handleOpenTablesHub()
+
+      expect(vm.isTablesHubModalOpen).toBe(true)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'OPEN_TABLES_HUB',
+        expect.stringContaining('Abriu a Central de Tabelas e Modelos'),
+      )
+    })
   })
 })

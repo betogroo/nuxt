@@ -31,6 +31,7 @@
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
   import DemandBidIntervalsTableModal from '~/components/demands/DemandBidIntervalsTableModal.vue'
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
+  import DemandTablesHubModal from '~/components/demands/DemandTablesHubModal.vue'
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
   import {
     areAllBidIntervalsConfigured,
@@ -1029,6 +1030,15 @@
     toast.info('Geração de tabela para informação em desenvolvimento.')
   }
 
+  const isTablesHubModalOpen = ref(false)
+  const handleOpenTablesHub = () => {
+    isTablesHubModalOpen.value = true
+    logAction(
+      'OPEN_TABLES_HUB',
+      `Abriu a Central de Tabelas e Modelos na demanda "${demand.value?.name || demandId}"`,
+    )
+  }
+
   const isTermsTableModalOpen = ref(false)
   const handleGenerateTermsTable = () => {
     isTermsTableModalOpen.value = true
@@ -1293,6 +1303,19 @@
               class="d-flex flex-wrap align-center justify-end ga-2 ml-auto"
               style="line-height: normal; font-size: 0.875rem"
             >
+              <!-- Botão Dedicado: Central de Tabelas e Modelos (Compras.gov.br) -->
+              <UiButton
+                class="text-none font-weight-medium"
+                color="teal"
+                data-testid="btn-open-tables-hub"
+                prepend-icon="table"
+                size="sm"
+                variant="outline"
+                @click="handleOpenTablesHub"
+              >
+                Tabelas & Modelos
+              </UiButton>
+
               <!-- Dropdown Unificado: Relatórios & Exportações -->
               <UiMenu>
                 <template #activator="{ props: menuProps }">
@@ -1331,36 +1354,11 @@
                       @click="handleOpenCommitmentsReportModal"
                     />
                     <UiListItem
-                      prepend-icon="searchDocument"
-                      subtitle="Tabela padronizada para TR"
-                      title="Termo de Referência"
-                      @click="handleGenerateTermsTable"
-                    />
-                    <UiListItem
-                      data-testid="menu-item-bid-intervals-table"
-                      :disabled="!canGenerateBidIntervalsTable"
-                      prepend-icon="timer"
-                      :subtitle="
-                        canGenerateBidIntervalsTable
-                          ? 'Tabela padronizada para disputa'
-                          : items?.length === 0
-                            ? 'Nenhum item cadastrado'
-                            : `${pendingBidIntervalsCount} item(ns) sem intervalo`
-                      "
-                      title="Intervalos entre Lances"
-                      @click="handleGenerateBidIntervalsTable"
-                    />
-                    <UiListItem
-                      prepend-icon="recordsList"
-                      subtitle="Modelo resumido de itens"
-                      title="Tabela para Informação"
-                      @click="handleGenerateInfoTable"
-                    />
-                    <UiListItem
-                      prepend-icon="balance"
-                      subtitle="Tabela de consumo anual"
-                      title="Saldo por Classe"
-                      @click="handleGenerateClassBalanceTable"
+                      data-testid="menu-item-tables-hub"
+                      prepend-icon="table"
+                      subtitle="TR, Intervalos de lances, Saldo por classe"
+                      title="Tabelas & Modelos (Central)"
+                      @click="handleOpenTablesHub"
                     />
                     <UiDivider class="my-1" />
                     <UiListItem
@@ -1916,14 +1914,14 @@
                   </span>
                 </UiButton>
                 <UiButton
-                  v-if="demand?.status === 'quotation'"
-                  color="secondary"
-                  prepend-icon="balance"
+                  color="teal"
+                  data-testid="btn-open-tables-hub-items"
+                  prepend-icon="table"
                   size="sm"
                   variant="soft"
-                  @click="handleGenerateClassBalanceTable"
+                  @click="handleOpenTablesHub"
                 >
-                  Tabela de Saldo por Classe
+                  Tabelas & Modelos
                 </UiButton>
                 <UiButton
                   v-if="demand?.status === 'quotation' && canWorkOnDemand"
@@ -3503,6 +3501,17 @@
       v-model="isConvocationEmailModalOpen"
       :demand="demand"
       :supplier="selectedSupplierForConvocationEmail"
+    />
+
+    <!-- Modal Central de Tabelas e Modelos (Compras.gov.br) -->
+    <DemandTablesHubModal
+      v-model="isTablesHubModalOpen"
+      :demand="demand"
+      :items="items || []"
+      @open-bid-intervals-table="handleGenerateBidIntervalsTable"
+      @open-class-balance-table="handleGenerateClassBalanceTable"
+      @open-info-table="handleGenerateInfoTable"
+      @open-terms-table="handleGenerateTermsTable"
     />
 
     <!-- Modal de Tabela para Termo de Referência (Compras.gov.br) -->
