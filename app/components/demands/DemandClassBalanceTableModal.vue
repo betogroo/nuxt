@@ -37,6 +37,7 @@
 
   const includeItemsCount = ref(false)
   const includeTotalsFooter = ref(true)
+  const hideCeilingAndBalance = ref(false)
   const isLoading = ref(false)
 
   const ceilingsMap = ref<Record<string, number>>({
@@ -110,6 +111,7 @@
     return generateDemandClassBalanceTableHtml(classBalanceRows.value, demandYear.value, {
       includeItemsCount: includeItemsCount.value,
       includeTotalsFooter: includeTotalsFooter.value,
+      hideCeilingAndBalance: hideCeilingAndBalance.value,
     })
   })
 
@@ -117,6 +119,7 @@
     return generateDemandClassBalanceTableText(classBalanceRows.value, demandYear.value, {
       includeItemsCount: includeItemsCount.value,
       includeTotalsFooter: includeTotalsFooter.value,
+      hideCeilingAndBalance: hideCeilingAndBalance.value,
     })
   })
 
@@ -200,7 +203,7 @@
           </div>
 
           <UiRow align="center" dense>
-            <UiCol cols="12" md="6" sm="6">
+            <UiCol cols="12" md="4" sm="6">
               <UiSwitch
                 v-model="includeItemsCount"
                 color="primary"
@@ -209,12 +212,21 @@
                 size="sm"
               />
             </UiCol>
-            <UiCol cols="12" md="6" sm="6">
+            <UiCol cols="12" md="4" sm="6">
               <UiSwitch
                 v-model="includeTotalsFooter"
                 color="primary"
                 hide-details
                 label="Incluir linha de totais no rodapé"
+                size="sm"
+              />
+            </UiCol>
+            <UiCol cols="12" md="4" sm="6">
+              <UiSwitch
+                v-model="hideCeilingAndBalance"
+                color="primary"
+                hide-details
+                label="Ocultar Teto Anual e Saldo Restante"
                 size="sm"
               />
             </UiCol>

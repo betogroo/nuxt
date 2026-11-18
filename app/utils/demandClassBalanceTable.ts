@@ -53,6 +53,7 @@ export interface CalculateSingleClassBalanceParams {
 export interface DemandClassBalanceTableOptions {
   includeItemsCount?: boolean
   includeTotalsFooter?: boolean
+  hideCeilingAndBalance?: boolean
 }
 
 export interface BuildDemandClassBalanceRowsParams {
@@ -325,7 +326,11 @@ export function generateDemandClassBalanceTableHtml(
   year: number,
   options: DemandClassBalanceTableOptions = {},
 ): string {
-  const { includeItemsCount = false, includeTotalsFooter = true } = options
+  const {
+    includeItemsCount = false,
+    includeTotalsFooter = true,
+    hideCeilingAndBalance = false,
+  } = options
 
   const tableStyle =
     'width: 100%; max-width: 672px; margin: 0 auto; border-collapse: collapse; font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; line-height: 1.4; color: #1f2937; border: 1px solid #cbd5e1;'
@@ -356,6 +361,20 @@ export function generateDemandClassBalanceTableHtml(
 
       const balanceColor = row.isExceeded ? '#dc2626' : '#0f172a'
 
+      const ceilingCell = hideCeilingAndBalance
+        ? ''
+        : `
+        <td style="${tdBaseStyle} text-align: right; white-space: nowrap; vertical-align: middle; width: 115px;">
+          ${formatCurrency(row.ceilingAmount)}
+        </td>`
+
+      const balanceCell = hideCeilingAndBalance
+        ? ''
+        : `
+        <td style="${tdBaseStyle} text-align: right; white-space: nowrap; font-weight: 700; color: ${balanceColor}; vertical-align: middle; width: 115px;">
+          ${formatCurrency(row.remainingBalance)}
+        </td>`
+
       return `
       <tr style="${rowBg}">
         <td style="${tdBaseStyle} text-align: center; font-weight: bold; vertical-align: middle; width: 32px;">
@@ -363,56 +382,67 @@ export function generateDemandClassBalanceTableHtml(
         </td>
         <td style="${tdBaseStyle} text-align: left; vertical-align: middle;">
           <span style="font-weight: 600; color: #0f172a;">${escapeHtml(classDisplayLabel)}</span>${countSuffix}
-        </td>
-        <td style="${tdBaseStyle} text-align: right; white-space: nowrap; vertical-align: middle; width: 115px;">
-          ${formatCurrency(row.ceilingAmount)}
-        </td>
+        </td>${ceilingCell}
         <td style="${tdBaseStyle} text-align: right; white-space: nowrap; vertical-align: middle; width: 120px;">
           ${formatCurrency(row.committedInOtherDemands)}
         </td>
         <td style="${tdBaseStyle} text-align: right; white-space: nowrap; font-weight: 600; vertical-align: middle; width: 115px;">
           ${formatCurrency(row.currentDemandAmount)}
-        </td>
-        <td style="${tdBaseStyle} text-align: right; white-space: nowrap; font-weight: 700; color: ${balanceColor}; vertical-align: middle; width: 115px;">
-          ${formatCurrency(row.remainingBalance)}
-        </td>
+        </td>${balanceCell}
       </tr>`
     })
     .join('')
 
   const footerBalanceColor = totalRemaining < 0 ? '#dc2626' : '#1e3a5f'
+
+  const footerCeilingCell = hideCeilingAndBalance
+    ? ''
+    : `
+        <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: #334155; padding: 8px 7px; white-space: nowrap;">
+          ${formatCurrency(totalCeiling)}
+        </td>`
+
+  const footerBalanceCell = hideCeilingAndBalance
+    ? ''
+    : `
+        <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: ${footerBalanceColor}; padding: 8px 7px; white-space: nowrap;">
+          ${formatCurrency(totalRemaining)}
+        </td>`
+
   const footerHtml = includeTotalsFooter
     ? `
     <tfoot>
       <tr style="background-color: #f1f5f9; font-weight: bold; border-top: 2px solid #cbd5e1;">
         <td colspan="2" style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: #0f172a; padding: 8px 10px;">
           Totais Consolidados (${rows.length} ${rows.length === 1 ? 'classe' : 'classes'}):
-        </td>
-        <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: #334155; padding: 8px 7px; white-space: nowrap;">
-          ${formatCurrency(totalCeiling)}
-        </td>
+        </td>${footerCeilingCell}
         <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: #334155; padding: 8px 7px; white-space: nowrap;">
           ${formatCurrency(totalCommitted)}
         </td>
         <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: #1e3a5f; padding: 8px 7px; white-space: nowrap;">
           ${formatCurrency(totalCurrentDemand)}
-        </td>
-        <td style="${tdBaseStyle} text-align: right; font-size: 9.5pt; color: ${footerBalanceColor}; padding: 8px 7px; white-space: nowrap;">
-          ${formatCurrency(totalRemaining)}
-        </td>
+        </td>${footerBalanceCell}
       </tr>
     </tfoot>`
     : ''
+
+  const thCeiling = hideCeilingAndBalance
+    ? ''
+    : `
+      <th style="${thStyle} text-align: right; width: 115px;">Teto Anual (${year})</th>`
+
+  const thBalance = hideCeilingAndBalance
+    ? ''
+    : `
+      <th style="${thStyle} text-align: right; width: 115px;">Saldo Restante</th>`
 
   return `<table style="${tableStyle}">
   <thead>
     <tr>
       <th style="${thStyle} text-align: center; width: 32px;">#</th>
-      <th style="${thStyle} text-align: left;">Classe de Materiais</th>
-      <th style="${thStyle} text-align: right; width: 115px;">Teto Anual (${year})</th>
+      <th style="${thStyle} text-align: left;">Classe de Materiais</th>${thCeiling}
       <th style="${thStyle} text-align: right; width: 120px;">Já Empenhado (Outras Demandas)</th>
-      <th style="${thStyle} text-align: right; width: 115px;">Valor Nesta Demanda</th>
-      <th style="${thStyle} text-align: right; width: 115px;">Saldo Restante</th>
+      <th style="${thStyle} text-align: right; width: 115px;">Valor Nesta Demanda</th>${thBalance}
     </tr>
   </thead>
   <tbody>
@@ -430,15 +460,19 @@ export function generateDemandClassBalanceTableText(
   year: number,
   options: DemandClassBalanceTableOptions = {},
 ): string {
-  const { includeItemsCount = false, includeTotalsFooter = true } = options
+  const {
+    includeItemsCount = false,
+    includeTotalsFooter = true,
+    hideCeilingAndBalance = false,
+  } = options
 
   const headers = [
     '#',
     'Classe de Materiais',
-    `Teto Anual (${year})`,
+    ...(hideCeilingAndBalance ? [] : [`Teto Anual (${year})`]),
     'Já Empenhado (Outras Demandas)',
     'Valor Nesta Demanda',
-    'Saldo Restante',
+    ...(hideCeilingAndBalance ? [] : ['Saldo Restante']),
   ]
 
   let totalCeiling = 0
@@ -459,29 +493,29 @@ export function generateDemandClassBalanceTableText(
       ? `${baseClassLabel} (${row.itemsCount} ${row.itemsCount === 1 ? 'item' : 'itens'})`
       : baseClassLabel
 
-    lines.push(
-      [
-        String(index + 1),
-        classLabel,
-        formatCurrency(row.ceilingAmount),
-        formatCurrency(row.committedInOtherDemands),
-        formatCurrency(row.currentDemandAmount),
-        formatCurrency(row.remainingBalance),
-      ].join('\t'),
-    )
+    const rowValues = [
+      String(index + 1),
+      classLabel,
+      ...(hideCeilingAndBalance ? [] : [formatCurrency(row.ceilingAmount)]),
+      formatCurrency(row.committedInOtherDemands),
+      formatCurrency(row.currentDemandAmount),
+      ...(hideCeilingAndBalance ? [] : [formatCurrency(row.remainingBalance)]),
+    ]
+
+    lines.push(rowValues.join('\t'))
   })
 
   if (includeTotalsFooter && rows.length > 0) {
-    lines.push(
-      [
-        '',
-        `Totais Consolidados (${rows.length} ${rows.length === 1 ? 'classe' : 'classes'}):`,
-        formatCurrency(totalCeiling),
-        formatCurrency(totalCommitted),
-        formatCurrency(totalCurrentDemand),
-        formatCurrency(totalRemaining),
-      ].join('\t'),
-    )
+    const footerValues = [
+      '',
+      `Totais Consolidados (${rows.length} ${rows.length === 1 ? 'classe' : 'classes'}):`,
+      ...(hideCeilingAndBalance ? [] : [formatCurrency(totalCeiling)]),
+      formatCurrency(totalCommitted),
+      formatCurrency(totalCurrentDemand),
+      ...(hideCeilingAndBalance ? [] : [formatCurrency(totalRemaining)]),
+    ]
+
+    lines.push(footerValues.join('\t'))
   }
 
   return lines.join('\n')

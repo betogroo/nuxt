@@ -198,4 +198,39 @@ describe('DemandClassBalanceTableModal', () => {
     expect(mockCopy).toHaveBeenCalledTimes(1)
     expect(mockCopy.mock.calls[0][0]).toContain('<table')
   })
+
+  it('updates generated table when toggling hideCeilingAndBalance switch', async () => {
+    const wrapper = mount(DemandClassBalanceTableModal, {
+      props: {
+        modelValue: true,
+        demand: sampleDemand,
+        items: sampleItems,
+      },
+      global: {
+        stubs: commonStubs,
+      },
+    })
+
+    await flushPromises()
+
+    const preview = wrapper.find('.class-balance-html-wrapper')
+
+    // Initially Teto Anual and Saldo Restante are shown in the preview table
+    expect(preview.html()).toContain('Teto Anual (2026)')
+    expect(preview.html()).toContain('Saldo Restante')
+
+    // Find the switch for "Ocultar Teto Anual e Saldo Restante"
+    const switches = wrapper.findAll('input[type="checkbox"]')
+    // There are 3 switches: items count, totals footer, hide ceiling and balance
+    expect(switches.length).toBe(3)
+    const hideSwitch = switches[2]
+
+    await hideSwitch.setValue(true)
+    await flushPromises()
+
+    expect(preview.html()).not.toContain('Teto Anual (2026)')
+    expect(preview.html()).not.toContain('Saldo Restante')
+    expect(preview.html()).toContain('Já Empenhado (Outras Demandas)')
+    expect(preview.html()).toContain('Valor Nesta Demanda')
+  })
 })

@@ -271,6 +271,22 @@ describe('demandClassBalanceTable utility', () => {
       expect(html).not.toContain('<script>')
       expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;')
     })
+
+    it('omits Teto Anual and Saldo Restante columns and footer cells when hideCeilingAndBalance is true', () => {
+      const html = generateDemandClassBalanceTableHtml(sampleRows, 2026, {
+        hideCeilingAndBalance: true,
+        includeTotalsFooter: true,
+      })
+
+      expect(html).toContain('<table')
+      expect(html).toContain('Classe de Materiais')
+      expect(html).toContain('Já Empenhado (Outras Demandas)')
+      expect(html).toContain('Valor Nesta Demanda')
+      expect(html).not.toContain('Teto Anual (2026)')
+      expect(html).not.toContain('Saldo Restante')
+      // Totals footer should still exist with 2 values instead of 4
+      expect(html).toContain('Totais Consolidados (2 classes):')
+    })
   })
 
   describe('generateDemandClassBalanceTableText', () => {
@@ -294,6 +310,27 @@ describe('demandClassBalanceTable utility', () => {
       expect(text).toContain('7510 - Artigos para Escritório (1 item)')
       expect(text).toContain('7530 - Papelaria e Papel (2 itens)')
       expect(text).toContain('Totais Consolidados (2 classes):')
+    })
+
+    it('omits Teto Anual and Saldo Restante headers and columns when hideCeilingAndBalance is true', () => {
+      const sampleRows = buildDemandClassBalanceRows({
+        currentDemandId: 'dem-1',
+        currentItems: sampleCurrentItems,
+        allDemands: [],
+        year: 2026,
+        ceilingAmount: 10000,
+      })
+
+      const text = generateDemandClassBalanceTableText(sampleRows, 2026, {
+        hideCeilingAndBalance: true,
+        includeTotalsFooter: true,
+      })
+
+      expect(text).toContain(
+        '#\tClasse de Materiais\tJá Empenhado (Outras Demandas)\tValor Nesta Demanda',
+      )
+      expect(text).not.toContain('Teto Anual (2026)')
+      expect(text).not.toContain('Saldo Restante')
     })
   })
 
