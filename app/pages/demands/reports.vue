@@ -2,8 +2,10 @@
   import { computed, ref } from 'vue'
   import {
     useDemandGeneralReports,
+    getMonthDateRange,
     type IrRetentionReportRow,
     type CommitmentExecutionRow,
+    type IrRetentionMonthOption,
   } from '~/composables/useDemandGeneralReports'
   import { formatCurrency, formatDate } from '~/utils/formatters'
   import { APP_ROUTES } from '~/utils/routes'
@@ -28,6 +30,7 @@
   const toast = useToast()
   const {
     fetchIrRetentionReport,
+    fetchIrRetentionAvailableMonths,
     exportIrRetentionToCsv,
     exportIrRetentionToPdf,
     fetchCommitmentExecutionReport,
@@ -60,12 +63,26 @@
   ] as const
 
   const irSelectedPreset = ref<string>('30d')
+  const irSelectedMonth = ref<string>('')
   const irStartDate = ref<string>('')
   const irEndDate = ref<string>('')
   const irPaymentStatus = ref<'all' | 'paid' | 'pending'>('all')
   const irSearchQuery = ref<string>('')
   const isExportingIrCsv = ref(false)
   const isExportingIrPdf = ref(false)
+
+  const { data: irRetentionMonths } = useAsyncData<IrRetentionMonthOption[]>(
+    'demands-ir-retention-months',
+    () => fetchIrRetentionAvailableMonths(),
+  )
+
+  const monthSelectOptions = computed(() => {
+    const list = irRetentionMonths.value || []
+    return [
+      { title: 'Todos os Meses', value: '' },
+      ...list.map((m) => ({ title: m.label, value: m.key })),
+    ]
+  })
 
   function applyIrPreset(presetId: string) {
     irSelectedPreset.value = presetId
@@ -110,6 +127,42 @@
 
   function onCustomIrDateChange() {
     irSelectedPreset.value = 'custom'
+    irSelectedMonth.value = ''
+  }
+
+  function handleMonthSelect(monthKey: string) {
+    if (irSelectedMonth.value === monthKey) {
+      irSelectedMonth.value = ''
+      applyIrPreset('all')
+    } else {
+      irSelectedMonth.value = monthKey
+      irSelectedPreset.value = `month_${monthKey}`
+      const range = getMonthDateRange(monthKey)
+      irStartDate.value = range.startDate
+      irEndDate.value = range.endDate
+    }
+    refreshIrData()
+  }
+
+  function onMonthSelectChange(monthKey: string | null) {
+    if (!monthKey) {
+      irSelectedMonth.value = ''
+      applyIrPreset('all')
+      refreshIrData()
+      return
+    }
+    irSelectedMonth.value = monthKey
+    irSelectedPreset.value = `month_${monthKey}`
+    const range = getMonthDateRange(monthKey)
+    irStartDate.value = range.startDate
+    irEndDate.value = range.endDate
+    refreshIrData()
+  }
+
+  function onDateInputUpdate() {
+    irSelectedPreset.value = 'custom'
+    irSelectedMonth.value = ''
+    refreshIrData()
   }
 
   const {
@@ -159,6 +212,7 @@
   })
 
   const handleIrPresetClick = (presetId: string) => {
+    irSelectedMonth.value = ''
     applyIrPreset(presetId)
     refreshIrData()
   }
@@ -351,26 +405,64 @@
       <UiCard class="mb-4">
         <div class="d-flex flex-column ga-3">
           <div class="d-flex align-center justify-space-between flex-wrap ga-2">
-            <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
-              Filtrar por Período de Pagamento da PD / Cadastro da NL:
-            </span>
-            <div class="d-flex align-center ga-1 flex-wrap">
-              <UiChip
-                v-for="preset in irPresets"
-                :key="preset.id"
-                :color="irSelectedPreset === preset.id ? 'indigo' : 'default'"
-                filter
-                size="sm"
-                :variant="irSelectedPreset === preset.id ? 'solid' : 'soft'"
-                @click="handleIrPresetClick(preset.id)"
-              >
-                {{ preset.label }}
-              </UiChip>
+            <div class="d-flex align-center ga-2 flex-wrap">
+              <span class="text-caption font-weight-bold text-uppercase text-medium-emphasis">
+                Períodos Rápidos:
+              </span>
+              <div class="d-flex align-center ga-1 flex-wrap">
+                <UiChip
+                  v-for="preset in irPresets"
+                  :key="preset.id"
+                  :color="irSelectedPreset === preset.id ? 'indigo' : 'default'"
+                  filter
+                  size="sm"
+                  :variant="irSelectedPreset === preset.id ? 'solid' : 'soft'"
+                  @click="handleIrPresetClick(preset.id)"
+                >
+                  {{ preset.label }}
+                </UiChip>
+              </div>
+            </div>
+
+            <!-- Meses apurados com retenção de IR -->
+            <div
+              v-if="irRetentionMonths && irRetentionMonths.length > 0"
+              class="d-flex align-center ga-2 flex-wrap"
+            >
+              <span class="text-caption font-weight-bold text-uppercase text-teal-darken-3">
+                Meses com Retenção:
+              </span>
+              <div class="d-flex align-center ga-1 flex-wrap">
+                <UiChip
+                  v-for="month in irRetentionMonths"
+                  :key="month.key"
+                  :color="irSelectedMonth === month.key ? 'teal' : 'default'"
+                  filter
+                  size="sm"
+                  :variant="irSelectedMonth === month.key ? 'solid' : 'soft'"
+                  @click="handleMonthSelect(month.key)"
+                >
+                  <UiIcon class="mr-1" name="calendar" size="14" />
+                  {{ month.label }}
+                </UiChip>
+              </div>
             </div>
           </div>
 
           <UiRow dense>
-            <UiCol cols="12" md="3" sm="6">
+            <UiCol cols="12" lg="2" md="3" sm="6">
+              <UiSelect
+                v-model="irSelectedMonth"
+                clearable
+                hide-details
+                :items="monthSelectOptions"
+                label="Mês com Retenção"
+                size="sm"
+                variant="outline"
+                @update:model-value="onMonthSelectChange"
+              />
+            </UiCol>
+            <UiCol cols="12" lg="2" md="3" sm="6">
               <UiInput
                 v-model="irStartDate"
                 hide-details
@@ -379,10 +471,10 @@
                 type="date"
                 variant="outline"
                 @change="onCustomIrDateChange"
-                @update:model-value="refreshIrData"
+                @update:model-value="onDateInputUpdate"
               />
             </UiCol>
-            <UiCol cols="12" md="3" sm="6">
+            <UiCol cols="12" lg="2" md="3" sm="6">
               <UiInput
                 v-model="irEndDate"
                 hide-details
@@ -391,10 +483,10 @@
                 type="date"
                 variant="outline"
                 @change="onCustomIrDateChange"
-                @update:model-value="refreshIrData"
+                @update:model-value="onDateInputUpdate"
               />
             </UiCol>
-            <UiCol cols="12" md="3" sm="6">
+            <UiCol cols="12" lg="3" md="3" sm="6">
               <UiSelect
                 v-model="irPaymentStatus"
                 hide-details
@@ -409,7 +501,7 @@
                 @update:model-value="refreshIrData"
               />
             </UiCol>
-            <UiCol cols="12" md="3" sm="6">
+            <UiCol cols="12" lg="3" md="12" sm="12">
               <UiInput
                 v-model="irSearchQuery"
                 clearable

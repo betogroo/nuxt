@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import {
   useDemandGeneralReports,
+  getMonthDateRange,
   type IrRetentionReportRow,
 } from '~/composables/useDemandGeneralReports'
 
@@ -425,6 +426,68 @@ describe('useDemandGeneralReports', () => {
         expect.any(Number),
         expect.any(Number),
       )
+    })
+  })
+
+  describe('getMonthDateRange', () => {
+    it('should return correct start and end date for a standard month', () => {
+      const range = getMonthDateRange('2026-03')
+      expect(range).toEqual({
+        startDate: '2026-03-01',
+        endDate: '2026-03-31',
+      })
+    })
+
+    it('should handle leap and non-leap February accurately', () => {
+      expect(getMonthDateRange('2026-02')).toEqual({
+        startDate: '2026-02-01',
+        endDate: '2026-02-28',
+      })
+      expect(getMonthDateRange('2024-02')).toEqual({
+        startDate: '2024-02-01',
+        endDate: '2024-02-29',
+      })
+    })
+
+    it('should return empty strings for invalid or empty inputs', () => {
+      expect(getMonthDateRange('')).toEqual({ startDate: '', endDate: '' })
+      expect(getMonthDateRange('invalid')).toEqual({ startDate: '', endDate: '' })
+    })
+  })
+
+  describe('fetchIrRetentionAvailableMonths', () => {
+    it('should fetch distinct months and return them sorted descending', async () => {
+      mockLiquidationsData = [
+        {
+          issue_date: '2026-03-10',
+          created_at: '2026-03-10T12:00:00Z',
+          commitment: { disbursement_program_paid_at: '2026-03-25T10:00:00Z' },
+        },
+        {
+          issue_date: '2026-04-01',
+          created_at: '2026-04-01T08:00:00Z',
+          commitment: { disbursement_program_paid_at: '2026-04-15T10:00:00Z' },
+        },
+        {
+          issue_date: '2026-03-20',
+          created_at: '2026-03-20T14:00:00Z',
+          commitment: { disbursement_program_paid_at: '2026-03-28T10:00:00Z' },
+        },
+        {
+          issue_date: '2026-01-15',
+          created_at: '2026-01-15T10:00:00Z',
+          commitment: null, // pending payment, uses created_at
+        },
+      ]
+
+      const { fetchIrRetentionAvailableMonths } = useDemandGeneralReports()
+      const months = await fetchIrRetentionAvailableMonths()
+
+      expect(months).toEqual([
+        { key: '2026-04', label: '04/2026' },
+        { key: '2026-03', label: '03/2026' },
+        { key: '2026-01', label: '01/2026' },
+      ])
     })
   })
 })

@@ -67,6 +67,11 @@ const fetchIrRetentionReportMock = vi.fn().mockResolvedValue({
   summary: mockIrSummary,
 })
 
+const fetchIrRetentionAvailableMonthsMock = vi.fn().mockResolvedValue([
+  { key: '2026-04', label: '04/2026' },
+  { key: '2026-03', label: '03/2026' },
+])
+
 const exportIrRetentionToCsvMock = vi.fn()
 const exportIrRetentionToPdfMock = vi.fn().mockResolvedValue(undefined)
 const fetchCommitmentExecutionReportMock = vi.fn().mockResolvedValue({
@@ -83,6 +88,7 @@ const exportExecutionToCsvMock = vi.fn()
 
 mockNuxtImport('useDemandGeneralReports', () => () => ({
   fetchIrRetentionReport: fetchIrRetentionReportMock,
+  fetchIrRetentionAvailableMonths: fetchIrRetentionAvailableMonthsMock,
   exportIrRetentionToCsv: exportIrRetentionToCsvMock,
   exportIrRetentionToPdf: exportIrRetentionToPdfMock,
   fetchCommitmentExecutionReport: fetchCommitmentExecutionReportMock,
@@ -96,6 +102,16 @@ mockNuxtImport('useAsyncData', () => (key: string) => {
       data: ref({ rows: mockIrRows, summary: mockIrSummary }),
       pending: ref(false),
       refresh: refreshMock,
+    }
+  }
+  if (key === 'demands-ir-retention-months') {
+    return {
+      data: ref([
+        { key: '2026-04', label: '04/2026' },
+        { key: '2026-03', label: '03/2026' },
+      ]),
+      pending: ref(false),
+      refresh: vi.fn(),
     }
   }
   return {
@@ -254,5 +270,39 @@ describe('ReportsPage (/demands/reports)', () => {
     expect(toastMock.success).toHaveBeenCalledWith(
       expect.stringContaining('PDF gerado com sucesso'),
     )
+  })
+
+  it('renders available retention month chips and triggers refresh on click', async () => {
+    const wrapper = mount(ReportsPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Meses com Retenção:')
+    expect(wrapper.text()).toContain('04/2026')
+    expect(wrapper.text()).toContain('03/2026')
+
+    const monthChip = wrapper.findAll('.ui-chip').find((c) => c.text().includes('03/2026'))
+    expect(monthChip).toBeDefined()
+
+    await monthChip!.trigger('click')
+    expect(refreshMock).toHaveBeenCalled()
+  })
+
+  it('updates selection when month is selected via dropdown', async () => {
+    const wrapper = mount(ReportsPage, {
+      global: {
+        stubs: defaultStubs,
+      },
+    })
+    await flushPromises()
+
+    const select = wrapper.find('select')
+    expect(select.exists()).toBe(true)
+
+    await select.setValue('2026-04')
+    expect(refreshMock).toHaveBeenCalled()
   })
 })

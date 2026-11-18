@@ -16,6 +16,28 @@ export const DEFAULT_MANAGEMENT_UNIT = '180297'
 export const DEFAULT_CONTRACTOR_CNPJ = '04236548007441'
 export const DEFAULT_DOC_SERIES = '1'
 
+export interface IrRetentionMonthOption {
+  key: string // 'YYYY-MM'
+  label: string // 'MM/YYYY'
+}
+
+/**
+ * Returns the start date (YYYY-MM-01) and end date (YYYY-MM-DD, last day of month)
+ * for a given 'YYYY-MM' string.
+ */
+export const getMonthDateRange = (yyyyMm: string): { startDate: string; endDate: string } => {
+  if (!yyyyMm || !/^\d{4}-\d{2}$/.test(yyyyMm)) {
+    return { startDate: '', endDate: '' }
+  }
+  const [yearStr, monthStr] = yyyyMm.split('-')
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10)
+  const startDate = `${yearStr}-${monthStr}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const endDate = `${yearStr}-${monthStr}-${String(lastDay).padStart(2, '0')}`
+  return { startDate, endDate }
+}
+
 export interface IrRetentionReportRow {
   liquidationId: string
   liquidationNumber: string
@@ -411,6 +433,63 @@ export const useDemandGeneralReports = () => {
 
     const summary = calculateIrRetentionSummary(rows)
     return { rows, summary }
+  }
+
+  /**
+   * Fetches the distinct months (YYYY-MM) in which IR retention records exist.
+   * Reference date is disbursement_program_paid_at when paid, fallback to created_at or issue_date when pending.
+   */
+  const fetchIrRetentionAvailableMonths = async (): Promise<IrRetentionMonthOption[]> => {
+    const { data, error } = await supabase
+      .from('demand_commitment_liquidations')
+      .select(
+        `
+        issue_date,
+        created_at,
+        commitment:demand_commitments!commitment_id (
+          disbursement_program_paid_at
+        )
+      `,
+      )
+      .eq('is_ir_retention', true)
+      .eq('is_cancellation', false)
+
+    if (error) {
+      console.error('Error fetching IR retention available months:', error)
+      throw error
+    }
+
+    const monthKeys = new Set<string>()
+
+    for (const item of (data || []) as unknown as Array<{
+      issue_date: string | null
+      created_at: string | null
+      commitment?:
+        | { disbursement_program_paid_at: string | null }
+        | Array<{
+            disbursement_program_paid_at: string | null
+          }>
+        | null
+    }>) {
+      const commitment = Array.isArray(item.commitment) ? item.commitment[0] : item.commitment
+      const dateStr = commitment?.disbursement_program_paid_at || item.created_at || item.issue_date
+      if (!dateStr) continue
+
+      const match = dateStr.slice(0, 7).match(/^(\d{4})-(\d{2})$/)
+      if (match) {
+        monthKeys.add(`${match[1]}-${match[2]}`)
+      }
+    }
+
+    const sorted = Array.from(monthKeys).sort((a, b) => b.localeCompare(a))
+
+    return sorted.map((key) => {
+      const [year, month] = key.split('-')
+      return {
+        key,
+        label: `${month}/${year}`,
+      }
+    })
   }
 
   /**
@@ -833,6 +912,7 @@ export const useDemandGeneralReports = () => {
   return {
     calculateIrRetentionSummary,
     fetchIrRetentionReport,
+    fetchIrRetentionAvailableMonths,
     exportIrRetentionToCsv,
     exportIrRetentionToPdf,
     fetchCommitmentExecutionReport,
