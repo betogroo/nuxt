@@ -9,8 +9,11 @@ export type UserRole =
   | 'user-election'
   | 'manager-election'
   | 'admin-election'
+  | 'school-user'
+  | 'school-manager'
 export type NavTarget = 'drawer' | 'home' | 'admin-shortcuts'
-export type NavGroup = 'public' | 'management' | 'iirgd' | 'elections' | 'admin' | 'info'
+export type NavGroup =
+  'public' | 'management' | 'iirgd' | 'elections' | 'schools' | 'admin' | 'info'
 
 declare module 'vue-router' {
   interface RouteMeta {

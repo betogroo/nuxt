@@ -31,6 +31,8 @@ export const USER_ROLES_TUPLE = [
   'user-election',
   'manager-election',
   'admin-election',
+  'school-user',
+  'school-manager',
 ] as const
 
 // Admin / Gerenciamento de Usuários

@@ -59,4 +59,8 @@ export const APP_ROUTES = {
     citizenDetail: (id: string) => `/iirgd/citizens/${id}`,
     statusGroup: (group: string) => `/iirgd/status/${group}`,
   },
+
+  schools: {
+    index: '/schools',
+  },
 } as const

@@ -193,4 +193,57 @@ describe('composables/usePermissions', () => {
       expect(canEditIirgdStatus.value).toBe(false)
     })
   })
+
+  describe('Schools permissions', () => {
+    it('evaluates canAccessSchools properly', () => {
+      const { canAccessSchools } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(canAccessSchools()).toBe(true)
+
+      mockProfile.value = { id: 'sm1', role: ROLES.SCHOOL_MANAGER }
+      expect(canAccessSchools()).toBe(true)
+
+      mockProfile.value = { id: 'su1', role: ROLES.SCHOOL_USER }
+      expect(canAccessSchools()).toBe(true)
+
+      mockProfile.value = { id: 'u1', role: ROLES.USER }
+      expect(canAccessSchools()).toBe(false)
+
+      mockProfile.value = { id: 'uge1', role: ROLES.UGE }
+      expect(canAccessSchools()).toBe(false)
+
+      mockProfile.value = null
+      expect(canAccessSchools()).toBe(false)
+    })
+
+    it('evaluates canManageSchools properly', () => {
+      const { canManageSchools } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(canManageSchools()).toBe(true)
+
+      mockProfile.value = { id: 'sm1', role: ROLES.SCHOOL_MANAGER }
+      expect(canManageSchools()).toBe(true)
+
+      mockProfile.value = { id: 'su1', role: ROLES.SCHOOL_USER }
+      expect(canManageSchools()).toBe(false)
+
+      mockProfile.value = { id: 'u1', role: ROLES.USER }
+      expect(canManageSchools()).toBe(false)
+    })
+
+    it('evaluates canDeleteSchools properly', () => {
+      const { canDeleteSchools } = usePermissions()
+
+      mockProfile.value = { id: 'a1', role: ROLES.ADMIN }
+      expect(canDeleteSchools()).toBe(true)
+
+      mockProfile.value = { id: 'sm1', role: ROLES.SCHOOL_MANAGER }
+      expect(canDeleteSchools()).toBe(false)
+
+      mockProfile.value = { id: 'su1', role: ROLES.SCHOOL_USER }
+      expect(canDeleteSchools()).toBe(false)
+    })
+  })
 })

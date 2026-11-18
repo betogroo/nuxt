@@ -58,6 +58,19 @@ describe('useNavLinks', () => {
         },
       },
       {
+        path: '/schools',
+        meta: {
+          icon: 'school',
+          navLabel: 'Escola',
+          navSubtitle: 'Módulo de Gestão Escolar',
+          navColor: 'primary',
+          navGroup: 'schools',
+          navOrder: 1,
+          roles: ['admin', 'school-user', 'school-manager'],
+          showIn: ['drawer', 'home'],
+        },
+      },
+      {
         path: '/users',
         meta: {
           icon: 'mdi-account-group-outline',
@@ -240,6 +253,24 @@ describe('useNavLinks', () => {
     paths = drawerLinks.value.map((l) => l.path)
     expect(paths).toContain('/elections')
     expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/users')
+  })
+
+  it('school roles see only schools and permitted links', () => {
+    mockProfileRef.value = { role: 'school-user' }
+    let { drawerLinks } = useNavLinks()
+    let paths = drawerLinks.value.map((l) => l.path)
+    expect(paths).toContain('/schools')
+    expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/elections')
+    expect(paths).not.toContain('/users')
+
+    mockProfileRef.value = { role: 'school-manager' }
+    ;({ drawerLinks } = useNavLinks())
+    paths = drawerLinks.value.map((l) => l.path)
+    expect(paths).toContain('/schools')
+    expect(paths).not.toContain('/demands')
+    expect(paths).not.toContain('/elections')
     expect(paths).not.toContain('/users')
   })
 })

@@ -2,7 +2,7 @@
   import { useToast } from '~/composables/useToast'
   import type { ProfileRow } from '~/composables/useUsers'
   import { useZodForm } from '~/composables/useZodForm'
-  import { USER_ROLE_CONFIG } from '~/constants/roles'
+  import { USER_ROLE_CONFIG, ROLE_OPTIONS } from '~/constants/roles'
   import {
     adminUserEditSchema,
     adminUserCreateSchema,
@@ -410,16 +410,7 @@
         "
         item-title="title"
         item-value="value"
-        :items="[
-          { title: 'Usuário', value: 'user' },
-          { title: 'UGE', value: 'uge' },
-          { title: 'Administrador', value: 'admin' },
-          { title: 'Usuário IIRGD', value: 'iirgd_user' },
-          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
-          { title: 'Usuário Eleições', value: 'user-election' },
-          { title: 'Gestor Eleições', value: 'manager-election' },
-          { title: 'Administrador Eleições', value: 'admin-election' },
-        ]"
+        :items="ROLE_OPTIONS"
         label="Cargo (Role)"
         persistent-hint
         rounded="lg"
@@ -488,16 +479,7 @@
         :error-messages="createErrors.role"
         item-title="title"
         item-value="value"
-        :items="[
-          { title: 'Usuário', value: 'user' },
-          { title: 'UGE', value: 'uge' },
-          { title: 'Administrador', value: 'admin' },
-          { title: 'Usuário IIRGD', value: 'iirgd_user' },
-          { title: 'Gestor IIRGD', value: 'iirgd_manager' },
-          { title: 'Usuário Eleições', value: 'user-election' },
-          { title: 'Gestor Eleições', value: 'manager-election' },
-          { title: 'Administrador Eleições', value: 'admin-election' },
-        ]"
+        :items="ROLE_OPTIONS"
         label="Cargo (Role)"
         rounded="lg"
         size="md"

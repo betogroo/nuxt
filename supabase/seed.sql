@@ -24,7 +24,13 @@ VALUES (
 'manager@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
 
 ('46a51eef-4de7-4a10-a1c4-e481f9cb3945', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
-'admin@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') 
+'admin@election.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('3b8d14c2-9e5a-4b2a-89a1-0f4a7c8b200b', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'user@school.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', ''),
+
+('9c6e25ad-1fde-45a8-bf2b-2cd9c0be5ef5', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 
+'manager@school.com', crypt('123456', gen_salt('bf')), NOW(), NOW(), '{"provider":"email","providers":["email"]}', '{}', NOW(), NOW(), '', '', '', '') 
 
 ON CONFLICT (id) DO NOTHING;
 
@@ -38,7 +44,9 @@ VALUES
 (gen_random_uuid(), '314eb1aa-8574-4a7f-bd02-fdfe8cd1d8a7', '314eb1aa-8574-4a7f-bd02-fdfe8cd1d8a7', format('{"sub":"%s","email":"%s"}', '314eb1aa-8574-4a7f-bd02-fdfe8cd1d8a7', 'admin@rg.com')::jsonb, 'email', NOW(), NOW(), NOW()),
 (gen_random_uuid(), '05e0416c-c91f-48b6-8cc3-3bf89b80200a', '05e0416c-c91f-48b6-8cc3-3bf89b80200a', format('{"sub":"%s","email":"%s"}', '05e0416c-c91f-48b6-8cc3-3bf89b80200a', 'user@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
 (gen_random_uuid(), '8b57e3ad-0fde-45a8-ae1a-1bd9c0be5ef4', '8b57e3ad-0fde-45a8-ae1a-1bd9c0be5ef4', format('{"sub":"%s","email":"%s"}', '8b57e3ad-0fde-45a8-ae1a-1bd9c0be5ef4', 'manager@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
-(gen_random_uuid(), '46a51eef-4de7-4a10-a1c4-e481f9cb3945', '46a51eef-4de7-4a10-a1c4-e481f9cb3945', format('{"sub":"%s","email":"%s"}', '46a51eef-4de7-4a10-a1c4-e481f9cb3945', 'admin@election.com')::jsonb, 'email', NOW(), NOW(), NOW())
+(gen_random_uuid(), '46a51eef-4de7-4a10-a1c4-e481f9cb3945', '46a51eef-4de7-4a10-a1c4-e481f9cb3945', format('{"sub":"%s","email":"%s"}', '46a51eef-4de7-4a10-a1c4-e481f9cb3945', 'admin@election.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '3b8d14c2-9e5a-4b2a-89a1-0f4a7c8b200b', '3b8d14c2-9e5a-4b2a-89a1-0f4a7c8b200b', format('{"sub":"%s","email":"%s"}', '3b8d14c2-9e5a-4b2a-89a1-0f4a7c8b200b', 'user@school.com')::jsonb, 'email', NOW(), NOW(), NOW()),
+(gen_random_uuid(), '9c6e25ad-1fde-45a8-bf2b-2cd9c0be5ef5', '9c6e25ad-1fde-45a8-bf2b-2cd9c0be5ef5', format('{"sub":"%s","email":"%s"}', '9c6e25ad-1fde-45a8-bf2b-2cd9c0be5ef5', 'manager@school.com')::jsonb, 'email', NOW(), NOW(), NOW())
 ON CONFLICT DO NOTHING;
 
 -- Update created profiles
@@ -50,6 +58,8 @@ UPDATE public.profiles SET role = 'iirgd_manager', name = 'IIRGD Admin', is_acti
 UPDATE public.profiles SET role = 'user-election', name = 'Election User', is_active = true WHERE id = '05e0416c-c91f-48b6-8cc3-3bf89b80200a';
 UPDATE public.profiles SET role = 'manager-election', name = 'Election Manager', is_active = true WHERE id = '8b57e3ad-0fde-45a8-ae1a-1bd9c0be5ef4';
 UPDATE public.profiles SET role = 'admin-election', name = 'Election Admin', is_active = true WHERE id = '46a51eef-4de7-4a10-a1c4-e481f9cb3945';
+UPDATE public.profiles SET role = 'school-user', name = 'School User', is_active = true WHERE id = '3b8d14c2-9e5a-4b2a-89a1-0f4a7c8b200b';
+UPDATE public.profiles SET role = 'school-manager', name = 'School Manager', is_active = true WHERE id = '9c6e25ad-1fde-45a8-bf2b-2cd9c0be5ef5';
 
 insert into
   "public"."measurement_units" (

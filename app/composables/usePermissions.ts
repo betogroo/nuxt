@@ -97,6 +97,33 @@ export function usePermissions() {
     return role === ROLES.ADMIN || role === ROLES.ADMIN_ELECTION
   }
 
+  /**
+   * Determina se o usuário logado tem permissão para acessar o módulo Escola.
+   * Regra: admin, school-manager ou school-user.
+   */
+  const canAccessSchools = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.SCHOOL_MANAGER || role === ROLES.SCHOOL_USER
+  }
+
+  /**
+   * Determina se o usuário logado tem permissão de gestão no módulo Escola.
+   * Regra: admin ou school-manager.
+   */
+  const canManageSchools = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.SCHOOL_MANAGER
+  }
+
+  /**
+   * Determina se o usuário logado tem permissão total (exclusão) no módulo Escola.
+   * Regra: admin.
+   */
+  const canDeleteSchools = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN
+  }
+
   return {
     isAdmin,
     isIirgdUser,
@@ -106,5 +133,8 @@ export function usePermissions() {
     canDeleteDemand,
     canManageElections,
     canDeleteElections,
+    canAccessSchools,
+    canManageSchools,
+    canDeleteSchools,
   }
 }
