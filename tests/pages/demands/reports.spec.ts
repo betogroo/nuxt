@@ -163,18 +163,15 @@ const defaultStubs = {
       <table>
         <tbody>
           <tr v-for="item in items" :key="item.liquidationId || item.commitmentId">
-            <td><slot name="item-management_unit" :item="item" /></td>
-            <td><slot name="item-contractor_cnpj" :item="item" /></td>
-            <td><slot name="item-supplier_cnpj" :item="item" /></td>
-            <td><slot name="item-supplier_name" :item="item" /></td>
+            <td><slot name="item-is_paid" :item="item" /></td>
+            <td><slot name="item-pd_paid_date" :item="item" /></td>
             <td><slot name="item-commitment_number" :item="item" /></td>
-            <td><slot name="item-series" :item="item" /></td>
-            <td><slot name="item-fiscal_doc" :item="item" /></td>
-            <td><slot name="item-payment_date" :item="item" /></td>
-            <td><slot name="item-gross_amount" :item="item" /></td>
-            <td><slot name="item-tax_base_amount" :item="item" /></td>
+            <td><slot name="item-supplier" :item="item" /></td>
+            <td><slot name="item-liquidation_number" :item="item" /></td>
             <td><slot name="item-ir_retention_amount" :item="item" /></td>
-            <td><slot name="item-expense_nature" :item="item" /></td>
+            <td><slot name="item-commitment_amount" :item="item" /></td>
+            <td><slot name="item-pd_ob" :item="item" /></td>
+            <td><slot name="item-demand" :item="item" /></td>
           </tr>
         </tbody>
       </table>
@@ -220,11 +217,9 @@ describe('ReportsPage (/demands/reports)', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Total de Retenção de IR')
-    expect(wrapper.text()).toContain('180297')
-    expect(wrapper.text()).toContain('04.236.548/0074-41')
     expect(wrapper.text()).toContain('FORNECEDOR BETA LTDA')
     expect(wrapper.text()).toContain('2026NE00001')
-    expect(wrapper.text()).toContain('33903000')
+    expect(wrapper.text()).toContain('2026NL00001')
   })
 
   it('triggers CSV export when Exportar CSV button is clicked', async () => {

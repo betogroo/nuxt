@@ -5,7 +5,7 @@
     type IrRetentionReportRow,
     type CommitmentExecutionRow,
   } from '~/composables/useDemandGeneralReports'
-  import { formatCnpj, formatCurrency, formatDate } from '~/utils/formatters'
+  import { formatCurrency, formatDate } from '~/utils/formatters'
   import { APP_ROUTES } from '~/utils/routes'
 
   definePageMeta({
@@ -261,23 +261,20 @@
   }
 
   const irTableHeaders = [
-    { text: 'UG', value: 'management_unit', width: 90 },
-    { text: 'CNPJ Contratante / UG', value: 'contractor_cnpj', width: 170 },
-    { text: 'CNPJ Prestador/Beneficiário', value: 'supplier_cnpj', width: 180 },
-    { text: 'Nome Prestador/Beneficiário', value: 'supplier_name', width: 230 },
-    { text: 'Número NE', value: 'commitment_number', width: 130 },
-    { text: 'Série', value: 'series', align: 'center' as const, width: 80 },
-    { text: 'Doc. Fiscal', value: 'fiscal_doc', align: 'center' as const, width: 110 },
-    { text: 'Data Pgto NFe', value: 'payment_date', width: 130 },
-    { text: 'Valor Bruto', value: 'gross_amount', align: 'right' as const, width: 130 },
-    { text: 'Base Cálculo', value: 'tax_base_amount', align: 'right' as const, width: 130 },
+    { text: 'Pagamento PD', value: 'is_paid', width: 120 },
+    { text: 'Data Pgto PD', value: 'pd_paid_date', width: 110 },
+    { text: 'NE (Empenho)', value: 'commitment_number', width: 130 },
+    { text: 'Fornecedor', value: 'supplier', width: 230 },
+    { text: 'NL (Liquidação)', value: 'liquidation_number', width: 130 },
     {
       text: 'Valor Retenção IR',
       value: 'ir_retention_amount',
       align: 'right' as const,
       width: 140,
     },
-    { text: 'Natureza Despesa', value: 'expense_nature', width: 180 },
+    { text: 'Valor da NE', value: 'commitment_amount', align: 'right' as const, width: 130 },
+    { text: 'PD / OB', value: 'pd_ob', width: 160 },
+    { text: 'Demanda', value: 'demand', width: 200 },
   ]
 
   const execTableHeaders = [
@@ -546,39 +543,30 @@
         </template>
 
         <UiTable :headers="irTableHeaders" :items="filteredIrRows" :loading="irPending">
-          <!-- 1. UNIDADE_GESTORA -->
-          <template #item-management_unit="{ item }">
-            <UiChip color="indigo" label size="sm" variant="soft">
-              {{ (item as unknown as IrRetentionReportRow).managementUnit }}
+          <!-- Status de Pagamento -->
+          <template #item-is_paid="{ item }">
+            <UiChip
+              :color="(item as unknown as IrRetentionReportRow).isPaid ? 'success' : 'warning'"
+              label
+              size="sm"
+              variant="soft"
+            >
+              {{ (item as unknown as IrRetentionReportRow).isPaid ? 'Pago' : 'Pendente' }}
             </UiChip>
           </template>
 
-          <!-- 2. CNPJ_CONTRATANTE / UG -->
-          <template #item-contractor_cnpj="{ item }">
-            <span class="font-mono text-caption">
-              {{ formatCnpj((item as unknown as IrRetentionReportRow).contractorCnpj) }}
-            </span>
-          </template>
-
-          <!-- 3. CNPJ_CPF PRESTADOR/BENEFICIARIO -->
-          <template #item-supplier_cnpj="{ item }">
-            <span class="font-mono text-caption font-weight-medium">
-              {{ (item as unknown as IrRetentionReportRow).supplierCnpjFormatted }}
-            </span>
-          </template>
-
-          <!-- 4. NOME PRESTADOR/BENEFICIARIO -->
-          <template #item-supplier_name="{ item }">
-            <div
-              class="font-weight-medium text-truncate"
-              style="max-width: 220px"
-              :title="(item as unknown as IrRetentionReportRow).supplierName"
+          <!-- Data de Pagamento da PD -->
+          <template #item-pd_paid_date="{ item }">
+            <span
+              v-if="(item as unknown as IrRetentionReportRow).disbursementProgramPaidAt"
+              class="font-weight-medium"
             >
-              {{ (item as unknown as IrRetentionReportRow).supplierName }}
-            </div>
+              {{ formatDate((item as unknown as IrRetentionReportRow).disbursementProgramPaidAt) }}
+            </span>
+            <span v-else class="text-caption text-medium-emphasis"> Aguardando </span>
           </template>
 
-          <!-- 5. NUMERO_ NE -->
+          <!-- NE (Empenho) -->
           <template #item-commitment_number="{ item }">
             <NuxtLink
               class="font-weight-bold text-decoration-none text-primary"
@@ -592,72 +580,64 @@
             </NuxtLink>
           </template>
 
-          <!-- 6. SERIE -->
-          <template #item-series="{ item }">
-            <span>{{ (item as unknown as IrRetentionReportRow).series }}</span>
+          <!-- Fornecedor -->
+          <template #item-supplier="{ item }">
+            <div>
+              <div class="font-weight-medium text-truncate" style="max-width: 220px">
+                {{ (item as unknown as IrRetentionReportRow).supplierName }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                {{ (item as unknown as IrRetentionReportRow).supplierCnpjFormatted }}
+              </div>
+            </div>
           </template>
 
-          <!-- 7. NUMERO DOC FISCAL -->
-          <template #item-fiscal_doc="{ item }">
-            <span class="text-caption text-medium-emphasis">
-              {{ (item as unknown as IrRetentionReportRow).fiscalDocNumber || '-' }}
+          <!-- NL (Liquidação) -->
+          <template #item-liquidation_number="{ item }">
+            <span class="font-weight-bold">
+              {{ (item as unknown as IrRetentionReportRow).liquidationNumber }}
             </span>
           </template>
 
-          <!-- 8. DATA_PAGAMENTO_NFE -->
-          <template #item-payment_date="{ item }">
-            <span
-              v-if="(item as unknown as IrRetentionReportRow).disbursementProgramPaidAt"
-              class="font-weight-medium"
-            >
-              {{ formatDate((item as unknown as IrRetentionReportRow).disbursementProgramPaidAt) }}
-            </span>
-            <UiChip v-else color="warning" label size="sm" variant="soft"> Aguardando </UiChip>
-          </template>
-
-          <!-- 9. VALOR_BRUTO -->
-          <template #item-gross_amount="{ item }">
-            <span>
-              {{ formatCurrency((item as unknown as IrRetentionReportRow).commitmentTotalAmount) }}
-            </span>
-          </template>
-
-          <!-- 10. VALOR_BASE_CALCULO -->
-          <template #item-tax_base_amount="{ item }">
-            <span>
-              {{ formatCurrency((item as unknown as IrRetentionReportRow).commitmentTotalAmount) }}
-            </span>
-          </template>
-
-          <!-- 11. VALOR_RETENCAO_IR -->
+          <!-- Valor de Retenção de IR -->
           <template #item-ir_retention_amount="{ item }">
             <span class="font-weight-bold text-error">
               {{ formatCurrency((item as unknown as IrRetentionReportRow).irRetentionAmount) }}
             </span>
           </template>
 
-          <!-- 12. NATUREZA_DESPESA -->
-          <template #item-expense_nature="{ item }">
-            <div v-if="(item as unknown as IrRetentionReportRow).expenseNatureId">
-              <span class="font-weight-bold">
-                {{ (item as unknown as IrRetentionReportRow).expenseNatureId }}
-              </span>
-              <div
-                v-if="(item as unknown as IrRetentionReportRow).expenseNatureName"
-                class="text-caption text-medium-emphasis text-truncate"
-                style="max-width: 170px"
-                :title="(item as unknown as IrRetentionReportRow).expenseNatureName || ''"
-              >
-                {{ (item as unknown as IrRetentionReportRow).expenseNatureName }}
+          <!-- Valor Total da NE -->
+          <template #item-commitment_amount="{ item }">
+            <span>
+              {{ formatCurrency((item as unknown as IrRetentionReportRow).commitmentTotalAmount) }}
+            </span>
+          </template>
+
+          <!-- PD / OB -->
+          <template #item-pd_ob="{ item }">
+            <div>
+              <div class="font-weight-medium">
+                PD: {{ (item as unknown as IrRetentionReportRow).disbursementProgramNumber || '-' }}
+              </div>
+              <div class="text-caption text-medium-emphasis">
+                OB: {{ (item as unknown as IrRetentionReportRow).bankOrderNumber || '-' }}
               </div>
             </div>
-            <span
-              v-else-if="(item as unknown as IrRetentionReportRow).expenseNatureName"
-              class="text-caption font-weight-medium"
-            >
-              {{ (item as unknown as IrRetentionReportRow).expenseNatureName }}
-            </span>
-            <span v-else class="text-caption text-medium-emphasis">-</span>
+          </template>
+
+          <!-- Demanda -->
+          <template #item-demand="{ item }">
+            <div>
+              <div class="text-truncate font-weight-medium" style="max-width: 190px">
+                {{ (item as unknown as IrRetentionReportRow).demandName }}
+              </div>
+              <div
+                v-if="(item as unknown as IrRetentionReportRow).demandProcessNumber"
+                class="text-caption text-medium-emphasis"
+              >
+                Proc. {{ (item as unknown as IrRetentionReportRow).demandProcessNumber }}
+              </div>
+            </div>
           </template>
         </UiTable>
       </UiCard>
