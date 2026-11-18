@@ -29,8 +29,13 @@
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
+  import DemandBidIntervalsTableModal from '~/components/demands/DemandBidIntervalsTableModal.vue'
   import DemandClassBalanceTableModal from '~/components/demands/DemandClassBalanceTableModal.vue'
   import DemandProductClassBalanceCard from '~/components/demands/DemandProductClassBalanceCard.vue'
+  import {
+    areAllBidIntervalsConfigured,
+    getPendingBidIntervalItems,
+  } from '~/utils/demandBidIntervalsTable'
   import { calculateSingleClassBalance } from '~/utils/demandClassBalanceTable'
   import { downloadDemandFolderBatch } from '~/utils/demandFolderBatch'
   import { downloadDemandCatalogCsv } from '~/utils/demandCatalogCsv'
@@ -1029,6 +1034,31 @@
     isTermsTableModalOpen.value = true
   }
 
+  const isBidIntervalsTableModalOpen = ref(false)
+  const canGenerateBidIntervalsTable = computed(() => {
+    return areAllBidIntervalsConfigured(items.value || [])
+  })
+  const pendingBidIntervalsCount = computed(() => {
+    return getPendingBidIntervalItems(items.value || []).length
+  })
+  const handleGenerateBidIntervalsTable = () => {
+    if (!canGenerateBidIntervalsTable.value) {
+      if (!items.value || items.value.length === 0) {
+        toast.warning('A demanda não possui itens cadastrados.')
+        return
+      }
+      toast.warning(
+        `Informe o intervalo de lances de todos os itens antes de gerar a tabela. Há ${pendingBidIntervalsCount.value} item(ns) pendente(s).`,
+      )
+      return
+    }
+    isBidIntervalsTableModalOpen.value = true
+    logAction(
+      'GENERATE_BID_INTERVALS_TABLE',
+      `Abriu a tabela de intervalos entre lances na demanda "${demand.value?.name || demandId}"`,
+    )
+  }
+
   const isClassBalanceTableModalOpen = ref(false)
   const handleGenerateClassBalanceTable = () => {
     isClassBalanceTableModalOpen.value = true
@@ -1305,6 +1335,20 @@
                       subtitle="Tabela padronizada para TR"
                       title="Termo de Referência"
                       @click="handleGenerateTermsTable"
+                    />
+                    <UiListItem
+                      data-testid="menu-item-bid-intervals-table"
+                      :disabled="!canGenerateBidIntervalsTable"
+                      prepend-icon="timer"
+                      :subtitle="
+                        canGenerateBidIntervalsTable
+                          ? 'Tabela padronizada para disputa'
+                          : items?.length === 0
+                            ? 'Nenhum item cadastrado'
+                            : `${pendingBidIntervalsCount} item(ns) sem intervalo`
+                      "
+                      title="Intervalos entre Lances"
+                      @click="handleGenerateBidIntervalsTable"
                     />
                     <UiListItem
                       prepend-icon="recordsList"
@@ -3464,6 +3508,13 @@
     <!-- Modal de Tabela para Termo de Referência (Compras.gov.br) -->
     <DemandTermsOfReferenceTableModal
       v-model="isTermsTableModalOpen"
+      :demand-title="demand?.name"
+      :items="items || []"
+    />
+
+    <!-- Modal de Tabela de Intervalos entre Lances (Compras.gov.br) -->
+    <DemandBidIntervalsTableModal
+      v-model="isBidIntervalsTableModalOpen"
       :demand-title="demand?.name"
       :items="items || []"
     />

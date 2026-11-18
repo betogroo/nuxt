@@ -1232,4 +1232,69 @@ describe('Demand Items Page', () => {
       expect(mockToast.success).toHaveBeenCalledWith('Catálogo CSV exportado com sucesso!')
     })
   })
+
+  describe('Bid Intervals Table Menu Item and Modal', () => {
+    it('disables access and warns when items have missing bid intervals', async () => {
+      mockDemandData.value = { id: 'demand-123', name: 'Demanda de Teste' }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          demand_id: 'demand-123',
+          product: { id: 'p1', name: 'Item Sem Intervalo' },
+          reference_price: 10,
+          bid_interval: null,
+          bid_interval_type: null,
+        },
+      ]
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.canGenerateBidIntervalsTable).toBe(false)
+      expect(vm.pendingBidIntervalsCount).toBe(1)
+
+      vm.handleGenerateBidIntervalsTable()
+
+      expect(mockToast.warning).toHaveBeenCalledWith(
+        expect.stringContaining('Informe o intervalo de lances de todos os itens'),
+      )
+      expect(vm.isBidIntervalsTableModalOpen).toBe(false)
+    })
+
+    it('enables access, opens modal and logs action when all items have bid intervals', async () => {
+      mockDemandData.value = { id: 'demand-123', name: 'Demanda de Teste' }
+      mockDemandProducts.value = [
+        {
+          id: 'item-1',
+          demand_id: 'demand-123',
+          product: { id: 'p1', name: 'Item Configurado' },
+          reference_price: 10,
+          bid_interval: 0.05,
+          bid_interval_type: 'monetary',
+        },
+        {
+          id: 'item-2',
+          demand_id: 'demand-123',
+          product: { id: 'p2', name: 'Item 2 Configurado' },
+          reference_price: 20,
+          bid_interval: 1,
+          bid_interval_type: 'percentage',
+        },
+      ]
+      const wrapper = shallowMount(DemandItemsPage)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const vm = wrapper.vm as any
+
+      expect(vm.canGenerateBidIntervalsTable).toBe(true)
+      expect(vm.pendingBidIntervalsCount).toBe(0)
+
+      vm.handleGenerateBidIntervalsTable()
+
+      expect(vm.isBidIntervalsTableModalOpen).toBe(true)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'GENERATE_BID_INTERVALS_TABLE',
+        expect.stringContaining('Abriu a tabela de intervalos entre lances'),
+      )
+    })
+  })
 })
