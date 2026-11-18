@@ -221,26 +221,37 @@
         <UiAlert class="mb-4" size="sm" type="info" variant="soft">
           <div class="font-weight-medium mb-1">Como colar os dados:</div>
           <div class="text-caption">
-            Cole as linhas diretamente do Excel, Google Sheets, CSV ou texto. O sistema aceita CNPJ
-            com ou sem pontuação. Separadores aceitos: <strong>Tabulação</strong>,
-            <strong>Ponto e vírgula (;)</strong>, <strong>Vírgula (,)</strong> ou
-            <strong>Hífen ( - )</strong>. Caso um CNPJ já esteja cadastrado no sistema, ele será
-            identificado e ignorado automaticamente.
+            Cole os dados diretamente do <strong>Compras.gov.br</strong> (blocos com CNPJ, porte
+            ME/EPP e linhas de julgamento) ou de planilhas
+            <strong>Excel / Google Sheets / CSV</strong>. O sistema identifica e descarta
+            automaticamente linhas de ruído (portes, contagens de itens), sanitiza o nome da empresa
+            retirando prefixos de CNPJ/MEI e ignora fornecedores já cadastrados.
           </div>
         </UiAlert>
 
         <UiCard class="mb-3" variant="outline">
           <div class="pa-3">
             <div class="text-caption font-weight-bold text-medium-emphasis mb-2">
-              Exemplo de formato esperado:
+              Exemplos de formatos aceitos:
             </div>
             <pre
               class="text-caption text-grey-darken-1 bg-grey-lighten-4 pa-2 rounded"
               style="overflow-x: auto; font-family: monospace"
             >
+1) Cópia do Compras.gov.br (blocos multilinhas):
+10.879.466/0001-62
+ME/EPP
+E. RENATA P. L. LUNARDI PAPELARIA E ARMARINHOS
+Itens julgados:
+1 de 1
+
+65.120.864/0001-92
+ME/EPP
+65.120.864 LUIZ EDUARDO LUNA
+
+2) Linha única (Excel, CSV ou texto):
 00.000.000/0001-91	Empresa Alpha Ltda
-11222333000144 - Beta Serviços ME
-Gama Distribuidora; 33.000.167/0001-01</pre>
+11222333000144 - Beta Serviços ME</pre>
           </div>
         </UiCard>
 
@@ -248,8 +259,8 @@ Gama Distribuidora; 33.000.167/0001-01</pre>
           v-model="rawText"
           class="mb-3"
           hide-details="auto"
-          label="Cole a lista de fornecedores aqui (um por linha)"
-          placeholder="00.000.000/0001-91&#9;Empresa Exemplo LTDA&#10;33000167000101&#9;Beta Distribuidora ME"
+          label="Cole a lista de fornecedores aqui"
+          placeholder="Cole aqui o texto copiado do Compras.gov.br ou as linhas da planilha..."
           :rows="10"
           variant="outline"
         />

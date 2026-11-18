@@ -109,6 +109,42 @@ describe('SupplierBatchAddModal', () => {
     expect(invalidItem).toBeDefined()
   })
 
+  it('processa corretamente texto multilinha do Compras.gov.br e sanitiza nomes', async () => {
+    const wrapper = shallowMount(SupplierBatchAddModal, {
+      props: {
+        modelValue: true,
+      },
+    })
+    const vm = wrapper.vm as unknown as {
+      rawText: string
+      hasParsed: boolean
+      readyItems: Array<{ cnpj: string; company_name: string; isValid: boolean }>
+      handleProcessText: () => Promise<void>
+    }
+
+    vm.rawText = `65.120.864/0001-92
+ME/EPP
+65.120.864 LUIZ EDUARDO LUNA
+Itens julgados:
+1 de 1
+
+57.215.203/0001-12
+ME/EPP
+57.215.203 ELIUDE VINICIOS SILVA
+Itens julgados:
+0 de 0`
+
+    await vm.handleProcessText()
+    await flushPromises()
+
+    expect(vm.hasParsed).toBe(true)
+    expect(vm.readyItems).toHaveLength(2)
+    expect(vm.readyItems[0].cnpj).toBe('65.120.864/0001-92')
+    expect(vm.readyItems[0].company_name).toBe('LUIZ EDUARDO LUNA')
+    expect(vm.readyItems[1].cnpj).toBe('57.215.203/0001-12')
+    expect(vm.readyItems[1].company_name).toBe('ELIUDE VINICIOS SILVA')
+  })
+
   it('permite retornar à edição com handleBackToEdit', async () => {
     const wrapper = shallowMount(SupplierBatchAddModal, {
       props: {

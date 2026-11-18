@@ -155,18 +155,44 @@ export function cleanSupplierName(rawName: string | null | undefined, cleanCnpj?
     const root = cleanCnpj.slice(0, 8)
     const formattedRoot = `${root.slice(0, 2)}.${root.slice(2, 5)}.${root.slice(5, 8)}`
 
-    const regex = new RegExp(`^(${formattedRoot.replace(/\./g, '\\.')}|${root})[\\s\\-–—:]+`, 'i')
-    if (regex.test(cleaned)) {
-      cleaned = cleaned.replace(regex, '').trim()
+    // Remove CNPJ completo correspondente ao cleanCnpj (formatado ou sem pontuação)
+    if (cleanCnpj.length === 14) {
+      const formattedFull = `${formattedRoot}/${cleanCnpj.slice(8, 12)}-${cleanCnpj.slice(12, 14)}`
+      const fullRegex = new RegExp(
+        `^(${formattedFull.replace(/\./g, '\\.')}|${cleanCnpj})[\\s\\-–—:;./]*`,
+        'i',
+      )
+      if (fullRegex.test(cleaned)) {
+        cleaned = cleaned.replace(fullRegex, '').trim()
+      }
+    }
+
+    // Remove raiz de 8 dígitos correspondente ao cleanCnpj (formatada ou sem pontuação)
+    const rootRegex = new RegExp(
+      `^(${formattedRoot.replace(/\./g, '\\.')}|${root})[\\s\\-–—:;./]*`,
+      'i',
+    )
+    if (rootRegex.test(cleaned)) {
+      cleaned = cleaned.replace(rootRegex, '').trim()
     }
   }
 
-  const genericRootRegex = /^\d{2}\.\d{3}\.\d{3}[\s\-–—:]+/
+  // Remoção genérica de CNPJ completo no início (formatado ou sem pontuação)
+  const genericFullRegex = /^(?:\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}|\d{14})[\s\-–—:;./]*/
+  if (genericFullRegex.test(cleaned)) {
+    cleaned = cleaned.replace(genericFullRegex, '').trim()
+  }
+
+  // Remoção genérica de raiz de CNPJ de 8 dígitos no início (formatada ou 8 dígitos isolados)
+  const genericRootRegex = /^(?:\d{2}\.\d{3}\.\d{3}|\b\d{8}\b)[\s\-–—:;./]*/
   if (genericRootRegex.test(cleaned)) {
     cleaned = cleaned.replace(genericRootRegex, '').trim()
   }
 
-  cleaned = cleaned.replace(/^[\s\-–—:;]+|[\s\-–—:;]+$/g, '').trim()
+  cleaned = cleaned
+    .replace(/^[\s\-–—:;./]+/, '')
+    .replace(/[\s\-–—:;]+$/, '')
+    .trim()
 
   return cleaned || rawName.trim()
 }

@@ -136,4 +136,154 @@ describe('parseBatchSuppliersText', () => {
     expect(result.readyCount).toBe(1)
     expect(result.ignoredCount).toBe(1)
   })
+
+  it('parseia corretamente blocos multilinhas do Compras.gov.br e sanitiza os nomes retirando o CNPJ', () => {
+    const text = `10.879.466/0001-62
+ME/EPP
+E. RENATA P. L. LUNARDI PAPELARIA E ARMARINHOS
+Itens julgados:
+1 de 1
+
+53.249.470/0001-50
+ME/EPP
+SISTECNICA INFORMATICA E SERVICOS LTDA
+Itens julgados:
+1 de 1
+
+65.120.864/0001-92
+ME/EPP
+65.120.864 LUIZ EDUARDO LUNA
+Itens julgados:
+1 de 1
+
+66.621.367/0001-30
+ME/EPP
+66.621.367 RENAN TIAGO PEREIRA DE OLIVEIRA
+Itens julgados:
+1 de 1
+
+57.070.703/0001-03
+ME/EPP
+KIRE COMERCIO DE UTILIDADES LTDA
+Itens julgados:
+1 de 1
+
+57.215.203/0001-12
+ME/EPP
+57.215.203 ELIUDE VINICIOS SILVA
+Itens julgados:
+0 de 0
+
+65.189.221/0001-03
+ME/EPP
+ALVORADA DISTRIBUIDORA E PRESTACAO DE SERVICOS LTDA
+Itens julgados:
+0 de 0
+
+59.632.454/0001-28
+ME/EPP
+59.632.454 ENZO BRITO FREITAS
+Itens julgados:
+0 de 0
+
+36.469.275/0001-16
+ME/EPP
+SO BATERIAS - COMERCIO DE BATERIAS LTDA
+Itens julgados:
+0 de 0`
+
+    const result = parseBatchSuppliersText(text)
+
+    expect(result.items).toHaveLength(9)
+    expect(result.readyCount).toBe(9)
+    expect(result.ignoredCount).toBe(0)
+
+    expect(result.items[0]).toMatchObject({
+      cnpj: '10.879.466/0001-62',
+      cleanCnpj: '10879466000162',
+      company_name: 'E. RENATA P. L. LUNARDI PAPELARIA E ARMARINHOS',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[1]).toMatchObject({
+      cnpj: '53.249.470/0001-50',
+      cleanCnpj: '53249470000150',
+      company_name: 'SISTECNICA INFORMATICA E SERVICOS LTDA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[2]).toMatchObject({
+      cnpj: '65.120.864/0001-92',
+      cleanCnpj: '65120864000192',
+      company_name: 'LUIZ EDUARDO LUNA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[3]).toMatchObject({
+      cnpj: '66.621.367/0001-30',
+      cleanCnpj: '66621367000130',
+      company_name: 'RENAN TIAGO PEREIRA DE OLIVEIRA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[4]).toMatchObject({
+      cnpj: '57.070.703/0001-03',
+      cleanCnpj: '57070703000103',
+      company_name: 'KIRE COMERCIO DE UTILIDADES LTDA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[5]).toMatchObject({
+      cnpj: '57.215.203/0001-12',
+      cleanCnpj: '57215203000112',
+      company_name: 'ELIUDE VINICIOS SILVA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[6]).toMatchObject({
+      cnpj: '65.189.221/0001-03',
+      cleanCnpj: '65189221000103',
+      company_name: 'ALVORADA DISTRIBUIDORA E PRESTACAO DE SERVICOS LTDA',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[7]).toMatchObject({
+      cnpj: '59.632.454/0001-28',
+      cleanCnpj: '59632454000128',
+      company_name: 'ENZO BRITO FREITAS',
+      isValid: true,
+      status: 'ready',
+    })
+
+    expect(result.items[8]).toMatchObject({
+      cnpj: '36.469.275/0001-16',
+      cleanCnpj: '36469275000116',
+      company_name: 'SO BATERIAS - COMERCIO DE BATERIAS LTDA',
+      isValid: true,
+      status: 'ready',
+    })
+  })
+
+  it('sanitiza nome da empresa no formato linha única retirando prefixo de CNPJ ou raiz MEI', () => {
+    const text = [
+      '65.120.864/0001-92\t65.120.864 LUIZ EDUARDO LUNA',
+      '66.621.367/0001-30 - 66.621.367/0001-30 RENAN TIAGO PEREIRA DE OLIVEIRA',
+      '57215203000112; 57215203 ELIUDE VINICIOS SILVA',
+    ].join('\n')
+
+    const result = parseBatchSuppliersText(text)
+
+    expect(result.items).toHaveLength(3)
+    expect(result.readyCount).toBe(3)
+    expect(result.items[0].company_name).toBe('LUIZ EDUARDO LUNA')
+    expect(result.items[1].company_name).toBe('RENAN TIAGO PEREIRA DE OLIVEIRA')
+    expect(result.items[2].company_name).toBe('ELIUDE VINICIOS SILVA')
+  })
 })
