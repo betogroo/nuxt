@@ -93,6 +93,12 @@ describe('useDemandGeneralReports', () => {
           liquidationCreatedAt: '2026-04-10T10:00:00Z',
           commitmentId: 'ne-1',
           commitmentNumber: '2026NE00001',
+          managementUnit: '180297',
+          contractorCnpj: '04236548007441',
+          series: '1',
+          fiscalDocNumber: '',
+          expenseNatureId: '33903000',
+          expenseNatureName: 'MATERIAL DE CONSUMO',
           disbursementProgramNumber: '2026PD00001',
           disbursementProgramIssuedAt: '2026-04-12',
           disbursementProgramPaidAt: '2026-04-24',
@@ -118,6 +124,12 @@ describe('useDemandGeneralReports', () => {
           liquidationCreatedAt: '2026-04-15T10:00:00Z',
           commitmentId: 'ne-1',
           commitmentNumber: '2026NE00001',
+          managementUnit: '180297',
+          contractorCnpj: '04236548007441',
+          series: '1',
+          fiscalDocNumber: '',
+          expenseNatureId: '33903000',
+          expenseNatureName: 'MATERIAL DE CONSUMO',
           disbursementProgramNumber: null,
           disbursementProgramIssuedAt: null,
           disbursementProgramPaidAt: null,
@@ -143,6 +155,12 @@ describe('useDemandGeneralReports', () => {
           liquidationCreatedAt: '2026-04-18T10:00:00Z',
           commitmentId: 'ne-2',
           commitmentNumber: '2026NE00002',
+          managementUnit: '180297',
+          contractorCnpj: '04236548007441',
+          series: '1',
+          fiscalDocNumber: '',
+          expenseNatureId: '33903900',
+          expenseNatureName: 'OUTROS SERVICOS DE TERCEIROS - PJ',
           disbursementProgramNumber: '2026PD00002',
           disbursementProgramIssuedAt: '2026-04-20',
           disbursementProgramPaidAt: '2026-04-25',
@@ -238,6 +256,10 @@ describe('useDemandGeneralReports', () => {
       expect(rows[0].disbursementProgramPaidAt).toBe('2026-04-24')
       expect(rows[0].commitmentNumber).toBe('2026NE00050')
       expect(rows[0].supplierName).toBe('SUPPLIER TEST')
+      expect(rows[0].managementUnit).toBe('180297')
+      expect(rows[0].contractorCnpj).toBe('04236548007441')
+      expect(rows[0].series).toBe('1')
+      expect(rows[0].fiscalDocNumber).toBe('')
 
       expect(summary.totalIrRetentionAmount).toBe(72)
       expect(summary.totalCommitmentAmount).toBe(1500)
@@ -293,7 +315,7 @@ describe('useDemandGeneralReports', () => {
   })
 
   describe('exportIrRetentionToCsv', () => {
-    it('should generate CSV with UTF-8 BOM, semicolon delimiter and trigger download', () => {
+    it('should generate CSV with UTF-8 BOM, semicolon delimiter and trigger download following the 12-column standard', () => {
       const { exportIrRetentionToCsv } = useDemandGeneralReports()
 
       const rows: IrRetentionReportRow[] = [
@@ -306,6 +328,12 @@ describe('useDemandGeneralReports', () => {
           liquidationCreatedAt: '2026-04-10T10:00:00Z',
           commitmentId: 'c1',
           commitmentNumber: '2026NE00001',
+          managementUnit: '180297',
+          contractorCnpj: '04236548007441',
+          series: '1',
+          fiscalDocNumber: '',
+          expenseNatureId: '33903000',
+          expenseNatureName: 'MATERIAL DE CONSUMO',
           disbursementProgramNumber: '2026PD00001',
           disbursementProgramIssuedAt: '2026-04-12',
           disbursementProgramPaidAt: '2026-04-24',
@@ -329,9 +357,12 @@ describe('useDemandGeneralReports', () => {
       expect(downloadFileMock).toHaveBeenCalledTimes(1)
       const [csvContent, filename] = downloadFileMock.mock.calls[0]
       expect(csvContent.startsWith('\uFEFF')).toBe(true)
-      expect(csvContent).toContain('2026NE00001')
-      expect(csvContent).toContain('2026NL00001')
-      expect(csvContent).toContain('48,00')
+      expect(csvContent).toContain(
+        'UNIDADE_GESTORA;CNPJ_CONTRATANTE / UG;CNPJ_CPF PRESTADOR/BENEFICIARIO;NOME PRESTADOR/BENEFICIARIO;NUMERO_ NE;SERIE;NUMERO DOC FISCAL;DATA_PAGAMENTO_NFE;VALOR_BRUTO;VALOR_BASE_CALCULO;VALOR_RETENCAO_IR;NATUREZA_DESPESA',
+      )
+      expect(csvContent).toContain(
+        '180297;04236548007441;12345678000199;FORNECEDOR TESTE;2026NE00001;1;;24/04/2026;1000,00;1000,00;48,00;33903000',
+      )
       expect(filename).toContain('teste-ir')
     })
   })
@@ -350,6 +381,12 @@ describe('useDemandGeneralReports', () => {
           liquidationCreatedAt: '2026-04-10T10:00:00Z',
           commitmentId: 'c1',
           commitmentNumber: '2026NE00001',
+          managementUnit: '180297',
+          contractorCnpj: '04236548007441',
+          series: '1',
+          fiscalDocNumber: '',
+          expenseNatureId: '33903000',
+          expenseNatureName: 'MATERIAL DE CONSUMO',
           disbursementProgramNumber: '2026PD00001',
           disbursementProgramIssuedAt: '2026-04-12',
           disbursementProgramPaidAt: '2026-04-24',

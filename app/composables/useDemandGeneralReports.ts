@@ -1,6 +1,6 @@
 import type { Database } from '~/types/database.types'
 import { downloadFile } from '~/utils/download'
-import { escapeCsvField } from '~/utils/reportCsv'
+import { escapeCsvField, formatUnquotedCsvField } from '~/utils/reportCsv'
 import { toSafeFilename } from '~/utils/reportFilename'
 import {
   appendPageFooters,
@@ -12,6 +12,10 @@ import { formatCnpj, formatCurrency, formatDate } from '~/utils/formatters'
 import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 import { normalizeSiafemNumber } from '~/schemas/forms/commitment'
 
+export const DEFAULT_MANAGEMENT_UNIT = '180297'
+export const DEFAULT_CONTRACTOR_CNPJ = '04236548007441'
+export const DEFAULT_DOC_SERIES = '1'
+
 export interface IrRetentionReportRow {
   liquidationId: string
   liquidationNumber: string
@@ -21,6 +25,12 @@ export interface IrRetentionReportRow {
   liquidationCreatedAt: string
   commitmentId: string
   commitmentNumber: string
+  managementUnit: string
+  contractorCnpj: string
+  series: string
+  fiscalDocNumber: string
+  expenseNatureId: string | null
+  expenseNatureName: string | null
   disbursementProgramNumber: string | null
   disbursementProgramIssuedAt: string | null
   disbursementProgramPaidAt: string | null
@@ -199,6 +209,10 @@ export const useDemandGeneralReports = () => {
             bank_order_number,
             bank_order_issued_at,
             bank_order_paid_at,
+            expense_nature:expense_natures!expense_nature_id (
+              id,
+              name
+            ),
             supplier:suppliers!supplier_id (
               id,
               company_name,
@@ -220,7 +234,7 @@ export const useDemandGeneralReports = () => {
       supabase
         .from('demand_products')
         .select(
-          'id, commitment_number, quantity, execution_status, demand_product_bids(id, supplier_id, amount, status, created_at)',
+          'id, commitment_number, quantity, execution_status, product:products(expense_nature_id, expense_natures(id, name)), demand_product_bids(id, supplier_id, amount, status, created_at)',
         )
         .not('commitment_number', 'is', null),
     ])
@@ -248,6 +262,30 @@ export const useDemandGeneralReports = () => {
       }>,
     )
 
+    const expenseNaturesByCommitment = new Map<string, { id: string | null; name: string | null }>()
+    for (const item of (itemsResponse.data || []) as unknown as Array<{
+      commitment_number: string | null
+      product?: {
+        expense_nature_id?: string | null
+        expense_natures?: { id: string; name: string } | null
+      } | null
+    }>) {
+      const num = item.commitment_number ? normalizeSiafemNumber(item.commitment_number) : null
+      if (!num || expenseNaturesByCommitment.has(num)) continue
+      const prodNature = item.product?.expense_natures
+      if (prodNature?.id || prodNature?.name) {
+        expenseNaturesByCommitment.set(num, {
+          id: prodNature.id || null,
+          name: prodNature.name || null,
+        })
+      } else if (item.product?.expense_nature_id) {
+        expenseNaturesByCommitment.set(num, {
+          id: item.product.expense_nature_id,
+          name: null,
+        })
+      }
+    }
+
     const rawRows = (liquidationsResponse.data ?? []) as unknown as Array<{
       id: string
       liquidation_number: string
@@ -267,6 +305,10 @@ export const useDemandGeneralReports = () => {
         bank_order_number: string | null
         bank_order_issued_at: string | null
         bank_order_paid_at: string | null
+        expense_nature: {
+          id: string
+          name: string
+        } | null
         supplier: {
           id: string
           company_name: string
@@ -293,6 +335,9 @@ export const useDemandGeneralReports = () => {
         ? normalizeSiafemNumber(commitment.commitment_number)
         : null
       const commitmentTotal = normalizedNE ? totalsByCommitment.get(normalizedNE)?.total || 0 : 0
+      const fallbackNature = normalizedNE ? expenseNaturesByCommitment.get(normalizedNE) : null
+      const expenseNatureId = commitment?.expense_nature?.id || fallbackNature?.id || null
+      const expenseNatureName = commitment?.expense_nature?.name || fallbackNature?.name || null
 
       return {
         liquidationId: item.id,
@@ -303,6 +348,12 @@ export const useDemandGeneralReports = () => {
         liquidationCreatedAt: item.created_at,
         commitmentId: commitment?.id ?? '',
         commitmentNumber: commitment?.commitment_number ?? '-',
+        managementUnit: DEFAULT_MANAGEMENT_UNIT,
+        contractorCnpj: DEFAULT_CONTRACTOR_CNPJ,
+        series: DEFAULT_DOC_SERIES,
+        fiscalDocNumber: '',
+        expenseNatureId,
+        expenseNatureName,
         disbursementProgramNumber: commitment?.disbursement_program_number ?? null,
         disbursementProgramIssuedAt: commitment?.disbursement_program_issued_at ?? null,
         disbursementProgramPaidAt: paidDate,
@@ -370,42 +421,42 @@ export const useDemandGeneralReports = () => {
     filenamePrefix = 'relatorio-retencao-ir',
   ): void => {
     const headers = [
-      'Status Pagamento PD',
-      'Data Pagamento PD',
-      'NE (Empenho)',
-      'Fornecedor',
-      'CNPJ',
-      'Optante Simples',
-      'NL (Liquidação)',
-      'Valor Retenção IR (R$)',
-      'Valor Total da NE (R$)',
-      'PD (Programa Desembolso)',
-      'OB (Ordem Bancária)',
-      'Demanda',
-      'Processo',
-      'Data Cadastro NL',
+      'UNIDADE_GESTORA',
+      'CNPJ_CONTRATANTE / UG',
+      'CNPJ_CPF PRESTADOR/BENEFICIARIO',
+      'NOME PRESTADOR/BENEFICIARIO',
+      'NUMERO_ NE',
+      'SERIE',
+      'NUMERO DOC FISCAL',
+      'DATA_PAGAMENTO_NFE',
+      'VALOR_BRUTO',
+      'VALOR_BASE_CALCULO',
+      'VALOR_RETENCAO_IR',
+      'NATUREZA_DESPESA',
     ]
 
-    const csvLines = [headers.map(escapeCsvField).join(';')]
+    const csvLines = [headers.join(';')]
 
     for (const r of rows) {
+      const supplierCnpjClean = r.supplierCnpj ? r.supplierCnpj.replace(/\D/g, '') : ''
+      const paymentDate = r.disbursementProgramPaidAt ? formatDate(r.disbursementProgramPaidAt) : ''
+      const natureValue = r.expenseNatureId || r.expenseNatureName || '-'
+
       const line = [
-        r.isPaid ? 'Pago' : 'Pendente',
-        r.disbursementProgramPaidAt ? formatDate(r.disbursementProgramPaidAt) : 'Pendente',
-        r.commitmentNumber,
+        r.managementUnit || DEFAULT_MANAGEMENT_UNIT,
+        r.contractorCnpj || DEFAULT_CONTRACTOR_CNPJ,
+        supplierCnpjClean,
         r.supplierName,
-        r.supplierCnpjFormatted,
-        r.isSimplesOptant ? 'Sim' : 'Não',
-        r.liquidationNumber,
-        r.irRetentionAmount.toFixed(2).replace('.', ','),
+        r.commitmentNumber,
+        r.series || DEFAULT_DOC_SERIES,
+        r.fiscalDocNumber || '',
+        paymentDate,
         r.commitmentTotalAmount.toFixed(2).replace('.', ','),
-        r.disbursementProgramNumber || '-',
-        r.bankOrderNumber || '-',
-        r.demandName,
-        r.demandProcessNumber || '-',
-        formatDate(r.liquidationCreatedAt),
+        r.commitmentTotalAmount.toFixed(2).replace('.', ','),
+        r.irRetentionAmount.toFixed(2).replace('.', ','),
+        natureValue,
       ]
-      csvLines.push(line.map(escapeCsvField).join(';'))
+      csvLines.push(line.map(formatUnquotedCsvField).join(';'))
     }
 
     const csvContent = '\uFEFF' + csvLines.join('\r\n')
