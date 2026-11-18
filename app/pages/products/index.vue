@@ -286,12 +286,13 @@
             <UiButton
               color="secondary"
               prepend-icon="playlistAdd"
+              size="sm"
               variant="soft"
               @click="isBatchModalOpen = true"
             >
               Adicionar em Lote
             </UiButton>
-            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
+            <UiButton color="primary" prepend-icon="add" size="sm" @click="openAddModal">
               Novo Produto
             </UiButton>
           </div>

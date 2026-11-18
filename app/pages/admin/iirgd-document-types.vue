@@ -152,7 +152,7 @@
             variant="soft"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="add" @click="openCreateModal">
+          <UiButton color="primary" prepend-icon="add" size="sm" @click="openCreateModal">
             Novo Tipo
           </UiButton>
         </template>

@@ -1224,6 +1224,7 @@
     <UiButton
       class="mb-4"
       prepend-icon="arrowLeft"
+      size="sm"
       to="/demands"
       variant="ghost"
       @click="router.push('/demands')"
@@ -1855,7 +1856,7 @@
                   {{ disputeSummary.desertedCount }} deserto(s)
                 </UiChip>
               </div>
-              <div class="ml-auto d-flex flex-wrap ga-2">
+              <div class="ml-auto d-flex align-center flex-wrap ga-2">
                 <UiButton
                   v-if="isExecutionPhase && canWorkOnDemand"
                   color="primary"
@@ -1874,6 +1875,7 @@
                   v-if="demand?.status === 'quotation'"
                   color="secondary"
                   prepend-icon="balance"
+                  size="sm"
                   variant="soft"
                   @click="handleGenerateClassBalanceTable"
                 >
@@ -1883,6 +1885,7 @@
                   v-if="demand?.status === 'quotation' && canWorkOnDemand"
                   color="primary"
                   prepend-icon="add"
+                  size="sm"
                   @click="openAddModal"
                 >
                   Adicionar Produto

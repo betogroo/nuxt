@@ -331,7 +331,7 @@
               variant="soft"
               @click="refreshUnits"
             />
-            <UiButton color="primary" prepend-icon="add" @click="openAddModal"
+            <UiButton color="primary" prepend-icon="add" size="sm" @click="openAddModal"
               >Nova Unidade</UiButton
             >
           </div>
@@ -392,7 +392,7 @@
               variant="soft"
               @click="refreshAliases"
             />
-            <UiButton color="primary" prepend-icon="add" @click="openAddAliasModal"
+            <UiButton color="primary" prepend-icon="add" size="sm" @click="openAddAliasModal"
               >Novo Registro</UiButton
             >
           </div>

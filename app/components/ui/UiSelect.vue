@@ -39,16 +39,36 @@
   const vuetifyVariant = computed(() => {
     const map: Record<UiVariant, string> = {
       solid: 'solo',
+      flat: 'solo',
+      elevated: 'solo',
       outline: 'outlined',
+      outlined: 'outlined',
       ghost: 'plain',
+      text: 'plain',
+      plain: 'plain',
       soft: 'filled',
+      tonal: 'filled',
     }
-    return props.variant ? map[props.variant] : 'outlined'
+    return props.variant ? map[props.variant] || 'outlined' : 'outlined'
   })
 
   const vuetifyDensity = computed(() => {
-    if (props.size === 'sm' || props.size === 'xs') return 'compact'
-    if (props.size === 'lg' || props.size === 'xl') return 'default'
+    if (
+      props.size === 'sm' ||
+      props.size === 'small' ||
+      props.size === 'xs' ||
+      props.size === 'x-small'
+    ) {
+      return 'compact'
+    }
+    if (
+      props.size === 'lg' ||
+      props.size === 'large' ||
+      props.size === 'xl' ||
+      props.size === 'x-large'
+    ) {
+      return 'default'
+    }
     return 'comfortable'
   })
 

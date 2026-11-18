@@ -220,7 +220,7 @@
             variant="soft"
             @click="refresh"
           />
-          <UiButton color="primary" prepend-icon="addUserSolid" @click="openAddModal"
+          <UiButton color="primary" prepend-icon="addUserSolid" size="sm" @click="openAddModal"
             >Novo Usuário</UiButton
           >
         </div>

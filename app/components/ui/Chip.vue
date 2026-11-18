@@ -22,23 +22,32 @@
     const map: Record<UiVariant, string> = {
       solid: 'flat',
       flat: 'flat',
+      elevated: 'elevated',
       outline: 'outlined',
       outlined: 'outlined',
       ghost: 'text',
+      text: 'text',
+      plain: 'plain',
       soft: 'tonal',
+      tonal: 'tonal',
     }
-    return props.variant ? map[props.variant] : undefined
+    return props.variant ? map[props.variant] || props.variant : undefined
   })
 
   const vuetifySize = computed(() => {
     const map: Record<UiSize, string> = {
       xs: 'x-small',
+      'x-small': 'x-small',
       sm: 'small',
+      small: 'small',
       md: 'default',
+      default: 'default',
       lg: 'large',
+      large: 'large',
       xl: 'x-large',
+      'x-large': 'x-large',
     }
-    return props.size ? map[props.size] : undefined
+    return props.size ? map[props.size] || props.size : undefined
   })
 
   const mappedAttrs = computed(() => {

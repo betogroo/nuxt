@@ -165,7 +165,7 @@
               variant="soft"
               @click="refresh"
             />
-            <UiButton color="primary" prepend-icon="add" @click="openAddModal">
+            <UiButton color="primary" prepend-icon="add" size="sm" @click="openAddModal">
               Nova Classe
             </UiButton>
           </div>

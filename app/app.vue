@@ -8,6 +8,21 @@
 </template>
 
 <style>
+  @layer vuetify-core, vuetify-components, vuetify-overrides, vuetify-utilities, vuetify-final;
+
+  /* Blindagem global para .v-btn contra inversão de @layer (button { font: inherit }) no Vuetify 4 */
+  .v-btn {
+    font-size: var(--v-btn-size, 0.875rem) !important;
+    line-height: normal !important;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0.0178571429em;
+  }
+
+  .v-btn.v-btn--density-default:not(.v-btn--icon):not(.v-btn--stacked) {
+    height: var(--v-btn-height, 36px);
+  }
+
   /* Decoupled flexbox gap utilities */
   .gap-0 {
     gap: 0px !important;

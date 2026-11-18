@@ -21,13 +21,17 @@
   const vuetifyVariant = computed(() => {
     const map: Record<UiVariant, string> = {
       solid: 'elevated',
+      elevated: 'elevated',
       flat: 'flat',
       outline: 'outlined',
       outlined: 'outlined',
       ghost: 'text',
+      text: 'text',
+      plain: 'plain',
       soft: 'tonal',
+      tonal: 'tonal',
     }
-    return props.variant ? map[props.variant] : undefined
+    return props.variant ? map[props.variant] || props.variant : undefined
   })
 
   const vuetifyRounded = computed(() => {
@@ -52,10 +56,10 @@
     <v-card-title
       v-if="title || $slots.header"
       :class="[
-        'd-flex align-center px-5 pt-5 pb-3 flex-wrap ga-2',
+        'd-flex align-center px-5 pt-5 pb-3 flex-wrap ga-2 text-subtitle-1',
         transparentHeader ? 'text-high-emphasis' : 'text-primary font-weight-semibold',
       ]"
-      style="white-space: normal"
+      style="white-space: normal; line-height: 1.5"
     >
       <slot name="header">
         {{ title }}
@@ -82,5 +86,9 @@
 <style scoped>
   .ui-card {
     border: 1px solid rgba(var(--v-border-color), 0.08);
+  }
+
+  .ui-card :deep(.v-card-title .v-btn) {
+    align-self: center;
   }
 </style>

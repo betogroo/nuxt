@@ -28,25 +28,34 @@
   const vuetifySize = computed(() => {
     const map: Record<UiSize, string> = {
       xs: 'x-small',
+      'x-small': 'x-small',
       sm: 'small',
+      small: 'small',
       md: 'default',
+      default: 'default',
       lg: 'large',
+      large: 'large',
       xl: 'x-large',
+      'x-large': 'x-large',
     }
-    return props.size ? map[props.size] : undefined
+    return props.size ? map[props.size] || props.size : 'default'
   })
 
   const vuetifyVariant = computed(() => {
     const map: Record<UiVariant, string> = {
       solid: 'flat',
       flat: 'flat',
+      elevated: 'elevated',
       outline: 'outlined',
       outlined: 'outlined',
       ghost: 'text',
+      text: 'text',
+      plain: 'plain',
       soft: 'tonal',
+      tonal: 'tonal',
     }
     const defaultVariant = props.icon ? 'ghost' : 'soft'
-    return props.variant ? map[props.variant] : map[defaultVariant]
+    return props.variant ? map[props.variant] || props.variant : map[defaultVariant]
   })
 
   const vuetifyRounded = computed(() => {
