@@ -46,6 +46,7 @@ export const iconMap = {
   deleteOutline: 'mdi-delete-outline',
   arrowLeft: 'mdi-arrow-left',
   arrowRight: 'mdi-arrow-right',
+  arrowForward: 'mdi-arrow-right',
   close: 'mdi-close',
   externalLink: 'mdi-open-in-new',
   delete: 'mdi-delete',

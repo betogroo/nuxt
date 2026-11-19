@@ -7,6 +7,11 @@ describe('components/ui/icons', () => {
       expect(iconMap.clipboardClock).toBe('mdi-clipboard-clock-outline')
     })
 
+    it('maps arrowForward and arrowRight to valid mdi right arrow icons', () => {
+      expect(iconMap.arrowForward).toBe('mdi-arrow-right')
+      expect(iconMap.arrowRight).toBe('mdi-arrow-right')
+    })
+
     it('contains valid mdi mappings for demands dashboard KPI cards', () => {
       const demandKpiIcons = ['recordsList', 'clipboardClock', 'balance', 'check'] as const
       for (const icon of demandKpiIcons) {
