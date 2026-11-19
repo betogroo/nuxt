@@ -51,7 +51,7 @@ export const iconMap = {
   delete: 'mdi-delete',
   arrowLeftBold: 'mdi-arrow-left-bold',
   logout: 'mdi-logout',
-  clipboardClock: 'mdi-clipboard-text-clock-outline',
+  clipboardClock: 'mdi-clipboard-clock-outline',
   check: 'mdi-check',
   alert: 'mdi-alert-circle-outline',
   clockAlert: 'mdi-clock-alert-outline',
