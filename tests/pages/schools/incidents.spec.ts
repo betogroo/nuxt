@@ -97,7 +97,6 @@ describe('Schools Incidents Page', () => {
           UiTable: true,
           UiButton: true,
           SchoolIncidentFormModal: true,
-          SchoolIncidentDetailsModal: true,
         },
       },
     })
@@ -171,7 +170,7 @@ describe('Schools Incidents Page', () => {
     expect(vm.filteredIncidents).toHaveLength(0)
   })
 
-  it('opens and closes form and details modals', () => {
+  it('opens form modal', () => {
     const wrapper = shallowMount(IncidentsPage, {
       global: {
         stubs: {
@@ -185,20 +184,12 @@ describe('Schools Incidents Page', () => {
 
     const vm = wrapper.vm as unknown as {
       isFormModalOpen: boolean
-      isDetailsModalOpen: boolean
-      selectedIncident: SchoolIncident | null
       openFormModal: () => void
-      openDetailsModal: (incident: SchoolIncident) => void
     }
 
     expect(vm.isFormModalOpen).toBe(false)
     vm.openFormModal()
     expect(vm.isFormModalOpen).toBe(true)
-
-    expect(vm.isDetailsModalOpen).toBe(false)
-    vm.openDetailsModal(mockIncidentsList[0])
-    expect(vm.isDetailsModalOpen).toBe(true)
-    expect(vm.selectedIncident).toEqual(mockIncidentsList[0])
   })
 
   it('unsubscribes from realtime channel on unmount', () => {
@@ -227,7 +218,6 @@ describe('Schools Incidents Page', () => {
           UiTable: true,
           UiButton: true,
           SchoolIncidentFormModal: true,
-          SchoolIncidentDetailsModal: true,
         },
       },
     })

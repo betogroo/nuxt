@@ -7,7 +7,6 @@
   import { SCHOOL_INCIDENT_STATUS_MAP } from '~/constants/school-incidents'
   import type { SchoolIncident, SchoolIncidentStatus } from '~/types/school'
   import SchoolIncidentFormModal from '~/components/schools/SchoolIncidentFormModal.vue'
-  import SchoolIncidentDetailsModal from '~/components/schools/SchoolIncidentDetailsModal.vue'
 
   definePageMeta({
     middleware: ['schools'],
@@ -34,29 +33,9 @@
   const selectedStatusFilter = ref<string>('all')
 
   const isFormModalOpen = ref(false)
-  const isDetailsModalOpen = ref(false)
-  const selectedIncident = ref<SchoolIncident | null>(null)
 
   const openFormModal = () => {
     isFormModalOpen.value = true
-  }
-
-  const openDetailsModal = (incident: SchoolIncident) => {
-    selectedIncident.value = incident
-    isDetailsModalOpen.value = true
-  }
-
-  const handleIncidentUpdated = async () => {
-    await fetchIncidents()
-    if (selectedIncident.value) {
-      const refreshed = incidents.value.find((i) => i.id === selectedIncident.value?.id)
-      if (refreshed) selectedIncident.value = refreshed
-    }
-  }
-
-  const handleIncidentDeleted = async () => {
-    await fetchIncidents()
-    selectedIncident.value = null
   }
 
   const filteredIncidents = computed(() => {
@@ -276,7 +255,12 @@
         <!-- Título -->
         <template #item-title="{ item }">
           <div class="py-1">
-            <span class="font-weight-medium text-body-2">{{ item.title }}</span>
+            <NuxtLink
+              class="font-weight-medium text-body-2 text-decoration-none text-primary hover-underline"
+              :to="`/schools/incidents/${item.id}`"
+            >
+              {{ item.title }}
+            </NuxtLink>
             <div class="text-caption text-medium-emphasis text-truncate" style="max-width: 320px">
               {{ item.description }}
             </div>
@@ -373,8 +357,8 @@
             color="primary"
             prepend-icon="eye"
             size="xs"
+            :to="`/schools/incidents/${item.id}`"
             variant="ghost"
-            @click="openDetailsModal(item as unknown as SchoolIncident)"
           >
             Abrir
           </UiButton>
@@ -400,13 +384,5 @@
 
     <!-- Modal de Formulário (Nova Ocorrência) -->
     <SchoolIncidentFormModal v-model="isFormModalOpen" @saved="fetchIncidents" />
-
-    <!-- Modal de Detalhes da Ocorrência -->
-    <SchoolIncidentDetailsModal
-      v-model="isDetailsModalOpen"
-      :incident="selectedIncident"
-      @deleted="handleIncidentDeleted"
-      @updated="handleIncidentUpdated"
-    />
   </div>
 </template>
