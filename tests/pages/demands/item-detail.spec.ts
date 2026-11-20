@@ -344,21 +344,62 @@ describe('Demand Item Detail Page - Bid Classification & Disqualification', () =
     expect(mockUpdateBidStatus).not.toHaveBeenCalled()
   })
 
-  it('identifies best bid as classified and subsequent valid bids as apto', () => {
+  it('identifies best bid as classified and subsequent valid bids as apto during dispute', () => {
+    mockItemData.value.demand.status = 'dispute'
     const wrapper = shallowMount(ItemDetailPage)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const vm = wrapper.vm as any
 
     // bid-1 (amount 80) is winning bid; bid-2 (amount 90) is second place
+    expect(vm.isDisputeClosed).toBe(false)
     expect(vm.winningBid?.id).toBe('bid-1')
     expect(
       formatBidStatus(mockBidsData.value[0].status, {
         isWinning: vm.winningBid?.id === mockBidsData.value[0].id,
+        isDisputeClosed: vm.isDisputeClosed,
       }),
     ).toBe('Classificado')
     expect(
       formatBidStatus(mockBidsData.value[1].status, {
         isWinning: vm.winningBid?.id === mockBidsData.value[1].id,
+        isDisputeClosed: vm.isDisputeClosed,
+      }),
+    ).toBe('Apto')
+  })
+
+  it('marks non-winning valid bids as "Não Vencedor" when dispute is closed and unlocks status changes upon returning to dispute', () => {
+    mockItemData.value.demand.status = 'homologation'
+    const wrapperHomologation = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vmHomologation = wrapperHomologation.vm as any
+
+    expect(vmHomologation.isDisputeClosed).toBe(true)
+    expect(vmHomologation.canManageBidStatus).toBe(false)
+    expect(
+      formatBidStatus(mockBidsData.value[0].status, {
+        isWinning: vmHomologation.winningBid?.id === mockBidsData.value[0].id,
+        isDisputeClosed: vmHomologation.isDisputeClosed,
+      }),
+    ).toBe('Classificado')
+    expect(
+      formatBidStatus(mockBidsData.value[1].status, {
+        isWinning: vmHomologation.winningBid?.id === mockBidsData.value[1].id,
+        isDisputeClosed: vmHomologation.isDisputeClosed,
+      }),
+    ).toBe('Não Vencedor')
+
+    // Return demand status to dispute
+    mockItemData.value.demand.status = 'dispute'
+    const wrapperDispute = shallowMount(ItemDetailPage)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vmDispute = wrapperDispute.vm as any
+
+    expect(vmDispute.isDisputeClosed).toBe(false)
+    expect(vmDispute.canManageBidStatus).toBe(true)
+    expect(
+      formatBidStatus(mockBidsData.value[1].status, {
+        isWinning: vmDispute.winningBid?.id === mockBidsData.value[1].id,
+        isDisputeClosed: vmDispute.isDisputeClosed,
       }),
     ).toBe('Apto')
   })

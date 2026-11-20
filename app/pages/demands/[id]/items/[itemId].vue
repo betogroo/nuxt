@@ -247,6 +247,8 @@
       item.value?.demand?.status === 'homologation' || item.value?.demand?.status === 'completed',
   )
 
+  const isDisputeClosed = computed(() => isHomologatedOrCompleted.value)
+
   const hasExecution = computed(() => isHomologatedOrCompleted.value && !!winningBid.value)
 
   const currentExecutionStatus = computed<DemandItemExecutionStatus>(() => {
@@ -295,8 +297,8 @@
     suppliers.value = list
   }
 
-  onMounted(() => {
-    fetchSuppliersList()
+  onMounted(async () => {
+    await Promise.all([fetchSuppliersList(), refresh(), refreshBids()])
   })
 
   const isBidModalOpen = ref(false)
@@ -1236,11 +1238,21 @@
           <template #item-status="{ item: bid }">
             <div class="d-flex flex-column align-center">
               <UiChip
-                :color="getBidStatusColor(bid.status, { isWinning: winningBid?.id === bid.id })"
+                :color="
+                  getBidStatusColor(bid.status, {
+                    isWinning: winningBid?.id === bid.id,
+                    isDisputeClosed,
+                  })
+                "
                 size="sm"
                 variant="soft"
               >
-                {{ formatBidStatus(bid.status, { isWinning: winningBid?.id === bid.id }) }}
+                {{
+                  formatBidStatus(bid.status, {
+                    isWinning: winningBid?.id === bid.id,
+                    isDisputeClosed,
+                  })
+                }}
               </UiChip>
               <div
                 v-if="bid.status === 'disqualified' && bid.disqualification_reason"

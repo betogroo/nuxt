@@ -73,32 +73,41 @@ export function getWinningBid<T extends BidItem>(bids: T[] | null | undefined): 
 
 export interface FormatBidStatusOptions {
   isWinning?: boolean
+  isDisputeClosed?: boolean
 }
 
 /**
  * Formata o rótulo de exibição do status do lance.
  * - 'disqualified' -> 'Desclassificado'
- * - Caso isWinning seja false (demais lances válidos após o 1º colocado) -> 'Apto'
+ * - Caso isWinning seja false (demais lances válidos após o 1º colocado):
+ *   - isDisputeClosed === true -> 'Não Vencedor'
+ *   - Caso contrário -> 'Apto'
  * - Caso contrário (1º colocado / vencedor ou padrão) -> 'Classificado'
  */
 export function formatBidStatus(status?: string | null, options?: FormatBidStatusOptions): string {
   if (status === 'disqualified') return 'Desclassificado'
-  if (options?.isWinning === false) return 'Apto'
+  if (options?.isWinning === false) {
+    return options?.isDisputeClosed ? 'Não Vencedor' : 'Apto'
+  }
   return 'Classificado'
 }
 
 /**
  * Retorna a cor semântica correspondente ao status do lance.
  * - 'disqualified' -> 'error'
- * - isWinning === false -> 'info'
+ * - isWinning === false:
+ *   - isDisputeClosed === true -> 'default'
+ *   - Caso contrário -> 'info'
  * - Caso contrário -> 'success'
  */
 export function getBidStatusColor(
   status?: string | null,
   options?: FormatBidStatusOptions,
-): 'error' | 'success' | 'info' {
+): 'error' | 'success' | 'info' | 'default' {
   if (status === 'disqualified') return 'error'
-  if (options?.isWinning === false) return 'info'
+  if (options?.isWinning === false) {
+    return options?.isDisputeClosed ? 'default' : 'info'
+  }
   return 'success'
 }
 

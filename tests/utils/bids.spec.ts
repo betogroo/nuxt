@@ -125,6 +125,38 @@ describe('utils/bids', () => {
       expect(formatBidStatus('disqualified', { isWinning: false })).toBe('Desclassificado')
       expect(getBidStatusColor('disqualified', { isWinning: false })).toBe('error')
     })
+
+    it('formats non-winning valid bids as "Não Vencedor" with default color when dispute is closed', () => {
+      expect(formatBidStatus('classified', { isWinning: true, isDisputeClosed: true })).toBe(
+        'Classificado',
+      )
+      expect(getBidStatusColor('classified', { isWinning: true, isDisputeClosed: true })).toBe(
+        'success',
+      )
+
+      expect(formatBidStatus('classified', { isWinning: false, isDisputeClosed: true })).toBe(
+        'Não Vencedor',
+      )
+      expect(getBidStatusColor('classified', { isWinning: false, isDisputeClosed: true })).toBe(
+        'default',
+      )
+
+      // When dispute returns to open (isDisputeClosed: false), non-winning valid bids return to 'Apto'
+      expect(formatBidStatus('classified', { isWinning: false, isDisputeClosed: false })).toBe(
+        'Apto',
+      )
+      expect(getBidStatusColor('classified', { isWinning: false, isDisputeClosed: false })).toBe(
+        'info',
+      )
+
+      // Disqualified bids remain 'Desclassificado' when dispute is closed
+      expect(formatBidStatus('disqualified', { isWinning: false, isDisputeClosed: true })).toBe(
+        'Desclassificado',
+      )
+      expect(getBidStatusColor('disqualified', { isWinning: false, isDisputeClosed: true })).toBe(
+        'error',
+      )
+    })
   })
 
   describe('getItemSubtotal', () => {
