@@ -111,4 +111,39 @@ describe('UiButton', () => {
     expect(vBtn.exists()).toBe(true)
     expect(vBtn.props('appendIcon')).toBe('mdi-arrow-right')
   })
+
+  it('routes icon prop to prepend-icon when default slot is present', () => {
+    const wrapper = mount(UiButton, {
+      props: {
+        icon: 'add',
+      },
+      slots: {
+        default: 'Nova Ocorrência',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const vBtn = wrapper.findComponent({ name: 'VBtn' })
+    expect(vBtn.exists()).toBe(true)
+    expect(vBtn.props('icon')).toBe(false)
+    expect(vBtn.props('prependIcon')).toBe('mdi-plus')
+    expect(wrapper.text()).toContain('Nova Ocorrência')
+  })
+
+  it('preserves icon as icon-only button when no default slot is present', () => {
+    const wrapper = mount(UiButton, {
+      props: {
+        icon: 'delete',
+      },
+      global: {
+        plugins: [vuetify],
+      },
+    })
+
+    const vBtn = wrapper.findComponent({ name: 'VBtn' })
+    expect(vBtn.exists()).toBe(true)
+    expect(vBtn.props('icon')).toBe('mdi-delete')
+  })
 })

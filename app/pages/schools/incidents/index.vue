@@ -12,7 +12,7 @@
   definePageMeta({
     middleware: ['schools'],
     layout: 'default',
-    icon: 'school',
+    icon: 'alert',
     navLabel: 'Ocorrências',
     navSubtitle: 'Registro e acompanhamento de ocorrências escolares',
     navGroup: 'schools',
@@ -168,7 +168,13 @@
       title="Ocorrências Escolares"
     >
       <template #actions>
-        <UiButton color="primary" icon="plus" size="md" variant="solid" @click="openFormModal">
+        <UiButton
+          color="primary"
+          prepend-icon="add"
+          size="md"
+          variant="solid"
+          @click="openFormModal"
+        >
           Nova Ocorrência
         </UiButton>
       </template>
@@ -184,7 +190,7 @@
             density="compact"
             hide-details
             placeholder="Buscar por título, aluno, sala ou autor..."
-            prepend-inner-icon="magnify"
+            prepend-inner-icon="search"
             variant="outline"
           />
         </UiCol>
@@ -365,7 +371,7 @@
         <template #item-actions="{ item }">
           <UiButton
             color="primary"
-            icon="eye"
+            prepend-icon="eye"
             size="xs"
             variant="ghost"
             @click="openDetailsModal(item as unknown as SchoolIncident)"
@@ -378,7 +384,13 @@
         <template #empty>
           <div class="d-flex flex-column align-center gap-3 py-6">
             <span class="text-body-2 text-medium-emphasis"> Nenhuma ocorrência encontrada. </span>
-            <UiButton color="primary" icon="plus" size="sm" variant="solid" @click="openFormModal">
+            <UiButton
+              color="primary"
+              prepend-icon="add"
+              size="sm"
+              variant="solid"
+              @click="openFormModal"
+            >
               Cadastrar Primeira Ocorrência
             </UiButton>
           </div>

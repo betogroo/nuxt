@@ -116,7 +116,7 @@
               <span class="text-error font-weight-regular text-caption">* (mínimo 1)</span>
             </h3>
           </div>
-          <UiButton icon="plus" size="sm" variant="outline" @click="addOffender">
+          <UiButton prepend-icon="add" size="sm" variant="outline" @click="addOffender">
             Adicionar Ofensor
           </UiButton>
         </div>
@@ -166,7 +166,7 @@
               <span class="text-medium-emphasis font-weight-regular text-caption">(opcional)</span>
             </h3>
           </div>
-          <UiButton icon="plus" size="sm" variant="outline" @click="addVictim">
+          <UiButton prepend-icon="add" size="sm" variant="outline" @click="addVictim">
             Adicionar Vítima
           </UiButton>
         </div>

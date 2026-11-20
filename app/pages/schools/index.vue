@@ -74,7 +74,13 @@
             <UiIcon class="mr-1" name="school" size="18" />
             {{ roleConfig.label }}
           </UiChip>
-          <UiButton color="primary" icon="plus" size="md" variant="solid" @click="openFormModal">
+          <UiButton
+            color="primary"
+            prepend-icon="add"
+            size="md"
+            variant="solid"
+            @click="openFormModal"
+          >
             Nova Ocorrência
           </UiButton>
         </div>
@@ -133,7 +139,7 @@
               </UiButton>
               <UiButton
                 color="primary"
-                icon="plus"
+                prepend-icon="add"
                 size="sm"
                 variant="solid"
                 @click="openFormModal"

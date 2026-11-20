@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import { computed, useAttrs } from 'vue'
+  import { computed, useAttrs, useSlots } from 'vue'
   import { iconMap, type IconName } from './icons'
   import type { UiVariant, UiColor, UiSize, UiRounded } from '~/types/ui'
 
@@ -17,12 +17,21 @@
   }>()
 
   const attrs = useAttrs()
+  const slots = useSlots()
+
+  const hasDefaultSlot = computed(() => Boolean(slots.default))
 
   const mappedIcon = computed(() => {
     if (typeof props.icon === 'string' && props.icon in iconMap) {
       return iconMap[props.icon as IconName]
     }
     return props.icon
+  })
+
+  const isIconButton = computed(() => {
+    if (props.icon === true) return true
+    if (props.icon && !hasDefaultSlot.value) return mappedIcon.value
+    return false
   })
 
   const vuetifySize = computed(() => {
@@ -72,6 +81,16 @@
         newAttrs[prop] = iconMap[newAttrs[prop] as IconName]
       }
     }
+
+    if (
+      typeof props.icon === 'string' &&
+      hasDefaultSlot.value &&
+      !newAttrs['prepend-icon'] &&
+      !newAttrs.prependIcon
+    ) {
+      newAttrs['prepend-icon'] = mappedIcon.value
+    }
+
     return newAttrs
   })
 </script>
@@ -82,7 +101,7 @@
       <v-btn
         :color="color || 'primary'"
         :disabled="disabled"
-        :icon="mappedIcon"
+        :icon="isIconButton"
         :rounded="vuetifyRounded"
         :size="vuetifySize"
         :variant="vuetifyVariant"
@@ -98,7 +117,7 @@
     v-else
     :color="color || 'primary'"
     :disabled="disabled"
-    :icon="mappedIcon"
+    :icon="isIconButton"
     :rounded="vuetifyRounded"
     :size="vuetifySize"
     :variant="vuetifyVariant"
