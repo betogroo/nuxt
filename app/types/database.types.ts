@@ -1,31 +1,6 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+﻿export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       ballot_boxes: {
@@ -43,6 +18,7 @@ export type Database = {
           name: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           created_by?: string | null
@@ -75,18 +51,21 @@ export type Database = {
           {
             foreignKeyName: 'ballot_boxes_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'ballot_boxes_current_voter_id_fkey'
             columns: ['current_voter_id']
+            isOneToOne: false
             referencedRelation: 'election_voters'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'ballot_boxes_election_id_fkey'
             columns: ['election_id']
+            isOneToOne: false
             referencedRelation: 'elections'
             referencedColumns: ['id']
           },
@@ -103,6 +82,7 @@ export type Database = {
           photo_url: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           candidate_number: string
           created_at?: string
@@ -127,6 +107,7 @@ export type Database = {
           {
             foreignKeyName: 'candidates_election_id_fkey'
             columns: ['election_id']
+            isOneToOne: false
             referencedRelation: 'elections'
             referencedColumns: ['id']
           },
@@ -145,6 +126,7 @@ export type Database = {
           liquidation_number: string
           observation: string | null
         }
+        ComputedFields: never
         Insert: {
           commitment_id: string
           created_at?: string
@@ -173,6 +155,7 @@ export type Database = {
           {
             foreignKeyName: 'demand_commitment_liquidations_commitment_id_fkey'
             columns: ['commitment_id']
+            isOneToOne: false
             referencedRelation: 'demand_commitments'
             referencedColumns: ['id']
           },
@@ -203,6 +186,7 @@ export type Database = {
           supplier_id: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           bank_order_issued_at?: string | null
           bank_order_number?: string | null
@@ -255,18 +239,21 @@ export type Database = {
           {
             foreignKeyName: 'demand_commitments_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_commitments_expense_nature_id_fkey'
             columns: ['expense_nature_id']
+            isOneToOne: false
             referencedRelation: 'expense_natures'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_commitments_supplier_id_fkey'
             columns: ['supplier_id']
+            isOneToOne: false
             referencedRelation: 'suppliers'
             referencedColumns: ['id']
           },
@@ -283,6 +270,7 @@ export type Database = {
           observation: string | null
           status: Database['public']['Enums']['demand_item_execution_status']
         }
+        ComputedFields: never
         Insert: {
           commitment_number?: string | null
           created_at?: string
@@ -307,12 +295,14 @@ export type Database = {
           {
             foreignKeyName: 'demand_item_status_history_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_item_status_history_demand_product_id_fkey'
             columns: ['demand_product_id']
+            isOneToOne: false
             referencedRelation: 'demand_products'
             referencedColumns: ['id']
           },
@@ -329,6 +319,7 @@ export type Database = {
           status: Database['public']['Enums']['bid_status']
           supplier_id: string
         }
+        ComputedFields: never
         Insert: {
           amount: number
           created_at?: string
@@ -353,18 +344,21 @@ export type Database = {
           {
             foreignKeyName: 'demand_product_bids_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_demand_product_id_fkey'
             columns: ['demand_product_id']
+            isOneToOne: false
             referencedRelation: 'demand_products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_product_bids_supplier_id_fkey'
             columns: ['supplier_id']
+            isOneToOne: false
             referencedRelation: 'suppliers'
             referencedColumns: ['id']
           },
@@ -395,6 +389,7 @@ export type Database = {
           unit_name_snapshot: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           alias_code_snapshot?: number | null
           alias_id?: string | null
@@ -447,24 +442,28 @@ export type Database = {
           {
             foreignKeyName: 'demand_products_alias_id_fkey'
             columns: ['alias_id']
+            isOneToOne: false
             referencedRelation: 'measurement_unit_aliases'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_product_id_fkey'
             columns: ['product_id']
+            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_products_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -476,6 +475,7 @@ export type Database = {
           demand_id: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           demand_id: string
@@ -490,12 +490,14 @@ export type Database = {
           {
             foreignKeyName: 'demand_responsibles_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'demands'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'demand_responsibles_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -523,6 +525,7 @@ export type Database = {
           updated_at: string
           user_id: string
         }
+        ComputedFields: never
         Insert: {
           bidding_notice_number?: string | null
           contract_number?: string | null
@@ -569,6 +572,7 @@ export type Database = {
           {
             foreignKeyName: 'demands_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -585,6 +589,7 @@ export type Database = {
           sort_order: number
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           created_by?: string | null
@@ -609,12 +614,14 @@ export type Database = {
           {
             foreignKeyName: 'election_committee_members_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_committee_members_election_id_fkey'
             columns: ['election_id']
+            isOneToOne: false
             referencedRelation: 'elections'
             referencedColumns: ['id']
           },
@@ -631,6 +638,7 @@ export type Database = {
           voter_id: string | null
           voter_registration_number: string
         }
+        ComputedFields: never
         Insert: {
           ballot_box_id?: string | null
           created_at?: string
@@ -655,24 +663,28 @@ export type Database = {
           {
             foreignKeyName: 'election_voter_attendance_ballot_box_id_fkey'
             columns: ['ballot_box_id']
+            isOneToOne: false
             referencedRelation: 'ballot_boxes'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_voter_attendance_election_id_fkey'
             columns: ['election_id']
+            isOneToOne: false
             referencedRelation: 'elections'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_voter_attendance_released_by_fkey'
             columns: ['released_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_voter_attendance_voter_id_fkey'
             columns: ['voter_id']
+            isOneToOne: false
             referencedRelation: 'election_voters'
             referencedColumns: ['id']
           },
@@ -687,6 +699,7 @@ export type Database = {
           updated_at: string
           voter_registration_number: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -719,6 +732,7 @@ export type Database = {
           voter_name: string | null
           voter_registration_number: string | null
         }
+        ComputedFields: never
         Insert: {
           ballot_box_id?: string | null
           candidate_id?: string | null
@@ -749,24 +763,28 @@ export type Database = {
           {
             foreignKeyName: 'election_votes_ballot_box_id_fkey'
             columns: ['ballot_box_id']
+            isOneToOne: false
             referencedRelation: 'ballot_boxes'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_votes_candidate_id_fkey'
             columns: ['candidate_id']
+            isOneToOne: false
             referencedRelation: 'candidates'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_votes_election_id_fkey'
             columns: ['election_id']
+            isOneToOne: false
             referencedRelation: 'elections'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'election_votes_voter_id_fkey'
             columns: ['voter_id']
+            isOneToOne: false
             referencedRelation: 'election_voters'
             referencedColumns: ['id']
           },
@@ -788,6 +806,7 @@ export type Database = {
           updated_at: string
           voting_mode: Database['public']['Enums']['election_voting_mode']
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           created_by?: string | null
@@ -822,6 +841,7 @@ export type Database = {
           {
             foreignKeyName: 'elections_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -836,6 +856,7 @@ export type Database = {
           name: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id: string
@@ -865,6 +886,7 @@ export type Database = {
           rg: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           cpf?: string | null
           created_at?: string
@@ -889,6 +911,7 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_citizens_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -903,6 +926,7 @@ export type Database = {
           observation: string | null
           status: Database['public']['Enums']['iirgd_demand_status']
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           created_by?: string | null
@@ -923,12 +947,14 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_demand_status_history_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demand_status_history_demand_id_fkey'
             columns: ['demand_id']
+            isOneToOne: false
             referencedRelation: 'iirgd_demands'
             referencedColumns: ['id']
           },
@@ -946,6 +972,7 @@ export type Database = {
           status: Database['public']['Enums']['iirgd_demand_status']
           updated_at: string | null
         }
+        ComputedFields: never
         Insert: {
           citizen_id: string
           created_at?: string | null
@@ -972,18 +999,21 @@ export type Database = {
           {
             foreignKeyName: 'iirgd_demands_citizen_id_fkey'
             columns: ['citizen_id']
+            isOneToOne: false
             referencedRelation: 'iirgd_citizens'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demands_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'iirgd_demands_document_type_id_fkey'
             columns: ['document_type_id']
+            isOneToOne: false
             referencedRelation: 'iirgd_document_types'
             referencedColumns: ['id']
           },
@@ -998,6 +1028,7 @@ export type Database = {
           name: string
           updated_at: string | null
         }
+        ComputedFields: never
         Insert: {
           created_at?: string | null
           id?: string
@@ -1025,6 +1056,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
         }
+        ComputedFields: never
         Insert: {
           alert_days?: number
           delay_days?: number
@@ -1051,6 +1083,7 @@ export type Database = {
           id: string
           user_id: string | null
         }
+        ComputedFields: never
         Insert: {
           action: string
           created_at?: string
@@ -1069,6 +1102,7 @@ export type Database = {
           {
             foreignKeyName: 'logs_user_id_fkey'
             columns: ['user_id']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1081,6 +1115,7 @@ export type Database = {
           id: string
           unit_id: string
         }
+        ComputedFields: never
         Insert: {
           alias_id: string
           created_at?: string
@@ -1097,12 +1132,14 @@ export type Database = {
           {
             foreignKeyName: 'measurement_unit_alias_links_alias_id_fkey'
             columns: ['alias_id']
+            isOneToOne: false
             referencedRelation: 'measurement_unit_aliases'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'measurement_unit_alias_links_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -1117,6 +1154,7 @@ export type Database = {
           name: string
           unit_id: string | null
         }
+        ComputedFields: never
         Insert: {
           code: number
           created_at?: string
@@ -1137,6 +1175,7 @@ export type Database = {
           {
             foreignKeyName: 'measurement_unit_aliases_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -1151,6 +1190,7 @@ export type Database = {
           name: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1178,6 +1218,7 @@ export type Database = {
           name: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1205,6 +1246,7 @@ export type Database = {
           updated_at: string
           value: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1225,12 +1267,14 @@ export type Database = {
           {
             foreignKeyName: 'product_characteristics_key_id_fkey'
             columns: ['key_id']
+            isOneToOne: false
             referencedRelation: 'product_characteristic_keys'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'product_characteristics_product_id_fkey'
             columns: ['product_id']
+            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
@@ -1245,6 +1289,7 @@ export type Database = {
           name: string
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id: string
@@ -1270,6 +1315,7 @@ export type Database = {
           product_id: string
           unit_id: string
         }
+        ComputedFields: never
         Insert: {
           created_at?: string
           id?: string
@@ -1286,12 +1332,14 @@ export type Database = {
           {
             foreignKeyName: 'product_units_product_id_fkey'
             columns: ['product_id']
+            isOneToOne: false
             referencedRelation: 'products'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'product_units_unit_id_fkey'
             columns: ['unit_id']
+            isOneToOne: false
             referencedRelation: 'measurement_units'
             referencedColumns: ['id']
           },
@@ -1310,6 +1358,7 @@ export type Database = {
           product_class_id: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           cat_bec?: number | null
           cat_mat?: number | null
@@ -1338,12 +1387,14 @@ export type Database = {
           {
             foreignKeyName: 'products_expense_nature_id_fkey'
             columns: ['expense_nature_id']
+            isOneToOne: false
             referencedRelation: 'expense_natures'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'products_product_class_id_fkey'
             columns: ['product_class_id']
+            isOneToOne: false
             referencedRelation: 'product_classes'
             referencedColumns: ['id']
           },
@@ -1360,6 +1411,7 @@ export type Database = {
           theme: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           avatar_url?: string | null
           created_at?: string
@@ -1382,6 +1434,87 @@ export type Database = {
         }
         Relationships: []
       }
+      school_incident_participants: {
+        Row: {
+          classroom: string | null
+          created_at: string
+          id: string
+          incident_id: string
+          name: string
+          role: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          classroom?: string | null
+          created_at?: string
+          id?: string
+          incident_id: string
+          name: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          classroom?: string | null
+          created_at?: string
+          id?: string
+          incident_id?: string
+          name?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'school_incident_participants_incident_id_fkey'
+            columns: ['incident_id']
+            isOneToOne: false
+            referencedRelation: 'school_incidents'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      school_incidents: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          status: Database['public']['Enums']['school_incident_status']
+          terms_accepted: boolean
+          title: string
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          status?: Database['public']['Enums']['school_incident_status']
+          terms_accepted?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          status?: Database['public']['Enums']['school_incident_status']
+          terms_accepted?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'school_incidents_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -1400,6 +1533,7 @@ export type Database = {
           simples_optant_verified_at: string | null
           updated_at: string
         }
+        ComputedFields: never
         Insert: {
           address?: string | null
           cell_phone?: string | null
@@ -1444,6 +1578,7 @@ export type Database = {
           updated_by: string | null
           value: string
         }
+        ComputedFields: never
         Insert: {
           description?: string | null
           key: string
@@ -1462,6 +1597,7 @@ export type Database = {
           {
             foreignKeyName: 'system_settings_updated_by_fkey'
             columns: ['updated_by']
+            isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
@@ -1473,17 +1609,18 @@ export type Database = {
     }
     Functions: {
       backfill_demand_commitments_from_products: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: number
       }
       can_read_own_profile: { Args: { profile_id: string }; Returns: boolean }
-      can_read_profile_for_history: { Args: never; Returns: boolean }
-      generate_system_backup: { Args: never; Returns: Json }
+      can_read_profile_for_history: { Args: Record<PropertyKey, never>; Returns: boolean }
+      generate_system_backup: { Args: Record<PropertyKey, never>; Returns: Json }
       get_my_current_role: {
-        Args: never
+        Args: Record<PropertyKey, never>
         Returns: Database['public']['Enums']['user_role']
       }
-      is_admin: { Args: never; Returns: boolean }
+      is_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
+      is_demand_responsible: { Args: { p_demand_id: string }; Returns: boolean }
       restore_system_backup: { Args: { p_payload: Json }; Returns: Json }
     }
     Enums: {
@@ -1522,6 +1659,7 @@ export type Database = {
         | 'awaiting_collection'
         | 'confrontation_failed'
         | 'unknown_error'
+      school_incident_status: 'new' | 'under_review' | 'in_progress' | 'resolved' | 'archived'
       user_role:
         | 'user'
         | 'admin'
@@ -1554,9 +1692,7 @@ export type Tables<
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
       Row: infer R
@@ -1579,9 +1715,7 @@ export type TablesInsert<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Insert: infer I
     }
@@ -1603,9 +1737,7 @@ export type TablesUpdate<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
       Update: infer U
     }
@@ -1627,9 +1759,7 @@ export type Enums<
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
     : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
     ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
@@ -1643,18 +1773,13 @@ export type CompositeTypes<
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
     : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
     ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       bid_status: ['classified', 'disqualified'],
@@ -1695,6 +1820,7 @@ export const Constants = {
         'confrontation_failed',
         'unknown_error',
       ],
+      school_incident_status: ['new', 'under_review', 'in_progress', 'resolved', 'archived'],
       user_role: [
         'user',
         'admin',
