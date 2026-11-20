@@ -138,8 +138,9 @@ export const useProductBids = () => {
     }
 
     const numericRefPrice = refPrice != null ? Number(refPrice) : null
+    const baseTimestamp = Date.now()
 
-    const payloads: DemandProductBidInsert[] = bids.map((b) => {
+    const payloads: DemandProductBidInsert[] = bids.map((b, index) => {
       const finalAmount = Number(b.amount)
       const isAboveReference =
         numericRefPrice !== null &&
@@ -167,6 +168,7 @@ export const useProductBids = () => {
         status,
         disqualification_reason:
           status === 'disqualified' ? disqualificationReason || 'Desclassificado' : null,
+        created_at: new Date(baseTimestamp + index).toISOString(),
       }
     })
 

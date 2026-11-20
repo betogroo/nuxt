@@ -104,8 +104,8 @@ describe('useBackup Composable', () => {
         demands: 1,
         demand_commitments: 1,
         demand_commitment_liquidations: 2,
-        demand_products: 0,
-        demand_product_bids: 0,
+        demand_products: 1,
+        demand_product_bids: 2,
         demand_responsibles: 0,
         demand_item_status_history: 0,
         iirgd_citizens: 3,
@@ -154,6 +154,25 @@ describe('useBackup Composable', () => {
           },
         ],
         system_settings: [{ key: 'bec_catalog_url', value: 'https://test' }],
+        demand_products: [{ id: 'dp-1', demand_id: 'dem-1', product_id: 'prod-1', sort_order: 1 }],
+        demand_product_bids: [
+          {
+            id: 'bid-1',
+            demand_product_id: 'dp-1',
+            supplier_id: 'sup-1',
+            amount: 10.0,
+            status: 'classified',
+            created_at: '2026-11-19T12:22:50.889Z',
+          },
+          {
+            id: 'bid-2',
+            demand_product_id: 'dp-1',
+            supplier_id: 'sup-2',
+            amount: 10.0,
+            status: 'classified',
+            created_at: '2026-11-19T12:22:50.889Z',
+          },
+        ],
         demand_item_status_history: [{ id: 'dish-1', status: 'homologated' }],
         elections: [{ id: 'el-1' }, { id: 'el-2' }],
         candidates: [{ id: 'cnd-1' }, { id: 'cnd-2' }, { id: 'cnd-3' }],
@@ -178,6 +197,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.demands).toBe(1)
     expect(inspection.counts.demand_commitments).toBe(1)
     expect(inspection.counts.demand_commitment_liquidations).toBe(2)
+    expect(inspection.counts.demand_products).toBe(1)
+    expect(inspection.counts.demand_product_bids).toBe(2)
     expect(inspection.counts.iirgd_citizens).toBe(3)
     expect(inspection.counts.iirgd_demands).toBe(2)
     expect(inspection.counts.demand_item_status_history).toBe(1)
@@ -204,8 +225,8 @@ describe('useBackup Composable', () => {
         demands: 1,
         demand_commitments: 1,
         demand_commitment_liquidations: 2,
-        demand_products: 0,
-        demand_product_bids: 0,
+        demand_products: 1,
+        demand_product_bids: 2,
         demand_responsibles: 0,
         iirgd_citizens: 3,
         iirgd_document_types: 0,

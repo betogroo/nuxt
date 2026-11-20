@@ -249,37 +249,59 @@ describe('useProductBids', () => {
       expect(insertMock).not.toHaveBeenCalled()
     })
 
-    it('inserts multiple bids and logs action', async () => {
+    it('inserts multiple bids with strictly increasing created_at timestamps and logs action', async () => {
       const { addBidsBatch } = useProductBids()
       const count = await addBidsBatch(
         'item-1',
         [
           { supplier_id: 'supp-1', amount: 18.0 },
           { supplier_id: 'supp-2', amount: 18.99 },
+          { supplier_id: 'supp-3', amount: 18.0 },
         ],
         { referencePrice: 20.0 },
       )
 
-      expect(count).toBe(2)
+      expect(count).toBe(3)
       expect(insertMock).toHaveBeenCalledWith([
-        {
+        expect.objectContaining({
           demand_product_id: 'item-1',
           supplier_id: 'supp-1',
           amount: 18.0,
           status: 'classified',
           disqualification_reason: null,
-        },
-        {
+          created_at: expect.any(String),
+        }),
+        expect.objectContaining({
           demand_product_id: 'item-1',
           supplier_id: 'supp-2',
           amount: 18.99,
           status: 'classified',
           disqualification_reason: null,
-        },
+          created_at: expect.any(String),
+        }),
+        expect.objectContaining({
+          demand_product_id: 'item-1',
+          supplier_id: 'supp-3',
+          amount: 18.0,
+          status: 'classified',
+          disqualification_reason: null,
+          created_at: expect.any(String),
+        }),
       ])
+
+      const insertedPayloads = insertMock.mock.calls[0]?.[0] as Array<{
+        supplier_id: string
+        created_at: string
+      }>
+      const t0 = new Date(insertedPayloads[0]!.created_at).getTime()
+      const t1 = new Date(insertedPayloads[1]!.created_at).getTime()
+      const t2 = new Date(insertedPayloads[2]!.created_at).getTime()
+      expect(t1 - t0).toBe(1)
+      expect(t2 - t1).toBe(1)
+
       expect(logActionMock).toHaveBeenCalledWith(
         'ADD_PRODUCT_BIDS_BATCH',
-        '2 lances adicionados em lote para o produto da demanda (ID: item-1)',
+        '3 lances adicionados em lote para o produto da demanda (ID: item-1)',
         'user-admin',
       )
     })
@@ -297,20 +319,22 @@ describe('useProductBids', () => {
 
       expect(count).toBe(2)
       expect(insertMock).toHaveBeenCalledWith([
-        {
+        expect.objectContaining({
           demand_product_id: 'item-1',
           supplier_id: 'supp-1',
           amount: 18.0,
           status: 'classified',
           disqualification_reason: null,
-        },
-        {
+          created_at: expect.any(String),
+        }),
+        expect.objectContaining({
           demand_product_id: 'item-1',
           supplier_id: 'supp-2',
           amount: 25.0,
           status: 'disqualified',
           disqualification_reason: 'Valor ofertado acima do valor referencial.',
-        },
+          created_at: expect.any(String),
+        }),
       ])
     })
   })
