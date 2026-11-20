@@ -6,6 +6,8 @@
   import { useRealtimeChannel } from '~/composables/useRealtimeChannel'
   import { SCHOOL_INCIDENT_STATUS_MAP } from '~/constants/school-incidents'
   import type { SchoolIncident, SchoolIncidentStatus } from '~/types/school'
+  import SchoolIncidentFormModal from '~/components/schools/SchoolIncidentFormModal.vue'
+  import SchoolIncidentDetailsModal from '~/components/schools/SchoolIncidentDetailsModal.vue'
 
   definePageMeta({
     middleware: ['schools'],
@@ -26,6 +28,7 @@
   const { canViewAllSchoolIncidents } = usePermissions()
   const { incidents, isLoading, fetchIncidents } = useSchoolIncidents()
   const { subscribeToPostgresChanges, removeRealtimeChannel } = useRealtimeChannel()
+  const route = useRoute()
 
   const searchQuery = ref('')
   const selectedStatusFilter = ref<string>('all')
@@ -125,6 +128,10 @@
 
   onMounted(() => {
     fetchIncidents().catch(() => {})
+
+    if (route.query.new === '1' || route.query.new === 'true') {
+      openFormModal()
+    }
 
     realtimeChannel = subscribeToPostgresChanges('school-incidents-realtime', [
       {
@@ -369,8 +376,12 @@
 
         <!-- Estado Vazio -->
         <template #empty>
-          Nenhuma ocorrência encontrada. Clique em "Nova Ocorrência" para realizar o primeiro
-          registro.
+          <div class="d-flex flex-column align-center gap-3 py-6">
+            <span class="text-body-2 text-medium-emphasis"> Nenhuma ocorrência encontrada. </span>
+            <UiButton color="primary" icon="plus" size="sm" variant="solid" @click="openFormModal">
+              Cadastrar Primeira Ocorrência
+            </UiButton>
+          </div>
         </template>
       </UiTable>
     </UiCard>

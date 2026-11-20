@@ -8,6 +8,9 @@ import type { SchoolIncident } from '~/types/school'
 mockNuxtImport('useHead', () => vi.fn())
 mockNuxtImport('definePageMeta', () => vi.fn())
 
+const mockRoute = ref<{ query: Record<string, string> }>({ query: {} })
+mockNuxtImport('useRoute', () => () => mockRoute.value)
+
 const canViewAllSchoolIncidentsMock = vi.fn().mockReturnValue(true)
 mockNuxtImport('usePermissions', () => () => ({
   canViewAllSchoolIncidents: canViewAllSchoolIncidentsMock,
@@ -80,6 +83,7 @@ mockNuxtImport('useRealtimeChannel', () => () => ({
 describe('Schools Incidents Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRoute.value = { query: {} }
     incidentsRef.value = [...mockIncidentsList]
     canViewAllSchoolIncidentsMock.mockReturnValue(true)
   })
@@ -211,5 +215,24 @@ describe('Schools Incidents Page', () => {
 
     wrapper.unmount()
     expect(removeRealtimeChannelMock).toHaveBeenCalledWith({ id: 'channel-1' })
+  })
+
+  it('automatically opens form modal if query param new is present', () => {
+    mockRoute.value = { query: { new: '1' } }
+    const wrapper = shallowMount(IncidentsPage, {
+      global: {
+        stubs: {
+          UiPageHeader: true,
+          UiCard: true,
+          UiTable: true,
+          UiButton: true,
+          SchoolIncidentFormModal: true,
+          SchoolIncidentDetailsModal: true,
+        },
+      },
+    })
+
+    const vm = wrapper.vm as unknown as { isFormModalOpen: boolean }
+    expect(vm.isFormModalOpen).toBe(true)
   })
 })

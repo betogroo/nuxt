@@ -1,8 +1,9 @@
 <script setup lang="ts">
-  import { computed, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { usePermissions } from '~/composables/usePermissions'
   import { useSchoolIncidents } from '~/composables/useSchoolIncidents'
   import { USER_ROLE_CONFIG } from '~/constants/roles'
+  import SchoolIncidentFormModal from '~/components/schools/SchoolIncidentFormModal.vue'
 
   definePageMeta({
     icon: 'school',
@@ -49,6 +50,12 @@
     return incidents.value.filter((i) => i.status === 'new').length
   })
 
+  const isFormModalOpen = ref(false)
+
+  const openFormModal = () => {
+    isFormModalOpen.value = true
+  }
+
   onMounted(() => {
     fetchIncidents().catch(() => {})
   })
@@ -62,10 +69,15 @@
       title="Módulo Escola"
     >
       <template #actions>
-        <UiChip :color="roleConfig.color" size="md" :variant="roleConfig.variant">
-          <UiIcon class="mr-1" name="school" size="18" />
-          {{ roleConfig.label }}
-        </UiChip>
+        <div class="d-flex align-center gap-3">
+          <UiChip :color="roleConfig.color" size="md" :variant="roleConfig.variant">
+            <UiIcon class="mr-1" name="school" size="18" />
+            {{ roleConfig.label }}
+          </UiChip>
+          <UiButton color="primary" icon="plus" size="md" variant="solid" @click="openFormModal">
+            Nova Ocorrência
+          </UiButton>
+        </div>
       </template>
     </UiPageHeader>
 
@@ -111,16 +123,30 @@
             </p>
           </div>
 
-          <div class="mt-6 pt-4 border-t d-flex align-center justify-space-between">
+          <div class="mt-6 pt-4 border-t d-flex flex-wrap align-center justify-space-between gap-2">
             <span class="text-caption text-medium-emphasis">
               Total: {{ incidents.length }} ocorrência(s)
             </span>
-            <UiButton color="primary" size="sm" to="/schools/incidents" variant="solid">
-              Acessar Ocorrências
-            </UiButton>
+            <div class="d-flex align-center gap-2">
+              <UiButton color="primary" size="sm" to="/schools/incidents" variant="outline">
+                Ver Ocorrências
+              </UiButton>
+              <UiButton
+                color="primary"
+                icon="plus"
+                size="sm"
+                variant="solid"
+                @click="openFormModal"
+              >
+                Nova Ocorrência
+              </UiButton>
+            </div>
           </div>
         </UiCard>
       </UiCol>
     </UiRow>
+
+    <!-- Modal de Formulário (Nova Ocorrência) -->
+    <SchoolIncidentFormModal v-model="isFormModalOpen" @saved="fetchIncidents" />
   </div>
 </template>

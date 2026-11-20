@@ -50,6 +50,8 @@ describe('Schools Module Index Page', () => {
           UiChip: true,
           UiDivider: true,
           UiAlert: true,
+          UiButton: true,
+          SchoolIncidentFormModal: true,
         },
       },
     })
@@ -82,5 +84,17 @@ describe('Schools Module Index Page', () => {
     const wrapper = createWrapper()
     const vm = wrapper.vm as unknown as { roleDescription: string }
     expect(vm.roleDescription).toContain('Usuário')
+  })
+
+  it('manages form modal state for registering new incidents', () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as unknown as {
+      isFormModalOpen: boolean
+      openFormModal: () => void
+    }
+
+    expect(vm.isFormModalOpen).toBe(false)
+    vm.openFormModal()
+    expect(vm.isFormModalOpen).toBe(true)
   })
 })
