@@ -42,6 +42,8 @@ const mockCounts = {
   election_voters: 25,
   election_voter_attendance: 8,
   election_votes: 15,
+  school_incidents: 5,
+  school_incident_participants: 10,
   logs: 120,
 }
 
@@ -63,7 +65,7 @@ mockNuxtImport('useBackup', () => () => ({
 }))
 
 describe('Backup Admin Page', () => {
-  it('should render successfully and compute total records across all 30 tables', async () => {
+  it('should render successfully and compute total records across all 32 tables', async () => {
     const wrapper = shallowMount(BackupAdminPage, {
       global: {
         stubs: {
@@ -95,13 +97,13 @@ describe('Backup Admin Page', () => {
     expect(vm.currentCounts).toEqual(mockCounts)
     const expectedSum = Object.values(mockCounts).reduce((a, b) => a + b, 0)
     expect(vm.totalCurrentRecords).toBe(expectedSum)
-    expect(vm.totalCurrentRecords).toBe(640)
-    expect(vm.totalTablesCount).toBe(30)
+    expect(vm.totalCurrentRecords).toBe(655)
+    expect(vm.totalTablesCount).toBe(32)
 
-    // Check that all 30 tables are represented in categories
+    // Check that all 32 tables are represented in categories
     const allTableKeys = vm.BACKUP_CATEGORIES.flatMap((c) => c.tables.map((t) => t.key))
-    expect(allTableKeys).toHaveLength(30)
-    expect(new Set(allTableKeys).size).toBe(30)
+    expect(allTableKeys).toHaveLength(32)
+    expect(new Set(allTableKeys).size).toBe(32)
     for (const key of Object.keys(mockCounts)) {
       expect(allTableKeys).toContain(key)
     }
@@ -140,14 +142,14 @@ describe('Backup Admin Page', () => {
       counts: mockCounts,
     }
 
-    expect(vm.totalInspectionRecords).toBe(640)
+    expect(vm.totalInspectionRecords).toBe(655)
 
     vm.restoreResult = {
       success: true,
       counts: mockCounts,
     }
 
-    expect(vm.totalRestoredRecords).toBe(640)
+    expect(vm.totalRestoredRecords).toBe(655)
   })
 
   it('should trigger backup generation when generate method is called', async () => {

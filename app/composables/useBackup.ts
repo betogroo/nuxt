@@ -50,6 +50,8 @@ export const useBackup = () => {
         { count: votersCount },
         { count: voterAttendanceCount },
         { count: electionVotesCount },
+        { count: schoolIncidentsCount },
+        { count: schoolIncidentParticipantsCount },
         { count: logsCount },
       ] = await Promise.all([
         supabase.from('profiles').select('id', { count: 'exact', head: true }),
@@ -85,6 +87,8 @@ export const useBackup = () => {
         supabase.from('election_voters').select('id', { count: 'exact', head: true }),
         supabase.from('election_voter_attendance').select('id', { count: 'exact', head: true }),
         supabase.from('election_votes').select('id', { count: 'exact', head: true }),
+        supabase.from('school_incidents').select('id', { count: 'exact', head: true }),
+        supabase.from('school_incident_participants').select('id', { count: 'exact', head: true }),
         supabase.from('logs').select('id', { count: 'exact', head: true }),
       ])
 
@@ -120,6 +124,8 @@ export const useBackup = () => {
         election_voters: votersCount || 0,
         election_voter_attendance: voterAttendanceCount || 0,
         election_votes: electionVotesCount || 0,
+        school_incidents: schoolIncidentsCount || 0,
+        school_incident_participants: schoolIncidentParticipantsCount || 0,
         logs: logsCount || 0,
       }
     } finally {
@@ -232,6 +238,10 @@ export const useBackup = () => {
           ? data.election_voter_attendance.length
           : 0,
         election_votes: Array.isArray(data.election_votes) ? data.election_votes.length : 0,
+        school_incidents: Array.isArray(data.school_incidents) ? data.school_incidents.length : 0,
+        school_incident_participants: Array.isArray(data.school_incident_participants)
+          ? data.school_incident_participants.length
+          : 0,
         logs: Array.isArray(data.logs) ? data.logs.length : 0,
       }
 

@@ -60,6 +60,8 @@ describe('useBackup Composable', () => {
       election_voters: 5,
       election_voter_attendance: 5,
       election_votes: 5,
+      school_incidents: 5,
+      school_incident_participants: 5,
       logs: 5,
     })
   })
@@ -116,6 +118,8 @@ describe('useBackup Composable', () => {
         system_settings: 1,
         elections: 2,
         candidates: 3,
+        school_incidents: 1,
+        school_incident_participants: 2,
         logs: 10,
       },
       data: {
@@ -179,6 +183,11 @@ describe('useBackup Composable', () => {
         election_voters: [{ id: 'v-1' }],
         iirgd_citizens: [{ id: 'c-1' }, { id: 'c-2' }, { id: 'c-3' }],
         iirgd_demands: [{ id: 'id-1' }, { id: 'id-2' }],
+        school_incidents: [{ id: 'si-1', title: 'Briga no pátio' }],
+        school_incident_participants: [
+          { id: 'sip-1', incident_id: 'si-1', role: 'offender', name: 'Aluno 1' },
+          { id: 'sip-2', incident_id: 'si-1', role: 'victim', name: 'Aluno 2' },
+        ],
         logs: [{ id: 'log-1' }],
       },
     }
@@ -206,6 +215,8 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.elections).toBe(2)
     expect(inspection.counts.candidates).toBe(3)
     expect(inspection.counts.election_voters).toBe(1)
+    expect(inspection.counts.school_incidents).toBe(1)
+    expect(inspection.counts.school_incident_participants).toBe(2)
     expect(inspection.counts.logs).toBe(1)
   })
 

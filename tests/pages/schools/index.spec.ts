@@ -23,6 +23,11 @@ mockNuxtImport('usePermissions', () => () => ({
   canDeleteSchools: () => profileRef.value?.role === 'admin',
 }))
 
+mockNuxtImport('useSchoolIncidents', () => () => ({
+  incidents: ref([]),
+  fetchIncidents: vi.fn().mockResolvedValue([]),
+}))
+
 describe('Schools Module Index Page', () => {
   beforeEach(() => {
     vi.clearAllMocks()

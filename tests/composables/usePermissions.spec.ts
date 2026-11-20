@@ -245,5 +245,48 @@ describe('composables/usePermissions', () => {
       mockProfile.value = { id: 'su1', role: ROLES.SCHOOL_USER }
       expect(canDeleteSchools()).toBe(false)
     })
+
+    it('evaluates school incidents permissions correctly', () => {
+      const {
+        canViewAllSchoolIncidents,
+        canCreateSchoolIncident,
+        canViewSchoolIncident,
+        canDeleteSchoolIncident,
+      } = usePermissions()
+
+      // Admin
+      mockProfile.value = { id: 'admin-1', role: ROLES.ADMIN }
+      mockUserId.value = 'admin-1'
+      expect(canViewAllSchoolIncidents()).toBe(true)
+      expect(canCreateSchoolIncident()).toBe(true)
+      expect(canViewSchoolIncident({ created_by: 'other-user' })).toBe(true)
+      expect(canDeleteSchoolIncident()).toBe(true)
+
+      // School Manager
+      mockProfile.value = { id: 'mgr-1', role: ROLES.SCHOOL_MANAGER }
+      mockUserId.value = 'mgr-1'
+      expect(canViewAllSchoolIncidents()).toBe(true)
+      expect(canCreateSchoolIncident()).toBe(true)
+      expect(canViewSchoolIncident({ created_by: 'other-user' })).toBe(true)
+      expect(canDeleteSchoolIncident()).toBe(false)
+
+      // School User
+      mockProfile.value = { id: 'user-1', role: ROLES.SCHOOL_USER }
+      mockUserId.value = 'user-1'
+      expect(canViewAllSchoolIncidents()).toBe(false)
+      expect(canCreateSchoolIncident()).toBe(true)
+      expect(canViewSchoolIncident({ created_by: 'user-1' })).toBe(true)
+      expect(canViewSchoolIncident({ created_by: 'other-user' })).toBe(false)
+      expect(canViewSchoolIncident(null)).toBe(false)
+      expect(canDeleteSchoolIncident()).toBe(false)
+
+      // Other Roles
+      mockProfile.value = { id: 'uge-1', role: ROLES.UGE }
+      mockUserId.value = 'uge-1'
+      expect(canViewAllSchoolIncidents()).toBe(false)
+      expect(canCreateSchoolIncident()).toBe(false)
+      expect(canViewSchoolIncident({ created_by: 'uge-1' })).toBe(false)
+      expect(canDeleteSchoolIncident()).toBe(false)
+    })
   })
 })

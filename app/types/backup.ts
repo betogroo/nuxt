@@ -30,6 +30,8 @@ export interface BackupSummary {
   election_voters?: number
   election_voter_attendance?: number
   election_votes?: number
+  school_incidents?: number
+  school_incident_participants?: number
   logs: number
 }
 
@@ -76,6 +78,8 @@ export interface BackupData {
   election_voters?: Record<string, unknown>[]
   election_voter_attendance?: Record<string, unknown>[]
   election_votes?: Record<string, unknown>[]
+  school_incidents?: Record<string, unknown>[]
+  school_incident_participants?: Record<string, unknown>[]
   logs?: Record<string, unknown>[]
 }
 

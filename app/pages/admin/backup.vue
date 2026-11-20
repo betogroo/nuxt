@@ -181,6 +181,24 @@
       ],
     },
     {
+      title: 'Módulo Escola',
+      icon: 'school',
+      tables: [
+        {
+          key: 'school_incidents',
+          label: 'Ocorrências Escolares',
+          suffix: 'ocorrências',
+          color: 'teal',
+        },
+        {
+          key: 'school_incident_participants',
+          label: 'Participantes de Ocorrências',
+          suffix: 'participantes',
+          color: 'primary',
+        },
+      ],
+    },
+    {
       title: 'Sistema & Auditoria',
       icon: 'security',
       tables: [

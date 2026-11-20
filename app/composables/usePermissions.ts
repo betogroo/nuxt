@@ -124,6 +124,45 @@ export function usePermissions() {
     return role === ROLES.ADMIN
   }
 
+  /**
+   * Determina se o usuário pode visualizar todas as ocorrências escolares (não apenas as suas).
+   * Regra: admin ou school-manager.
+   */
+  const canViewAllSchoolIncidents = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.SCHOOL_MANAGER
+  }
+
+  /**
+   * Determina se o usuário pode registrar novas ocorrências escolares.
+   * Regra: admin, school-manager ou school-user.
+   */
+  const canCreateSchoolIncident = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN || role === ROLES.SCHOOL_MANAGER || role === ROLES.SCHOOL_USER
+  }
+
+  /**
+   * Determina se o usuário pode abrir/visualizar os detalhes de uma ocorrência específica.
+   * Regra: admin, school-manager, ou criador da ocorrência (school-user).
+   */
+  const canViewSchoolIncident = (incident: { created_by?: string } | null | undefined): boolean => {
+    if (!incident) return false
+    const role = profile.value?.role
+    if (role === ROLES.ADMIN || role === ROLES.SCHOOL_MANAGER) return true
+    if (role === ROLES.SCHOOL_USER && incident.created_by === userId.value) return true
+    return false
+  }
+
+  /**
+   * Determina se o usuário pode excluir uma ocorrência escolar.
+   * Regra: admin.
+   */
+  const canDeleteSchoolIncident = (): boolean => {
+    const role = profile.value?.role
+    return role === ROLES.ADMIN
+  }
+
   return {
     isAdmin,
     isIirgdUser,
@@ -136,5 +175,9 @@ export function usePermissions() {
     canAccessSchools,
     canManageSchools,
     canDeleteSchools,
+    canViewAllSchoolIncidents,
+    canCreateSchoolIncident,
+    canViewSchoolIncident,
+    canDeleteSchoolIncident,
   }
 }
