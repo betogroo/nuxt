@@ -32,6 +32,10 @@ mockNuxtImport('useAuthSession', () => () => ({
   ensureUser: ensureUserMock,
 }))
 
+mockNuxtImport('useCurrentUserId', () => () => ({
+  userId: { value: 'user-123' },
+}))
+
 mockNuxtImport('useLogger', () => () => ({
   logAction: logActionMock,
 }))

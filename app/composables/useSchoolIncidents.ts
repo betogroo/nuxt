@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useSupabaseClient } from '#imports'
 import { useAuthSession } from './useAuthSession'
+import { useCurrentUserId } from './useCurrentUserId'
 import { useLogger } from './useLogger'
 import type {
   SchoolIncident,
@@ -19,6 +20,7 @@ export interface ParsedIncidentMentionToken {
 export const useSchoolIncidents = () => {
   const supabase = useSupabaseClient()
   const { ensureUser } = useAuthSession()
+  const { userId } = useCurrentUserId()
   const { logAction } = useLogger()
 
   const incidents = ref<SchoolIncident[]>([])
@@ -136,7 +138,12 @@ export const useSchoolIncidents = () => {
     error.value = null
     try {
       const user = await ensureUser()
-      if (!user) throw new Error('Usuário não autenticado.')
+      const resolvedUserId =
+        userId.value ||
+        (user as { id?: string; sub?: string } | null)?.id ||
+        (user as { id?: string; sub?: string } | null)?.sub
+
+      if (!user && !resolvedUserId) throw new Error('Usuário não autenticado.')
 
       if (!payload.title || !payload.title.trim()) {
         throw new Error('O título da ocorrência é obrigatório.')
@@ -161,15 +168,19 @@ export const useSchoolIncidents = () => {
       const validVictims = payload.victims?.filter((v) => v && v.name && v.name.trim() !== '') || []
 
       // 1. Inserir a ocorrência principal
+      const insertPayload: Record<string, unknown> = {
+        title: payload.title.trim(),
+        description: payload.description.trim(),
+        status: 'new',
+        terms_accepted: true,
+      }
+      if (resolvedUserId) {
+        insertPayload.created_by = resolvedUserId
+      }
+
       const { data: incidentData, error: incidentErr } = await supabase
         .from('school_incidents')
-        .insert({
-          title: payload.title.trim(),
-          description: payload.description.trim(),
-          status: 'new',
-          terms_accepted: true,
-          created_by: user.id,
-        })
+        .insert(insertPayload)
         .select()
         .single()
 
