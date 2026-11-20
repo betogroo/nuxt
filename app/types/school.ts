@@ -28,8 +28,11 @@ export interface SchoolIncident {
   created_by: string
   created_at: string
   updated_at: string
+  read_at?: string | null
+  read_by?: string | null
   participants?: SchoolIncidentParticipant[]
   author?: SchoolIncidentAuthor
+  reader?: SchoolIncidentAuthor
 }
 
 export interface IncidentParticipantInput {

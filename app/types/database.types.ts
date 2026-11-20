@@ -1479,6 +1479,8 @@ export type Database = {
           created_by: string
           description: string
           id: string
+          read_at: string | null
+          read_by: string | null
           status: Database['public']['Enums']['school_incident_status']
           terms_accepted: boolean
           title: string
@@ -1487,9 +1489,11 @@ export type Database = {
         ComputedFields: never
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string
           description: string
           id?: string
+          read_at?: string | null
+          read_by?: string | null
           status?: Database['public']['Enums']['school_incident_status']
           terms_accepted?: boolean
           title: string
@@ -1500,6 +1504,8 @@ export type Database = {
           created_by?: string
           description?: string
           id?: string
+          read_at?: string | null
+          read_by?: string | null
           status?: Database['public']['Enums']['school_incident_status']
           terms_accepted?: boolean
           title?: string
@@ -1509,6 +1515,13 @@ export type Database = {
           {
             foreignKeyName: 'school_incidents_created_by_fkey'
             columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'school_incidents_read_by_fkey'
+            columns: ['read_by']
             isOneToOne: false
             referencedRelation: 'profiles'
             referencedColumns: ['id']

@@ -38,10 +38,14 @@
     isFormModalOpen.value = true
   }
 
+  const unreadCount = computed(() => (incidents.value || []).filter((i) => !i.read_at).length)
+
   const filteredIncidents = computed(() => {
     let list = incidents.value || []
 
-    if (selectedStatusFilter.value !== 'all') {
+    if (selectedStatusFilter.value === 'unread') {
+      list = list.filter((item) => !item.read_at)
+    } else if (selectedStatusFilter.value !== 'all') {
       list = list.filter((item) => item.status === selectedStatusFilter.value)
     }
 
@@ -78,16 +82,17 @@
       { text: 'Título da Ocorrência', value: 'title', align: 'left' as const },
       { text: 'Ofensores', value: 'offenders', align: 'left' as const },
       { text: 'Vítimas', value: 'victims', align: 'left' as const },
-      { text: 'Status', value: 'status', align: 'center' as const, width: 140 },
+      { text: 'Status', value: 'status', align: 'center' as const, width: 130 },
+      { text: 'Leitura', value: 'read', align: 'center' as const, width: 120 },
     ]
 
     if (canViewAllSchoolIncidents()) {
-      headers.push({ text: 'Autor', value: 'author', align: 'left' as const, width: 160 })
+      headers.push({ text: 'Autor', value: 'author', align: 'left' as const, width: 150 })
     }
 
     headers.push(
-      { text: 'Data', value: 'created_at', align: 'right' as const, width: 140 },
-      { text: 'Ações', value: 'actions', align: 'right' as const, width: 110 },
+      { text: 'Data', value: 'created_at', align: 'right' as const, width: 130 },
+      { text: 'Ações', value: 'actions', align: 'right' as const, width: 100 },
     )
 
     return headers
@@ -100,6 +105,18 @@
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
+    })
+  }
+
+  const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '-'
+    const d = new Date(dateStr)
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   }
 
@@ -184,6 +201,15 @@
               @click="selectedStatusFilter = 'all'"
             >
               Todas ({{ incidents.length }})
+            </UiChip>
+            <UiChip
+              class="cursor-pointer"
+              :color="selectedStatusFilter === 'unread' ? 'warning' : 'neutral'"
+              size="sm"
+              :variant="selectedStatusFilter === 'unread' ? 'solid' : 'outline'"
+              @click="selectedStatusFilter = 'unread'"
+            >
+              Não Lidas ({{ unreadCount }})
             </UiChip>
             <UiChip
               class="cursor-pointer"
@@ -334,6 +360,24 @@
             {{
               SCHOOL_INCIDENT_STATUS_MAP[item.status as SchoolIncidentStatus]?.label || item.status
             }}
+          </UiChip>
+        </template>
+
+        <!-- Leitura -->
+        <template #item-read="{ item }">
+          <UiChip
+            v-if="item.read_at"
+            color="success"
+            size="xs"
+            :title="`Lida em ${formatDateTime(String(item.read_at))}${(item.reader as SchoolIncident['reader'])?.name ? ` por ${(item.reader as SchoolIncident['reader'])?.name}` : ''}`"
+            variant="soft"
+          >
+            <UiIcon class="mr-1" name="check" size="12" />
+            Lida
+          </UiChip>
+          <UiChip v-else color="warning" size="xs" variant="outline">
+            <UiIcon class="mr-1" name="clockAlert" size="12" />
+            Não Lida
           </UiChip>
         </template>
 

@@ -27,6 +27,15 @@ mockNuxtImport('usePermissions', () => () => ({
   canManageSchools: canManageSchoolsMock,
 }))
 
+const mockUserProfile = ref({
+  id: 'user-manager',
+  name: 'Gestor Escolar',
+  role: 'school-manager',
+})
+mockNuxtImport('useProfile', () => () => ({
+  profile: mockUserProfile,
+}))
+
 const mockIncidentData: SchoolIncident = {
   id: 'inc-1',
   title: 'Desentendimento no recreio',
@@ -66,6 +75,12 @@ const mockIncidentData: SchoolIncident = {
 const fetchIncidentByIdMock = vi.fn().mockResolvedValue(mockIncidentData)
 const updateIncidentStatusMock = vi.fn().mockResolvedValue(undefined)
 const deleteIncidentMock = vi.fn().mockResolvedValue(undefined)
+const markIncidentAsReadMock = vi.fn().mockResolvedValue({
+  ...mockIncidentData,
+  read_at: '2026-11-20T11:00:00Z',
+  read_by: 'manager-1',
+  reader: { id: 'manager-1', name: 'Gestor Escolar', role: 'school-manager' },
+})
 const parseIncidentMentionsMock = vi.fn().mockReturnValue([
   { type: 'text', text: 'O aluno ' },
   { type: 'offender', text: 'Carlos', classroom: '3º B' },
@@ -78,6 +93,7 @@ mockNuxtImport('useSchoolIncidents', () => () => ({
   fetchIncidentById: fetchIncidentByIdMock,
   updateIncidentStatus: updateIncidentStatusMock,
   deleteIncident: deleteIncidentMock,
+  markIncidentAsRead: markIncidentAsReadMock,
   parseIncidentMentions: parseIncidentMentionsMock,
   isLoading: ref(false),
   isSaving: ref(false),
@@ -215,5 +231,89 @@ describe('IncidentDetailPage ([id].vue)', () => {
     expect(vm.incident).toBeNull()
     expect(vm.hasError).toBe(true)
     expect(vm.errorMessage).toContain('Ocorrência não encontrada')
+  })
+
+  it('marks unread incident as read when opened by school manager', async () => {
+    canManageSchoolsMock.mockReturnValue(true)
+    fetchIncidentByIdMock.mockResolvedValueOnce({
+      ...mockIncidentData,
+      read_at: null,
+      read_by: null,
+    })
+
+    const wrapper = shallowMount(IncidentDetailPage, {
+      global: {
+        stubs: {
+          UiPageHeader: true,
+          UiCard: true,
+          UiRow: true,
+          UiCol: true,
+          UiChip: true,
+          UiButton: true,
+          UiIcon: true,
+        },
+      },
+    })
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(markIncidentAsReadMock).toHaveBeenCalledWith('inc-1')
+  })
+
+  it('does not mark incident as read if viewer is a standard school user', async () => {
+    canManageSchoolsMock.mockReturnValue(false)
+    fetchIncidentByIdMock.mockResolvedValueOnce({
+      ...mockIncidentData,
+      read_at: null,
+      read_by: null,
+    })
+
+    const wrapper = shallowMount(IncidentDetailPage, {
+      global: {
+        stubs: {
+          UiPageHeader: true,
+          UiCard: true,
+          UiRow: true,
+          UiCol: true,
+          UiChip: true,
+          UiButton: true,
+          UiIcon: true,
+        },
+      },
+    })
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(markIncidentAsReadMock).not.toHaveBeenCalled()
+  })
+
+  it('does not mark incident as read if incident is already read', async () => {
+    canManageSchoolsMock.mockReturnValue(true)
+    fetchIncidentByIdMock.mockResolvedValueOnce({
+      ...mockIncidentData,
+      read_at: '2026-11-20T10:30:00Z',
+      read_by: 'manager-1',
+    })
+
+    const wrapper = shallowMount(IncidentDetailPage, {
+      global: {
+        stubs: {
+          UiPageHeader: true,
+          UiCard: true,
+          UiRow: true,
+          UiCol: true,
+          UiChip: true,
+          UiButton: true,
+          UiIcon: true,
+        },
+      },
+    })
+
+    await wrapper.vm.$nextTick()
+    await Promise.resolve()
+
+    expect(markIncidentAsReadMock).not.toHaveBeenCalled()
   })
 })

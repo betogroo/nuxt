@@ -14,6 +14,7 @@ const deleteMock = vi.fn()
 const orderMock = vi.fn()
 const eqMock = vi.fn()
 const singleMock = vi.fn()
+const rpcMock = vi.fn()
 
 const fromMock = vi.fn((_table: string) => {
   return {
@@ -26,6 +27,7 @@ const fromMock = vi.fn((_table: string) => {
 
 mockNuxtImport('useSupabaseClient', () => () => ({
   from: fromMock,
+  rpc: rpcMock,
 }))
 
 mockNuxtImport('useAuthSession', () => () => ({
@@ -249,5 +251,39 @@ describe('useSchoolIncidents Composable', () => {
       classroom: '4º Ano A',
     })
     expect(tokens[4]).toEqual({ type: 'text', text: ' durante a aula.' })
+  })
+
+  it('markIncidentAsRead calls rpc mark_school_incident_as_read and logs action', async () => {
+    const updatedIncident = {
+      id: 'inc-1',
+      title: 'Incidente 1',
+      status: 'new',
+      read_at: '2026-11-20T12:00:00Z',
+      read_by: 'user-123',
+    }
+    rpcMock.mockResolvedValueOnce({ data: updatedIncident, error: null })
+
+    const { markIncidentAsRead, incidents } = useSchoolIncidents()
+    incidents.value = [
+      {
+        id: 'inc-1',
+        title: 'Incidente 1',
+        status: 'new',
+        read_at: null,
+        read_by: null,
+      } as unknown as SchoolIncident,
+    ]
+
+    const result = await markIncidentAsRead('inc-1')
+
+    expect(rpcMock).toHaveBeenCalledWith('mark_school_incident_as_read', {
+      p_incident_id: 'inc-1',
+    })
+    expect(result).toEqual(updatedIncident)
+    expect(incidents.value[0]?.read_at).toBe('2026-11-20T12:00:00Z')
+    expect(logActionMock).toHaveBeenCalledWith(
+      'MARK_SCHOOL_INCIDENT_AS_READ',
+      'Marked school incident inc-1 as read',
+    )
   })
 })

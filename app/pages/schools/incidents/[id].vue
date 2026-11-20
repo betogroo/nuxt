@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted } from 'vue'
   import { usePermissions } from '~/composables/usePermissions'
+  import { useProfile } from '~/composables/useProfile'
   import { useSchoolIncidents } from '~/composables/useSchoolIncidents'
   import { SCHOOL_INCIDENT_STATUS, SCHOOL_INCIDENT_STATUS_MAP } from '~/constants/school-incidents'
   import type { SchoolIncident, SchoolIncidentStatus } from '~/types/school'
@@ -15,11 +16,13 @@
   const router = useRouter()
   const toast = useToast()
 
+  const { profile } = useProfile()
   const { isAdmin, canManageSchools } = usePermissions()
   const {
     fetchIncidentById,
     updateIncidentStatus,
     deleteIncident,
+    markIncidentAsRead,
     parseIncidentMentions,
     isLoading,
     isSaving,
@@ -49,6 +52,31 @@
           'Ocorrência não encontrada ou você não possui permissão para acessá-la.'
       } else {
         incident.value = data
+
+        // Se o usuário atual for gestor ou admin e a ocorrência ainda não foi lida, marca como lida
+        if (canManageSchools() && !data.read_at) {
+          try {
+            const updated = await markIncidentAsRead(data.id)
+            if (updated) {
+              incident.value = {
+                ...incident.value,
+                read_at: updated.read_at,
+                read_by: updated.read_by,
+                reader:
+                  updated.reader ||
+                  (profile.value
+                    ? {
+                        id: profile.value.id,
+                        name: profile.value.name,
+                        role: profile.value.role,
+                      }
+                    : incident.value.reader),
+              }
+            }
+          } catch (e) {
+            console.warn('Falha silenciosa ao carimbar leitura da ocorrência:', e)
+          }
+        }
       }
     } catch (err: unknown) {
       hasError.value = true
@@ -59,6 +87,18 @@
 
   onMounted(() => {
     loadIncident()
+  })
+
+  const formattedReadDate = computed(() => {
+    if (!incident.value?.read_at) return ''
+    const d = new Date(incident.value.read_at)
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   })
 
   const statusConfig = computed(() => {
@@ -175,6 +215,17 @@
             <UiChip :color="statusConfig.color" size="md" :variant="statusConfig.variant">
               <UiIcon class="mr-1" :name="statusConfig.icon" size="16" />
               {{ statusConfig.label }}
+            </UiChip>
+
+            <!-- Chip de Confirmação de Leitura -->
+            <UiChip v-if="incident.read_at" color="success" size="md" variant="soft">
+              <UiIcon class="mr-1" name="check" size="16" />
+              Lida em {{ formattedReadDate
+              }}{{ incident.reader?.name ? ` por ${incident.reader.name}` : '' }}
+            </UiChip>
+            <UiChip v-else color="warning" size="md" variant="outline">
+              <UiIcon class="mr-1" name="clockAlert" size="16" />
+              Não lida pela gestão
             </UiChip>
 
             <UiButton

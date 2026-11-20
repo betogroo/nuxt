@@ -65,6 +65,8 @@ export const useSchoolIncidents = () => {
             created_by,
             created_at,
             updated_at,
+            read_at,
+            read_by,
             participants:school_incident_participants(
               id,
               incident_id,
@@ -75,6 +77,11 @@ export const useSchoolIncidents = () => {
               updated_at
             ),
             author:profiles!created_by(
+              id,
+              name,
+              role
+            ),
+            reader:profiles!read_by(
               id,
               name,
               role
@@ -121,6 +128,8 @@ export const useSchoolIncidents = () => {
           created_by,
           created_at,
           updated_at,
+          read_at,
+          read_by,
           participants:school_incident_participants(
             id,
             incident_id,
@@ -131,6 +140,11 @@ export const useSchoolIncidents = () => {
             updated_at
           ),
           author:profiles!created_by(
+            id,
+            name,
+            role
+          ),
+          reader:profiles!read_by(
             id,
             name,
             role
@@ -300,6 +314,44 @@ export const useSchoolIncidents = () => {
   }
 
   /**
+   * Marca uma ocorrência como lida (Gestores e Administradores),
+   * carimbando data, hora e identificação do gestor via RPC segura.
+   */
+  const markIncidentAsRead = async (id: string): Promise<SchoolIncident> => {
+    isSaving.value = true
+    error.value = null
+    try {
+      const { data, error: err } = await supabase.rpc('mark_school_incident_as_read', {
+        p_incident_id: id,
+      })
+
+      if (err) throw err
+
+      const updated = data as unknown as SchoolIncident
+
+      // Atualiza o registro no estado compartilhado em memória se presente
+      const idx = incidents.value.findIndex((i) => i.id === id)
+      if (idx !== -1) {
+        incidents.value[idx] = {
+          ...incidents.value[idx],
+          read_at: updated.read_at,
+          read_by: updated.read_by,
+        }
+      }
+
+      await logAction('MARK_SCHOOL_INCIDENT_AS_READ', `Marked school incident ${id} as read`)
+
+      return updated
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Falha ao marcar ocorrência como lida.'
+      error.value = message
+      throw err
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /**
    * Utilitário para quebrar o texto do relato em tokens com formatação de marcações
    * '@' (ofensor) e '/' (vítima).
    */
@@ -407,6 +459,7 @@ export const useSchoolIncidents = () => {
     createIncident,
     updateIncidentStatus,
     deleteIncident,
+    markIncidentAsRead,
     parseIncidentMentions,
   }
 }
