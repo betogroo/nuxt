@@ -86,7 +86,7 @@
 
   // Seleção de linhas padronizada
   const {
-    selectedIds,
+    isRowSelected,
     toggleSelectRow,
     toggleSelectAllPage,
     isAllPageSelected,
@@ -267,7 +267,7 @@
         <!-- Checkbox de Linha -->
         <template #item-select="{ item }">
           <UiCheckbox
-            :model-value="selectedIds.has(String(item.id))"
+            :model-value="isRowSelected(String(item.id))"
             size="sm"
             @update:model-value="toggleSelectRow(String(item.id))"
           />

@@ -235,4 +235,28 @@ describe('Schools Incidents Page', () => {
     const vm = wrapper.vm as unknown as { isFormModalOpen: boolean }
     expect(vm.isFormModalOpen).toBe(true)
   })
+
+  it('toggles row selection using isRowSelected and toggleSelectRow', () => {
+    const wrapper = shallowMount(IncidentsPage, {
+      global: {
+        stubs: {
+          UiPageHeader: true,
+          UiCard: true,
+          UiTable: true,
+          UiButton: true,
+        },
+      },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      isRowSelected: (id: string) => boolean
+      toggleSelectRow: (id: string) => void
+    }
+
+    expect(vm.isRowSelected('inc-1')).toBe(false)
+    vm.toggleSelectRow('inc-1')
+    expect(vm.isRowSelected('inc-1')).toBe(true)
+    vm.toggleSelectRow('inc-1')
+    expect(vm.isRowSelected('inc-1')).toBe(false)
+  })
 })

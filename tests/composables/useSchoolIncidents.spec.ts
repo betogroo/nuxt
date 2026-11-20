@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
-import { useSchoolIncidents } from '~/composables/useSchoolIncidents'
+import { useSchoolIncidents, resetSchoolIncidentsState } from '~/composables/useSchoolIncidents'
 import type { SchoolIncidentParticipant } from '~/types/school'
 
 const mockUser = { id: 'user-123', email: 'school@test.com' }
@@ -43,6 +43,7 @@ mockNuxtImport('useLogger', () => () => ({
 describe('useSchoolIncidents Composable', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetSchoolIncidentsState()
 
     orderMock.mockResolvedValue({ data: [], error: null })
     selectMock.mockReturnValue({

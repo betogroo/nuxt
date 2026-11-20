@@ -17,68 +17,89 @@ export interface ParsedIncidentMentionToken {
   classroom?: string | null
 }
 
+// Module-level shared state across components
+const incidents = ref<SchoolIncident[]>([])
+const isLoading = ref<boolean>(false)
+const isSaving = ref<boolean>(false)
+const error = ref<string | null>(null)
+let inFlightFetch: Promise<SchoolIncident[]> | null = null
+
+export const resetSchoolIncidentsState = () => {
+  incidents.value = []
+  isLoading.value = false
+  isSaving.value = false
+  error.value = null
+  inFlightFetch = null
+}
+
 export const useSchoolIncidents = () => {
   const supabase = useSupabaseClient()
   const { ensureUser } = useAuthSession()
   const { userId } = useCurrentUserId()
   const { logAction } = useLogger()
 
-  const incidents = ref<SchoolIncident[]>([])
-  const isLoading = ref<boolean>(false)
-  const isSaving = ref<boolean>(false)
-  const error = ref<string | null>(null)
-
   /**
    * Busca todas as ocorrências acessíveis pelo usuário atual
    * (conforme RLS: school-user vê apenas as suas; school-manager e admin vêem todas).
+   * Protegido com deduplicação de chamadas simultâneas.
    */
   const fetchIncidents = async (): Promise<SchoolIncident[]> => {
+    if (inFlightFetch) {
+      return inFlightFetch
+    }
+
     isLoading.value = true
     error.value = null
-    try {
-      const { data, error: err } = await supabase
-        .from('school_incidents')
-        .select(
-          `
-          id,
-          title,
-          description,
-          status,
-          terms_accepted,
-          created_by,
-          created_at,
-          updated_at,
-          participants:school_incident_participants(
+
+    inFlightFetch = (async () => {
+      try {
+        const { data, error: err } = await supabase
+          .from('school_incidents')
+          .select(
+            `
             id,
-            incident_id,
-            role,
-            name,
-            classroom,
+            title,
+            description,
+            status,
+            terms_accepted,
+            created_by,
             created_at,
-            updated_at
-          ),
-          author:profiles!created_by(
-            id,
-            name,
-            role
+            updated_at,
+            participants:school_incident_participants(
+              id,
+              incident_id,
+              role,
+              name,
+              classroom,
+              created_at,
+              updated_at
+            ),
+            author:profiles!created_by(
+              id,
+              name,
+              role
+            )
+          `,
           )
-        `,
-        )
-        .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false })
 
-      if (err) throw err
+        if (err) throw err
 
-      const typedData = (data as unknown as SchoolIncident[]) || []
-      incidents.value = typedData
-      return typedData
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Falha ao carregar as ocorrências escolares.'
-      error.value = message
-      throw err
-    } finally {
-      isLoading.value = false
-    }
+        const typedData = (data as unknown as SchoolIncident[]) || []
+        incidents.value = typedData
+        return typedData
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : 'Falha ao carregar as ocorrências escolares.'
+        error.value = message
+        throw err
+      } finally {
+        isLoading.value = false
+        inFlightFetch = null
+      }
+    })()
+
+    return inFlightFetch
   }
 
   /**
