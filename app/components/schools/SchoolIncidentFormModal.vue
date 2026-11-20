@@ -1,6 +1,7 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue'
   import { useSchoolIncidents } from '~/composables/useSchoolIncidents'
+  import { useMentionAutocomplete } from '~/composables/useMentionAutocomplete'
   import { SCHOOL_INCIDENT_TERMS_TEXT } from '~/constants/school-incidents'
   import type { IncidentParticipantInput } from '~/types/school'
 
@@ -18,12 +19,56 @@
   const offenders = ref<IncidentParticipantInput[]>([{ name: '', classroom: '' }])
   const victims = ref<IncidentParticipantInput[]>([])
 
+  const textareaComponentRef = ref<{ $el?: HTMLElement } | HTMLElement | null>(null)
+
+  const getNativeTextarea = (): HTMLTextAreaElement | null => {
+    if (!textareaComponentRef.value) return null
+    if (textareaComponentRef.value instanceof HTMLTextAreaElement) {
+      return textareaComponentRef.value
+    }
+    const el =
+      (textareaComponentRef.value as { $el?: HTMLElement }).$el ||
+      (textareaComponentRef.value as HTMLElement)
+    return el?.querySelector?.('textarea') || null
+  }
+
+  const {
+    isOpen: isMentionMenuOpen,
+    triggerType: mentionTriggerType,
+    triggerChar: mentionTriggerChar,
+    query: mentionQuery,
+    activeIndex: mentionActiveIndex,
+    availableParticipants: mentionAvailableParticipants,
+    filteredOptions: mentionFilteredOptions,
+    handleInput: onDescriptionInput,
+    handleKeydown: onDescriptionKeydown,
+    selectOption: onSelectMentionOption,
+    close: closeMentionMenu,
+  } = useMentionAutocomplete({
+    text: description,
+    offenders,
+    victims,
+  })
+
+  const onKeydownTextarea = (e: KeyboardEvent) => {
+    onDescriptionKeydown(e, getNativeTextarea())
+  }
+
+  const onInputTextarea = (e: Event) => {
+    onDescriptionInput(e)
+  }
+
+  const onSelectOptionClick = (option: IncidentParticipantInput) => {
+    onSelectMentionOption(option, getNativeTextarea())
+  }
+
   const resetForm = () => {
     title.value = ''
     description.value = ''
     termsAccepted.value = false
     offenders.value = [{ name: '', classroom: '' }]
     victims.value = []
+    closeMentionMenu()
   }
 
   watch(modelValue, (isOpen) => {
@@ -255,13 +300,116 @@
           </UiChip>
         </div>
 
-        <UiTextarea
-          v-model="description"
-          hide-details="auto"
-          placeholder="Descreva o ocorrido detalhadamente. Exemplo: Durante o intervalo, @Nome abordou /Nome próximo à cantina..."
-          :rows="6"
-          variant="outline"
-        />
+        <div class="position-relative">
+          <UiTextarea
+            ref="textareaComponentRef"
+            v-model="description"
+            hide-details="auto"
+            placeholder="Descreva o ocorrido detalhadamente. Exemplo: Durante o intervalo, @Nome abordou /Nome próximo à cantina..."
+            :rows="6"
+            variant="outline"
+            @click="onInputTextarea"
+            @input="onInputTextarea"
+            @keydown="onKeydownTextarea"
+            @keyup="onInputTextarea"
+          />
+
+          <!-- Menu Flutuante de Menções (@ e /) -->
+          <UiCard
+            v-if="isMentionMenuOpen"
+            border
+            class="position-absolute elevation-6 rounded-lg bg-surface mention-menu-card"
+            elevation="6"
+            rounded="lg"
+            style="
+              top: 100%;
+              left: 0;
+              right: 0;
+              z-index: 50;
+              margin-top: 4px;
+              max-height: 280px;
+              overflow-y: auto;
+            "
+          >
+            <!-- Cabeçalho do Menu de Menções -->
+            <div
+              class="pa-2 px-3 d-flex align-center justify-space-between border-b"
+              :class="mentionTriggerType === 'offender' ? 'bg-warning-subtle' : 'bg-info-subtle'"
+            >
+              <div class="d-flex align-center gap-2">
+                <UiIcon
+                  :color="mentionTriggerType === 'offender' ? 'warning' : 'info'"
+                  :name="mentionTriggerType === 'offender' ? 'alert' : 'shieldUser'"
+                  size="18"
+                />
+                <span class="text-caption font-weight-bold">
+                  {{
+                    mentionTriggerType === 'offender'
+                      ? 'Selecione o Ofensor (@):'
+                      : 'Selecione a Vítima (/):'
+                  }}
+                </span>
+              </div>
+              <UiChip
+                :color="mentionTriggerType === 'offender' ? 'warning' : 'info'"
+                size="xs"
+                variant="soft"
+              >
+                {{ mentionFilteredOptions.length }} participante(s)
+              </UiChip>
+            </div>
+
+            <!-- Lista de Opções -->
+            <div v-if="mentionFilteredOptions.length > 0" class="py-1">
+              <div
+                v-for="(option, index) in mentionFilteredOptions"
+                :key="`mention-opt-${option.name}-${index}`"
+                class="pa-2 px-3 d-flex align-center justify-space-between cursor-pointer mention-item transition-all"
+                :class="{
+                  'bg-primary-subtle text-primary font-weight-medium': index === mentionActiveIndex,
+                  'hover-bg': index !== mentionActiveIndex,
+                }"
+                @click="onSelectOptionClick(option)"
+                @mouseenter="mentionActiveIndex = index"
+              >
+                <div class="d-flex align-center gap-2">
+                  <span
+                    class="font-weight-bold"
+                    :class="mentionTriggerType === 'offender' ? 'text-warning' : 'text-info'"
+                  >
+                    {{ mentionTriggerChar }}
+                  </span>
+                  <span class="text-body-2 font-weight-medium">{{ option.name }}</span>
+                </div>
+                <UiChip v-if="option.classroom" color="neutral" size="xs" variant="outline">
+                  {{ option.classroom }}
+                </UiChip>
+              </div>
+            </div>
+
+            <!-- Estado Vazio / Sem Participantes Cadastrados -->
+            <div v-else class="pa-4 text-center text-caption text-medium-emphasis">
+              <div v-if="mentionAvailableParticipants.length === 0">
+                Nenhum {{ mentionTriggerType === 'offender' ? 'ofensor' : 'vítima' }} cadastrado nos
+                campos acima.
+              </div>
+              <div v-else>Nenhum participante encontrado com "{{ mentionQuery }}".</div>
+            </div>
+
+            <!-- Rodapé com Dicas de Atalho de Teclado -->
+            <div
+              class="pa-2 px-3 bg-surface-variant border-t d-flex align-center justify-space-between text-caption text-medium-emphasis"
+            >
+              <span
+                >Use <kbd>↑</kbd> <kbd>↓</kbd> para navegar e <kbd>Enter</kbd> ou
+                <kbd>Tab</kbd> para selecionar</span
+              >
+              <UiButton size="xs" variant="ghost" @click="closeMentionMenu">
+                Fechar (Esc)
+              </UiButton>
+            </div>
+          </UiCard>
+        </div>
       </div>
 
       <!-- 5. Aceite de Termos e Conformidade -->
@@ -292,3 +440,22 @@
     </template>
   </UiModal>
 </template>
+
+<style scoped>
+  .mention-item:hover,
+  .hover-bg:hover {
+    background-color: rgba(var(--v-theme-primary), 0.08);
+  }
+
+  .bg-warning-subtle {
+    background-color: rgba(var(--v-theme-warning), 0.12);
+  }
+
+  .bg-info-subtle {
+    background-color: rgba(var(--v-theme-info), 0.12);
+  }
+
+  .bg-primary-subtle {
+    background-color: rgba(var(--v-theme-primary), 0.12);
+  }
+</style>

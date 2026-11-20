@@ -170,4 +170,33 @@ describe('SchoolIncidentFormModal Component', () => {
     expect(wrapper.emitted('saved')).toBeTruthy()
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false])
   })
+
+  it('integrates mention autocomplete on typing @ and selecting an offender', () => {
+    const wrapper = shallowMount(SchoolIncidentFormModal, {
+      props: { modelValue: true },
+    })
+
+    const vm = wrapper.vm as unknown as {
+      description: string
+      offenders: Array<{ name: string; classroom: string }>
+      isMentionMenuOpen: boolean
+      mentionTriggerType: string
+      onInputTextarea: (e: Event) => void
+      onSelectOptionClick: (opt: { name: string; classroom: string }) => void
+    }
+
+    vm.offenders = [{ name: 'Lucas Silva', classroom: '3º B' }]
+    vm.description = 'Durante a aula, o aluno @'
+
+    vm.onInputTextarea({
+      target: { selectionStart: vm.description.length },
+    } as unknown as Event)
+
+    expect(vm.isMentionMenuOpen).toBe(true)
+    expect(vm.mentionTriggerType).toBe('offender')
+
+    vm.onSelectOptionClick({ name: 'Lucas Silva', classroom: '3º B' })
+    expect(vm.description).toBe('Durante a aula, o aluno @Lucas Silva ')
+    expect(vm.isMentionMenuOpen).toBe(false)
+  })
 })
