@@ -265,4 +265,66 @@ describe('useBackup Composable', () => {
     expect(logActionMock).toHaveBeenCalledWith('RESTORE_BACKUP', expect.any(String))
     expect(result.success).toBe(true)
   })
+
+  it('restoreBackup should pass profiles containing email and external user records', async () => {
+    const mockResult = {
+      success: true,
+      restored_at: new Date().toISOString(),
+      counts: {
+        profiles: 1,
+        school_incidents: 1,
+      },
+    }
+
+    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
+
+    const { restoreBackup } = useBackup()
+    const payload = {
+      system: 'Test',
+      version: '2.0',
+      timestamp: '2026-11-23T12:00:00Z',
+      generated_by: { id: 'admin-id', name: 'Admin' },
+      summary: {
+        profiles: 1,
+        suppliers: 0,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        products: 0,
+        product_units: 0,
+        demands: 0,
+        demand_products: 0,
+        demand_product_bids: 0,
+        demand_responsibles: 0,
+        iirgd_document_types: 0,
+        iirgd_citizens: 0,
+        iirgd_demands: 0,
+        iirgd_demand_status_history: 0,
+        iirgd_settings: 0,
+        logs: 0,
+      },
+      data: {
+        profiles: [
+          {
+            id: '2d4245e9-627d-4e77-9b60-67a4ecadace3',
+            name: 'Creuza das Couves',
+            email: 'creuza@escola.com',
+            role: 'school-user',
+          },
+        ],
+        school_incidents: [
+          {
+            id: 'a93a5bcb-7235-45a9-b6a1-e4c2e0229e5b',
+            title: 'Briga',
+            created_by: '2d4245e9-627d-4e77-9b60-67a4ecadace3',
+          },
+        ],
+      },
+    }
+
+    const result = await restoreBackup(payload)
+    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
+    expect(result.success).toBe(true)
+  })
 })
