@@ -24,16 +24,19 @@ mockNuxtImport('useLogger', () => {
 describe('useProducts', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockSupabase.from.mockReturnValue({
-      select: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
-      range: vi.fn().mockResolvedValue({ data: [], count: 0, error: null }),
-      eq: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: { id: 'prod-1' }, error: null }),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      not: vi.fn().mockResolvedValue({ data: [], error: null }),
-    })
+    const mockBuilder: Record<string, unknown> = {}
+    mockBuilder.select = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.order = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.range = vi.fn().mockResolvedValue({ data: [], count: 0, error: null })
+    mockBuilder.eq = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.single = vi.fn().mockResolvedValue({ data: { id: 'prod-1' }, error: null })
+    mockBuilder.insert = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.update = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.delete = vi.fn().mockReturnValue(mockBuilder)
+    mockBuilder.not = vi.fn().mockResolvedValue({ data: [], error: null })
+    mockBuilder.then = (resolve: (val: unknown) => void) => resolve({ data: [], error: null })
+
+    mockSupabase.from.mockReturnValue(mockBuilder)
   })
 
   it('should be defined', () => {
@@ -134,15 +137,14 @@ describe('useProducts', () => {
 
   it('fetchProductById should fetch product with relations', async () => {
     const mockProduct = { id: 'prod-1', name: 'Product A' }
-    mockSupabase.from.mockReturnValue({
+    const builder: Record<string, unknown> = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      single: vi
-        .fn()
-        .mockResolvedValueOnce({ data: mockProduct, error: null }) // mock product fetch
-        .mockResolvedValueOnce({ data: [], error: null }) // mock units fetch
-        .mockResolvedValueOnce({ data: { name: 'User Name' }, error: null }), // mock profile fetch
-    })
+      order: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: mockProduct, error: null }),
+      then: (resolve: (val: unknown) => void) => resolve({ data: [], error: null }),
+    }
+    mockSupabase.from.mockReturnValue(builder)
 
     const { fetchProductById } = useProducts()
     const result = await fetchProductById('prod-1')
@@ -161,6 +163,17 @@ describe('useProducts', () => {
               single: vi.fn().mockResolvedValue({
                 data: { id: 'prod-1', name: 'Papel', created_by: null },
                 error: null,
+              }),
+            }),
+          }),
+        }
+      }
+      if (table === 'real_products') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({ data: [], error: null }),
               }),
             }),
           }),
@@ -737,6 +750,152 @@ describe('useProducts', () => {
       await expect(
         createProductsBatch([{ name: 'Prod Duplicado', cat_mat: 111, expense_nature_id: 'nat-1' }]),
       ).rejects.toThrow('Já existe um produto cadastrado com este código CATMAT.')
+    })
+  })
+
+  describe('real_products', () => {
+    it('fetchProductById should include real_products', async () => {
+      const mockProduct = { id: 'prod-1', name: 'Papel A4' }
+      const mockRealProducts = [
+        {
+          id: 'rp-1',
+          product_id: 'prod-1',
+          brand: 'Chamex',
+          name: 'Chamex Office 75g',
+          link: 'https://chamex.com',
+        },
+      ]
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: mockProduct, error: null }),
+              }),
+            }),
+          }
+        }
+        if (table === 'real_products') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({ data: mockRealProducts, error: null }),
+                }),
+              }),
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }
+      })
+
+      const { fetchProductById } = useProducts()
+      const result = await fetchProductById('prod-1')
+
+      expect(result.real_products).toEqual(mockRealProducts)
+    })
+
+    it('addRealProduct should validate required fields, insert real product and log action', async () => {
+      const inserted = {
+        id: 'rp-1',
+        product_id: 'prod-1',
+        brand: 'BIC',
+        name: 'Cristal 1.0mm',
+        link: 'https://bic.com',
+      }
+      const singleMock = vi.fn().mockResolvedValue({ data: inserted, error: null })
+      const selectMock = vi.fn().mockReturnValue({ single: singleMock })
+      const insertMock = vi.fn().mockReturnValue({ select: selectMock })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { addRealProduct } = useProducts()
+
+      await expect(addRealProduct('prod-1', { brand: '', name: 'Cristal' })).rejects.toThrow(
+        'A marca do produto real é obrigatória.',
+      )
+      await expect(addRealProduct('prod-1', { brand: 'BIC', name: '' })).rejects.toThrow(
+        'O nome do produto real é obrigatório.',
+      )
+
+      const result = await addRealProduct('prod-1', {
+        brand: 'BIC',
+        name: 'Cristal 1.0mm',
+        link: 'https://bic.com',
+      })
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(insertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          product_id: 'prod-1',
+          brand: 'BIC',
+          name: 'Cristal 1.0mm',
+          link: 'https://bic.com',
+          created_by: 'user-123',
+        }),
+      )
+      expect(result).toEqual(inserted)
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'ADD_REAL_PRODUCT',
+        expect.stringContaining('BIC'),
+        'user-123',
+      )
+    })
+
+    it('updateRealProduct should update real product and log action', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ error: null })
+      const updateMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ update: updateMock })
+
+      const { updateRealProduct } = useProducts()
+
+      await expect(updateRealProduct('rp-1', { brand: '', name: 'Nome' })).rejects.toThrow(
+        'A marca do produto real é obrigatória.',
+      )
+      await expect(updateRealProduct('rp-1', { brand: 'Marca', name: '' })).rejects.toThrow(
+        'O nome do produto real é obrigatório.',
+      )
+
+      await updateRealProduct('rp-1', {
+        brand: 'BIC Atualizada',
+        name: 'Cristal Dura Mais',
+        link: 'https://bic.com/novo',
+      })
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(updateMock).toHaveBeenCalledWith({
+        brand: 'BIC Atualizada',
+        name: 'Cristal Dura Mais',
+        link: 'https://bic.com/novo',
+      })
+      expect(eqMock).toHaveBeenCalledWith('id', 'rp-1')
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'UPDATE_REAL_PRODUCT',
+        expect.stringContaining('BIC Atualizada'),
+        'user-123',
+      )
+    })
+
+    it('removeRealProduct should delete real product and log action', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ error: null })
+      const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ delete: deleteMock })
+
+      const { removeRealProduct } = useProducts()
+      await removeRealProduct('rp-1', 'Caneta BIC')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(deleteMock).toHaveBeenCalled()
+      expect(eqMock).toHaveBeenCalledWith('id', 'rp-1')
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'REMOVE_REAL_PRODUCT',
+        expect.stringContaining('Caneta BIC'),
+        'user-123',
+      )
     })
   })
 })

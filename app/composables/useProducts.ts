@@ -16,6 +16,24 @@ export type ProductRow = Database['public']['Tables']['products']['Row'] & {
   expense_natures?: { id: string; name: string } | null
   product_classes?: { id: string; name: string } | null
   product_characteristics?: ProductCharacteristicSummary[]
+  real_products?: RealProduct[]
+}
+
+export interface RealProduct {
+  id: string
+  product_id: string
+  name: string
+  brand: string
+  link: string | null
+  created_at: string
+  updated_at: string
+  created_by?: string | null
+}
+
+export interface RealProductPayload {
+  name: string
+  brand: string
+  link?: string | null
 }
 
 export type ProductCharacteristicDetail = {
@@ -58,6 +76,7 @@ export interface DuplicateProductPayload {
   is_active?: boolean
   unitIds?: string[]
   characteristics?: Array<{ key: string; value: string }>
+  realProducts?: Array<{ brand: string; name: string; link?: string | null }>
 }
 
 export const useProducts = () => {
@@ -207,6 +226,13 @@ export const useProducts = () => {
       .select('id, value, key_id, key:product_characteristic_keys(id, name, is_pending, is_active)')
       .eq('product_id', id)
 
+    const { data: realProductsData } = await supabase
+      .from('real_products')
+      .select('*')
+      .eq('product_id', id)
+      .order('brand', { ascending: true })
+      .order('name', { ascending: true })
+
     let profiles = null
     if (data.created_by) {
       const { data: p } = await supabase
@@ -255,7 +281,9 @@ export const useProducts = () => {
       }))
       .sort((a, b) => a.key_name.localeCompare(b.key_name, 'pt-BR'))
 
-    return { ...data, profiles, units, characteristics }
+    const real_products: RealProduct[] = (realProductsData || []) as unknown as RealProduct[]
+
+    return { ...data, profiles, units, characteristics, real_products }
   }
 
   const fetchProductDemands = async (productId: string): Promise<ProductDemandUsage[]> => {
@@ -501,6 +529,25 @@ export const useProducts = () => {
       }
     }
 
+    // Clonar produtos reais se fornecidos
+    if (payload.realProducts && payload.realProducts.length > 0) {
+      const realProductsToInsert = payload.realProducts
+        .filter((rp) => rp.name?.trim() && rp.brand?.trim())
+        .map((rp) => ({
+          product_id: newProduct.id,
+          brand: rp.brand.trim(),
+          name: rp.name.trim(),
+          link: rp.link?.trim() || null,
+          created_by: user.value?.id,
+        }))
+      if (realProductsToInsert.length > 0) {
+        const { error: realProductsError } = await supabase
+          .from('real_products')
+          .insert(realProductsToInsert)
+        if (realProductsError) throw realProductsError
+      }
+    }
+
     await logAction(
       'DUPLICATE_PRODUCT',
       `Produto duplicado: "${cleanName}" criado a partir do produto ID ${payload.sourceProductId}`,
@@ -508,6 +555,89 @@ export const useProducts = () => {
     )
 
     return newProduct as ProductRow
+  }
+
+  const addRealProduct = async (
+    productId: string,
+    payload: RealProductPayload,
+  ): Promise<RealProduct> => {
+    const cleanBrand = payload.brand?.trim()
+    const cleanName = payload.name?.trim()
+    const cleanLink = payload.link?.trim() || null
+
+    if (!cleanBrand) {
+      throw new Error('A marca do produto real é obrigatória.')
+    }
+    if (!cleanName) {
+      throw new Error('O nome do produto real é obrigatório.')
+    }
+
+    const { data, error } = await supabase
+      .from('real_products')
+      .insert({
+        product_id: productId,
+        brand: cleanBrand,
+        name: cleanName,
+        link: cleanLink,
+        created_by: user.value?.id,
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    await logAction(
+      'ADD_REAL_PRODUCT',
+      `Produto real "${cleanName}" (${cleanBrand}) adicionado ao produto técnico (${productId})`,
+      user.value?.id,
+    )
+
+    return data as unknown as RealProduct
+  }
+
+  const updateRealProduct = async (
+    realProductId: string,
+    payload: RealProductPayload,
+  ): Promise<void> => {
+    const cleanBrand = payload.brand?.trim()
+    const cleanName = payload.name?.trim()
+    const cleanLink = payload.link?.trim() || null
+
+    if (!cleanBrand) {
+      throw new Error('A marca do produto real é obrigatória.')
+    }
+    if (!cleanName) {
+      throw new Error('O nome do produto real é obrigatório.')
+    }
+
+    const { error } = await supabase
+      .from('real_products')
+      .update({
+        brand: cleanBrand,
+        name: cleanName,
+        link: cleanLink,
+      })
+      .eq('id', realProductId)
+
+    if (error) throw error
+
+    await logAction(
+      'UPDATE_REAL_PRODUCT',
+      `Produto real "${cleanName}" (${cleanBrand}) atualizado`,
+      user.value?.id,
+    )
+  }
+
+  const removeRealProduct = async (realProductId: string, label?: string): Promise<void> => {
+    const { error } = await supabase.from('real_products').delete().eq('id', realProductId)
+
+    if (error) throw error
+
+    await logAction(
+      'REMOVE_REAL_PRODUCT',
+      `Produto real removido do produto: ${label || realProductId}`,
+      user.value?.id,
+    )
   }
 
   return {
@@ -525,5 +655,8 @@ export const useProducts = () => {
     upsertProductCharacteristic,
     batchUpsertProductCharacteristics,
     removeProductCharacteristic,
+    addRealProduct,
+    updateRealProduct,
+    removeRealProduct,
   }
 }

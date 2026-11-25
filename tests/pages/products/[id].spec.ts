@@ -14,6 +14,9 @@ const mockUpdateProduct = vi.fn().mockResolvedValue({})
 const mockRemoveProductUnit = vi.fn().mockResolvedValue({})
 const mockUpsertProductCharacteristic = vi.fn().mockResolvedValue({})
 const mockRemoveProductCharacteristic = vi.fn().mockResolvedValue({})
+const mockAddRealProduct = vi.fn().mockResolvedValue({})
+const mockUpdateRealProduct = vi.fn().mockResolvedValue({})
+const mockRemoveRealProduct = vi.fn().mockResolvedValue({})
 const mockToast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), warning: vi.fn() }
 const mockRefresh = vi.fn()
 
@@ -50,6 +53,15 @@ const buildProduct = (overrides: Record<string, unknown> = {}) => ({
       aliases: [],
     },
   ],
+  real_products: [
+    {
+      id: 'rp-1',
+      brand: 'Chamex',
+      name: 'Chamex Multi 75g',
+      link: 'https://chamex.com.br',
+      created_at: '2026-02-01T10:00:00Z',
+    },
+  ],
   ...overrides,
 })
 
@@ -69,6 +81,9 @@ mockNuxtImport('useProducts', () => () => ({
   removeProductUnit: mockRemoveProductUnit,
   upsertProductCharacteristic: mockUpsertProductCharacteristic,
   removeProductCharacteristic: mockRemoveProductCharacteristic,
+  addRealProduct: mockAddRealProduct,
+  updateRealProduct: mockUpdateRealProduct,
+  removeRealProduct: mockRemoveRealProduct,
 }))
 mockNuxtImport('useMeasurementUnits', () => () => ({
   fetchAllActiveUnits: vi.fn().mockResolvedValue([]),
@@ -422,5 +437,44 @@ describe('Product Detail Page', () => {
     vm.isDuplicateModalOpen = true
     await wrapper.vm.$nextTick()
     expect(vm.isDuplicateModalOpen).toBe(true)
+  })
+
+  it('renders real products table with brand, name and link button', () => {
+    const wrapper = mountPage()
+    const text = wrapper.text()
+    expect(text).toContain('Produtos Reais (Referências de Mercado)')
+    expect(text).toContain('Chamex')
+    expect(text).toContain('Chamex Multi 75g')
+    expect(text).toContain('Acessar Link')
+  })
+
+  it('shows empty state when product has no real products', () => {
+    mockProductData.value = buildProduct({ real_products: [] })
+    const wrapper = mountPage()
+    expect(wrapper.text()).toContain('Nenhum produto real cadastrado')
+  })
+
+  it('opens add real product modal and saves real product', async () => {
+    const wrapper = mountPage()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    vm.openAddRealProduct()
+    expect(vm.isRealProductModalOpen).toBe(true)
+    expect(vm.isEditingRealProduct).toBe(false)
+
+    vm.realProductBrand = 'Faber-Castell'
+    vm.realProductName = 'Ecolápis Grafite'
+    vm.realProductLink = 'faber-castell.com.br/lapis'
+
+    await vm.saveRealProduct()
+
+    expect(mockAddRealProduct).toHaveBeenCalledWith('prod-1', {
+      brand: 'Faber-Castell',
+      name: 'Ecolápis Grafite',
+      link: 'faber-castell.com.br/lapis',
+    })
+    expect(mockToast.success).toHaveBeenCalledWith('Produto real adicionado com sucesso!')
+    expect(vm.isRealProductModalOpen).toBe(false)
   })
 })

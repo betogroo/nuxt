@@ -3,6 +3,7 @@
     ProductUnitDetail,
     ProductCharacteristicDetail,
     ProductDemandUsage,
+    RealProduct,
   } from '~/composables/useProducts'
   import { formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
@@ -28,6 +29,9 @@
     upsertProductCharacteristic,
     batchUpsertProductCharacteristics,
     removeProductCharacteristic,
+    addRealProduct,
+    updateRealProduct,
+    removeRealProduct,
   } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
   const { fetchAllSelectableKeys, fetchDistinctValuesForKey } = useProductCharacteristics()
@@ -483,6 +487,128 @@
     { text: 'Ações', value: 'actions', align: 'right' as const },
   ]
 
+  // Real Products (Commercial References) logic
+  const isRealProductModalOpen = ref(false)
+  const isEditingRealProduct = ref(false)
+  const editingRealProductId = ref('')
+  const realProductBrand = ref('')
+  const realProductName = ref('')
+  const realProductLink = ref('')
+  const realProductError = ref('')
+  const savingRealProduct = ref(false)
+
+  // Delete Real Product modal
+  const isDeleteRealProductModalOpen = ref(false)
+  const realProductToDelete = ref<RealProduct | null>(null)
+  const isDeletingRealProduct = ref(false)
+
+  const ensureValidUrl = (url: string | null | undefined): string => {
+    if (!url) return ''
+    const trimmed = url.trim()
+    if (!trimmed) return ''
+    if (/^https?:\/\//i.test(trimmed)) {
+      return trimmed
+    }
+    return `https://${trimmed}`
+  }
+
+  const openAddRealProduct = () => {
+    isEditingRealProduct.value = false
+    editingRealProductId.value = ''
+    realProductBrand.value = ''
+    realProductName.value = ''
+    realProductLink.value = ''
+    realProductError.value = ''
+    isRealProductModalOpen.value = true
+  }
+
+  const openEditRealProduct = (item: RealProduct) => {
+    isEditingRealProduct.value = true
+    editingRealProductId.value = item.id
+    realProductBrand.value = item.brand
+    realProductName.value = item.name
+    realProductLink.value = item.link || ''
+    realProductError.value = ''
+    isRealProductModalOpen.value = true
+  }
+
+  const closeRealProductModal = () => {
+    isRealProductModalOpen.value = false
+    isEditingRealProduct.value = false
+    editingRealProductId.value = ''
+    realProductBrand.value = ''
+    realProductName.value = ''
+    realProductLink.value = ''
+    realProductError.value = ''
+  }
+
+  const saveRealProduct = async () => {
+    const brand = realProductBrand.value.trim()
+    const name = realProductName.value.trim()
+    const link = realProductLink.value.trim() || null
+
+    if (!brand) {
+      realProductError.value = 'A marca do produto real é obrigatória.'
+      return
+    }
+    if (!name) {
+      realProductError.value = 'O nome / modelo comercial do produto real é obrigatório.'
+      return
+    }
+
+    savingRealProduct.value = true
+    realProductError.value = ''
+
+    try {
+      if (isEditingRealProduct.value && editingRealProductId.value) {
+        await updateRealProduct(editingRealProductId.value, { brand, name, link })
+        toast.success('Produto real atualizado com sucesso!')
+      } else {
+        await addRealProduct(productId, { brand, name, link })
+        toast.success('Produto real adicionado com sucesso!')
+      }
+      await refresh()
+      closeRealProductModal()
+    } catch (e: unknown) {
+      realProductError.value = e instanceof Error ? e.message : String(e)
+    } finally {
+      savingRealProduct.value = false
+    }
+  }
+
+  const openDeleteRealProduct = (item: RealProduct) => {
+    realProductToDelete.value = item
+    isDeleteRealProductModalOpen.value = true
+  }
+
+  const closeDeleteRealProductModal = () => {
+    isDeleteRealProductModalOpen.value = false
+    realProductToDelete.value = null
+  }
+
+  const confirmDeleteRealProduct = async () => {
+    if (!realProductToDelete.value) return
+    isDeletingRealProduct.value = true
+    try {
+      await removeRealProduct(realProductToDelete.value.id, realProductToDelete.value.name)
+      toast.success(`Produto real "${realProductToDelete.value.name}" removido com sucesso.`)
+      closeDeleteRealProductModal()
+      await refresh()
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover produto real.')
+    } finally {
+      isDeletingRealProduct.value = false
+    }
+  }
+
+  const realProductHeaders = [
+    { text: 'Marca', value: 'brand' },
+    { text: 'Modelo / Nome Comercial', value: 'name' },
+    { text: 'Link de Referência', value: 'link' },
+    { text: 'Cadastrado em', value: 'created_at', align: 'center' as const },
+    { text: 'Ações', value: 'actions', align: 'right' as const },
+  ]
+
   const demandHeaders = [
     { text: 'Demanda', value: 'name' },
     { text: 'Nº Processo', value: 'process_number' },
@@ -879,6 +1005,110 @@
                   </div>
                   <div class="text-caption text-medium-emphasis">
                     Adicione pares de Chave : Valor para detalhar as especificações deste produto.
+                  </div>
+                </div>
+              </template>
+            </UiTable>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+
+      <!-- Produtos Reais (Referências de Mercado) -->
+      <UiRow class="mb-4">
+        <UiCol cols="12">
+          <UiCard variant="outline">
+            <template #header>
+              <UiIcon class="mr-2" color="primary" name="packageSolid" />
+              Produtos Reais (Referências de Mercado)
+              <UiChip
+                v-if="product.real_products?.length"
+                class="ml-2"
+                color="primary"
+                label
+                size="xs"
+                variant="soft"
+              >
+                {{ product.real_products.length }}
+              </UiChip>
+              <UiSpacer />
+              <UiButton
+                color="primary"
+                prepend-icon="add"
+                size="sm"
+                variant="soft"
+                @click="openAddRealProduct"
+              >
+                Adicionar Produto Real
+              </UiButton>
+            </template>
+
+            <div class="pa-4">
+              <div class="text-body-2 text-medium-emphasis">
+                Produtos comerciais reais existentes no mercado que atendem às especificações
+                técnicas deste item (marca, modelo e link de referência para consulta de preços e
+                compras).
+              </div>
+            </div>
+
+            <UiTable
+              :headers="realProductHeaders"
+              :items="(product.real_products as RealProduct[]) || []"
+            >
+              <template #item-brand="{ item }">
+                <UiChip color="primary" label size="sm" variant="soft">
+                  {{ item.brand }}
+                </UiChip>
+              </template>
+
+              <template #item-name="{ item }">
+                <span class="text-body-1 font-weight-medium">{{ item.name }}</span>
+              </template>
+
+              <template #item-link="{ item }">
+                <UiButton
+                  v-if="item.link"
+                  append-icon="externalLink"
+                  color="info"
+                  :href="ensureValidUrl(item.link)"
+                  rel="noopener noreferrer"
+                  size="xs"
+                  target="_blank"
+                  title="Abrir link de referência comercial"
+                  variant="tonal"
+                >
+                  Acessar Link
+                </UiButton>
+                <span v-else class="text-caption text-medium-emphasis">Não informado</span>
+              </template>
+
+              <template #item-created_at="{ item }">
+                <span class="text-caption text-medium-emphasis">{{
+                  formatDate(item.created_at)
+                }}</span>
+              </template>
+
+              <template #item-actions="{ item }">
+                <div class="d-flex justify-end ga-1">
+                  <UiActionButton
+                    action="edit"
+                    tooltip="Editar produto real"
+                    @click="openEditRealProduct(item as RealProduct)"
+                  />
+                  <UiActionButton
+                    action="delete"
+                    tooltip="Remover produto real"
+                    @click="openDeleteRealProduct(item as RealProduct)"
+                  />
+                </div>
+              </template>
+
+              <template #empty>
+                <div class="text-center py-6">
+                  <UiIcon class="mb-2" color="disabled" name="packageSolid" size="36" />
+                  <div class="text-body-1 font-weight-medium">Nenhum produto real cadastrado</div>
+                  <div class="text-caption text-medium-emphasis">
+                    Cadastre marcas e modelos comerciais de mercado com links de referência para
+                    este produto.
                   </div>
                 </div>
               </template>
@@ -1336,6 +1566,105 @@
         >
           Confirmar Remoção
         </UiButton>
+      </template>
+    </UiModal>
+
+    <!-- Modal Adicionar/Editar Produto Real -->
+    <UiModal
+      v-model="isRealProductModalOpen"
+      max-width="560px"
+      :title="isEditingRealProduct ? 'Editar Produto Real' : 'Adicionar Produto Real'"
+    >
+      <div class="py-2">
+        <UiAlert v-if="realProductError" class="mb-4" size="sm" type="error">
+          {{ realProductError }}
+        </UiAlert>
+
+        <UiRow dense>
+          <UiCol cols="12" sm="5">
+            <UiInput
+              v-model="realProductBrand"
+              hide-details="auto"
+              label="Marca *"
+              placeholder="Ex: BIC, 3M, Dell"
+              rounded="lg"
+              size="md"
+              variant="outline"
+            />
+          </UiCol>
+
+          <UiCol cols="12" sm="7">
+            <UiInput
+              v-model="realProductName"
+              hide-details="auto"
+              label="Nome / Modelo Comercial *"
+              placeholder="Ex: Caneta Cristal Azul 1.0mm"
+              rounded="lg"
+              size="md"
+              variant="outline"
+            />
+          </UiCol>
+
+          <UiCol class="mt-2" cols="12">
+            <UiInput
+              v-model="realProductLink"
+              clearable
+              hide-details="auto"
+              label="Link / URL de Referência (Opcional)"
+              placeholder="Ex: https://loja.com.br/produto ou fornecedor"
+              prepend-inner-icon="link"
+              rounded="lg"
+              size="md"
+              variant="outline"
+            />
+            <div class="text-caption text-medium-emphasis mt-1">
+              Link externo para verificação do modelo, catálogo técnico ou loja virtual.
+            </div>
+          </UiCol>
+        </UiRow>
+      </div>
+
+      <template #actions>
+        <div class="d-flex justify-end ga-2 w-100">
+          <UiButton variant="ghost" @click="closeRealProductModal">Cancelar</UiButton>
+          <UiButton
+            color="primary"
+            :loading="savingRealProduct"
+            variant="solid"
+            @click="saveRealProduct"
+          >
+            {{ isEditingRealProduct ? 'Salvar Alterações' : 'Adicionar' }}
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
+    <!-- Modal Confirmar Exclusão de Produto Real -->
+    <UiModal v-model="isDeleteRealProductModalOpen" max-width="440px" title="Confirmar Exclusão">
+      <div class="py-2">
+        <p class="text-body-1">
+          Tem certeza que deseja remover o produto real
+          <strong>"{{ realProductToDelete?.name }}"</strong> (Marca:
+          <strong>{{ realProductToDelete?.brand }}</strong
+          >)?
+        </p>
+        <p class="text-caption text-medium-emphasis mt-2">
+          Esta referência comercial será desvinculada deste produto técnico.
+        </p>
+      </div>
+
+      <template #actions>
+        <div class="d-flex justify-end ga-2 w-100">
+          <UiButton variant="ghost" @click="closeDeleteRealProductModal">Cancelar</UiButton>
+          <UiButton
+            color="error"
+            :loading="isDeletingRealProduct"
+            variant="solid"
+            @click="confirmDeleteRealProduct"
+          >
+            Excluir
+          </UiButton>
+        </div>
       </template>
     </UiModal>
 

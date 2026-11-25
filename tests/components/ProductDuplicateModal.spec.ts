@@ -254,6 +254,7 @@ describe('ProductDuplicateModal Component', () => {
         { key: 'Tamanho', value: '9' },
         { key: 'Material', value: 'Aço galvanizado' },
       ],
+      realProducts: [],
     })
 
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringContaining('Colchete numero 9'))

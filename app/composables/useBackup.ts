@@ -30,6 +30,7 @@ export const useBackup = () => {
         { count: productsCount },
         { count: productUnitsCount },
         { count: productCharacteristicsCount },
+        { count: realProductsCount },
         { count: demandsCount },
         { count: demandCommitmentsCount },
         { count: demandCommitmentLiquidationsCount },
@@ -65,6 +66,7 @@ export const useBackup = () => {
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('product_units').select('id', { count: 'exact', head: true }),
         supabase.from('product_characteristics').select('id', { count: 'exact', head: true }),
+        supabase.from('real_products').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
         supabase.from('demand_commitments').select('id', { count: 'exact', head: true }),
         supabase
@@ -104,6 +106,7 @@ export const useBackup = () => {
         products: productsCount || 0,
         product_units: productUnitsCount || 0,
         product_characteristics: productCharacteristicsCount || 0,
+        real_products: realProductsCount || 0,
         demands: demandsCount || 0,
         demand_commitments: demandCommitmentsCount || 0,
         demand_commitment_liquidations: demandCommitmentLiquidationsCount || 0,

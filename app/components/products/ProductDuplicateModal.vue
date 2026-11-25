@@ -18,6 +18,14 @@
     value: string
   }
 
+  interface EditableRealProduct {
+    id: string
+    brand: string
+    name: string
+    link: string | null
+    selected: boolean
+  }
+
   const props = defineProps<{
     productId?: string | null
   }>()
@@ -50,6 +58,7 @@
 
   const units = ref<EditableUnit[]>([])
   const characteristics = ref<EditableCharacteristic[]>([])
+  const realProducts = ref<EditableRealProduct[]>([])
 
   // Options for selectors
   const expenseNatureOptions = ref<Array<{ id: string; name: string }>>([])
@@ -103,6 +112,14 @@
         key: c.key_name,
         value: c.value,
       }))
+
+      realProducts.value = (source.real_products || []).map((rp) => ({
+        id: rp.id,
+        brand: rp.brand,
+        name: rp.name,
+        link: rp.link,
+        selected: true,
+      }))
     } catch (err: unknown) {
       errorMessage.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -121,6 +138,7 @@
         name.value = ''
         units.value = []
         characteristics.value = []
+        realProducts.value = []
       }
     },
     { immediate: true },
@@ -178,6 +196,14 @@
         }))
         .filter((c) => c.key && c.value)
 
+      const realProductsToSave = realProducts.value
+        .filter((rp) => rp.selected)
+        .map((rp) => ({
+          brand: rp.brand,
+          name: rp.name,
+          link: rp.link,
+        }))
+
       const newProduct = await duplicateProduct({
         sourceProductId: props.productId || '',
         name: trimmedName,
@@ -188,6 +214,7 @@
         is_active: isActive.value,
         unitIds: selectedUnitIds,
         characteristics: charsToSave,
+        realProducts: realProductsToSave,
       })
 
       toast.success(`Produto "${newProduct.name}" duplicado com sucesso!`)
@@ -384,6 +411,45 @@
             hide-details
             :label="unit.name"
           />
+        </div>
+      </div>
+
+      <UiDivider v-if="realProducts.length > 0" />
+
+      <!-- Produtos Reais (Referências de Mercado) -->
+      <div v-if="realProducts.length > 0">
+        <h4 class="text-subtitle-2 font-weight-bold mb-1 text-primary d-flex align-center gap-1">
+          <UiIcon name="packageSolid" size="sm" />
+          Produtos Reais / Referências de Mercado
+          <UiChip class="ml-1" label size="xs" variant="soft">
+            {{ realProducts.length }}
+          </UiChip>
+        </h4>
+
+        <p class="text-caption text-medium-emphasis mb-2">
+          Selecione quais referências comerciais de mercado (marcas e modelos) devem ser replicadas
+          para o novo produto:
+        </p>
+
+        <div class="d-flex flex-column gap-2">
+          <div
+            v-for="rp in realProducts"
+            :key="rp.id"
+            class="d-flex align-center gap-2 pa-2 rounded border bg-surface"
+          >
+            <UiCheckbox v-model="rp.selected" density="compact" hide-details />
+            <UiChip color="primary" label size="xs" variant="soft">
+              {{ rp.brand }}
+            </UiChip>
+            <span class="text-body-2 font-weight-medium">{{ rp.name }}</span>
+            <span
+              v-if="rp.link"
+              class="text-caption text-medium-emphasis text-truncate"
+              style="max-width: 250px"
+            >
+              ({{ rp.link }})
+            </span>
+          </div>
         </div>
       </div>
     </div>
