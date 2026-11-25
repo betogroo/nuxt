@@ -499,4 +499,99 @@ describe('useBrands', () => {
       )
     })
   })
+
+  describe('fetchBrandById', () => {
+    it('should query brand by id and return row', async () => {
+      const mockBrand = { id: 'b-1', name: 'BIC', is_active: true, is_pending: false }
+      const maybeSingleMock = vi.fn().mockResolvedValue({ data: mockBrand, error: null })
+      const eqMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
+      const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ select: selectMock })
+
+      const { fetchBrandById } = useBrands()
+      const result = await fetchBrandById('b-1')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('brands')
+      expect(selectMock).toHaveBeenCalledWith('*')
+      expect(eqMock).toHaveBeenCalledWith('id', 'b-1')
+      expect(result).toEqual(mockBrand)
+    })
+
+    it('should return null when brand not found', async () => {
+      const maybeSingleMock = vi.fn().mockResolvedValue({ data: null, error: null })
+      const eqMock = vi.fn().mockReturnValue({ maybeSingle: maybeSingleMock })
+      const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ select: selectMock })
+
+      const { fetchBrandById } = useBrands()
+      const result = await fetchBrandById('b-non-existent')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('fetchBrandProducts', () => {
+    it('should query real_products by brand_id and join products relation', async () => {
+      const mockItems = [
+        {
+          id: 'rp-1',
+          name: 'Cristal 1.0mm',
+          brand: 'BIC',
+          brand_id: 'b-1',
+          link: 'https://bic.com',
+          created_at: '2026-11-25T10:00:00Z',
+          product: {
+            id: 'prod-1',
+            name: 'Caneta Esferográfica',
+            cat_mat: 1234,
+            cat_bec: 5678,
+            is_active: true,
+            expense_natures: { id: '339030', name: 'Material de Consumo' },
+            product_classes: { id: '7510', name: 'Material de Escritório' },
+          },
+        },
+      ]
+
+      const orderMock = vi.fn().mockResolvedValue({ data: mockItems, error: null })
+      const eqMock = vi.fn().mockReturnValue({ order: orderMock })
+      const selectMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ select: selectMock })
+
+      const { fetchBrandProducts } = useBrands()
+      const result = await fetchBrandProducts('b-1')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(selectMock).toHaveBeenCalledWith(expect.stringContaining('product:products'))
+      expect(eqMock).toHaveBeenCalledWith('brand_id', 'b-1')
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(result).toEqual(mockItems)
+    })
+
+    it('should apply or filter with brand_id and brand name fallback when brandName is provided', async () => {
+      const mockItems = [
+        {
+          id: 'rp-1',
+          name: 'Cristal 1.0mm',
+          brand: 'BIC',
+          brand_id: 'b-1',
+          link: null,
+          created_at: '2026-11-25T10:00:00Z',
+          product: null,
+        },
+      ]
+
+      const orderMock = vi.fn().mockResolvedValue({ data: mockItems, error: null })
+      const orMock = vi.fn().mockReturnValue({ order: orderMock })
+      const selectMock = vi.fn().mockReturnValue({ or: orMock })
+      mockSupabase.from.mockReturnValue({ select: selectMock })
+
+      const { fetchBrandProducts } = useBrands()
+      const result = await fetchBrandProducts('b-1', 'BIC')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(orMock).toHaveBeenCalledWith('brand_id.eq.b-1,brand.ilike.BIC')
+      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
+      expect(result).toEqual(mockItems)
+    })
+  })
 })

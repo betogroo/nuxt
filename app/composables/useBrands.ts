@@ -14,6 +14,24 @@ export interface BrandWithUsage extends BrandRow {
   real_products_count?: number
 }
 
+export interface BrandProductItem {
+  id: string
+  name: string
+  brand: string
+  brand_id: string | null
+  link: string | null
+  created_at: string
+  product?: {
+    id: string
+    name: string
+    cat_mat: number | null
+    cat_bec: number | null
+    is_active: boolean
+    expense_natures?: { id: string; name: string } | null
+    product_classes?: { id: string; name: string } | null
+  } | null
+}
+
 export const useBrands = () => {
   const supabase = useSupabaseClient<Database>()
   const user = useSupabaseUser()
@@ -315,10 +333,62 @@ export const useBrands = () => {
     )
   }
 
+  /**
+   * Busca uma marca específica pelo seu identificador primário.
+   */
+  const fetchBrandById = async (id: string): Promise<BrandRow | null> => {
+    const { data, error } = await supabase.from('brands').select('*').eq('id', id).maybeSingle()
+
+    if (error) throw error
+    return data as BrandRow | null
+  }
+
+  /**
+   * Busca todos os produtos reais vinculados à marca informada,
+   * incluindo os dados do produto técnico do catálogo associado.
+   */
+  const fetchBrandProducts = async (
+    brandId: string,
+    brandName?: string,
+  ): Promise<BrandProductItem[]> => {
+    let query = supabase.from('real_products').select(
+      `
+        id,
+        name,
+        brand,
+        brand_id,
+        link,
+        created_at,
+        product:products (
+          id,
+          name,
+          cat_mat,
+          cat_bec,
+          is_active,
+          expense_natures (id, name),
+          product_classes (id, name)
+        )
+      `,
+    )
+
+    if (brandName && brandName.trim()) {
+      query = query.or(`brand_id.eq.${brandId},brand.ilike.${brandName.trim()}`)
+    } else {
+      query = query.eq('brand_id', brandId)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    if (error) throw error
+    return (data || []) as unknown as BrandProductItem[]
+  }
+
   return {
     fetchBrands,
     fetchPendingBrands,
     fetchAllActiveBrands,
+    fetchBrandById,
+    fetchBrandProducts,
     ensureBrand,
     createBrand,
     updateBrand,

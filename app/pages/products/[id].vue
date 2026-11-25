@@ -1133,7 +1133,18 @@
               :items="(product.real_products as RealProduct[]) || []"
             >
               <template #item-brand="{ item }">
-                <UiChip color="primary" label size="sm" variant="soft">
+                <NuxtLink
+                  v-if="item.brand_id"
+                  class="text-decoration-none"
+                  :title="`Ver produtos da marca ${item.brand}`"
+                  :to="`/brands/${item.brand_id}`"
+                >
+                  <UiChip color="primary" label size="sm" variant="soft">
+                    <UiIcon class="mr-1" name="tag" size="12" />
+                    {{ item.brand }}
+                  </UiChip>
+                </NuxtLink>
+                <UiChip v-else color="primary" label size="sm" variant="soft">
                   {{ item.brand }}
                 </UiChip>
               </template>

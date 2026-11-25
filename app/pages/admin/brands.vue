@@ -172,7 +172,12 @@
           :loading="pending"
         >
           <template #item-name="{ item }">
-            <span class="font-weight-medium text-body-1">{{ item.name }}</span>
+            <NuxtLink
+              class="font-weight-medium text-body-1 text-primary text-decoration-none"
+              :to="`/brands/${item.id}`"
+            >
+              {{ item.name }}
+            </NuxtLink>
           </template>
 
           <template #item-is_active="{ item }">
@@ -188,6 +193,11 @@
 
           <template #item-actions="{ item }">
             <div class="d-flex justify-end gap-1">
+              <UiActionButton
+                action="view"
+                :to="`/brands/${item.id}`"
+                tooltip="Ver produtos desta marca"
+              />
               <UiActionButton action="edit" tooltip="Editar marca" @click="openEditModal(item)" />
               <UiActionButton
                 action="delete"
@@ -235,7 +245,12 @@
           :items="pendingBrands || []"
         >
           <template #item-name="{ item }">
-            <span class="font-weight-medium text-body-1">{{ item.name }}</span>
+            <NuxtLink
+              class="font-weight-medium text-body-1 text-primary text-decoration-none"
+              :to="`/brands/${item.id}`"
+            >
+              {{ item.name }}
+            </NuxtLink>
           </template>
 
           <template #item-created_at="{ item }">
