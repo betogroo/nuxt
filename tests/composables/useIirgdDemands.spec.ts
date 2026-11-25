@@ -9,6 +9,9 @@ Object.assign(supabaseFromMock, {
   insert: vi.fn(() => supabaseFromMock),
   update: vi.fn(() => supabaseFromMock),
   eq: vi.fn(() => supabaseFromMock),
+  neq: vi.fn(() => supabaseFromMock),
+  lt: vi.fn(() => supabaseFromMock),
+  limit: vi.fn(() => supabaseFromMock),
   not: vi.fn(() => supabaseFromMock),
   or: vi.fn(() => supabaseFromMock),
   in: vi.fn(() => supabaseFromMock),
@@ -30,22 +33,38 @@ mockNuxtImport('useLogger', () => () => ({
   logAction: logActionMock,
 }))
 
+let thenQueue: Array<{ data?: unknown; count?: number; error?: unknown }> = []
+const queueSupabaseResults = (
+  ...results: Array<{ data?: unknown; count?: number; error?: unknown }>
+) => {
+  thenQueue.push(...results)
+}
+
 describe('useIirgdDemands', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    supabaseFromMock.select.mockReturnValue(supabaseFromMock)
-    supabaseFromMock.order.mockResolvedValue({
-      data: [{ id: '1', name: 'Test' }],
-      count: 1,
-      error: null,
-    })
-    supabaseFromMock.ilike.mockResolvedValue({
+    thenQueue = []
+    supabaseFromMock.then = (onfulfilled: (res: unknown) => unknown) => {
+      const result =
+        thenQueue.length > 0
+          ? thenQueue.shift()
+          : { data: [{ id: '1', name: 'Test' }], count: 1, error: null }
+      return Promise.resolve(result).then(onfulfilled)
+    }
+    supabaseFromMock.select = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.update = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.order = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.ilike = vi.fn().mockResolvedValue({
       data: [],
       error: null,
     })
     supabaseFromMock.in = vi.fn(() => supabaseFromMock)
     supabaseFromMock.not = vi.fn(() => supabaseFromMock)
     supabaseFromMock.eq = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.neq = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.lt = vi.fn(() => supabaseFromMock)
+    supabaseFromMock.limit = vi.fn().mockResolvedValue({ data: [], error: null })
+    supabaseFromMock.single = vi.fn().mockResolvedValue({ data: { id: 'new-id' }, error: null })
   })
 
   it('fetchDemands should return data', async () => {
@@ -189,8 +208,8 @@ describe('useIirgdDemands', () => {
   })
 
   it('createDemand should check citizen, create citizen if not exists, create demand and log action', async () => {
-    // Mock the `eq` call for checking existing citizen to return empty
-    supabaseFromMock.eq.mockResolvedValueOnce({ data: [], error: null })
+    // Mock checking existing citizen by RG and then by CPF to return empty
+    queueSupabaseResults({ data: [], error: null }, { data: [], error: null })
     // Mock the insert for citizen
     supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'cit-123' }, error: null })
     // Mock the insert for demand
@@ -249,8 +268,6 @@ describe('useIirgdDemands', () => {
       data: [{ id: 'cit-cpf-1', name: 'JANE DOE', cpf: '000.000.000-00', rg: null }],
       error: null,
     })
-    // Mock active demands check to return empty
-    supabaseFromMock.in.mockResolvedValueOnce({ data: [], error: null })
     // Mock demand insert
     supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-cpf-1' }, error: null })
 
@@ -284,27 +301,23 @@ describe('useIirgdDemands', () => {
     expect(result).toEqual({ id: 'dem-cpf-1' })
   })
 
-  it('createDemand should throw error if citizen found by CPF has an active demand', async () => {
+  it('createDemand should allow creating demand even if citizen found by CPF has an active demand', async () => {
     // Mock citizen found by CPF
     supabaseFromMock.eq.mockResolvedValueOnce({
       data: [{ id: 'cit-cpf-1', name: 'JANE DOE', cpf: '000.000.000-00', rg: null }],
       error: null,
     })
-    // Mock active demands query to return an active demand
-    supabaseFromMock.in.mockResolvedValueOnce({
-      data: [{ id: 'active-dem-1', status: 'new' }],
-      error: null,
-    })
+    // Mock demand insert
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-cpf-new' }, error: null })
 
     const { createDemand } = useIirgdDemands()
-    await expect(
-      createDemand({
-        station_code: '1342-5',
-        rg: null,
-        cpf: '000.000.000-00',
-        name: 'Jane Doe',
-      }),
-    ).rejects.toThrow('Este cidadão já possui uma solicitação em andamento.')
+    const result = await createDemand({
+      station_code: '1342-5',
+      rg: null,
+      cpf: '000.000.000-00',
+      name: 'Jane Doe',
+    })
+    expect(result).toEqual({ id: 'dem-cpf-new' })
   })
 
   it('createDemand should throw error if neither RG, CPF nor other_document is provided', async () => {
@@ -333,7 +346,6 @@ describe('useIirgdDemands', () => {
       ],
       error: null,
     })
-    supabaseFromMock.in.mockResolvedValueOnce({ data: [], error: null })
     supabaseFromMock.single.mockResolvedValueOnce({ data: { id: 'dem-other-1' }, error: null })
 
     const { createDemand } = useIirgdDemands()
@@ -400,18 +412,57 @@ describe('useIirgdDemands', () => {
     expect(result).toEqual({ id: 'new-id' })
   })
 
-  it('updateDemand should update a demand and log action', async () => {
+  it('updateDemand should update non-status fields without status checks', async () => {
     supabaseFromMock.single.mockResolvedValueOnce({ data: { id: '123' }, error: null })
 
     const { updateDemand } = useIirgdDemands()
-    const result = await updateDemand('123', { status: 'Concluído' })
+    const result = await updateDemand('123', { observation: 'Nova observação' })
 
-    expect(supabaseFromMock.update).toHaveBeenCalledWith({ status: 'Concluído' })
+    expect(supabaseFromMock.update).toHaveBeenCalledWith({ observation: 'Nova observação' })
     expect(supabaseFromMock.eq).toHaveBeenCalledWith('id', '123')
     expect(logActionMock).toHaveBeenCalledWith(
       'UPDATE_IIRGD_DEMAND',
       'Demanda IIRGD atualizada: ID 123',
     )
+    expect(result).toEqual({ id: '123' })
+  })
+
+  it('updateDemand should throw error if older unconcluded demand exists when changing status', async () => {
+    // Current demand
+    supabaseFromMock.single.mockResolvedValueOnce({
+      data: { id: '123', citizen_id: 'cit-1', created_at: '2026-10-10T12:00:00Z', status: 'new' },
+      error: null,
+    })
+    // Older unconcluded demand lookup returns an older demand
+    supabaseFromMock.limit = vi.fn().mockResolvedValueOnce({
+      data: [{ id: 'older-dem', created_at: '2026-10-09T10:00:00Z', status: 'new' }],
+      error: null,
+    })
+
+    const { updateDemand } = useIirgdDemands()
+    await expect(updateDemand('123', { status: 'confronted' })).rejects.toThrow(
+      'Não é possível alterar o status desta demanda pois o cidadão possui uma solicitação anterior ainda não concluída.',
+    )
+  })
+
+  it('updateDemand should update demand when changing status if no older unconcluded demand exists', async () => {
+    // Current demand
+    supabaseFromMock.single.mockResolvedValueOnce({
+      data: { id: '123', citizen_id: 'cit-1', created_at: '2026-10-10T12:00:00Z', status: 'new' },
+      error: null,
+    })
+    // Older unconcluded demand lookup returns empty
+    supabaseFromMock.limit = vi.fn().mockResolvedValueOnce({
+      data: [],
+      error: null,
+    })
+    // Update call
+    supabaseFromMock.single.mockResolvedValueOnce({ data: { id: '123' }, error: null })
+
+    const { updateDemand } = useIirgdDemands()
+    const result = await updateDemand('123', { status: 'confronted' })
+
+    expect(supabaseFromMock.update).toHaveBeenCalledWith({ status: 'confronted' })
     expect(result).toEqual({ id: '123' })
   })
 
@@ -460,19 +511,74 @@ describe('useIirgdDemands', () => {
       )
     })
 
+    it('should throw error when any demand in batch has an older unconcluded demand', async () => {
+      queueSupabaseResults(
+        {
+          data: [
+            {
+              id: 'dem-2',
+              citizen_id: 'cit-1',
+              created_at: '2026-10-10T15:00:00Z',
+              status: 'new',
+              iirgd_citizens: { name: 'JOÃO SILVA' },
+            },
+          ],
+          error: null,
+        },
+        {
+          data: [
+            {
+              id: 'dem-1',
+              citizen_id: 'cit-1',
+              created_at: '2026-10-10T10:00:00Z',
+              status: 'new',
+            },
+          ],
+          error: null,
+        },
+      )
+
+      const { updateDemandsBatch } = useIirgdDemands()
+      await expect(updateDemandsBatch(['dem-2'], { status: 'confronted' })).rejects.toThrow(
+        'Não é possível atualizar em lote: a solicitação de JOÃO SILVA possui uma demanda anterior ainda não concluída.',
+      )
+    })
+
     it('should update multiple demands in Supabase and log action', async () => {
       const mockUpdated = [
         { id: 'dem-1', status: 'released' },
         { id: 'dem-2', status: 'released' },
       ]
-      supabaseFromMock.select.mockResolvedValueOnce({ data: mockUpdated, error: null })
+
+      queueSupabaseResults(
+        {
+          data: [
+            {
+              id: 'dem-1',
+              citizen_id: 'cit-1',
+              created_at: '2026-10-10T10:00:00Z',
+              status: 'new',
+              iirgd_citizens: { name: 'CIT 1' },
+            },
+            {
+              id: 'dem-2',
+              citizen_id: 'cit-2',
+              created_at: '2026-10-10T11:00:00Z',
+              status: 'new',
+              iirgd_citizens: { name: 'CIT 2' },
+            },
+          ],
+          error: null,
+        },
+        { data: [], error: null },
+        { data: mockUpdated, error: null },
+      )
 
       const { updateDemandsBatch } = useIirgdDemands()
       const result = await updateDemandsBatch(['dem-1', 'dem-2'], { status: 'released' })
 
       expect(supabaseMock.from).toHaveBeenCalledWith('iirgd_demands')
       expect(supabaseFromMock.update).toHaveBeenCalledWith({ status: 'released' })
-      expect(supabaseFromMock.in).toHaveBeenCalledWith('id', ['dem-1', 'dem-2'])
       expect(logActionMock).toHaveBeenCalledWith(
         'BATCH_UPDATE_IIRGD_DEMAND_STATUS',
         "Atualização de status em lote para 'Liberado' em 2 demanda(s).",
@@ -482,7 +588,23 @@ describe('useIirgdDemands', () => {
 
     it('should include observation if provided and not empty', async () => {
       const mockUpdated = [{ id: 'dem-1', status: 'confronted' }]
-      supabaseFromMock.select.mockResolvedValueOnce({ data: mockUpdated, error: null })
+
+      queueSupabaseResults(
+        {
+          data: [
+            {
+              id: 'dem-1',
+              citizen_id: 'cit-1',
+              created_at: '2026-10-10T10:00:00Z',
+              status: 'new',
+              iirgd_citizens: { name: 'CIT 1' },
+            },
+          ],
+          error: null,
+        },
+        { data: [], error: null },
+        { data: mockUpdated, error: null },
+      )
 
       const { updateDemandsBatch } = useIirgdDemands()
       await updateDemandsBatch(['dem-1'], {
@@ -501,15 +623,55 @@ describe('useIirgdDemands', () => {
     })
 
     it('should throw error when Supabase fails', async () => {
-      supabaseFromMock.select.mockResolvedValueOnce({
+      queueSupabaseResults({
         data: null,
         error: new Error('DB error'),
       })
 
       const { updateDemandsBatch } = useIirgdDemands()
       await expect(updateDemandsBatch(['dem-1'], { status: 'released' })).rejects.toThrow(
-        'Erro ao atualizar demandas do IIRGD em lote',
+        'Erro ao validar demandas para atualização em lote.',
       )
+    })
+  })
+
+  describe('checkBlockedDemands', () => {
+    it('should identify demands with older unconcluded demands for the same citizen', async () => {
+      const demandsList = [
+        {
+          id: 'dem-1',
+          citizen_id: 'cit-1',
+          created_at: '2026-10-10T10:00:00Z',
+          station_code: '1342-5',
+        },
+        {
+          id: 'dem-2',
+          citizen_id: 'cit-1',
+          created_at: '2026-10-10T12:00:00Z',
+          station_code: '1342-5',
+        },
+        {
+          id: 'dem-3',
+          citizen_id: 'cit-2',
+          created_at: '2026-10-10T11:00:00Z',
+          station_code: '1342-5',
+        },
+      ]
+
+      queueSupabaseResults({
+        data: [
+          { id: 'dem-1', citizen_id: 'cit-1', created_at: '2026-10-10T10:00:00Z', status: 'new' },
+        ],
+        error: null,
+      })
+
+      const { checkBlockedDemands } = useIirgdDemands()
+      const blockedMap = await checkBlockedDemands(demandsList)
+
+      expect(blockedMap.get('dem-1')?.isBlocked).toBeFalsy()
+      expect(blockedMap.get('dem-2')?.isBlocked).toBe(true)
+      expect(blockedMap.get('dem-2')?.olderDemandId).toBe('dem-1')
+      expect(blockedMap.get('dem-3')?.isBlocked).toBeFalsy()
     })
   })
 

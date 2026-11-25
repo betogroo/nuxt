@@ -107,6 +107,18 @@ export const IIRGD_SLA_IGNORED_STATUSES: IirgdDemandStatus[] = [
   ...IIRGD_STATUS_BY_GROUP.errors,
 ]
 
+export const IIRGD_CONCLUDED_STATUSES: IirgdDemandStatus[] = [
+  'issued',
+  'protocol_cancelled',
+  'confrontation_failed',
+  'unknown_error',
+]
+
+export function isIirgdDemandConcluded(status: string | null | undefined): boolean {
+  if (!status) return false
+  return IIRGD_CONCLUDED_STATUSES.includes(status as IirgdDemandStatus)
+}
+
 export function getIirgdStatusSelectOptions(): Array<{
   title: string
   value: IirgdDemandStatus

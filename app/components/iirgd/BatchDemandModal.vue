@@ -134,15 +134,13 @@
               item.isValid = false
               item.status = 'duplicate_in_batch'
               item.errorReason = 'Este cidadão já está incluído em outra linha deste lote.'
-            } else if (existingEntry.hasActiveDemand) {
-              item.isValid = false
-              item.status = 'active_demand_exists'
-              item.errorReason = 'Este cidadão já possui uma solicitação em andamento.'
-              item.existingCitizenId = citId || null
             } else {
               item.existingCitizenId = citId || null
               if (citId) {
                 seenExistingCitizenIds.add(citId)
+              }
+              if (existingEntry.hasActiveDemand) {
+                item.hasActiveDemandWarning = true
               }
             }
           }
@@ -459,9 +457,14 @@
               </div>
             </template>
             <template #item-status="{ item }">
-              <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
-                {{ getStatusChipLabel(item.status) }}
-              </UiChip>
+              <div class="d-flex align-center ga-1">
+                <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
+                  {{ getStatusChipLabel(item.status) }}
+                </UiChip>
+                <UiChip v-if="item.hasActiveDemandWarning" color="warning" size="xs" variant="soft">
+                  Demanda anterior aberta
+                </UiChip>
+              </div>
             </template>
           </UiTable>
         </div>
@@ -489,9 +492,14 @@
               <span>{{ item.name || '(Não informado)' }}</span>
             </template>
             <template #item-status="{ item }">
-              <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
-                {{ getStatusChipLabel(item.status) }}
-              </UiChip>
+              <div class="d-flex align-center ga-1">
+                <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
+                  {{ getStatusChipLabel(item.status) }}
+                </UiChip>
+                <UiChip v-if="item.hasActiveDemandWarning" color="warning" size="xs" variant="soft">
+                  Demanda anterior aberta
+                </UiChip>
+              </div>
             </template>
             <template #item-reason="{ item }">
               <span class="text-caption text-grey-darken-1">{{ item.errorReason }}</span>
@@ -609,9 +617,14 @@
               <span>{{ item.name || '(Não informado)' }}</span>
             </template>
             <template #item-status="{ item }">
-              <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
-                {{ getStatusChipLabel(item.status) }}
-              </UiChip>
+              <div class="d-flex align-center ga-1">
+                <UiChip :color="getStatusChipColor(item.status)" size="xs" variant="soft">
+                  {{ getStatusChipLabel(item.status) }}
+                </UiChip>
+                <UiChip v-if="item.hasActiveDemandWarning" color="warning" size="xs" variant="soft">
+                  Demanda anterior aberta
+                </UiChip>
+              </div>
             </template>
             <template #item-reason="{ item }">
               <span class="text-caption text-grey-darken-1">{{ item.errorReason }}</span>

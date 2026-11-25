@@ -115,8 +115,8 @@ describe('IirgdBatchDemandModal', () => {
     await flushPromises()
 
     expect(vm.hasParsed).toBe(true)
-    expect(vm.readyItems).toHaveLength(3)
-    expect(vm.ignoredItems).toHaveLength(1)
+    expect(vm.readyItems).toHaveLength(4)
+    expect(vm.ignoredItems).toHaveLength(0)
 
     // Item 1: Existing document type, new citizen
     expect(vm.readyItems[0]?.document_type_id).toBe('dt-ant-num')
@@ -127,11 +127,14 @@ describe('IirgdBatchDemandModal', () => {
     expect(vm.readyItems[1]?.document_type_id).toBeNull()
     expect(vm.readyItems[1]?.isNewDocumentType).toBe(true)
 
-    // Item 3 (in readyItems): Existing citizen without active demand
-    expect(vm.readyItems[2]?.existingCitizenId).toBe('cit-inactive')
+    // Item 3: Existing citizen with active demand (now allowed with warning flag)
+    expect(vm.readyItems[2]?.existingCitizenId).toBe('cit-active')
+    expect(
+      (vm.readyItems[2] as unknown as { hasActiveDemandWarning: boolean }).hasActiveDemandWarning,
+    ).toBe(true)
 
-    // Ignored item: Citizen with active demand
-    expect(vm.ignoredItems[0]?.status).toBe('active_demand_exists')
+    // Item 4: Existing citizen without active demand
+    expect(vm.readyItems[3]?.existingCitizenId).toBe('cit-inactive')
   })
 
   it('creates pending document types when needed and saves demands batch', async () => {

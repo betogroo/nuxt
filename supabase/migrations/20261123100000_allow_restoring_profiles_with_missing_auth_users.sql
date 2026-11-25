@@ -172,6 +172,7 @@ BEGIN
     RAISE EXCEPTION 'Payload de backup inválido: bloco de dados ausente.';
   END IF;
 
+  PERFORM set_config('app.restoring_backup', 'true', true);
   ALTER TABLE public.iirgd_demands DISABLE TRIGGER trigger_iirgd_demand_status_change;
   ALTER TABLE public.elections DISABLE TRIGGER trg_check_election_digits_count_update;
   ALTER TABLE public.demands DISABLE TRIGGER trg_demand_status_transition;

@@ -15,8 +15,13 @@
   const route = useRoute()
   const router = useRouter()
 
-  const { fetchDemandById, updateDemand, fetchCitizenHistory, fetchDemandStatusHistory } =
-    useIirgdDemands()
+  const {
+    fetchDemandById,
+    updateDemand,
+    fetchCitizenHistory,
+    fetchDemandStatusHistory,
+    fetchOlderUnconcludedDemand,
+  } = useIirgdDemands()
   const { fetchAllActiveDocumentTypes, createPendingDocumentType } = useIirgdDocumentTypes()
 
   const demandId = route.params.id as string
@@ -68,8 +73,23 @@
     },
   )
 
+  const { data: olderUnconcludedDemand, refresh: refreshOlderDemand } = useAsyncData(
+    `iirgd-older-demand-${demandId}`,
+    async () => {
+      if (!demand.value?.citizen_id) return null
+      return await fetchOlderUnconcludedDemand(
+        demandId,
+        demand.value.citizen_id,
+        demand.value.created_at,
+      )
+    },
+    { watch: [demand] },
+  )
+
+  const isStatusBlocked = computed(() => Boolean(olderUnconcludedDemand.value))
+
   const refresh = async () => {
-    await Promise.all([refreshDemand(), refreshStatusHistory()])
+    await Promise.all([refreshDemand(), refreshStatusHistory(), refreshOlderDemand()])
   }
 
   // Modal State para Editar Observação/Status
@@ -131,7 +151,9 @@
       }
 
       await updateDemand(demandId, {
-        status: formValues.status,
+        status: isStatusBlocked.value
+          ? (demand.value?.status as IirgdDemandStatus)
+          : formValues.status,
         observation: formValues.observation,
         station_code: formValues.station_code,
         document_type_id: finalDocumentTypeId || undefined,
@@ -176,6 +198,16 @@
     <div v-else-if="demand">
       <UiRow justify="center">
         <UiCol cols="12" lg="10" xl="9">
+          <UiAlert v-if="isStatusBlocked" class="mb-6" type="warning" variant="soft">
+            <strong>Atenção:</strong> Este cidadão possui uma solicitação anterior (cadastrada em
+            {{
+              olderUnconcludedDemand?.created_at
+                ? new Date(olderUnconcludedDemand.created_at).toLocaleDateString('pt-BR')
+                : ''
+            }}) ainda não concluída. O status desta demanda não poderá ser alterado até a conclusão
+            da solicitação anterior.
+          </UiAlert>
+
           <!-- Cabeçalho Principal -->
           <div class="d-flex align-center flex-wrap ga-4 mb-8">
             <UiIcon color="primary" name="userBadge" size="40" />
@@ -489,10 +521,17 @@
             placeholder="Selecione ou digite um novo tipo..."
           />
         </UiCol>
+        <UiCol v-if="isStatusBlocked" cols="12">
+          <UiAlert class="mb-2" size="sm" type="warning" variant="soft">
+            Alteração de status bloqueada: este cidadão possui uma solicitação anterior ainda não
+            concluída.
+          </UiAlert>
+        </UiCol>
         <UiCol cols="12">
           <UiSelect
             v-if="canEditStatus"
             v-model="status"
+            :disabled="isStatusBlocked"
             :error-messages="errors.status"
             item-title="title"
             item-value="value"

@@ -1,5 +1,6 @@
 import {
   IIRGD_ACTIVE_STATUSES,
+  IIRGD_CONCLUDED_STATUSES,
   IIRGD_STATUS_BY_GROUP,
   IIRGD_STATUS_LABELS,
   type IirgdDemandStatus,
@@ -305,17 +306,6 @@ export const useIirgdDemands = () => {
     }
 
     if (citizenId) {
-      // Check for active demands
-      const { data: activeDemands } = await supabase
-        .from('iirgd_demands')
-        .select('id, status')
-        .eq('citizen_id', citizenId)
-        .in('status', IIRGD_ACTIVE_STATUSES)
-
-      if (activeDemands && activeDemands.length > 0) {
-        throw new Error('Este cidadão já possui uma solicitação em andamento.')
-      }
-
       // Update citizen if new docs provided
       const updates: Record<string, string> = {}
       if (cleanRg && !existingCitizen.rg) updates.rg = cleanRg
@@ -462,7 +452,99 @@ export const useIirgdDemands = () => {
     return data
   }
 
+  const fetchOlderUnconcludedDemand = async (
+    demandId: string,
+    citizenId: string,
+    createdAt?: string,
+  ) => {
+    let query = supabase
+      .from('iirgd_demands')
+      .select('id, created_at, status, station_code')
+      .eq('citizen_id', citizenId)
+      .neq('id', demandId)
+      .not('status', 'in', `(${IIRGD_CONCLUDED_STATUSES.join(',')})`)
+
+    if (createdAt) {
+      query = query.lt('created_at', createdAt)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true }).limit(1)
+    if (error || !data || data.length === 0) {
+      return null
+    }
+    return data[0]
+  }
+
+  const checkBlockedDemands = async (
+    demandsList: IirgdDemand[],
+  ): Promise<
+    Map<string, { isBlocked: boolean; olderDemandId?: string; olderCreatedAt?: string }>
+  > => {
+    const blockedMap = new Map<
+      string,
+      { isBlocked: boolean; olderDemandId?: string; olderCreatedAt?: string }
+    >()
+    if (!demandsList || demandsList.length === 0) return blockedMap
+
+    const citizenIds = Array.from(new Set(demandsList.map((d) => d.citizen_id).filter(Boolean)))
+    if (citizenIds.length === 0) return blockedMap
+
+    const { data: unconcluded, error } = await supabase
+      .from('iirgd_demands')
+      .select('id, citizen_id, created_at, status')
+      .in('citizen_id', citizenIds)
+      .not('status', 'in', `(${IIRGD_CONCLUDED_STATUSES.join(',')})`)
+      .order('created_at', { ascending: true })
+
+    if (error || !unconcluded) return blockedMap
+
+    for (const dem of demandsList) {
+      if (!dem.id || !dem.citizen_id || !dem.created_at) continue
+      const demTime = new Date(dem.created_at).getTime()
+      const older = unconcluded.find(
+        (u) =>
+          u.citizen_id === dem.citizen_id &&
+          u.id !== dem.id &&
+          u.created_at &&
+          new Date(u.created_at).getTime() < demTime,
+      )
+      if (older) {
+        blockedMap.set(dem.id, {
+          isBlocked: true,
+          olderDemandId: older.id,
+          olderCreatedAt: older.created_at,
+        })
+      }
+    }
+    return blockedMap
+  }
+
   const updateDemand = async (id: string, updates: Partial<IirgdDemand>) => {
+    if (updates.status !== undefined) {
+      const { data: currentDemand, error: curErr } = await supabase
+        .from('iirgd_demands')
+        .select('id, citizen_id, created_at, status')
+        .eq('id', id)
+        .single()
+
+      if (curErr || !currentDemand) {
+        throw new Error('Demanda não encontrada.')
+      }
+
+      if (updates.status !== currentDemand.status) {
+        const older = await fetchOlderUnconcludedDemand(
+          id,
+          currentDemand.citizen_id,
+          currentDemand.created_at,
+        )
+        if (older) {
+          throw new Error(
+            'Não é possível alterar o status desta demanda pois o cidadão possui uma solicitação anterior ainda não concluída.',
+          )
+        }
+      }
+    }
+
     const { data, error } = await supabase
       .from('iirgd_demands')
       .update(updates)
@@ -472,7 +554,7 @@ export const useIirgdDemands = () => {
 
     if (error) {
       console.error(error)
-      throw new Error('Erro ao atualizar a demanda do IIRGD')
+      throw new Error(error.message || 'Erro ao atualizar a demanda do IIRGD')
     }
 
     if (data) {
@@ -493,6 +575,50 @@ export const useIirgdDemands = () => {
       throw new Error('Nenhuma demanda selecionada para atualização.')
     }
 
+    if (updates.status) {
+      const { data: demandsToUpdate, error: fetchErr } = await supabase
+        .from('iirgd_demands')
+        .select('id, citizen_id, created_at, status, iirgd_citizens(name)')
+        .in('id', ids)
+
+      if (fetchErr) {
+        console.error(fetchErr)
+        throw new Error('Erro ao validar demandas para atualização em lote.')
+      }
+
+      if (demandsToUpdate && demandsToUpdate.length > 0) {
+        const changingDemands = demandsToUpdate.filter((d) => d.status !== updates.status)
+        if (changingDemands.length > 0) {
+          const citizenIds = Array.from(new Set(changingDemands.map((d) => d.citizen_id)))
+          const { data: allUnconcluded } = await supabase
+            .from('iirgd_demands')
+            .select('id, citizen_id, created_at, status')
+            .in('citizen_id', citizenIds)
+            .not('status', 'in', `(${IIRGD_CONCLUDED_STATUSES.join(',')})`)
+            .order('created_at', { ascending: true })
+
+          if (allUnconcluded && allUnconcluded.length > 0) {
+            for (const dem of changingDemands) {
+              const older = allUnconcluded.find(
+                (u) =>
+                  u.citizen_id === dem.citizen_id &&
+                  u.id !== dem.id &&
+                  dem.created_at &&
+                  u.created_at &&
+                  new Date(u.created_at).getTime() < new Date(dem.created_at).getTime(),
+              )
+              if (older) {
+                const citName = (dem.iirgd_citizens as { name?: string })?.name || 'do cidadão'
+                throw new Error(
+                  `Não é possível atualizar em lote: a solicitação de ${citName} possui uma demanda anterior ainda não concluída.`,
+                )
+              }
+            }
+          }
+        }
+      }
+    }
+
     const payload: { status: IirgdDemandStatus; observation?: string } = {
       status: updates.status,
     }
@@ -509,7 +635,7 @@ export const useIirgdDemands = () => {
 
     if (error) {
       console.error(error)
-      throw new Error('Erro ao atualizar demandas do IIRGD em lote')
+      throw new Error(error.message || 'Erro ao atualizar demandas do IIRGD em lote')
     }
 
     const statusLabel = IIRGD_STATUS_LABELS[updates.status] || updates.status
@@ -715,5 +841,7 @@ export const useIirgdDemands = () => {
     updateDemandsBatch,
     checkExistingCitizensAndActiveDemands,
     createDemandsBatch,
+    fetchOlderUnconcludedDemand,
+    checkBlockedDemands,
   }
 }

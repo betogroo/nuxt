@@ -27,6 +27,7 @@ export interface ParsedBatchIirgdDemandItem {
   document_type_id?: string | null
   isNewDocumentType?: boolean
   existingCitizenId?: string | null
+  hasActiveDemandWarning?: boolean
   originalLine: string
   lineNumber: number
   isValid: boolean

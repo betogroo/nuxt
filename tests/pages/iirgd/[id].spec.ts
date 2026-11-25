@@ -18,6 +18,7 @@ mockNuxtImport('useIirgdDemands', () => {
     updateDemand: vi.fn(),
     fetchCitizenHistory: vi.fn(),
     fetchDemandStatusHistory: vi.fn(),
+    fetchOlderUnconcludedDemand: vi.fn().mockResolvedValue(null),
   })
 })
 

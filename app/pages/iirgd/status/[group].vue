@@ -51,8 +51,12 @@
     title: computed(() => `${titles[group.value] || 'Demandas'} - IIRGD`),
   })
 
-  const { fetchDemands, updateDemand, updateDemandsBatch } = useIirgdDemands()
+  const { fetchDemands, updateDemand, updateDemandsBatch, checkBlockedDemands } = useIirgdDemands()
   const toast = useToast()
+
+  const blockedDemandsMap = ref<
+    Map<string, { isBlocked: boolean; olderDemandId?: string; olderCreatedAt?: string }>
+  >(new Map())
 
   // Pagination and Filters
   const { currentPage, itemsPerPage, totalItems, totalPages, resetPage } = usePagination()
@@ -115,6 +119,18 @@
     }))
   })
 
+  watch(
+    demands,
+    async (newDemands) => {
+      if (newDemands && newDemands.length > 0) {
+        blockedDemandsMap.value = await checkBlockedDemands(newDemands)
+      } else {
+        blockedDemandsMap.value = new Map()
+      }
+    },
+    { immediate: true },
+  )
+
   // Selection state for batch operations
   const {
     selectedIds: selectedDemandIds,
@@ -173,6 +189,15 @@
     releaseModal.value.isSaving = true
     releaseModal.value.error = ''
     try {
+      const blockedItem = releaseModal.value.demands.find(
+        (d) => d.id && blockedDemandsMap.value.get(d.id)?.isBlocked,
+      )
+      if (blockedItem) {
+        const citName = blockedItem.iirgd_citizens?.name || 'do cidadão'
+        throw new Error(
+          `A solicitação de ${citName} possui uma demanda anterior ainda não concluída e não pode ser liberada.`,
+        )
+      }
       for (const demand of releaseModal.value.demands) {
         if (demand.id) await updateDemand(demand.id, { status: 'released' })
       }
@@ -258,6 +283,16 @@
     batchModal.value.isSaving = true
     batchModal.value.error = ''
     try {
+      const blockedItem = selectedDemandsPreview.value.find(
+        (d) => d.id && blockedDemandsMap.value.get(d.id)?.isBlocked,
+      )
+      if (blockedItem) {
+        const citName = blockedItem.iirgd_citizens?.name || 'do cidadão'
+        throw new Error(
+          `Não é possível atualizar em lote: a solicitação de ${citName} possui uma demanda anterior ainda não concluída.`,
+        )
+      }
+
       const count = selectedDemandIds.value.length
       await updateDemandsBatch(selectedDemandIds.value, {
         status: batchModal.value.newStatus as IirgdDemandStatus,
@@ -500,16 +535,28 @@
             {{ item.iirgd_citizens?.cpf || '-' }}
           </template>
           <template #item-status="{ item }">
-            <UiChip
-              :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'grey'"
-              size="sm"
-              :style="canEditStatus ? 'cursor: pointer' : ''"
-              variant="soft"
-              @click="canEditStatus ? openStatusModal(item) : undefined"
-            >
-              {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
-              <UiIcon v-if="canEditStatus" class="ml-1" name="edit" size="xs" />
-            </UiChip>
+            <div class="d-flex align-center ga-1">
+              <UiChip
+                :color="IIRGD_STATUS_COLORS[item.status as IirgdDemandStatus] || 'grey'"
+                size="sm"
+                :style="canEditStatus ? 'cursor: pointer' : ''"
+                variant="soft"
+                @click="canEditStatus ? openStatusModal(item) : undefined"
+              >
+                {{ IIRGD_STATUS_LABELS[item.status as IirgdDemandStatus] || item.status }}
+                <UiIcon v-if="canEditStatus" class="ml-1" name="edit" size="xs" />
+              </UiChip>
+              <UiChip
+                v-if="blockedDemandsMap.get(item.id)?.isBlocked"
+                color="warning"
+                size="xs"
+                title="Aguardando conclusão de demanda anterior deste cidadão"
+                variant="soft"
+              >
+                <UiIcon class="mr-1" name="alert" size="xs" />
+                Aguardando anterior
+              </UiChip>
+            </div>
           </template>
           <template #item-observation="{ item }">
             <span
@@ -642,6 +689,18 @@
         <UiAlert v-if="statusModal.error" class="mb-4" size="sm" type="error" variant="soft">
           {{ statusModal.error }}
         </UiAlert>
+
+        <UiAlert
+          v-if="statusModal.demand && blockedDemandsMap.get(statusModal.demand.id)?.isBlocked"
+          class="mb-3"
+          size="sm"
+          type="warning"
+          variant="soft"
+        >
+          Alteração de status bloqueada: este cidadão possui uma solicitação anterior ainda não
+          concluída.
+        </UiAlert>
+
         <p class="mb-4 text-body-2 text-medium-emphasis">
           Selecione o novo status para a demanda de
           <strong>{{
@@ -652,6 +711,9 @@
         <UiSelect
           v-model="statusModal.newStatus"
           class="mb-3"
+          :disabled="
+            Boolean(statusModal.demand && blockedDemandsMap.get(statusModal.demand.id)?.isBlocked)
+          "
           item-title="title"
           item-value="value"
           :items="statusOptions"
@@ -674,6 +736,9 @@
           <UiButton variant="ghost" @click="statusModal.isOpen = false">Cancelar</UiButton>
           <UiButton
             color="primary"
+            :disabled="
+              Boolean(statusModal.demand && blockedDemandsMap.get(statusModal.demand.id)?.isBlocked)
+            "
             :loading="statusModal.isSaving"
             variant="solid"
             @click="confirmStatusChange"

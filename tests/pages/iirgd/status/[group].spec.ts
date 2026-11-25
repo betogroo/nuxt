@@ -20,11 +20,13 @@ mockNuxtImport('useProfile', () => () => ({ profile: mockProfile }))
 const updateDemandsBatchMock = vi.fn().mockResolvedValue([])
 const updateDemandMock = vi.fn().mockResolvedValue({})
 const fetchDemandsMock = vi.fn()
+const checkBlockedDemandsMock = vi.fn().mockResolvedValue(new Map())
 mockNuxtImport('useIirgdDemands', () => {
   return () => ({
     fetchDemands: fetchDemandsMock,
     updateDemand: updateDemandMock,
     updateDemandsBatch: updateDemandsBatchMock,
+    checkBlockedDemands: checkBlockedDemandsMock,
   })
 })
 
@@ -308,9 +310,7 @@ describe('IIRGD Group Status Page - Batch Status Update', () => {
     expect(wrapper.text()).toContain('Relatório de Erros')
 
     expect(vm.isErrorReportModalOpen).toBe(false)
-    const reportBtn = wrapper
-      .findAll('button')
-      .find((b) => b.text().includes('Relatório de Erros'))
+    const reportBtn = wrapper.findAll('button').find((b) => b.text().includes('Relatório de Erros'))
     expect(reportBtn).toBeDefined()
     await reportBtn?.trigger('click')
     expect(vm.isErrorReportModalOpen).toBe(true)
