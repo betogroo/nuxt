@@ -116,6 +116,7 @@ const defaultStubs = {
   UiIcon: true,
   UiChip: true,
   UiCopyButton: true,
+  IirgdBatchDemandModal: true,
 }
 
 describe('IIRGD All Demands Page (/iirgd/demands)', () => {

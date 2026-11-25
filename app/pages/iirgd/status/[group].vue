@@ -278,6 +278,7 @@
   }
 
   const isNewDemandModalOpen = ref(false)
+  const isBatchDemandModalOpen = ref(false)
   const isErrorReportModalOpen = ref(false)
 </script>
 
@@ -343,6 +344,15 @@
                 variant="soft"
                 @click="refresh"
               />
+              <UiButton
+                v-if="group === 'in-progress'"
+                color="primary"
+                prepend-icon="playlistAdd"
+                variant="tonal"
+                @click="isBatchDemandModalOpen = true"
+              >
+                Inserir em Lote
+              </UiButton>
               <UiButton
                 v-if="group === 'in-progress'"
                 color="primary"
@@ -582,6 +592,12 @@
       <IirgdNewDemandModal
         v-if="group === 'in-progress'"
         v-model="isNewDemandModalOpen"
+        @created="refresh"
+      />
+
+      <IirgdBatchDemandModal
+        v-if="group === 'in-progress'"
+        v-model="isBatchDemandModalOpen"
         @created="refresh"
       />
 

@@ -512,4 +512,182 @@ describe('useIirgdDemands', () => {
       )
     })
   })
+
+  describe('checkExistingCitizensAndActiveDemands', () => {
+    it('returns empty maps when no rgs or cpfs are provided', async () => {
+      const { checkExistingCitizensAndActiveDemands } = useIirgdDemands()
+      const res = await checkExistingCitizensAndActiveDemands({ rgs: [], cpfs: [] })
+      expect(res.byRg.size).toBe(0)
+      expect(res.byCpf.size).toBe(0)
+    })
+
+    it('maps existing citizens by RG and CPF and flags active demands', async () => {
+      const inMock = vi.fn()
+      inMock
+        .mockResolvedValueOnce({
+          data: [
+            { id: 'cit-1', name: 'CAROLINA', rg: '49770365-8', cpf: null },
+            { id: 'cit-2', name: 'ANTONIO', rg: '11864903-6', cpf: '529.982.247-25' },
+          ],
+          error: null,
+        }) // rg query
+        .mockResolvedValueOnce({
+          data: [{ id: 'cit-2', name: 'ANTONIO', rg: '11864903-6', cpf: '529.982.247-25' }],
+          error: null,
+        }) // cpf query
+        .mockReturnValueOnce({
+          in: vi.fn().mockResolvedValueOnce({
+            data: [{ citizen_id: 'cit-1', status: 'new' }],
+            error: null,
+          }),
+        }) // active demands query (.in('citizen_id', ...).in('status', ...))
+
+      supabaseFromMock.in = inMock
+
+      const { checkExistingCitizensAndActiveDemands } = useIirgdDemands()
+      const res = await checkExistingCitizensAndActiveDemands({
+        rgs: ['49770365-8', '11864903-6'],
+        cpfs: ['529.982.247-25'],
+      })
+
+      expect(res.byRg.get('49770365-8')?.hasActiveDemand).toBe(true)
+      expect(res.byRg.get('11864903-6')?.hasActiveDemand).toBe(false)
+      expect(res.byCpf.get('529.982.247-25')?.citizen.id).toBe('cit-2')
+      expect(res.byCpf.get('529.982.247-25')?.hasActiveDemand).toBe(false)
+    })
+  })
+
+  describe('createDemandsBatch', () => {
+    it('creates new citizens when needed, inserts demands in batch, and logs action', async () => {
+      const selectMock = vi.fn()
+      selectMock
+        .mockResolvedValueOnce({
+          data: [{ id: 'new-cit-1', name: 'CAROLINA SANTOS', rg: '49770365-8', cpf: null }],
+          error: null,
+        }) // created citizens
+        .mockResolvedValueOnce({
+          data: [
+            {
+              id: 'dem-1',
+              citizen_id: 'new-cit-1',
+              station_code: '1342-5',
+              document_type_id: 'doc-1',
+              status: 'new',
+            },
+            {
+              id: 'dem-2',
+              citizen_id: 'existing-cit-2',
+              station_code: '1062-9',
+              document_type_id: 'doc-2',
+              status: 'new',
+            },
+          ],
+          error: null,
+        }) // created demands
+
+      supabaseFromMock.insert = vi.fn(() => ({ select: selectMock }))
+
+      const { createDemandsBatch } = useIirgdDemands()
+      const result = await createDemandsBatch([
+        {
+          station_code: '1342-5',
+          name: 'CAROLINA SANTOS',
+          rg: '49770365-8',
+          cpf: null,
+          document_type_id: 'doc-1',
+        },
+        {
+          station_code: '1062-9',
+          name: 'MARIA FERNANDA',
+          rg: '73271119-8',
+          cpf: null,
+          document_type_id: 'doc-2',
+          existingCitizenId: 'existing-cit-2',
+        },
+      ])
+
+      expect(result).toHaveLength(2)
+      expect(supabaseFromMock.insert).toHaveBeenCalledTimes(2)
+      expect(logActionMock).toHaveBeenCalledWith(
+        'BATCH_CREATE_IIRGD_DEMANDS',
+        'Cadastro em lote de 2 demanda(s) do IIRGD.',
+      )
+    })
+
+    it('assigns sequential created_at timestamps (+1ms per item) and preserves exact input order even if DB returns rows shuffled', async () => {
+      const selectMock = vi.fn()
+      // DB returns demands in reverse order (cit-3, cit-2, cit-1)
+      selectMock.mockResolvedValueOnce({
+        data: [
+          {
+            id: 'dem-3',
+            citizen_id: 'cit-3',
+            station_code: '1062-9',
+            document_type_id: 'doc-2',
+            status: 'new',
+          },
+          {
+            id: 'dem-2',
+            citizen_id: 'cit-2',
+            station_code: '1062-9',
+            document_type_id: 'doc-1',
+            status: 'new',
+          },
+          {
+            id: 'dem-1',
+            citizen_id: 'cit-1',
+            station_code: '1342-5',
+            document_type_id: 'doc-3',
+            status: 'new',
+          },
+        ],
+        error: null,
+      })
+
+      const insertSpy = vi.fn(() => ({ select: selectMock }))
+      supabaseFromMock.insert = insertSpy
+
+      const { createDemandsBatch } = useIirgdDemands()
+      const result = await createDemandsBatch([
+        {
+          station_code: '1342-5',
+          name: 'PRIMEIRO CIDADAO',
+          rg: '49770365-8',
+          document_type_id: 'doc-3',
+          existingCitizenId: 'cit-1',
+        },
+        {
+          station_code: '1062-9',
+          name: 'SEGUNDO CIDADAO',
+          rg: '73271119-8',
+          document_type_id: 'doc-1',
+          existingCitizenId: 'cit-2',
+        },
+        {
+          station_code: '1062-9',
+          name: 'TERCEIRO CIDADAO',
+          rg: '11864903-6',
+          document_type_id: 'doc-2',
+          existingCitizenId: 'cit-3',
+        },
+      ])
+
+      // Verify sequential timestamps sent to insert
+      expect(insertSpy).toHaveBeenCalledTimes(1)
+      const insertedPayloads = insertSpy.mock.calls[0]?.[0] as unknown as Array<{
+        citizen_id: string
+        created_at: string
+        updated_at: string
+      }>
+      expect(insertedPayloads).toHaveLength(3)
+      const t0 = new Date(insertedPayloads[0]!.created_at).getTime()
+      const t1 = new Date(insertedPayloads[1]!.created_at).getTime()
+      const t2 = new Date(insertedPayloads[2]!.created_at).getTime()
+      expect(t1 - t0).toBe(1)
+      expect(t2 - t1).toBe(1)
+
+      // Verify returned array matches the presentation order (dem-1, dem-2, dem-3)
+      expect(result.map((d) => d.id)).toEqual(['dem-1', 'dem-2', 'dem-3'])
+    })
+  })
 })

@@ -128,6 +128,8 @@
       selectedDocumentTypeId.value !== 'all'
     )
   })
+
+  const isBatchModalOpen = ref(false)
 </script>
 
 <template>
@@ -144,6 +146,14 @@
           @click="navigateTo('/iirgd')"
         >
           Dashboard
+        </UiButton>
+        <UiButton
+          color="primary"
+          prepend-icon="playlistAdd"
+          variant="tonal"
+          @click="isBatchModalOpen = true"
+        >
+          Inserir em Lote
         </UiButton>
         <UiActionButton
           action="refresh"
@@ -360,5 +370,7 @@
         </template>
       </UiCard>
     </UiContainer>
+
+    <IirgdBatchDemandModal v-model="isBatchModalOpen" @created="refresh" />
   </div>
 </template>

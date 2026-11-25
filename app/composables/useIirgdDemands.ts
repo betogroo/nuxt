@@ -33,6 +33,21 @@ export interface IirgdDemand {
   profiles?: { name: string | null }
 }
 
+export interface BatchCreateIirgdDemandInput {
+  station_code: string
+  name: string
+  rg?: string | null
+  cpf?: string | null
+  document_type_id: string
+  existingCitizenId?: string | null
+  observation?: string
+}
+
+export interface ExistingCitizenLookupEntry {
+  citizen: IirgdCitizen
+  hasActiveDemand: boolean
+}
+
 export const useIirgdDemands = () => {
   // Use 'any' temporarily or omit Database type if it gets complex, but we try to stick to strict typing.
   // We'll use useSupabaseClient without strict generics if the types aren't regenerated yet.
@@ -506,6 +521,188 @@ export const useIirgdDemands = () => {
     return data
   }
 
+  const checkExistingCitizensAndActiveDemands = async (docs: {
+    rgs?: string[]
+    cpfs?: string[]
+  }): Promise<{
+    byRg: Map<string, ExistingCitizenLookupEntry>
+    byCpf: Map<string, ExistingCitizenLookupEntry>
+  }> => {
+    const byRg = new Map<string, ExistingCitizenLookupEntry>()
+    const byCpf = new Map<string, ExistingCitizenLookupEntry>()
+
+    const cleanRgs = Array.from(new Set((docs.rgs || []).map((r) => r.trim()).filter(Boolean)))
+    const cleanCpfs = Array.from(new Set((docs.cpfs || []).map((c) => c.trim()).filter(Boolean)))
+
+    if (cleanRgs.length === 0 && cleanCpfs.length === 0) {
+      return { byRg, byCpf }
+    }
+
+    const citizensById = new Map<string, IirgdCitizen>()
+
+    if (cleanRgs.length > 0) {
+      const { data: rgCitizens, error: rgErr } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .in('rg', cleanRgs)
+
+      if (rgErr) {
+        console.error(rgErr)
+        throw new Error('Erro ao verificar cidadãos existentes por RG.')
+      }
+      for (const cit of (rgCitizens || []) as IirgdCitizen[]) {
+        if (cit.id) citizensById.set(cit.id, cit)
+      }
+    }
+
+    if (cleanCpfs.length > 0) {
+      const { data: cpfCitizens, error: cpfErr } = await supabase
+        .from('iirgd_citizens')
+        .select('*')
+        .in('cpf', cleanCpfs)
+
+      if (cpfErr) {
+        console.error(cpfErr)
+        throw new Error('Erro ao verificar cidadãos existentes por CPF.')
+      }
+      for (const cit of (cpfCitizens || []) as IirgdCitizen[]) {
+        if (cit.id) citizensById.set(cit.id, cit)
+      }
+    }
+
+    const citizenIds = Array.from(citizensById.keys())
+    const activeCitizenIds = new Set<string>()
+
+    if (citizenIds.length > 0) {
+      const { data: activeDemands, error: activeErr } = await supabase
+        .from('iirgd_demands')
+        .select('citizen_id, status')
+        .in('citizen_id', citizenIds)
+        .in('status', IIRGD_ACTIVE_STATUSES)
+
+      if (activeErr) {
+        console.error(activeErr)
+        throw new Error('Erro ao verificar solicitações em andamento dos cidadãos.')
+      }
+
+      for (const dem of (activeDemands || []) as Array<{ citizen_id: string }>) {
+        if (dem.citizen_id) {
+          activeCitizenIds.add(dem.citizen_id)
+        }
+      }
+    }
+
+    for (const cit of citizensById.values()) {
+      const entry: ExistingCitizenLookupEntry = {
+        citizen: cit,
+        hasActiveDemand: Boolean(cit.id && activeCitizenIds.has(cit.id)),
+      }
+      if (cit.rg) byRg.set(cit.rg, entry)
+      if (cit.cpf) byCpf.set(cit.cpf, entry)
+    }
+
+    return { byRg, byCpf }
+  }
+
+  const createDemandsBatch = async (
+    items: BatchCreateIirgdDemandInput[],
+  ): Promise<IirgdDemand[]> => {
+    if (!items || items.length === 0) {
+      return []
+    }
+
+    const baseTimestamp = Date.now()
+    const itemsNeedingCitizen = items.filter((item) => !item.existingCitizenId)
+    const createdByRg = new Map<string, IirgdCitizen>()
+    const createdByCpf = new Map<string, IirgdCitizen>()
+
+    if (itemsNeedingCitizen.length > 0) {
+      const newCitizensPayloads = itemsNeedingCitizen.map((item, idx) => {
+        const citTimestamp = new Date(baseTimestamp + idx).toISOString()
+        return {
+          name: item.name.trim().toUpperCase(),
+          rg: item.rg ? item.rg.trim() : null,
+          cpf: item.cpf ? item.cpf.trim() : null,
+          created_by: user.value?.id || null,
+          created_at: citTimestamp,
+          updated_at: citTimestamp,
+        }
+      })
+
+      const { data: createdCitizens, error: citErr } = await supabase
+        .from('iirgd_citizens')
+        .insert(newCitizensPayloads)
+        .select('*')
+
+      if (citErr || !createdCitizens) {
+        console.error(citErr)
+        throw new Error('Erro ao cadastrar os novos cidadãos do lote.')
+      }
+
+      for (const cit of createdCitizens as IirgdCitizen[]) {
+        if (cit.rg) createdByRg.set(cit.rg, cit)
+        if (cit.cpf) createdByCpf.set(cit.cpf, cit)
+      }
+    }
+
+    const citizenOrderMap = new Map<string, number>()
+
+    const demandsPayloads = items.map((item, index) => {
+      const cleanRg = item.rg ? item.rg.trim() : null
+      const cleanCpf = item.cpf ? item.cpf.trim() : null
+      const citizenId =
+        item.existingCitizenId ||
+        (cleanRg ? createdByRg.get(cleanRg)?.id : undefined) ||
+        (cleanCpf ? createdByCpf.get(cleanCpf)?.id : undefined)
+
+      if (!citizenId) {
+        throw new Error(`Não foi possível identificar o cidadão para ${item.name}.`)
+      }
+
+      citizenOrderMap.set(citizenId, index)
+      const itemTimestamp = new Date(baseTimestamp + index).toISOString()
+
+      return {
+        citizen_id: citizenId,
+        document_type_id: item.document_type_id || null,
+        station_code: item.station_code,
+        observation: item.observation || null,
+        status: 'new',
+        created_by: user.value?.id || null,
+        created_at: itemTimestamp,
+        updated_at: itemTimestamp,
+      }
+    })
+
+    const { data: createdDemands, error: demErr } = await supabase
+      .from('iirgd_demands')
+      .insert(demandsPayloads)
+      .select('*, iirgd_citizens(*), iirgd_document_types(name)')
+
+    if (demErr || !createdDemands) {
+      console.error(demErr)
+      throw new Error('Erro ao cadastrar demandas do IIRGD em lote.')
+    }
+
+    const sortedDemands = [...(createdDemands as IirgdDemand[])].sort((a, b) => {
+      const idxA = citizenOrderMap.get(a.citizen_id)
+      const idxB = citizenOrderMap.get(b.citizen_id)
+      if (idxA !== undefined && idxB !== undefined && idxA !== idxB) {
+        return idxA - idxB
+      }
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
+      return timeA - timeB
+    })
+
+    await logAction(
+      'BATCH_CREATE_IIRGD_DEMANDS',
+      `Cadastro em lote de ${sortedDemands.length} demanda(s) do IIRGD.`,
+    )
+
+    return sortedDemands
+  }
+
   return {
     fetchDemands,
     fetchDemandCounts,
@@ -516,5 +713,7 @@ export const useIirgdDemands = () => {
     createDemand,
     updateDemand,
     updateDemandsBatch,
+    checkExistingCitizensAndActiveDemands,
+    createDemandsBatch,
   }
 }

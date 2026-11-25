@@ -113,6 +113,7 @@
 
   const { isIirgdUser, canManageIirgd } = usePermissions()
   const isModalOpen = ref(false)
+  const isBatchModalOpen = ref(false)
 
   const cards = computed(() => {
     const all = [
@@ -190,6 +191,14 @@
           @click="navigateTo('/iirgd/demands')"
         >
           Todas as Demandas
+        </UiButton>
+        <UiButton
+          color="primary"
+          prepend-icon="playlistAdd"
+          variant="tonal"
+          @click="isBatchModalOpen = true"
+        >
+          Inserir em Lote
         </UiButton>
         <UiButton color="primary" prepend-icon="add" @click="isModalOpen = true">
           Nova Demanda
@@ -289,5 +298,6 @@
 
     <!-- Modal isolado de nova demanda -->
     <IirgdNewDemandModal v-model="isModalOpen" @created="refresh" />
+    <IirgdBatchDemandModal v-model="isBatchModalOpen" @created="refresh" />
   </div>
 </template>
