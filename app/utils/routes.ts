@@ -45,6 +45,7 @@ export const APP_ROUTES = {
     expenseNatures: '/admin/expense-natures',
     productClasses: '/admin/product-classes',
     productCharacteristics: '/admin/product-characteristics',
+    brands: '/admin/brands',
     backup: '/admin/backup',
     iirgdSettings: '/admin/iirgd-settings',
     iirgdDocumentTypes: '/admin/iirgd-document-types',

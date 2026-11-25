@@ -4,6 +4,7 @@ export const iconMap = {
   success: 'mdi-check-circle-outline',
   balance: 'mdi-scale-balance',
   categories: 'mdi-tag-multiple-outline',
+  tag: 'mdi-tag-outline',
   back: 'mdi-keyboard-return',
   history: 'mdi-history',
   next: 'mdi-arrow-right',

@@ -21,6 +21,7 @@
   interface EditableRealProduct {
     id: string
     brand: string
+    brand_id?: string | null
     name: string
     link: string | null
     selected: boolean
@@ -116,6 +117,7 @@
       realProducts.value = (source.real_products || []).map((rp) => ({
         id: rp.id,
         brand: rp.brand,
+        brand_id: rp.brand_id,
         name: rp.name,
         link: rp.link,
         selected: true,
@@ -200,6 +202,7 @@
         .filter((rp) => rp.selected)
         .map((rp) => ({
           brand: rp.brand,
+          brand_id: rp.brand_id,
           name: rp.name,
           link: rp.link,
         }))

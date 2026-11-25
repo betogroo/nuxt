@@ -26,6 +26,7 @@
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
     pendingCharacteristicKeysCount,
+    pendingBrandsCount,
     pendingReturnsCount,
     totalPending,
     refreshAll: refreshPendingTasks,
@@ -51,6 +52,7 @@
     [APP_ROUTES.admin.expenseNatures]: pendingExpenseNaturesCount.value,
     [APP_ROUTES.admin.productClasses]: pendingProductClassesCount.value,
     [APP_ROUTES.admin.productCharacteristics]: pendingCharacteristicKeysCount.value,
+    [APP_ROUTES.admin.brands]: pendingBrandsCount.value,
   }))
 
   const getSubgroupBadge = (subgroupLinks: { path: string }[]): number => {

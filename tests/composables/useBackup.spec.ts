@@ -41,6 +41,7 @@ describe('useBackup Composable', () => {
       product_units: 5,
       product_characteristics: 5,
       real_products: 5,
+      brands: 5,
       demands: 5,
       demand_commitments: 5,
       demand_commitment_liquidations: 5,

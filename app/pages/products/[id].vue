@@ -488,6 +488,15 @@
   ]
 
   // Real Products (Commercial References) logic
+  const { fetchAllActiveBrands } = useBrands()
+  const { data: allActiveBrands, refresh: refreshBrands } = useAsyncData(
+    'all-active-brands',
+    fetchAllActiveBrands,
+  )
+  const brandSuggestions = computed(() =>
+    (allActiveBrands.value || []).map((b) => b.name).filter(Boolean),
+  )
+
   const isRealProductModalOpen = ref(false)
   const isEditingRealProduct = ref(false)
   const editingRealProductId = ref('')
@@ -568,6 +577,7 @@
         toast.success('Produto real adicionado com sucesso!')
       }
       await refresh()
+      await refreshBrands()
       closeRealProductModal()
     } catch (e: unknown) {
       realProductError.value = e instanceof Error ? e.message : String(e)
@@ -1582,9 +1592,10 @@
 
         <UiRow dense>
           <UiCol cols="12" sm="5">
-            <UiInput
+            <UiCombobox
               v-model="realProductBrand"
               hide-details="auto"
+              :items="brandSuggestions"
               label="Marca *"
               placeholder="Ex: BIC, 3M, Dell"
               rounded="lg"

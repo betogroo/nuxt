@@ -32,6 +32,7 @@
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
     pendingCharacteristicKeysCount,
+    pendingBrandsCount,
     pendingIirgdDocumentTypesCount,
     pendingReturnsCount,
     totalPending,
@@ -61,6 +62,7 @@
       pendingExpenseNaturesCount: pendingExpenseNaturesCount.value,
       pendingProductClassesCount: pendingProductClassesCount.value,
       pendingCharacteristicKeysCount: pendingCharacteristicKeysCount.value,
+      pendingBrandsCount: pendingBrandsCount.value,
       pendingIirgdDocumentTypesCount: pendingIirgdDocumentTypesCount.value,
     }),
   )

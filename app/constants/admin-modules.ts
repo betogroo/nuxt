@@ -42,6 +42,7 @@ export interface AdminPendingBadges {
   pendingExpenseNaturesCount: number
   pendingProductClassesCount: number
   pendingCharacteristicKeysCount: number
+  pendingBrandsCount?: number
   pendingIirgdDocumentTypesCount: number
 }
 
@@ -172,6 +173,20 @@ export function buildAdminModules(badges: AdminPendingBadges): AdminModule[] {
         'detalhes',
         'propriedades',
       ],
+    },
+    {
+      id: 'brands',
+      title: 'Marcas',
+      description: 'Cadastro, gerenciamento e aprovação de marcas comerciais de produtos.',
+      icon: 'tag',
+      color: 'deep-purple',
+      to: APP_ROUTES.admin.brands,
+      category: 'catalog',
+      categoryLabel: 'Catálogo & Suprimentos',
+      badge: badges.pendingBrandsCount,
+      badgeColor: 'deep-purple',
+      badgeLabel: 'Pendentes',
+      keywords: ['marcas', 'marca', 'fabricante', 'produtos', 'referência', 'comercial'],
     },
     {
       id: 'class-spending',

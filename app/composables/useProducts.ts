@@ -22,6 +22,7 @@ export type ProductRow = Database['public']['Tables']['products']['Row'] & {
 export interface RealProduct {
   id: string
   product_id: string
+  brand_id?: string | null
   name: string
   brand: string
   link: string | null
@@ -33,6 +34,7 @@ export interface RealProduct {
 export interface RealProductPayload {
   name: string
   brand: string
+  brand_id?: string | null
   link?: string | null
 }
 
@@ -76,7 +78,12 @@ export interface DuplicateProductPayload {
   is_active?: boolean
   unitIds?: string[]
   characteristics?: Array<{ key: string; value: string }>
-  realProducts?: Array<{ brand: string; name: string; link?: string | null }>
+  realProducts?: Array<{
+    brand: string
+    name: string
+    link?: string | null
+    brand_id?: string | null
+  }>
 }
 
 export const useProducts = () => {
@@ -531,15 +538,34 @@ export const useProducts = () => {
 
     // Clonar produtos reais se fornecidos
     if (payload.realProducts && payload.realProducts.length > 0) {
-      const realProductsToInsert = payload.realProducts
-        .filter((rp) => rp.name?.trim() && rp.brand?.trim())
-        .map((rp) => ({
+      const { ensureBrand } = useBrands()
+      const realProductsToInsert = []
+
+      for (const rp of payload.realProducts) {
+        const cleanBrand = rp.brand?.trim()
+        const cleanName = rp.name?.trim()
+        if (!cleanBrand || !cleanName) continue
+
+        let brandId = rp.brand_id || null
+        if (!brandId) {
+          try {
+            const brandRecord = await ensureBrand(cleanBrand)
+            brandId = brandRecord?.id || null
+          } catch {
+            // fallback if ensureBrand fails
+          }
+        }
+
+        realProductsToInsert.push({
           product_id: newProduct.id,
-          brand: rp.brand.trim(),
-          name: rp.name.trim(),
+          brand: cleanBrand,
+          brand_id: brandId,
+          name: cleanName,
           link: rp.link?.trim() || null,
           created_by: user.value?.id,
-        }))
+        })
+      }
+
       if (realProductsToInsert.length > 0) {
         const { error: realProductsError } = await supabase
           .from('real_products')
@@ -572,10 +598,14 @@ export const useProducts = () => {
       throw new Error('O nome do produto real é obrigatório.')
     }
 
+    const { ensureBrand } = useBrands()
+    const brandRecord = await ensureBrand(cleanBrand)
+
     const { data, error } = await supabase
       .from('real_products')
       .insert({
         product_id: productId,
+        brand_id: brandRecord.id,
         brand: cleanBrand,
         name: cleanName,
         link: cleanLink,
@@ -610,9 +640,13 @@ export const useProducts = () => {
       throw new Error('O nome do produto real é obrigatório.')
     }
 
+    const { ensureBrand } = useBrands()
+    const brandRecord = await ensureBrand(cleanBrand)
+
     const { error } = await supabase
       .from('real_products')
       .update({
+        brand_id: brandRecord.id,
         brand: cleanBrand,
         name: cleanName,
         link: cleanLink,

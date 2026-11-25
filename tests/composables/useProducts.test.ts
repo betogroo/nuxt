@@ -8,6 +8,7 @@ const mockSupabase = {
 }
 const mockLogAction = vi.fn()
 const mockUser = { id: 'user-123' }
+const mockEnsureBrand = vi.fn().mockResolvedValue({ id: 'brand-1', name: 'BIC' })
 
 mockNuxtImport('useSupabaseClient', () => {
   return vi.fn(() => mockSupabase)
@@ -20,6 +21,10 @@ mockNuxtImport('useSupabaseUser', () => {
 mockNuxtImport('useLogger', () => {
   return () => ({ logAction: mockLogAction })
 })
+
+mockNuxtImport('useBrands', () => () => ({
+  ensureBrand: mockEnsureBrand,
+}))
 
 describe('useProducts', () => {
   beforeEach(() => {
@@ -829,10 +834,12 @@ describe('useProducts', () => {
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(mockEnsureBrand).toHaveBeenCalledWith('BIC')
       expect(insertMock).toHaveBeenCalledWith(
         expect.objectContaining({
           product_id: 'prod-1',
           brand: 'BIC',
+          brand_id: 'brand-1',
           name: 'Cristal 1.0mm',
           link: 'https://bic.com',
           created_by: 'user-123',
@@ -867,8 +874,10 @@ describe('useProducts', () => {
       })
 
       expect(mockSupabase.from).toHaveBeenCalledWith('real_products')
+      expect(mockEnsureBrand).toHaveBeenCalledWith('BIC Atualizada')
       expect(updateMock).toHaveBeenCalledWith({
         brand: 'BIC Atualizada',
+        brand_id: 'brand-1',
         name: 'Cristal Dura Mais',
         link: 'https://bic.com/novo',
       })

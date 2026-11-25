@@ -10,6 +10,7 @@ export interface BackupSummary {
   products: number
   product_units: number
   product_characteristics?: number
+  brands?: number
   real_products?: number
   demands: number
   demand_commitments?: number
@@ -59,6 +60,7 @@ export interface BackupData {
   products?: Record<string, unknown>[]
   product_units?: Record<string, unknown>[]
   product_characteristics?: Record<string, unknown>[]
+  brands?: Record<string, unknown>[]
   real_products?: Record<string, unknown>[]
   demands?: Record<string, unknown>[]
   demand_commitments?: Record<string, unknown>[]

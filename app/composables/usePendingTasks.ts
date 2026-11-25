@@ -109,6 +109,24 @@ export const usePendingTasks = () => {
       { default: () => 0 },
     )
 
+  const { data: pendingBrandsCount, refresh: refreshPendingBrands } = useAsyncData(
+    'pending-brands-count',
+    async () => {
+      const { count, error } = await supabase
+        .from('brands')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_pending', true)
+
+      if (error) {
+        console.error('Erro ao buscar marcas pendentes:', error)
+        return 0
+      }
+
+      return count || 0
+    },
+    { default: () => 0 },
+  )
+
   const totalPending = computed(() => {
     return (
       (pendingUnitsCount.value || 0) +
@@ -116,7 +134,8 @@ export const usePendingTasks = () => {
       (pendingExpenseNaturesCount.value || 0) +
       (pendingProductClassesCount.value || 0) +
       (pendingIirgdDocumentTypesCount.value || 0) +
-      (pendingCharacteristicKeysCount.value || 0)
+      (pendingCharacteristicKeysCount.value || 0) +
+      (pendingBrandsCount.value || 0)
     )
   })
 
@@ -128,6 +147,7 @@ export const usePendingTasks = () => {
       refreshPendingProductClasses(),
       refreshPendingIirgdDocumentTypes(),
       refreshPendingCharacteristicKeys(),
+      refreshPendingBrands(),
     ])
   }
 
@@ -136,6 +156,7 @@ export const usePendingTasks = () => {
     pendingExpenseNaturesCount,
     pendingProductClassesCount,
     pendingCharacteristicKeysCount,
+    pendingBrandsCount,
     pendingReturnsCount,
     pendingIirgdDocumentTypesCount,
     totalPending,
