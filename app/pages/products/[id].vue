@@ -4,6 +4,7 @@
     ProductCharacteristicDetail,
     ProductDemandUsage,
     RealProduct,
+    ProductKeyword,
   } from '~/composables/useProducts'
   import { formatDate, formatDateTime } from '~/utils/formatters'
   import { formatDemandStatus, getDemandStatusColor } from '~/utils/demandStatus'
@@ -32,6 +33,10 @@
     addRealProduct,
     updateRealProduct,
     removeRealProduct,
+    addProductKeyword,
+    batchAddProductKeywords,
+    removeProductKeyword,
+    fetchAllDistinctKeywords,
   } = useProducts()
   const { fetchAllActiveUnits } = useMeasurementUnits()
   const { fetchAllSelectableKeys, fetchDistinctValuesForKey } = useProductCharacteristics()
@@ -611,6 +616,69 @@
     }
   }
 
+  // Keywords State & Handlers
+  const { data: allDistinctKeywords, refresh: refreshDistinctKeywords } = useAsyncData(
+    'distinct-keywords',
+    fetchAllDistinctKeywords,
+  )
+
+  const newKeywordInput = ref('')
+  const isAddingKeyword = ref(false)
+  const keywordError = ref('')
+  const isDeleteKeywordModalOpen = ref(false)
+  const keywordToDelete = ref<ProductKeyword | null>(null)
+  const isDeletingKeyword = ref(false)
+
+  const handleAddKeyword = async () => {
+    const raw = newKeywordInput.value?.trim()
+    if (!raw) return
+
+    keywordError.value = ''
+    isAddingKeyword.value = true
+
+    try {
+      if (raw.includes(',') || raw.includes(';') || raw.includes('\n')) {
+        await batchAddProductKeywords(productId, raw)
+        toast.success('Palavras-chave adicionadas com sucesso!')
+      } else {
+        await addProductKeyword(productId, raw)
+        toast.success(`Palavra-chave "${raw}" adicionada!`)
+      }
+      newKeywordInput.value = ''
+      await Promise.all([refresh(), refreshDistinctKeywords()])
+    } catch (e: unknown) {
+      keywordError.value = e instanceof Error ? e.message : 'Erro ao adicionar palavra-chave.'
+      toast.error(keywordError.value)
+    } finally {
+      isAddingKeyword.value = false
+    }
+  }
+
+  const openDeleteKeywordModal = (kw: ProductKeyword) => {
+    keywordToDelete.value = kw
+    isDeleteKeywordModalOpen.value = true
+  }
+
+  const closeDeleteKeywordModal = () => {
+    isDeleteKeywordModalOpen.value = false
+    keywordToDelete.value = null
+  }
+
+  const confirmDeleteKeyword = async () => {
+    if (!keywordToDelete.value) return
+    isDeletingKeyword.value = true
+    try {
+      await removeProductKeyword(keywordToDelete.value.id, keywordToDelete.value.keyword, productId)
+      toast.success(`Palavra-chave "${keywordToDelete.value.keyword}" removida com sucesso.`)
+      closeDeleteKeywordModal()
+      await Promise.all([refresh(), refreshDistinctKeywords()])
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover palavra-chave.')
+    } finally {
+      isDeletingKeyword.value = false
+    }
+  }
+
   const realProductHeaders = [
     { text: 'Marca', value: 'brand' },
     { text: 'Modelo / Nome Comercial', value: 'name' },
@@ -1123,6 +1191,98 @@
                 </div>
               </template>
             </UiTable>
+          </UiCard>
+        </UiCol>
+      </UiRow>
+
+      <!-- Palavras-Chave (Keywords) -->
+      <UiRow class="mb-4">
+        <UiCol cols="12">
+          <UiCard variant="outline">
+            <template #header>
+              <UiIcon class="mr-2" color="deep-purple" name="tag" />
+              Palavras-Chave (Keywords)
+              <UiChip
+                v-if="product.keywords?.length"
+                class="ml-2"
+                color="deep-purple"
+                label
+                size="xs"
+                variant="soft"
+              >
+                {{ product.keywords.length }}
+              </UiChip>
+              <UiSpacer />
+            </template>
+
+            <div class="pa-4">
+              <div class="text-body-2 text-medium-emphasis mb-3">
+                Termos, sinônimos ou palavras-chave associadas a este produto. Elas facilitam a
+                indexação e são utilizadas na busca rápida do catálogo e nas demandas.
+              </div>
+
+              <!-- Input de adição -->
+              <div class="d-flex flex-wrap align-center ga-2 mb-4">
+                <div style="flex: 1; min-width: 260px">
+                  <UiCombobox
+                    v-model="newKeywordInput"
+                    hide-details
+                    :items="allDistinctKeywords || []"
+                    label="Digite uma palavra-chave (ou separe várias por vírgula)"
+                    placeholder="Ex: caneta, esferográfica, azul, escrita..."
+                    :return-object="false"
+                    rounded="lg"
+                    size="sm"
+                    variant="outline"
+                    @keydown.enter.prevent="handleAddKeyword"
+                  />
+                </div>
+                <UiButton
+                  color="deep-purple"
+                  :disabled="!newKeywordInput || !newKeywordInput.trim()"
+                  :loading="isAddingKeyword"
+                  prepend-icon="add"
+                  size="md"
+                  variant="solid"
+                  @click="handleAddKeyword"
+                >
+                  Adicionar
+                </UiButton>
+              </div>
+
+              <UiAlert v-if="keywordError" class="mb-3" size="sm" type="error">
+                {{ keywordError }}
+              </UiAlert>
+
+              <!-- Lista de Chips -->
+              <div
+                v-if="product.keywords && product.keywords.length > 0"
+                class="d-flex flex-wrap align-center ga-2 pt-1"
+              >
+                <UiChip
+                  v-for="kw in product.keywords"
+                  :key="kw.id"
+                  class="font-weight-medium"
+                  closable
+                  color="deep-purple"
+                  size="md"
+                  variant="soft"
+                  @click:close="openDeleteKeywordModal(kw)"
+                >
+                  <UiIcon class="mr-1" name="tag" size="14" />
+                  {{ kw.keyword }}
+                </UiChip>
+              </div>
+
+              <!-- Estado vazio -->
+              <div v-else class="text-center py-6 border-dashed rounded-lg">
+                <UiIcon class="mb-2" color="disabled" name="tag" size="32" />
+                <div class="text-body-2 font-weight-medium">Nenhuma palavra-chave cadastrada</div>
+                <div class="text-caption text-medium-emphasis">
+                  Adicione palavras-chave para tornar a busca deste produto mais rápida e precisa.
+                </div>
+              </div>
+            </div>
           </UiCard>
         </UiCol>
       </UiRow>
@@ -1674,6 +1834,30 @@
             @click="confirmDeleteRealProduct"
           >
             Excluir
+          </UiButton>
+        </div>
+      </template>
+    </UiModal>
+
+    <!-- Modal Confirmar Exclusão de Palavra-Chave -->
+    <UiModal v-model="isDeleteKeywordModalOpen" max-width="440px" title="Remover Palavra-Chave">
+      <div class="py-2">
+        <p class="text-body-1">
+          Tem certeza que deseja remover a palavra-chave
+          <strong>"{{ keywordToDelete?.keyword }}"</strong> deste produto?
+        </p>
+      </div>
+
+      <template #actions>
+        <div class="d-flex justify-end ga-2 w-100">
+          <UiButton variant="ghost" @click="closeDeleteKeywordModal">Cancelar</UiButton>
+          <UiButton
+            color="error"
+            :loading="isDeletingKeyword"
+            variant="solid"
+            @click="confirmDeleteKeyword"
+          >
+            Remover
           </UiButton>
         </div>
       </template>

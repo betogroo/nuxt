@@ -40,8 +40,9 @@ describe('useBackup Composable', () => {
       products: 5,
       product_units: 5,
       product_characteristics: 5,
-      real_products: 5,
       brands: 5,
+      real_products: 5,
+      product_keywords: 5,
       demands: 5,
       demand_commitments: 5,
       demand_commitment_liquidations: 5,
@@ -191,6 +192,7 @@ describe('useBackup Composable', () => {
           { id: 'sip-2', incident_id: 'si-1', role: 'victim', name: 'Aluno 2' },
         ],
         logs: [{ id: 'log-1' }],
+        product_keywords: [{ id: 'pk-1', product_id: 'prod-1', keyword: 'Algodão' }],
       },
     }
 
@@ -216,6 +218,7 @@ describe('useBackup Composable', () => {
     expect(inspection.counts.system_settings).toBe(1)
     expect(inspection.counts.elections).toBe(2)
     expect(inspection.counts.candidates).toBe(3)
+    expect(inspection.counts.product_keywords).toBe(1)
     expect(inspection.counts.election_voters).toBe(1)
     expect(inspection.counts.school_incidents).toBe(1)
     expect(inspection.counts.school_incident_participants).toBe(2)

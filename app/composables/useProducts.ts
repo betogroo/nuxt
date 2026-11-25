@@ -17,6 +17,16 @@ export type ProductRow = Database['public']['Tables']['products']['Row'] & {
   product_classes?: { id: string; name: string } | null
   product_characteristics?: ProductCharacteristicSummary[]
   real_products?: RealProduct[]
+  keywords?: ProductKeyword[]
+  product_keywords?: ProductKeyword[]
+}
+
+export interface ProductKeyword {
+  id: string
+  product_id: string
+  keyword: string
+  created_at: string
+  created_by?: string | null
 }
 
 export interface RealProduct {
@@ -84,6 +94,7 @@ export interface DuplicateProductPayload {
     link?: string | null
     brand_id?: string | null
   }>
+  keywords?: string[]
 }
 
 export const useProducts = () => {
@@ -103,7 +114,10 @@ export const useProducts = () => {
 
     let query = supabase
       .from('products')
-      .select('*, expense_natures(id, name), product_classes(id, name)', { count: 'exact' })
+      .select(
+        '*, expense_natures(id, name), product_classes(id, name), product_keywords(id, keyword)',
+        { count: 'exact' },
+      )
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -123,7 +137,17 @@ export const useProducts = () => {
         if (/^\d+$/.test(term)) {
           query = query.or(`name.ilike.%${term}%,cat_mat.eq.${term},cat_bec.eq.${term}`)
         } else {
-          query = query.ilike('name', `%${term}%`)
+          const { data: keywordMatches } = await supabase
+            .from('product_keywords')
+            .select('product_id')
+            .ilike('keyword', `%${term}%`)
+
+          const matchedIds = (keywordMatches || []).map((k) => k.product_id).filter(Boolean)
+          if (matchedIds.length > 0) {
+            query = query.or(`name.ilike.%${term}%,id.in.(${matchedIds.join(',')})`)
+          } else {
+            query = query.ilike('name', `%${term}%`)
+          }
         }
       }
     }
@@ -135,7 +159,12 @@ export const useProducts = () => {
       throw error
     }
 
-    return { data: (data as ProductRow[]) || [], count: count || 0 }
+    const mappedData = ((data as ProductRow[]) || []).map((p) => ({
+      ...p,
+      keywords: p.product_keywords || p.keywords || [],
+    }))
+
+    return { data: mappedData, count: count || 0 }
   }
 
   const handleProductDbError = (error: { code?: string; message?: string; details?: string }) => {
@@ -240,6 +269,12 @@ export const useProducts = () => {
       .order('brand', { ascending: true })
       .order('name', { ascending: true })
 
+    const { data: keywordsData } = await supabase
+      .from('product_keywords')
+      .select('*')
+      .eq('product_id', id)
+      .order('keyword', { ascending: true })
+
     let profiles = null
     if (data.created_by) {
       const { data: p } = await supabase
@@ -289,8 +324,17 @@ export const useProducts = () => {
       .sort((a, b) => a.key_name.localeCompare(b.key_name, 'pt-BR'))
 
     const real_products: RealProduct[] = (realProductsData || []) as unknown as RealProduct[]
+    const keywords: ProductKeyword[] = (keywordsData || []) as unknown as ProductKeyword[]
 
-    return { ...data, profiles, units, characteristics, real_products }
+    return {
+      ...data,
+      profiles,
+      units,
+      characteristics,
+      real_products,
+      keywords,
+      product_keywords: keywords,
+    }
   }
 
   const fetchProductDemands = async (productId: string): Promise<ProductDemandUsage[]> => {
@@ -574,6 +618,22 @@ export const useProducts = () => {
       }
     }
 
+    // Clonar palavras-chave se fornecidas
+    if (payload.keywords && payload.keywords.length > 0) {
+      const uniqueKeywords = Array.from(
+        new Set(payload.keywords.map((k) => k?.trim()).filter(Boolean)),
+      )
+      const keywordsToInsert = uniqueKeywords.map((k) => ({
+        product_id: newProduct.id,
+        keyword: k,
+        created_by: user.value?.id,
+      }))
+      if (keywordsToInsert.length > 0) {
+        const { error: kwError } = await supabase.from('product_keywords').insert(keywordsToInsert)
+        if (kwError) throw kwError
+      }
+    }
+
     await logAction(
       'DUPLICATE_PRODUCT',
       `Produto duplicado: "${cleanName}" criado a partir do produto ID ${payload.sourceProductId}`,
@@ -674,6 +734,138 @@ export const useProducts = () => {
     )
   }
 
+  const addProductKeyword = async (
+    productId: string,
+    rawKeyword: string,
+  ): Promise<ProductKeyword> => {
+    const cleanProductId = productId?.trim()
+    if (!cleanProductId) {
+      throw new Error('ID do produto é obrigatório.')
+    }
+
+    const cleanKeyword = rawKeyword?.trim()
+    if (!cleanKeyword) {
+      throw new Error('A palavra-chave não pode ser vazia.')
+    }
+
+    const { data, error } = await supabase
+      .from('product_keywords')
+      .insert({
+        product_id: productId,
+        keyword: cleanKeyword,
+        created_by: user.value?.id,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('Esta palavra-chave já está cadastrada para este produto.')
+      }
+      throw error
+    }
+
+    await logAction(
+      'ADD_PRODUCT_KEYWORD',
+      `Palavra-chave "${cleanKeyword}" adicionada ao produto (${productId})`,
+      user.value?.id,
+    )
+
+    return data as unknown as ProductKeyword
+  }
+
+  const batchAddProductKeywords = async (
+    productId: string,
+    rawKeywords: string | string[],
+  ): Promise<ProductKeyword[]> => {
+    let items: string[] = []
+    if (typeof rawKeywords === 'string') {
+      items = rawKeywords.split(/[,;\n]/)
+    } else if (Array.isArray(rawKeywords)) {
+      items = rawKeywords
+    }
+
+    const cleanedItems = items
+      .map((k) => (typeof k === 'string' ? k.trim() : ''))
+      .filter((k) => k.length > 0)
+
+    if (cleanedItems.length === 0) {
+      throw new Error('Nenhuma palavra-chave informada para inserção.')
+    }
+
+    // Deduplicate case-insensitively
+    const seen = new Set<string>()
+    const uniqueKeywords: string[] = []
+    for (const item of cleanedItems) {
+      const lower = item.toLowerCase()
+      if (!seen.has(lower)) {
+        seen.add(lower)
+        uniqueKeywords.push(item)
+      }
+    }
+
+    const payloads = uniqueKeywords.map((keyword) => ({
+      product_id: productId,
+      keyword,
+      created_by: user.value?.id,
+    }))
+
+    const { data, error } = await supabase.from('product_keywords').insert(payloads).select()
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error(
+          'Uma ou mais palavras-chave informadas já estão cadastradas para este produto.',
+        )
+      }
+      throw error
+    }
+
+    await logAction(
+      'BATCH_ADD_PRODUCT_KEYWORDS',
+      `${uniqueKeywords.length} palavras-chave adicionadas ao produto (${productId}): ${uniqueKeywords.join(', ')}`,
+      user.value?.id,
+    )
+
+    return (data || []) as unknown as ProductKeyword[]
+  }
+
+  const removeProductKeyword = async (
+    keywordId: string,
+    keywordName?: string,
+    productId?: string,
+  ): Promise<void> => {
+    const { error } = await supabase.from('product_keywords').delete().eq('id', keywordId)
+
+    if (error) throw error
+
+    await logAction(
+      'REMOVE_PRODUCT_KEYWORD',
+      `Palavra-chave "${keywordName || keywordId}" removida do produto${productId ? ` (${productId})` : ''}`,
+      user.value?.id,
+    )
+  }
+
+  const fetchAllDistinctKeywords = async (): Promise<string[]> => {
+    const { data, error } = await supabase.from('product_keywords').select('keyword')
+
+    if (error) throw error
+
+    const seen = new Set<string>()
+    const distinct: string[] = []
+    for (const row of data || []) {
+      const trimmed = (row.keyword || '').trim()
+      if (!trimmed) continue
+      const lower = trimmed.toLowerCase()
+      if (!seen.has(lower)) {
+        seen.add(lower)
+        distinct.push(trimmed)
+      }
+    }
+
+    return distinct.sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }
+
   return {
     fetchProducts,
     fetchProductById,
@@ -692,5 +884,9 @@ export const useProducts = () => {
     addRealProduct,
     updateRealProduct,
     removeRealProduct,
+    addProductKeyword,
+    batchAddProductKeywords,
+    removeProductKeyword,
+    fetchAllDistinctKeywords,
   }
 }

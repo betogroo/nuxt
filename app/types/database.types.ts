@@ -1293,6 +1293,37 @@ export type Database = {
         }
         Relationships: []
       }
+      product_keywords: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          keyword: string
+          product_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keyword: string
+          product_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keyword?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'product_keywords_product_id_fkey'
+            columns: ['product_id']
+            referencedRelation: 'products'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       product_units: {
         Row: {
           created_at: string

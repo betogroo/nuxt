@@ -60,6 +60,8 @@
   const units = ref<EditableUnit[]>([])
   const characteristics = ref<EditableCharacteristic[]>([])
   const realProducts = ref<EditableRealProduct[]>([])
+  const keywords = ref<string[]>([])
+  const newKeyword = ref('')
 
   // Options for selectors
   const expenseNatureOptions = ref<Array<{ id: string; name: string }>>([])
@@ -122,6 +124,8 @@
         link: rp.link,
         selected: true,
       }))
+
+      keywords.value = (source.keywords || []).map((k) => k.keyword)
     } catch (err: unknown) {
       errorMessage.value = err instanceof Error ? err.message : String(err)
     } finally {
@@ -141,6 +145,8 @@
         units.value = []
         characteristics.value = []
         realProducts.value = []
+        keywords.value = []
+        newKeyword.value = ''
       }
     },
     { immediate: true },
@@ -152,6 +158,14 @@
 
   const removeCharacteristic = (index: number) => {
     characteristics.value.splice(index, 1)
+  }
+
+  const addKeyword = () => {
+    const trimmed = newKeyword.value.trim()
+    if (trimmed && !keywords.value.some((k) => k.toLowerCase() === trimmed.toLowerCase())) {
+      keywords.value.push(trimmed)
+    }
+    newKeyword.value = ''
   }
 
   const handleDuplicate = async () => {
@@ -218,6 +232,7 @@
         unitIds: selectedUnitIds,
         characteristics: charsToSave,
         realProducts: realProductsToSave,
+        keywords: keywords.value,
       })
 
       toast.success(`Produto "${newProduct.name}" duplicado com sucesso!`)
@@ -453,6 +468,61 @@
               ({{ rp.link }})
             </span>
           </div>
+        </div>
+      </div>
+
+      <UiDivider />
+
+      <!-- Palavras-Chave -->
+      <div>
+        <h4 class="text-subtitle-2 font-weight-bold mb-1 text-primary d-flex align-center gap-1">
+          <UiIcon name="tag" size="sm" />
+          Palavras-Chave
+          <UiChip v-if="keywords.length > 0" class="ml-1" label size="xs" variant="soft">
+            {{ keywords.length }}
+          </UiChip>
+        </h4>
+
+        <p class="text-caption text-medium-emphasis mb-2">
+          Palavras-chave herdadas que serão associadas ao novo produto:
+        </p>
+
+        <div class="d-flex align-center gap-2 mb-2">
+          <UiInput
+            v-model="newKeyword"
+            density="compact"
+            hide-details
+            placeholder="Nova palavra-chave..."
+            @keydown.enter.prevent="addKeyword"
+          />
+          <UiButton
+            color="primary"
+            density="comfortable"
+            prepend-icon="add"
+            size="sm"
+            variant="soft"
+            @click="addKeyword"
+          >
+            Adicionar
+          </UiButton>
+        </div>
+
+        <div v-if="keywords.length === 0" class="text-caption text-medium-emphasis py-1">
+          Nenhuma palavra-chave configurada para este produto.
+        </div>
+
+        <div v-else class="d-flex flex-wrap gap-2">
+          <UiChip
+            v-for="(kw, idx) in keywords"
+            :key="idx"
+            closable
+            color="deep-purple"
+            size="sm"
+            variant="tonal"
+            @click:close="keywords.splice(idx, 1)"
+          >
+            {{ kw }}
+          </UiChip>
         </div>
       </div>
     </div>

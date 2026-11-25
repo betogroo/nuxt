@@ -32,6 +32,7 @@ export const useBackup = () => {
         { count: productCharacteristicsCount },
         { count: brandsCount },
         { count: realProductsCount },
+        { count: productKeywordsCount },
         { count: demandsCount },
         { count: demandCommitmentsCount },
         { count: demandCommitmentLiquidationsCount },
@@ -69,6 +70,7 @@ export const useBackup = () => {
         supabase.from('product_characteristics').select('id', { count: 'exact', head: true }),
         supabase.from('brands').select('id', { count: 'exact', head: true }),
         supabase.from('real_products').select('id', { count: 'exact', head: true }),
+        supabase.from('product_keywords').select('id', { count: 'exact', head: true }),
         supabase.from('demands').select('id', { count: 'exact', head: true }),
         supabase.from('demand_commitments').select('id', { count: 'exact', head: true }),
         supabase
@@ -110,6 +112,7 @@ export const useBackup = () => {
         product_characteristics: productCharacteristicsCount || 0,
         brands: brandsCount || 0,
         real_products: realProductsCount || 0,
+        product_keywords: productKeywordsCount || 0,
         demands: demandsCount || 0,
         demand_commitments: demandCommitmentsCount || 0,
         demand_commitment_liquidations: demandCommitmentLiquidationsCount || 0,
@@ -208,6 +211,7 @@ export const useBackup = () => {
           : 0,
         brands: Array.isArray(data.brands) ? data.brands.length : 0,
         real_products: Array.isArray(data.real_products) ? data.real_products.length : 0,
+        product_keywords: Array.isArray(data.product_keywords) ? data.product_keywords.length : 0,
         demands: Array.isArray(data.demands) ? data.demands.length : 0,
         demand_commitments: Array.isArray(data.demand_commitments)
           ? data.demand_commitments.length

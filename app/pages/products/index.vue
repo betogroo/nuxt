@@ -313,12 +313,28 @@
         :loading="pending"
       >
         <template #item-name="{ item }">
-          <NuxtLink
-            class="font-weight-medium text-primary text-decoration-none"
-            :to="`/products/${item.id}`"
-          >
-            {{ item.name }}
-          </NuxtLink>
+          <div class="d-flex flex-column ga-1">
+            <NuxtLink
+              class="font-weight-medium text-primary text-decoration-none"
+              :to="`/products/${item.id}`"
+            >
+              {{ item.name }}
+            </NuxtLink>
+            <div v-if="item.keywords && item.keywords.length > 0" class="d-flex flex-wrap ga-1">
+              <UiChip
+                v-for="kw in item.keywords.slice(0, 3)"
+                :key="kw.id"
+                color="deep-purple"
+                size="xs"
+                variant="tonal"
+              >
+                {{ kw.keyword }}
+              </UiChip>
+              <UiChip v-if="item.keywords.length > 3" color="default" size="xs" variant="tonal">
+                +{{ item.keywords.length - 3 }}
+              </UiChip>
+            </div>
+          </div>
         </template>
         <template #item-cat_mat="{ item }">
           <UiChip v-if="item.cat_mat" color="primary" label size="xs" variant="soft">

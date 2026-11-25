@@ -71,7 +71,7 @@ describe('useProducts', () => {
     const result = await fetchProducts(1, 10, null, 'active')
 
     expect(selectMock).toHaveBeenCalledWith(
-      '*, expense_natures(id, name), product_classes(id, name)',
+      '*, expense_natures(id, name), product_classes(id, name), product_keywords(id, keyword)',
       { count: 'exact' },
     )
     expect(result.count).toBe(1)
@@ -98,8 +98,17 @@ describe('useProducts', () => {
       order: orderMock,
     })
 
-    mockSupabase.from.mockReturnValue({
-      select: selectMock,
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'product_keywords') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }
+      }
+      return {
+        select: selectMock,
+      }
     })
 
     const { fetchProducts } = useProducts()
@@ -107,6 +116,49 @@ describe('useProducts', () => {
 
     expect(eqMock).toHaveBeenCalledWith('is_active', true)
     expect(ilikeMock).toHaveBeenCalledWith('name', '%Caneta%')
+    expect(result.data).toHaveLength(1)
+  })
+
+  it('fetchProducts should search by keyword and combine product IDs when matches found', async () => {
+    const orMock = vi.fn().mockResolvedValue({
+      data: [{ id: 'prod-2', name: 'Caneta Gel', is_active: true }],
+      count: 1,
+      error: null,
+    })
+    const eqMock = vi.fn().mockReturnValue({
+      or: orMock,
+    })
+    const rangeMock = vi.fn().mockReturnValue({
+      eq: eqMock,
+    })
+    const orderMock = vi.fn().mockReturnValue({
+      range: rangeMock,
+    })
+    const selectMock = vi.fn().mockReturnValue({
+      order: orderMock,
+    })
+
+    mockSupabase.from.mockImplementation((table: string) => {
+      if (table === 'product_keywords') {
+        return {
+          select: vi.fn().mockReturnValue({
+            ilike: vi.fn().mockResolvedValue({
+              data: [{ product_id: 'prod-2' }],
+              error: null,
+            }),
+          }),
+        }
+      }
+      return {
+        select: selectMock,
+      }
+    })
+
+    const { fetchProducts } = useProducts()
+    const result = await fetchProducts(1, 10, null, 'active', 'Gel')
+
+    expect(eqMock).toHaveBeenCalledWith('is_active', true)
+    expect(orMock).toHaveBeenCalledWith('name.ilike.%Gel%,id.in.(prod-2)')
     expect(result.data).toHaveLength(1)
   })
 
@@ -180,6 +232,15 @@ describe('useProducts', () => {
               order: vi.fn().mockReturnValue({
                 order: vi.fn().mockResolvedValue({ data: [], error: null }),
               }),
+            }),
+          }),
+        }
+      }
+      if (table === 'product_keywords') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
             }),
           }),
         }
@@ -794,7 +855,9 @@ describe('useProducts', () => {
         }
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
           }),
         }
       })
@@ -905,6 +968,132 @@ describe('useProducts', () => {
         expect.stringContaining('Caneta BIC'),
         'user-123',
       )
+    })
+  })
+
+  describe('Keywords', () => {
+    it('addProductKeyword should validate inputs and insert keyword', async () => {
+      const insertedKeyword = { id: 'kw-1', product_id: 'prod-1', keyword: 'esferográfica' }
+      const insertMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: insertedKeyword, error: null }),
+        }),
+      })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { addProductKeyword } = useProducts()
+
+      await expect(addProductKeyword('', 'esferográfica')).rejects.toThrow(
+        'ID do produto é obrigatório.',
+      )
+      await expect(addProductKeyword('prod-1', '   ')).rejects.toThrow(
+        'A palavra-chave não pode ser vazia.',
+      )
+
+      const result = await addProductKeyword('prod-1', '  esferográfica  ')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('product_keywords')
+      expect(insertMock).toHaveBeenCalledWith({
+        product_id: 'prod-1',
+        keyword: 'esferográfica',
+        created_by: 'user-123',
+      })
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'ADD_PRODUCT_KEYWORD',
+        expect.stringContaining('esferográfica'),
+        'user-123',
+      )
+      expect(result).toEqual(insertedKeyword)
+    })
+
+    it('addProductKeyword should throw friendly error on unique violation (23505)', async () => {
+      const insertMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: '23505', message: 'duplicate key' },
+          }),
+        }),
+      })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { addProductKeyword } = useProducts()
+
+      await expect(addProductKeyword('prod-1', 'esferográfica')).rejects.toThrow(
+        'Esta palavra-chave já está cadastrada para este produto.',
+      )
+    })
+
+    it('batchAddProductKeywords should split by comma, deduplicate and batch insert', async () => {
+      const insertedKeywords = [
+        { id: 'kw-1', product_id: 'prod-1', keyword: 'azul', created_by: 'user-123' },
+        { id: 'kw-2', product_id: 'prod-1', keyword: 'ponta fina', created_by: 'user-123' },
+      ]
+      const insertMock = vi.fn().mockReturnValue({
+        select: vi.fn().mockResolvedValue({ data: insertedKeywords, error: null }),
+      })
+      mockSupabase.from.mockReturnValue({ insert: insertMock })
+
+      const { batchAddProductKeywords } = useProducts()
+
+      const result = await batchAddProductKeywords('prod-1', 'azul, ponta fina, Azul, , ')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('product_keywords')
+      expect(insertMock).toHaveBeenCalledWith([
+        { product_id: 'prod-1', keyword: 'azul', created_by: 'user-123' },
+        { product_id: 'prod-1', keyword: 'ponta fina', created_by: 'user-123' },
+      ])
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'BATCH_ADD_PRODUCT_KEYWORDS',
+        expect.stringContaining('2 palavras-chave'),
+        'user-123',
+      )
+      expect(result).toHaveLength(2)
+    })
+
+    it('batchAddProductKeywords should throw if no valid keywords', async () => {
+      const { batchAddProductKeywords } = useProducts()
+      await expect(batchAddProductKeywords('prod-1', ' , , ')).rejects.toThrow(
+        'Nenhuma palavra-chave informada para inserção.',
+      )
+    })
+
+    it('removeProductKeyword should delete keyword and log action', async () => {
+      const eqMock = vi.fn().mockResolvedValue({ error: null })
+      const deleteMock = vi.fn().mockReturnValue({ eq: eqMock })
+      mockSupabase.from.mockReturnValue({ delete: deleteMock })
+
+      const { removeProductKeyword } = useProducts()
+      await removeProductKeyword('kw-1', 'esferográfica')
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('product_keywords')
+      expect(deleteMock).toHaveBeenCalled()
+      expect(eqMock).toHaveBeenCalledWith('id', 'kw-1')
+      expect(mockLogAction).toHaveBeenCalledWith(
+        'REMOVE_PRODUCT_KEYWORD',
+        expect.stringContaining('esferográfica'),
+        'user-123',
+      )
+    })
+
+    it('fetchAllDistinctKeywords should return sorted unique list of keywords', async () => {
+      const selectMock = vi.fn().mockResolvedValue({
+        data: [
+          { keyword: 'azul' },
+          { keyword: 'Azul' },
+          { keyword: 'caneta' },
+          { keyword: 'ponta fina' },
+        ],
+        error: null,
+      })
+      mockSupabase.from.mockReturnValue({ select: selectMock })
+
+      const { fetchAllDistinctKeywords } = useProducts()
+      const distinct = await fetchAllDistinctKeywords()
+
+      expect(mockSupabase.from).toHaveBeenCalledWith('product_keywords')
+      expect(selectMock).toHaveBeenCalledWith('keyword')
+      expect(distinct).toEqual(['azul', 'caneta', 'ponta fina'])
     })
   })
 })
