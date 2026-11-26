@@ -2,10 +2,15 @@ import { formatCnpj, formatCurrency, formatDate } from './formatters'
 import { formatCurrencyInWords } from './currencyInWords'
 import { resolveProcurementNumberWithYear } from './demandConvocationEmail'
 import type { DemandForConvocationEmail } from './demandConvocationEmail'
+import type { CommitmentRow } from '~/composables/useCommitments'
+import type { DemandProductRow } from '~/composables/useDemandProducts'
+import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
+import { normalizeSiafemNumber } from '~/schemas/forms/commitment'
 
 export const DEFAULT_EXTRACT_CONTRACTOR = 'Delegacia Seccional de Polícia de São Joaquim da Barra'
 export const DEFAULT_EXTRACT_WORK_PROGRAM = '06181180149890000'
 export const DEFAULT_EXTRACT_PTRES = '180205'
+export const EXTRACT_SEPARATOR = '\n\n--------------------------------------------------\n\n'
 
 export interface CommitmentExtractDemandInfo extends DemandForConvocationEmail {
   name?: string | null
@@ -134,4 +139,97 @@ export function generateCommitmentExtract(data: CommitmentExtractData): string {
     `Nota de empenho: ${commitmentNumber}`,
     `Data de emissão: ${formattedDate}`,
   ].join('\n')
+}
+
+export interface DemandCommitmentExtractItem {
+  commitmentNumber: string
+  supplierName: string
+  supplierCnpj?: string | null
+  totalAmount: number
+  extractText: string
+  commitment: CommitmentRow
+}
+
+/**
+ * Generates extracts for all active (non-cancelled) commitments of a demand.
+ */
+export function generateDemandCommitmentExtracts(params: {
+  demand?: CommitmentExtractDemandInfo | null
+  commitments?: CommitmentRow[] | null
+  items?: DemandProductRow[] | null
+}): DemandCommitmentExtractItem[] {
+  const activeCommitments = (params.commitments || []).filter((c) => c.status !== 'cancelled')
+
+  if (activeCommitments.length === 0) return []
+
+  // 1. Group winning items by normalized commitment number
+  const totalsByCommitment = new Map<string, number>()
+  const itemsByCommitment = new Map<string, DemandProductRow[]>()
+
+  for (const item of params.items || []) {
+    if (!item.commitment_number) continue
+    const norm = normalizeSiafemNumber(item.commitment_number)
+    if (!norm) continue
+
+    const dispute = getItemDisputeResult(item)
+    if (dispute.outcome !== 'winner') continue
+
+    const unitPrice = dispute.winningAmount ?? 0
+    const itemTotal = dispute.totalFinal ?? getItemSubtotal(unitPrice, item.quantity)
+
+    totalsByCommitment.set(norm, (totalsByCommitment.get(norm) || 0) + itemTotal)
+
+    const list = itemsByCommitment.get(norm) || []
+    list.push(item)
+    itemsByCommitment.set(norm, list)
+  }
+
+  // 2. Generate extract for each non-cancelled commitment
+  return activeCommitments.map((commitment) => {
+    const normNum = normalizeSiafemNumber(commitment.commitment_number)
+    const effectiveNum = commitment.cancels_commitment_number
+      ? normalizeSiafemNumber(commitment.cancels_commitment_number)
+      : normNum
+
+    const totalAmount = totalsByCommitment.get(effectiveNum) || 0
+    const commitmentItems = itemsByCommitment.get(effectiveNum) || []
+
+    // Fallback expense nature from items if not directly attached to commitment
+    let expenseNature = commitment.expense_natures
+    if (!expenseNature) {
+      const firstWithNature = commitmentItems.find(
+        (i) => i.product?.expense_natures || i.product?.expense_nature_id,
+      )
+      if (firstWithNature?.product?.expense_natures) {
+        expenseNature = firstWithNature.product.expense_natures
+      } else if (firstWithNature?.product?.expense_nature_id) {
+        expenseNature = { id: firstWithNature.product.expense_nature_id, name: '' }
+      }
+    }
+
+    const extractText = generateCommitmentExtract({
+      commitmentNumber: commitment.commitment_number,
+      issueDate: commitment.issue_date,
+      totalAmount,
+      demand: commitment.demands || params.demand,
+      supplier: commitment.suppliers,
+      expenseNature,
+    })
+
+    return {
+      commitmentNumber: commitment.commitment_number,
+      supplierName: commitment.suppliers?.company_name || '-',
+      supplierCnpj: commitment.suppliers?.cnpj,
+      totalAmount,
+      extractText,
+      commitment,
+    }
+  })
+}
+
+/**
+ * Combines multiple extract texts into a single batch publication document.
+ */
+export function buildCombinedExtractsText(extracts: DemandCommitmentExtractItem[]): string {
+  return extracts.map((e) => e.extractText).join(EXTRACT_SEPARATOR)
 }

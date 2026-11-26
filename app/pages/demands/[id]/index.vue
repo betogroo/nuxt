@@ -26,6 +26,7 @@
   import DemandItemsBatchExecutionStatusModal from '~/components/demands/DemandItemsBatchExecutionStatusModal.vue'
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   import DemandCommitmentsReportModal from '~/components/demands/DemandCommitmentsReportModal.vue'
+  import DemandCommitmentExtractsModal from '~/components/demands/DemandCommitmentExtractsModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
@@ -1186,6 +1187,30 @@
     }
   }
 
+  // --- RELATÓRIO DE EXTRATOS DO EMPENHO (ATIVOS) ---
+  const isCommitmentExtractsModalOpen = ref(false)
+  const isLoadingCommitmentExtracts = ref(false)
+
+  const handleOpenCommitmentExtractsModal = async () => {
+    if (isLoadingCommitmentExtracts.value) return
+    isLoadingCommitmentExtracts.value = true
+    try {
+      if (demandCommitmentsList.value.length === 0) {
+        demandCommitmentsList.value = await fetchCommitmentsByDemand(demandId)
+      }
+      isCommitmentExtractsModalOpen.value = true
+      logAction(
+        'GENERATE_DEMAND_COMMITMENT_EXTRACTS_REPORT',
+        `Aberto relatório de extratos de empenho da demanda "${demand.value?.name || demandId}"`,
+      )
+    } catch (err: unknown) {
+      console.error('Erro ao carregar empenhos para extratos:', err)
+      toast.error('Erro ao carregar dados dos empenhos para os extratos.')
+    } finally {
+      isLoadingCommitmentExtracts.value = false
+    }
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1352,6 +1377,18 @@
                       subtitle="Detalhamento de empenhos e documentos SIAFEM"
                       title="Relatório de Empenhos"
                       @click="handleOpenCommitmentsReportModal"
+                    />
+                    <UiListItem
+                      v-if="
+                        demand.status === 'completed' ||
+                        winningSuppliersSummary.some((s) => s.commitments?.length > 0)
+                      "
+                      data-testid="menu-item-commitment-extracts"
+                      :loading="isLoadingCommitmentExtracts"
+                      prepend-icon="receipt"
+                      subtitle="Extratos de empenhos ativos para publicação"
+                      title="Extratos de Empenhos"
+                      @click="handleOpenCommitmentExtractsModal"
                     />
                     <UiListItem
                       data-testid="menu-item-tables-hub"
@@ -2424,6 +2461,21 @@
                   Relatório de Empenhos
                 </UiButton>
                 <UiButton
+                  v-if="
+                    demand.status === 'completed' ||
+                    winningSuppliersSummary.some((s) => s.commitments?.length > 0)
+                  "
+                  color="teal"
+                  data-testid="btn-open-commitment-extracts"
+                  :loading="isLoadingCommitmentExtracts"
+                  prepend-icon="receipt"
+                  size="sm"
+                  variant="soft"
+                  @click="handleOpenCommitmentExtractsModal"
+                >
+                  Extratos de Empenhos
+                </UiButton>
+                <UiButton
                   color="primary"
                   data-testid="btn-export-financial-docs-csv"
                   :loading="isExportingFinancialDocs"
@@ -3468,6 +3520,14 @@
     <!-- Modal do Relatório de Execução dos Empenhos -->
     <DemandCommitmentsReportModal
       v-model="isCommitmentsReportModalOpen"
+      :commitments="demandCommitmentsList"
+      :demand="demand"
+      :items="items"
+    />
+
+    <!-- Modal do Relatório de Extratos do Empenho (Ativos) -->
+    <DemandCommitmentExtractsModal
+      v-model="isCommitmentExtractsModalOpen"
       :commitments="demandCommitmentsList"
       :demand="demand"
       :items="items"

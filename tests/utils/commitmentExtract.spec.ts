@@ -1,13 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import {
   generateCommitmentExtract,
+  generateDemandCommitmentExtracts,
+  buildCombinedExtractsText,
   cleanProcurementNumber,
   cleanSeiProcessNumber,
   resolveExpenseNatureCode,
   DEFAULT_EXTRACT_CONTRACTOR,
   DEFAULT_EXTRACT_WORK_PROGRAM,
   DEFAULT_EXTRACT_PTRES,
+  EXTRACT_SEPARATOR,
 } from '~/utils/commitmentExtract'
+import type { CommitmentRow } from '~/composables/useCommitments'
+import type { DemandProductRow } from '~/composables/useDemandProducts'
 
 describe('commitmentExtract', () => {
   it('cleans procurement and SEI process numbers', () => {
@@ -89,5 +94,123 @@ describe('commitmentExtract', () => {
     )
     expect(extract).toContain('Nota de empenho: 2026NE00001')
     expect(extract).toContain('Data de emissão: -')
+  })
+
+  describe('generateDemandCommitmentExtracts & buildCombinedExtractsText', () => {
+    const mockDemand = {
+      name: 'Material de Escritório e Papelaria',
+      contract_number: '63/2026',
+      process_number: '058.00125162/2026-03',
+      internal_process_number: '2026-0063',
+    }
+
+    const mockCommitments = [
+      {
+        id: 'comm-1',
+        commitment_number: '2026NE00386',
+        issue_date: '2026-11-13',
+        status: 'delivered',
+        suppliers: {
+          id: 'sup-1',
+          company_name: 'FAROL SOLUÇÕES COMÉRCIO E SERVIÇOS LTDA',
+          cnpj: '22466779000178',
+        },
+        expense_natures: { id: '33903016', name: 'Material de Consumo' },
+      },
+      {
+        id: 'comm-2',
+        commitment_number: '2026NE00387',
+        issue_date: '2026-11-14',
+        status: 'cancelled',
+        suppliers: {
+          id: 'sup-2',
+          company_name: 'EMPRESA CANCELADA LTDA',
+          cnpj: '11222333000144',
+        },
+      },
+      {
+        id: 'comm-3',
+        commitment_number: '2026NE00388',
+        issue_date: '2026-11-15',
+        status: 'commitment_sent',
+        suppliers: {
+          id: 'sup-3',
+          company_name: 'PAPELARIA CENTRAL LTDA',
+          cnpj: '99888777000155',
+        },
+        expense_natures: { id: '33903016', name: 'Material de Consumo' },
+      },
+    ] as unknown as CommitmentRow[]
+
+    const mockItems = [
+      {
+        id: 'item-1',
+        commitment_number: '2026NE00386',
+        quantity: 10,
+        demand_product_bids: [{ id: 'b-1', amount: 2480, status: 'classified' }],
+      },
+      {
+        id: 'item-2',
+        commitment_number: '2026NE00388',
+        quantity: 5,
+        demand_product_bids: [{ id: 'b-2', amount: 100, status: 'classified' }],
+      },
+      {
+        id: 'item-cancelled',
+        commitment_number: '2026NE00387',
+        quantity: 1,
+        demand_product_bids: [{ id: 'b-3', amount: 500, status: 'classified' }],
+      },
+    ] as unknown as DemandProductRow[]
+
+    it('strictly filters out cancelled commitments and generates extracts for active commitments', () => {
+      const result = generateDemandCommitmentExtracts({
+        demand: mockDemand,
+        commitments: mockCommitments,
+        items: mockItems,
+      })
+
+      expect(result).toHaveLength(2)
+      expect(result[0]!.commitmentNumber).toBe('2026NE00386')
+      expect(result[0]!.totalAmount).toBe(24800)
+      expect(result[0]!.extractText).toContain('Nota de empenho: 2026NE00386')
+      expect(result[0]!.extractText).toContain('FAROL SOLUÇÕES COMÉRCIO E SERVIÇOS LTDA')
+      expect(result[0]!.extractText).toContain(
+        'Valor total: R$ 24.800,00 (vinte e quatro mil e oitocentos reais)',
+      )
+
+      expect(result[1]!.commitmentNumber).toBe('2026NE00388')
+      expect(result[1]!.totalAmount).toBe(500)
+      expect(result[1]!.extractText).toContain('Nota de empenho: 2026NE00388')
+      expect(result[1]!.extractText).toContain('PAPELARIA CENTRAL LTDA')
+      expect(result[1]!.extractText).toContain('Valor total: R$ 500,00 (quinhentos reais)')
+    })
+
+    it('returns empty array when commitments are null or all cancelled', () => {
+      const resultEmpty = generateDemandCommitmentExtracts({
+        demand: mockDemand,
+        commitments: [],
+      })
+      expect(resultEmpty).toEqual([])
+
+      const resultAllCancelled = generateDemandCommitmentExtracts({
+        demand: mockDemand,
+        commitments: [mockCommitments[1]!],
+      })
+      expect(resultAllCancelled).toEqual([])
+    })
+
+    it('buildCombinedExtractsText joins multiple extracts using EXTRACT_SEPARATOR', () => {
+      const extracts = generateDemandCommitmentExtracts({
+        demand: mockDemand,
+        commitments: mockCommitments,
+        items: mockItems,
+      })
+
+      const combined = buildCombinedExtractsText(extracts)
+      expect(combined).toContain(EXTRACT_SEPARATOR)
+      expect(combined).toContain('Nota de empenho: 2026NE00386')
+      expect(combined).toContain('Nota de empenho: 2026NE00388')
+    })
   })
 })
