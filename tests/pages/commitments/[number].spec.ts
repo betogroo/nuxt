@@ -142,6 +142,10 @@ mockNuxtImport('useAsyncData', () => {
 
 const stubs = {
   CommitmentLiquidationBatchModal: { template: '<div class="batch-nl-modal-stub" />' },
+  CommitmentExtractModal: {
+    template: '<div class="commitment-extract-modal-stub" :data-open="modelValue" />',
+    props: ['modelValue', 'commitment', 'items', 'totalAmount'],
+  },
   UiRow: { template: '<div class="ui-row"><slot /></div>' },
   UiCol: { template: '<div class="ui-col"><slot /></div>' },
   UiCard: { template: '<div class="ui-card"><slot /></div>' },
@@ -724,5 +728,31 @@ describe('CommitmentDetailPage (/commitments/[number])', () => {
     await shippedChip!.trigger('click')
 
     expect(vm.statusModal.isOpen.value).toBe(false)
+  })
+
+  it('opens extract modal and logs action when clicking "Gerar Extrato"', async () => {
+    mockDetailData.value.commitment.status = 'delivered'
+
+    const wrapper = mount(CommitmentDetailPage, {
+      global: {
+        stubs,
+      },
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const vm = wrapper.vm as any
+
+    const extractBtn = wrapper
+      .findAll('.ui-button')
+      .find((btn) => btn.text().includes('Gerar Extrato'))
+    expect(extractBtn).toBeDefined()
+
+    expect(vm.isExtractModalOpen).toBe(false)
+    await extractBtn!.trigger('click')
+    expect(vm.isExtractModalOpen).toBe(true)
+
+    expect(mockLogAction).toHaveBeenCalledWith(
+      'GENERATE_COMMITMENT_EXTRACT',
+      'Aberto extrato da Nota de Empenho 2026NE00313',
+    )
   })
 })

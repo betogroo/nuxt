@@ -2,6 +2,7 @@
   import { computed, onMounted, ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import CommitmentLiquidationBatchModal from '~/components/commitments/CommitmentLiquidationBatchModal.vue'
+  import CommitmentExtractModal from '~/components/commitments/CommitmentExtractModal.vue'
   import CancelCommitmentModal from '~/components/demands/CancelCommitmentModal.vue'
   import { isOrdinaryLiquidationNote, useCommitments } from '~/composables/useCommitments'
   import { useFormModal } from '~/composables/useFormModal'
@@ -120,6 +121,16 @@
     )
   })
   const isCancelModalOpen = ref(false)
+  const isExtractModalOpen = ref(false)
+
+  const openExtractModal = () => {
+    if (!commitment.value) return
+    isExtractModalOpen.value = true
+    logAction(
+      'GENERATE_COMMITMENT_EXTRACT',
+      `Aberto extrato da Nota de Empenho ${commitment.value.commitment_number}`,
+    )
+  }
 
   const itemsTableHeaders = [
     { text: 'Item', value: 'item_number', width: 70 },
@@ -630,6 +641,16 @@
       </div>
 
       <div class="d-flex align-center ga-2">
+        <UiButton
+          v-if="commitment"
+          color="primary"
+          prepend-icon="receipt"
+          size="sm"
+          variant="solid"
+          @click="openExtractModal"
+        >
+          Gerar Extrato
+        </UiButton>
         <UiButton
           v-if="
             commitment && commitment.status !== 'completed' && commitment.status !== 'cancelled'
@@ -1722,6 +1743,14 @@
       :commitment="commitment"
       :items-count="items.length"
       @cancelled="refresh"
+    />
+
+    <!-- Modal de Extrato da Nota de Empenho -->
+    <CommitmentExtractModal
+      v-model="isExtractModalOpen"
+      :commitment="commitment"
+      :items="items"
+      :total-amount="totalAmount"
     />
   </div>
 </template>
