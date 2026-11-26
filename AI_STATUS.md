@@ -50,8 +50,9 @@ O projeto adota uma arquitetura de **Desacoplamento e Clean Architecture**:
    - Urna virtual com máquina de estados desacoplada (`useVirtualBallot.ts`), sons da urna via sintetizador/Web Audio (`useUrnaSounds.ts`), cartões de eleitor e gerenciamento completo de cabines/seções.
 
 6. **Backup & Restore**:
-   - Alinhamento da assinatura da função `restore_system_backup` e suporte integral à restauração de características de produto, eleições e demandas históricas.
-   - Última migration aplicada: `20261029181000_fix_restore_system_backup_product_characteristics.sql`.
+   - Alinhamento da assinatura da função `restore_system_backup` e suporte integral à restauração de todas as 37 tabelas do sistema (incluindo marcas, produtos reais e palavras-chave de produtos).
+   - Correção do mapeamento de colunas em `suppliers` (`company_name` e `cnpj`), `iirgd_settings`, `demands`, `demand_responsibles` e `measurement_unit_aliases`.
+   - Última migration aplicada: `20261126090000_fix_restore_system_backup_schema_alignment.sql`.
 
 ---
 

@@ -332,4 +332,58 @@ describe('useBackup Composable', () => {
     expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
     expect(result.success).toBe(true)
   })
+
+  it('restoreBackup should pass suppliers records with real schema columns (company_name, cnpj)', async () => {
+    const mockResult = {
+      success: true,
+      restored_at: new Date().toISOString(),
+      counts: {
+        suppliers: 1,
+      },
+    }
+
+    rpcMock.mockResolvedValueOnce({ data: mockResult, error: null })
+
+    const { restoreBackup } = useBackup()
+    const payload = {
+      system: 'Test',
+      version: '2.0',
+      timestamp: '2026-11-26T08:00:00Z',
+      generated_by: { id: 'admin-id', name: 'Admin' },
+      summary: {
+        profiles: 0,
+        suppliers: 1,
+        expense_natures: 0,
+        product_classes: 0,
+        measurement_units: 0,
+        measurement_unit_aliases: 0,
+        products: 0,
+        product_units: 0,
+        demands: 0,
+        demand_products: 0,
+        demand_product_bids: 0,
+        demand_responsibles: 0,
+        iirgd_document_types: 0,
+        iirgd_citizens: 0,
+        iirgd_demands: 0,
+        iirgd_demand_status_history: 0,
+        iirgd_settings: 0,
+        logs: 0,
+      },
+      data: {
+        suppliers: [
+          {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            company_name: 'Fornecedor Exemplo LTDA',
+            cnpj: '12.345.678/0001-90',
+            is_active: true,
+          },
+        ],
+      },
+    }
+
+    const result = await restoreBackup(payload)
+    expect(rpcMock).toHaveBeenCalledWith('restore_system_backup', { p_payload: payload })
+    expect(result.success).toBe(true)
+  })
 })
