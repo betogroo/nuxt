@@ -102,6 +102,7 @@ export const iconMap = {
   plus: 'mdi-plus',
   magnify: 'mdi-magnify',
   archive: 'mdi-archive-outline',
+  certificate: 'mdi-certificate-outline',
 } as const satisfies Record<string, string>
 
 export type IconName = keyof typeof iconMap

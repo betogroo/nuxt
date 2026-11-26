@@ -27,6 +27,7 @@
   import DemandDisputeReportModal from '~/components/demands/DemandDisputeReportModal.vue'
   import DemandCommitmentsReportModal from '~/components/demands/DemandCommitmentsReportModal.vue'
   import DemandCommitmentExtractsModal from '~/components/demands/DemandCommitmentExtractsModal.vue'
+  import DemandTechnicalCapacityModal from '~/components/demands/DemandTechnicalCapacityModal.vue'
   import SupplierCommitmentsBatchModal from '~/components/demands/SupplierCommitmentsBatchModal.vue'
   import DemandConvocationEmailModal from '~/components/demands/DemandConvocationEmailModal.vue'
   import DemandTermsOfReferenceTableModal from '~/components/demands/DemandTermsOfReferenceTableModal.vue'
@@ -1211,6 +1212,19 @@
     }
   }
 
+  // --- ATESTADO DE CAPACIDADE TÉCNICA POR FORNECEDOR ---
+  const isTechnicalCapacityModalOpen = ref(false)
+  const selectedSupplierForTechnicalCapacity = ref<WinningSupplierSummaryItem | null>(null)
+
+  const handleOpenTechnicalCapacityModal = (supplier?: WinningSupplierSummaryItem | null) => {
+    selectedSupplierForTechnicalCapacity.value = supplier || null
+    isTechnicalCapacityModalOpen.value = true
+    logAction(
+      'GENERATE_TECHNICAL_CAPACITY_CERTIFICATE',
+      `Aberto atestado de capacidade técnica para o fornecedor "${supplier?.company_name || 'Geral'}" na demanda "${demand.value?.name || demandId}"`,
+    )
+  }
+
   // --- NAVEGAÇÃO POR ABAS E RESUMO FINANCEIRO ---
   const initialQueryTab = route.query.tab
   const userSelectedTab = ref(isValidDemandTab(initialQueryTab))
@@ -1389,6 +1403,14 @@
                       subtitle="Extratos de empenhos ativos para publicação"
                       title="Extratos de Empenhos"
                       @click="handleOpenCommitmentExtractsModal"
+                    />
+                    <UiListItem
+                      v-if="demand.status === 'completed' || winningSuppliersSummary.length > 0"
+                      data-testid="menu-item-technical-capacity-certificate"
+                      prepend-icon="certificate"
+                      subtitle="Atestado formal de capacidade técnica por fornecedor"
+                      title="Atestado de Capacidade Técnica"
+                      @click="handleOpenTechnicalCapacityModal(winningSuppliersSummary[0])"
                     />
                     <UiListItem
                       data-testid="menu-item-tables-hub"
@@ -2715,6 +2737,17 @@
                 >
                   Convocação
                 </UiButton>
+                <UiButton
+                  color="secondary"
+                  data-testid="btn-supplier-technical-capacity"
+                  prepend-icon="certificate"
+                  size="xs"
+                  tooltip="Gerar Atestado de Capacidade Técnica"
+                  variant="soft"
+                  @click="handleOpenTechnicalCapacityModal(supplier)"
+                >
+                  Atestado
+                </UiButton>
               </div>
             </template>
           </UiTable>
@@ -3531,6 +3564,14 @@
       :commitments="demandCommitmentsList"
       :demand="demand"
       :items="items"
+    />
+
+    <!-- Modal do Atestado de Capacidade Técnica -->
+    <DemandTechnicalCapacityModal
+      v-model="isTechnicalCapacityModalOpen"
+      :available-suppliers="winningSuppliersSummary"
+      :demand="demand"
+      :initial-supplier="selectedSupplierForTechnicalCapacity"
     />
 
     <!-- Modal de Atualização de Status de Execução do Item -->

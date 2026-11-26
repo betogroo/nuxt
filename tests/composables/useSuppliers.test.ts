@@ -28,6 +28,7 @@ describe('useSuppliers', () => {
     expect(composable.fetchAllActiveSuppliers).toBeDefined()
     expect(composable.fetchSupplierById).toBeDefined()
     expect(composable.fetchSupplierWonDemands).toBeDefined()
+    expect(composable.fetchSupplierWonProductsDetailed).toBeDefined()
     expect(composable.createSupplier).toBeDefined()
     expect(composable.createSupplierFast).toBeDefined()
     expect(composable.updateSupplier).toBeDefined()
@@ -325,6 +326,69 @@ describe('useSuppliers', () => {
       expect(result.totalDemandsWon).toBe(1)
       expect(result.totalItemsWon).toBe(1)
       expect(result.totalAmountWon).toBe(50)
+    })
+  })
+
+  describe('fetchSupplierWonProductsDetailed', () => {
+    it('should flatten won items into technical certificate item format', async () => {
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValueOnce({
+          eq: vi.fn().mockResolvedValueOnce({
+            data: [{ demand_product_id: 'prod-1', amount: 25 }],
+            error: null,
+          }),
+        }),
+      })
+
+      mockSupabaseClient.from.mockReturnValueOnce({
+        select: vi.fn().mockReturnValueOnce({
+          in: vi.fn().mockResolvedValueOnce({
+            data: [
+              {
+                id: 'prod-1',
+                demand_id: 'demand-1',
+                product_name_snapshot: 'Papel A4',
+                unit_name_snapshot: 'CX',
+                quantity: 4,
+                reference_price: 30,
+                demands: {
+                  id: 'demand-1',
+                  name: 'Demanda 1',
+                  process_number: '001/2026',
+                  contract_number: '10/2026',
+                  status: 'completed',
+                  type: 'consumption',
+                  dispute_date: '2026-09-01',
+                },
+                demand_product_bids: [
+                  { id: 'b-1', supplier_id: 'sup-1', amount: 25, status: 'classified' },
+                ],
+              },
+            ],
+            error: null,
+          }),
+        }),
+      })
+
+      const { fetchSupplierWonProductsDetailed } = useSuppliers()
+      const items = await fetchSupplierWonProductsDetailed('sup-1')
+
+      expect(items).toHaveLength(1)
+      expect(items[0]).toEqual({
+        id: 'prod-1',
+        product_name: 'Papel A4',
+        unit_name: 'CX',
+        quantity: 4,
+        unit_price: 25,
+        total_price: 100,
+        demand_id: 'demand-1',
+        demand_name: 'Demanda 1',
+        process_number: '001/2026',
+        contract_number: '10/2026',
+        bidding_notice_number: undefined,
+        internal_process_number: undefined,
+        dispute_date: '2026-09-01',
+      })
     })
   })
 

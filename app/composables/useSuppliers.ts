@@ -2,6 +2,7 @@ import type { Database } from '~/types/database.types'
 import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 import { findSameRootSuppliers, formatCnpjRoot, getCnpjRoot } from '~/utils/cnpj'
 import { formatCnpj } from '~/utils/formatters'
+import type { TechnicalCertificateItem } from '~/utils/technicalCapacityCertificate'
 
 export type SupplierRow = Database['public']['Tables']['suppliers']['Row']
 export type SupplierInsert = Database['public']['Tables']['suppliers']['Insert']
@@ -22,6 +23,9 @@ export interface SupplierWonDemand {
   demand_id: string
   demand_name: string
   process_number: string | null
+  contract_number?: string | null
+  bidding_notice_number?: string | null
+  internal_process_number?: string | null
   status: Database['public']['Enums']['demand_status']
   type: Database['public']['Enums']['demand_type']
   dispute_date: string | null
@@ -50,6 +54,9 @@ export interface ProductWithRelations {
     id: string
     name: string
     process_number: string | null
+    contract_number?: string | null
+    bidding_notice_number?: string | null
+    internal_process_number?: string | null
     status: Database['public']['Enums']['demand_status']
     type: Database['public']['Enums']['demand_type']
     dispute_date: string | null
@@ -242,6 +249,9 @@ export const useSuppliers = () => {
           id,
           name,
           process_number,
+          contract_number,
+          bidding_notice_number,
+          internal_process_number,
           status,
           type,
           dispute_date
@@ -297,6 +307,9 @@ export const useSuppliers = () => {
               demand_id: demand.id,
               demand_name: demand.name,
               process_number: demand.process_number,
+              contract_number: demand.contract_number,
+              bidding_notice_number: demand.bidding_notice_number,
+              internal_process_number: demand.internal_process_number,
               status: demand.status,
               type: demand.type,
               dispute_date: demand.dispute_date,
@@ -465,11 +478,41 @@ export const useSuppliers = () => {
     return updatedCount
   }
 
+  const fetchSupplierWonProductsDetailed = async (
+    supplierId: string,
+  ): Promise<TechnicalCertificateItem[]> => {
+    const summary = await fetchSupplierWonDemands(supplierId)
+    const items: TechnicalCertificateItem[] = []
+
+    for (const demand of summary.demands) {
+      for (const item of demand.items) {
+        items.push({
+          id: item.id,
+          product_name: item.product_name_snapshot || 'Item sem descrição',
+          unit_name: item.unit_name_snapshot || 'UN',
+          quantity: item.quantity,
+          unit_price: item.winning_bid_amount,
+          total_price: item.subtotal,
+          demand_id: demand.demand_id,
+          demand_name: demand.demand_name,
+          process_number: demand.process_number,
+          contract_number: demand.contract_number,
+          bidding_notice_number: demand.bidding_notice_number,
+          internal_process_number: demand.internal_process_number,
+          dispute_date: demand.dispute_date,
+        })
+      }
+    }
+
+    return items
+  }
+
   return {
     fetchSuppliers,
     fetchAllActiveSuppliers,
     fetchSupplierById,
     fetchSupplierWonDemands,
+    fetchSupplierWonProductsDetailed,
     fetchSuppliersByCnpjRoot,
     replaceSupplierInDemandBids,
     createSupplier,
