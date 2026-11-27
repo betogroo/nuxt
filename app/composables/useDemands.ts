@@ -1,10 +1,25 @@
 import type { Database } from '~/types/database.types'
 import type { DemandStatus } from '~/utils/demandStatus'
+import type { DemandModality } from '~/utils/demandModality'
 import { resolveDemandYear } from '~/utils/demandYear'
 
 export type DemandRow = Database['public']['Tables']['demands']['Row'] & {
   profiles?: { name: string | null } | null
   demand_responsibles?: { user_id: string }[] | null
+  demand_products?:
+    | {
+        id: string
+        quantity: number
+        reference_price: number | null
+        product_name_snapshot?: string | null
+        product?: {
+          id?: string
+          name: string
+          product_class_id?: string | null
+          product_classes?: { id: string; name: string } | null
+        } | null
+      }[]
+    | null
 }
 export type DemandType = Database['public']['Enums']['demand_type']
 
@@ -20,6 +35,10 @@ export interface DemandDashboardSummary {
   byType: {
     consumption: number
     permanent: number
+  }
+  byModality: {
+    dispensation: number
+    bidding: number
   }
 }
 
@@ -45,11 +64,20 @@ export function createEmptyDemandDashboardSummary(): DemandDashboardSummary {
       consumption: 0,
       permanent: 0,
     },
+    byModality: {
+      dispensation: 0,
+      bidding: 0,
+    },
   }
 }
 
 export function calculateDemandDashboardSummary(
-  rows: Pick<DemandRow, 'status' | 'type' | 'is_return_requested'>[] | null | undefined,
+  rows:
+    | (Pick<DemandRow, 'status' | 'type' | 'is_return_requested'> & {
+        modality?: DemandModality | string | null
+      })[]
+    | null
+    | undefined,
 ): DemandDashboardSummary {
   const summary = createEmptyDemandDashboardSummary()
   if (!rows || rows.length === 0) return summary
@@ -67,6 +95,12 @@ export function calculateDemandDashboardSummary(
         summary.byType.consumption++
       } else if (row.type === 'permanent') {
         summary.byType.permanent++
+      }
+
+      if (row.modality === 'bidding') {
+        summary.byModality.bidding++
+      } else {
+        summary.byModality.dispensation++
       }
     }
 
@@ -103,9 +137,12 @@ export const useDemands = () => {
 
     let query = supabase
       .from('demands')
-      .select('*, profiles!demands_user_id_fkey(name), demand_responsibles(user_id)', {
-        count: 'exact',
-      })
+      .select(
+        '*, profiles!demands_user_id_fkey(name), demand_responsibles(user_id), demand_products(id, quantity, reference_price, product_name_snapshot, product:products(id, name, product_class_id, product_classes(id, name)))',
+        {
+          count: 'exact',
+        },
+      )
       .is('deleted_at', null)
       .order('internal_process_number', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
@@ -163,7 +200,7 @@ export const useDemands = () => {
   const fetchDemandDashboardSummary = async (): Promise<DemandDashboardSummary> => {
     const { data, error } = await supabase
       .from('demands')
-      .select('status, type, is_return_requested')
+      .select('status, type, modality, is_return_requested')
       .is('deleted_at', null)
 
     if (error) {
@@ -172,7 +209,7 @@ export const useDemands = () => {
     }
 
     return calculateDemandDashboardSummary(
-      (data as Pick<DemandRow, 'status' | 'type' | 'is_return_requested'>[]) || [],
+      (data as Pick<DemandRow, 'status' | 'type' | 'modality' | 'is_return_requested'>[]) || [],
     )
   }
 

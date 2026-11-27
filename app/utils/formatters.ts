@@ -87,6 +87,10 @@ export const formatDemandType = (type: string) => {
   return type === 'consumption' ? 'Consumo' : 'Permanente'
 }
 
+export const formatDemandModality = (modality?: string | null) => {
+  return modality === 'bidding' ? 'Pregão' : 'Dispensa'
+}
+
 export function formatCpf(value: string): string {
   let v = value.replace(/\D/g, '')
   if (v.length > 11) v = v.slice(0, 11)

@@ -5,11 +5,17 @@
   import { demandItemFormSchema } from '~/schemas/forms/demand-item'
   import {
     formatCnpj,
+    formatCurrency,
+    formatDemandModality,
     formatUnitPrice,
     splitDateTime,
     combineDateTime,
     validateOfferOpeningRules,
   } from '~/utils/formatters'
+  import {
+    buildDemandModalityOptions,
+    checkDemandClassExceedsAnnualCeiling,
+  } from '~/utils/demandModality'
   import {
     getCnpjEstablishmentInfo,
     findSameRootSuppliers,
@@ -110,6 +116,7 @@
   } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
+    modality: 'dispensation',
     internal_process_number: '',
     process_number: '',
     id_pca: '',
@@ -121,6 +128,7 @@
 
   const [epName, epNameProps] = epDefine('name')
   const [epType, epTypeProps] = epDefine('type')
+  const [epModality, epModalityProps] = epDefine('modality')
   const [epInternalProcess, epInternalProcessProps] = epDefine('internal_process_number')
   const [epProcess, epProcessProps] = epDefine('process_number')
   const [epIdPca, epIdPcaProps] = epDefine('id_pca')
@@ -133,13 +141,19 @@
 
   const editPlanningModal = useModal({})
 
-  const openEditPlanning = () => {
+  const openEditPlanning = async () => {
+    await ensureSpendingData()
     if (demand.value) {
+      const resolvedModality = demandClassCeilingCheck.value.isExceeded
+        ? 'bidding'
+        : (demand.value.modality as 'dispensation' | 'bidding') || 'dispensation'
+
       epReset({
         values: {
           id: demand.value.id,
           name: demand.value.name,
           type: demand.value.type as 'consumption' | 'permanent',
+          modality: resolvedModality,
           internal_process_number: demand.value.internal_process_number || '',
           process_number: demand.value.process_number || '',
           id_pca: demand.value.id_pca || '',
@@ -160,6 +174,7 @@
         const payload: {
           name: string
           type: 'consumption' | 'permanent'
+          modality: 'dispensation' | 'bidding'
           internal_process_number?: string
           process_number: string | null
           id_pca: string | null
@@ -170,6 +185,7 @@
         } = {
           name: values.name,
           type: values.type,
+          modality: demandClassCeilingCheck.value.isExceeded ? 'bidding' : values.modality,
           process_number: values.process_number || null,
           id_pca: values.id_pca || null,
           contract_number: values.contract_number || null,
@@ -487,6 +503,39 @@
     return resolveDemandYear(demand.value)
   })
 
+  const demandClassCeilingCheck = computed(() => {
+    const ceilingInfo = getCeilingForYear(ceilingsMap.value, demandYear.value)
+    return checkDemandClassExceedsAnnualCeiling(items.value || [], ceilingInfo.amount)
+  })
+
+  const epModalityOptions = computed(() => {
+    return buildDemandModalityOptions(demandClassCeilingCheck.value.isExceeded)
+  })
+
+  watch(
+    () => demandClassCeilingCheck.value.isExceeded,
+    (exceeded) => {
+      if (exceeded && editPlanningModal.isOpen.value && epModality.value === 'dispensation') {
+        epModality.value = 'bidding'
+      }
+    },
+  )
+
+  const syncDemandModalityWithClassCeiling = async () => {
+    await ensureSpendingData()
+    const check = demandClassCeilingCheck.value
+    if (check.isExceeded && demand.value && demand.value.modality !== 'bidding') {
+      await updateDemand({ modality: 'bidding' })
+      await refreshDemand()
+      const classSummary = check.exceedingClasses
+        .map((c) => `${c.label} (${formatCurrency(c.totalAmount)})`)
+        .join(', ')
+      toast.warning(
+        `A soma dos itens da classe ${classSummary} ultrapassou o teto anual (${formatCurrency(check.ceilingAmount)}). A modalidade da demanda foi alterada automaticamente para Pregão.`,
+      )
+    }
+  }
+
   const addingClassInfo = computed(() => {
     if (!isNewProductMode.value) {
       if (!selectedProductId.value) return null
@@ -632,6 +681,7 @@
       await refreshAllMeasurementUnits()
       await refreshProducts()
       await refreshItems()
+      await syncDemandModalityWithClassCeiling()
       closeModal()
     } catch (err: unknown) {
       const e = err as Error
@@ -745,6 +795,7 @@
 
       await refreshAllMeasurementUnits()
       await refreshItems()
+      await syncDemandModalityWithClassCeiling()
       isEditItemModalOpen.value = false
     } catch (err: unknown) {
       editItemError.value = err instanceof Error ? err.message : String(err)
@@ -1577,6 +1628,16 @@
                 {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
               </UiChip>
             </div>
+            <div v-if="demand" class="d-flex align-center ga-1">
+              <span class="text-grey font-weight-medium">Modalidade:</span>
+              <UiChip
+                :color="demand.modality === 'bidding' ? 'secondary' : 'teal'"
+                size="xs"
+                variant="soft"
+              >
+                {{ formatDemandModality(demand.modality) }}
+              </UiChip>
+            </div>
             <div v-if="demand" class="d-flex align-center ga-1" title="PTRES SIAFEM">
               <span class="text-grey font-weight-medium">PTRES:</span>
               <span class="font-weight-bold">{{ resolvedBudgetCodes.ptres }}</span>
@@ -1777,6 +1838,21 @@
                   <div class="text-caption text-grey">Tipo</div>
                   <div class="text-body-1 font-weight-medium">
                     {{ demand?.type === 'consumption' ? 'Consumo' : 'Permanente' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Modalidade</div>
+                  <div class="text-body-1 font-weight-medium d-flex align-center ga-1">
+                    <span>{{ formatDemandModality(demand?.modality) }}</span>
+                    <UiChip
+                      v-if="demandClassCeilingCheck.isExceeded"
+                      color="warning"
+                      size="xs"
+                      title="Teto anual por classe excedido: Dispensa indisponível"
+                      variant="soft"
+                    >
+                      Acima do teto
+                    </UiChip>
                   </div>
                 </UiCol>
                 <UiCol cols="12" md="4" sm="6">
@@ -3531,19 +3607,53 @@
         placeholder="Ex: 2026-0001"
       />
 
-      <UiSelect
-        v-model="epType"
-        v-bind="epTypeProps"
-        :error-messages="epErrors.type"
-        item-title="title"
-        item-value="value"
-        :items="[
-          { title: 'Consumo', value: 'consumption' },
-          { title: 'Permanente', value: 'permanent' },
-        ]"
-        label="Tipo*"
-        required
-      />
+      <UiRow dense>
+        <UiCol cols="12" sm="6">
+          <UiSelect
+            v-model="epType"
+            v-bind="epTypeProps"
+            :error-messages="epErrors.type"
+            item-title="title"
+            item-value="value"
+            :items="[
+              { title: 'Consumo', value: 'consumption' },
+              { title: 'Permanente', value: 'permanent' },
+            ]"
+            label="Natureza do Material*"
+            required
+          />
+        </UiCol>
+        <UiCol cols="12" sm="6">
+          <UiSelect
+            v-model="epModality"
+            v-bind="epModalityProps"
+            data-testid="select-planning-modality"
+            :error-messages="epErrors.modality"
+            item-title="title"
+            item-value="value"
+            :items="epModalityOptions"
+            label="Modalidade*"
+            required
+          />
+        </UiCol>
+      </UiRow>
+
+      <UiAlert
+        v-if="demandClassCeilingCheck.isExceeded"
+        class="mb-3"
+        data-testid="alert-planning-modality-ceiling-exceeded"
+        size="xs"
+        type="warning"
+        variant="soft"
+      >
+        A opção <strong>Dispensa</strong> está desabilitada porque a soma dos itens da(s) classe(s)
+        <strong v-for="(cls, idx) in demandClassCeilingCheck.exceedingClasses" :key="cls.classId">
+          {{ idx > 0 ? ', ' : '' }}{{ cls.label }} ({{ formatCurrency(cls.totalAmount) }})
+        </strong>
+        ultrapassa o teto anual por classe ({{
+          formatCurrency(demandClassCeilingCheck.ceilingAmount)
+        }}).
+      </UiAlert>
 
       <UiInput
         v-model="epProcess"

@@ -21,6 +21,13 @@
       required?: boolean
     }>(),
     {
+      variant: undefined,
+      size: undefined,
+      rounded: undefined,
+      label: undefined,
+      itemTitle: undefined,
+      itemValue: undefined,
+      placeholder: undefined,
       hideDetails: 'auto',
     },
   )
@@ -97,6 +104,27 @@
     }
     return newAttrs
   })
+
+  const resolveItemProps = (item: unknown) => {
+    if (typeof attrs['item-props'] === 'function') {
+      return (attrs['item-props'] as (it: unknown) => Record<string, unknown>)(item)
+    }
+    if (item && typeof item === 'object') {
+      const obj = item as Record<string, unknown>
+      const nestedProps =
+        obj.props && typeof obj.props === 'object' ? (obj.props as Record<string, unknown>) : {}
+      if ('disabled' in obj || 'disabled' in nestedProps) {
+        return {
+          ...nestedProps,
+          disabled: Boolean(obj.disabled ?? nestedProps.disabled),
+        }
+      }
+      if (obj.props && typeof obj.props === 'object') {
+        return nestedProps
+      }
+    }
+    return {}
+  }
 </script>
 
 <template>
@@ -105,6 +133,7 @@
     :clearable="clearable"
     :density="vuetifyDensity"
     :hide-details="hideDetails"
+    :item-props="resolveItemProps"
     :item-title="itemTitle"
     :item-value="itemValue"
     :items="items"

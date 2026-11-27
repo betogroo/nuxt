@@ -5,7 +5,17 @@
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema } from '~/schemas/forms/demand'
   import { resolveDemandBudgetCodes, DEMAND_BUDGET_DEFAULTS } from '~/constants/demand-budget'
-  import { formatDate, formatDemandType } from '~/utils/formatters'
+  import {
+    formatCurrency,
+    formatDate,
+    formatDemandModality,
+    formatDemandType,
+  } from '~/utils/formatters'
+  import {
+    buildDemandModalityOptions,
+    checkDemandClassExceedsAnnualCeiling,
+  } from '~/utils/demandModality'
+  import { resolveDemandYear } from '~/utils/demandYear'
   import {
     type DemandStatus,
     formatDemandStatus,
@@ -38,6 +48,7 @@
     updateDemand,
     deleteDemand,
   } = useDemands()
+  const { fetchProductClassAnnualCeilings, getCeilingForYear } = useSystemSettings()
   const route = useRoute()
   const router = useRouter()
 
@@ -107,6 +118,14 @@
     () => fetchDemandYears(),
     {
       default: () => [],
+    },
+  )
+
+  const { data: ceilingsMapData } = useAsyncData(
+    'demands-list-annual-ceilings',
+    () => fetchProductClassAnnualCeilings(),
+    {
+      default: () => ({}),
     },
   )
 
@@ -272,6 +291,7 @@
   const { errors, defineField, resetForm, handleSubmit } = useZodForm(demandFormSchema, {
     name: '',
     type: 'consumption',
+    modality: 'dispensation',
     internal_process_number: '',
     process_number: '',
     id_pca: '',
@@ -288,6 +308,7 @@
 
   const [name, nameProps] = defineField('name')
   const [type, typeProps] = defineField('type')
+  const [modality, modalityProps] = defineField('modality')
   const [internalProcessNumber, internalProcessNumberProps] = defineField('internal_process_number')
   const [processNumber, processNumberProps] = defineField('process_number')
   const [idPca, idPcaProps] = defineField('id_pca')
@@ -302,16 +323,39 @@
     defineField('bidding_notice_number')
   const [disputeNumberInput, disputeNumberInputProps] = defineField('dispute_number')
 
+  const editingDemandItem = ref<Partial<DemandRow> | null>(null)
+
+  const editingCeilingCheck = computed(() => {
+    const item = editingDemandItem.value
+    if (!item || !item.demand_products || item.demand_products.length === 0) {
+      return checkDemandClassExceedsAnnualCeiling([], 0)
+    }
+    const yr = resolveDemandYear(item)
+    const ceilingInfo = getCeilingForYear(ceilingsMapData.value || {}, yr)
+    return checkDemandClassExceedsAnnualCeiling(item.demand_products, ceilingInfo.amount)
+  })
+
+  const modalitySelectOptions = computed(() => {
+    return buildDemandModalityOptions(editingCeilingCheck.value.isExceeded)
+  })
+
   const modal = useModal<{ id?: string }>({})
 
   const originalOpen = modal.open.bind(modal)
   modal.open = (item?: Partial<DemandRow>) => {
+    editingDemandItem.value = item || null
     if (item) {
+      const yr = resolveDemandYear(item)
+      const ceilingInfo = getCeilingForYear(ceilingsMapData.value || {}, yr)
+      const check = checkDemandClassExceedsAnnualCeiling(item.demand_products, ceilingInfo.amount)
+      const resolvedModality = check.isExceeded ? 'bidding' : item.modality || 'dispensation'
+
       resetForm({
         values: {
           id: item.id,
           name: item.name || '',
           type: item.type || 'consumption',
+          modality: resolvedModality,
           internal_process_number: item.internal_process_number || '',
           process_number: item.process_number || '',
           id_pca: item.id_pca || '',
@@ -332,6 +376,7 @@
         values: {
           name: '',
           type: 'consumption',
+          modality: 'dispensation',
           internal_process_number: '',
           process_number: '',
           id_pca: '',
@@ -365,6 +410,7 @@
       const payload: {
         name: string
         type: 'consumption' | 'permanent'
+        modality: 'dispensation' | 'bidding'
         internal_process_number?: string
         process_number: string | null
         id_pca: string | null
@@ -380,6 +426,7 @@
       } = {
         name: values.name,
         type: values.type,
+        modality: editingCeilingCheck.value.isExceeded ? 'bidding' : values.modality,
         process_number: values.process_number || null,
         id_pca: values.id_pca || null,
         contract_number: values.contract_number ? String(values.contract_number) : null,
@@ -820,14 +867,24 @@
 
         <template #item-type="{ item }">
           <div class="d-flex flex-column align-start">
-            <UiChip
-              :color="item.type === 'consumption' ? 'info' : 'warning'"
-              label
-              size="sm"
-              variant="soft"
-            >
-              {{ formatDemandType(item.type) }}
-            </UiChip>
+            <div class="d-flex align-center ga-1 flex-wrap">
+              <UiChip
+                :color="item.type === 'consumption' ? 'info' : 'warning'"
+                label
+                size="sm"
+                variant="soft"
+              >
+                {{ formatDemandType(item.type) }}
+              </UiChip>
+              <UiChip
+                :color="item.modality === 'bidding' ? 'secondary' : 'teal'"
+                label
+                size="sm"
+                variant="soft"
+              >
+                {{ formatDemandModality(item.modality) }}
+              </UiChip>
+            </div>
             <span class="text-caption text-medium-emphasis mt-1">
               PTRES: {{ resolveDemandBudgetCodes(item).ptres }}
             </span>
@@ -998,19 +1055,53 @@
         placeholder="Ex: 2026-0001"
       />
 
-      <UiSelect
-        v-model="type"
-        v-bind="typeProps"
-        :error-messages="errors.type"
-        item-title="title"
-        item-value="value"
-        :items="[
-          { title: 'Consumo', value: 'consumption' },
-          { title: 'Permanente', value: 'permanent' },
-        ]"
-        label="Tipo *"
-        required
-      />
+      <UiRow dense>
+        <UiCol cols="12" sm="6">
+          <UiSelect
+            v-model="type"
+            v-bind="typeProps"
+            :error-messages="errors.type"
+            item-title="title"
+            item-value="value"
+            :items="[
+              { title: 'Consumo', value: 'consumption' },
+              { title: 'Permanente', value: 'permanent' },
+            ]"
+            label="Natureza do Material *"
+            required
+          />
+        </UiCol>
+        <UiCol cols="12" sm="6">
+          <UiSelect
+            v-model="modality"
+            v-bind="modalityProps"
+            data-testid="select-demand-modality"
+            :error-messages="errors.modality"
+            item-title="title"
+            item-value="value"
+            :items="modalitySelectOptions"
+            label="Modalidade *"
+            required
+          />
+        </UiCol>
+      </UiRow>
+
+      <UiAlert
+        v-if="editingCeilingCheck.isExceeded"
+        class="mb-3"
+        data-testid="alert-modality-ceiling-exceeded"
+        size="xs"
+        type="warning"
+        variant="soft"
+      >
+        A opção <strong>Dispensa</strong> está desabilitada porque a soma dos itens da(s) classe(s)
+        <strong v-for="(cls, idx) in editingCeilingCheck.exceedingClasses" :key="cls.classId">
+          {{ idx > 0 ? ', ' : '' }}{{ cls.label }} ({{ formatCurrency(cls.totalAmount) }})
+        </strong>
+        ultrapassa o teto anual por classe ({{
+          formatCurrency(editingCeilingCheck.ceilingAmount)
+        }}).
+      </UiAlert>
 
       <UiInput
         v-model="processNumber"

@@ -6,7 +6,6 @@ import {
   buildDisputeReportHtml,
   buildDisputeReportPdfDoc,
   formatDecimalBr,
-  resolveDemandYear,
   hasItemCommitmentIssued,
   calculateClassSpendingByYear,
   buildClassSpendingReportHtml,
@@ -14,6 +13,7 @@ import {
   useDemandReports,
   type DemandWithClassProductsRow,
 } from '~/composables/useDemandReports'
+import { resolveDemandYear } from '~/utils/demandYear'
 import { escapeCsvField } from '~/utils/reportCsv'
 import { formatDemandType } from '~/utils/formatters'
 import type { DemandRow } from '~/composables/useDemands'
@@ -710,11 +710,19 @@ describe('useDemandReports', () => {
   })
 
   describe('Annual Product Class Spending (Empenhos Emitidos & Teto Anual)', () => {
-    it('resolveDemandYear prioritizes dispute_date, then internal_process_number prefix, then created_at', () => {
+    it('resolveDemandYear prioritizes internal_process_number prefix, then dispute_date, then created_at', () => {
       expect(
         resolveDemandYear({
           dispute_date: '2025-07-15',
           internal_process_number: '2026-0010',
+          created_at: '2026-01-10T10:00:00Z',
+        }),
+      ).toBe(2026)
+
+      expect(
+        resolveDemandYear({
+          dispute_date: '2025-07-15',
+          internal_process_number: null,
           created_at: '2026-01-10T10:00:00Z',
         }),
       ).toBe(2025)

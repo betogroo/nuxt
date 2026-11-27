@@ -550,6 +550,7 @@ export type Database = {
           siafem_number: string | null
           status: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
+          modality: Database['public']['Enums']['demand_modality']
           work_program: string | null
           ptres: string | null
           updated_at: string
@@ -573,6 +574,7 @@ export type Database = {
           siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
+          modality?: Database['public']['Enums']['demand_modality']
           work_program?: string | null
           ptres?: string | null
           updated_at?: string
@@ -596,6 +598,7 @@ export type Database = {
           siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type?: Database['public']['Enums']['demand_type']
+          modality?: Database['public']['Enums']['demand_modality']
           work_program?: string | null
           ptres?: string | null
           updated_at?: string
@@ -1727,6 +1730,7 @@ export type Database = {
         | 'completed'
         | 'error'
         | 'cancelled'
+      demand_modality: 'dispensation' | 'bidding'
       demand_status:
         | 'planning'
         | 'quotation'
@@ -1899,6 +1903,7 @@ export const Constants = {
         'error',
         'cancelled',
       ],
+      demand_modality: ['dispensation', 'bidding'],
       demand_status: [
         'planning',
         'quotation',

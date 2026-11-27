@@ -29,17 +29,44 @@ describe('useDemands & Dashboard Summary', () => {
     expect(empty.returnsCount).toBe(0)
     expect(empty.byType.consumption).toBe(0)
     expect(empty.byType.permanent).toBe(0)
+    expect(empty.byModality.dispensation).toBe(0)
+    expect(empty.byModality.bidding).toBe(0)
   })
 
   it('calculateDemandDashboardSummary aggregates counts by stage group, status, type, and return requests', () => {
     const summary = calculateDemandDashboardSummary([
-      { status: 'planning', type: 'consumption', is_return_requested: false },
-      { status: 'bidding_notice', type: 'consumption', is_return_requested: true },
-      { status: 'quotation', type: 'permanent', is_return_requested: false },
-      { status: 'dispute', type: 'consumption', is_return_requested: false },
-      { status: 'homologation', type: 'permanent', is_return_requested: true },
-      { status: 'completed', type: 'consumption', is_return_requested: false },
-      { status: 'cancelled', type: 'consumption', is_return_requested: false },
+      {
+        status: 'planning',
+        type: 'consumption',
+        modality: 'dispensation',
+        is_return_requested: false,
+      },
+      {
+        status: 'bidding_notice',
+        type: 'consumption',
+        modality: 'bidding',
+        is_return_requested: true,
+      },
+      {
+        status: 'quotation',
+        type: 'permanent',
+        modality: 'dispensation',
+        is_return_requested: false,
+      },
+      { status: 'dispute', type: 'consumption', modality: 'bidding', is_return_requested: false },
+      {
+        status: 'homologation',
+        type: 'permanent',
+        modality: 'dispensation',
+        is_return_requested: true,
+      },
+      {
+        status: 'completed',
+        type: 'consumption',
+        modality: 'dispensation',
+        is_return_requested: false,
+      },
+      { status: 'cancelled', type: 'consumption', modality: 'bidding', is_return_requested: false },
     ])
 
     expect(summary.totalAll).toBe(7)
@@ -51,6 +78,8 @@ describe('useDemands & Dashboard Summary', () => {
     expect(summary.returnsCount).toBe(2)
     expect(summary.byType.consumption).toBe(4) // active consumption only
     expect(summary.byType.permanent).toBe(2) // active permanent only
+    expect(summary.byModality.dispensation).toBe(4) // active dispensation only
+    expect(summary.byModality.bidding).toBe(2) // active bidding only
     expect(summary.byStatus.planning).toBe(1)
     expect(summary.byStatus.homologation).toBe(1)
   })
@@ -58,8 +87,13 @@ describe('useDemands & Dashboard Summary', () => {
   it('fetchDemandDashboardSummary queries demands and returns aggregated summary', async () => {
     const mockIs = vi.fn().mockResolvedValue({
       data: [
-        { status: 'planning', type: 'consumption', is_return_requested: false },
-        { status: 'dispute', type: 'permanent', is_return_requested: true },
+        {
+          status: 'planning',
+          type: 'consumption',
+          modality: 'dispensation',
+          is_return_requested: false,
+        },
+        { status: 'dispute', type: 'permanent', modality: 'bidding', is_return_requested: true },
       ],
       error: null,
     })
@@ -70,11 +104,13 @@ describe('useDemands & Dashboard Summary', () => {
     const summary = await fetchDemandDashboardSummary()
 
     expect(mockSupabase.from).toHaveBeenCalledWith('demands')
-    expect(mockSelect).toHaveBeenCalledWith('status, type, is_return_requested')
+    expect(mockSelect).toHaveBeenCalledWith('status, type, modality, is_return_requested')
     expect(summary.totalActive).toBe(2)
     expect(summary.inPreparation).toBe(1)
     expect(summary.inExecution).toBe(1)
     expect(summary.returnsCount).toBe(1)
+    expect(summary.byModality.dispensation).toBe(1)
+    expect(summary.byModality.bidding).toBe(1)
   })
 
   it('fetchDemands supports group filters (preparation, execution), typeFilter, and unified search', async () => {

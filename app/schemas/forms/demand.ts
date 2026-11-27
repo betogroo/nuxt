@@ -6,6 +6,11 @@ export const demandFormSchema = z.object({
   type: z.enum(['consumption', 'permanent'], {
     message: 'O Tipo de Demanda é obrigatório.',
   }),
+  modality: z
+    .enum(['dispensation', 'bidding'], {
+      message: 'A Modalidade da Demanda é obrigatória.',
+    })
+    .default('dispensation'),
   internal_process_number: z
     .string()
     .trim()

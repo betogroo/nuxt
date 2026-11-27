@@ -24,6 +24,7 @@ import {
   formatCurrency,
   formatUnitPrice,
   formatDemandType,
+  formatDemandModality,
 } from '~/utils/formatters'
 import { formatDemandStatus } from '~/utils/demandStatus'
 import { resolveDemandBudgetCodes } from '~/constants/demand-budget'
@@ -34,6 +35,8 @@ export interface DisputeReportDemandInfo {
   name: string
   type: string
   typeLabel: string
+  modality?: string
+  modalityLabel?: string
   status: string
   statusLabel: string
   processNumber: string
@@ -175,6 +178,8 @@ export function generateDisputeReportData(
     name: demandName,
     type: demand?.type || '-',
     typeLabel: formatDemandType(demand?.type || ''),
+    modality: demand?.modality || 'dispensation',
+    modalityLabel: formatDemandModality(demand?.modality),
     status: demand?.status || '-',
     statusLabel: demand?.status ? formatDemandStatus(demand.status) : '-',
     processNumber: demand?.process_number || '-',
@@ -403,6 +408,12 @@ export function buildDisputeReportCsv(reportData: DisputeReportData): string {
     [escapeCsvField('Nº SIAFEM:'), escapeCsvField(reportData.demand.siafemNumber)].join(';'),
   )
   lines.push([escapeCsvField('Tipo:'), escapeCsvField(reportData.demand.typeLabel)].join(';'))
+  lines.push(
+    [
+      escapeCsvField('Modalidade:'),
+      escapeCsvField(reportData.demand.modalityLabel || 'Dispensa'),
+    ].join(';'),
+  )
   lines.push(
     [escapeCsvField('Programa de Trabalho:'), escapeCsvField(reportData.demand.workProgram)].join(
       ';',
@@ -827,6 +838,7 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
       </div>
       <div>
         <span class="badge badge-info">${escapeHtml(demand.typeLabel)}</span>
+        <span class="badge badge-info">${escapeHtml(demand.modalityLabel || 'Dispensa')}</span>
         <span class="badge badge-success">${escapeHtml(demand.statusLabel)}</span>
       </div>
     </div>
@@ -1083,7 +1095,7 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(100, 116, 139)
-  const metaText = `Tipo: ${reportData.demand.typeLabel}   |   Situação: ${reportData.demand.statusLabel}`
+  const metaText = `Tipo: ${reportData.demand.typeLabel}   |   Modalidade: ${reportData.demand.modalityLabel || 'Dispensa'}   |   Situação: ${reportData.demand.statusLabel}`
   doc.text(metaText, pageWidth - marginX, 20, { align: 'right' })
 
   // 3. Metadata Table

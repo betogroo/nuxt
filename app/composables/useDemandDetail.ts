@@ -60,6 +60,7 @@ export function useDemandDetail(demandId: string) {
       internal_process_number,
       id_pca,
       type,
+      modality,
       contract_number,
       siafem_number,
     } = demand.value
@@ -68,6 +69,7 @@ export function useDemandDetail(demandId: string) {
       !internal_process_number ||
       !id_pca ||
       !type ||
+      !modality ||
       !contract_number ||
       !siafem_number
     )

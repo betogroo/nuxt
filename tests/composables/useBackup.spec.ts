@@ -136,7 +136,7 @@ describe('useBackup Composable', () => {
         product_characteristics: [
           { id: 'pc-1', product_id: 'prod-1', key_id: 'pck-1', value: 'Azul' },
         ],
-        demands: [{ id: 'dem-1' }],
+        demands: [{ id: 'dem-1', type: 'consumption', modality: 'dispensation' }],
         demand_commitments: [
           {
             id: 'dc-1',
