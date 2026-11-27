@@ -550,6 +550,8 @@ export type Database = {
           siafem_number: string | null
           status: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
+          work_program: string | null
+          ptres: string | null
           updated_at: string
           user_id: string
         }
@@ -571,6 +573,8 @@ export type Database = {
           siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type: Database['public']['Enums']['demand_type']
+          work_program?: string | null
+          ptres?: string | null
           updated_at?: string
           user_id: string
         }
@@ -592,6 +596,8 @@ export type Database = {
           siafem_number?: string | null
           status?: Database['public']['Enums']['demand_status']
           type?: Database['public']['Enums']['demand_type']
+          work_program?: string | null
+          ptres?: string | null
           updated_at?: string
           user_id?: string
         }

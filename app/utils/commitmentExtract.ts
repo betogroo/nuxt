@@ -6,16 +6,20 @@ import type { CommitmentRow } from '~/composables/useCommitments'
 import type { DemandProductRow } from '~/composables/useDemandProducts'
 import { getItemDisputeResult, getItemSubtotal } from '~/utils/bids'
 import { normalizeSiafemNumber } from '~/schemas/forms/commitment'
+import { DEMAND_BUDGET_DEFAULTS, resolveDemandBudgetCodes } from '~/constants/demand-budget'
 
 export const DEFAULT_EXTRACT_CONTRACTOR = 'Delegacia Seccional de Polícia de São Joaquim da Barra'
-export const DEFAULT_EXTRACT_WORK_PROGRAM = '06181180149890000'
-export const DEFAULT_EXTRACT_PTRES = '180205'
+export const DEFAULT_EXTRACT_WORK_PROGRAM = DEMAND_BUDGET_DEFAULTS.consumption.workProgram
+export const DEFAULT_EXTRACT_PTRES = DEMAND_BUDGET_DEFAULTS.consumption.ptres
 export const EXTRACT_SEPARATOR = '\n\n--------------------------------------------------\n\n'
 
 export interface CommitmentExtractDemandInfo extends DemandForConvocationEmail {
   name?: string | null
   process_number?: string | null
   internal_process_number?: string | null
+  type?: string | null
+  work_program?: string | null
+  ptres?: string | null
 }
 
 export interface CommitmentExtractSupplierInfo {
@@ -111,8 +115,10 @@ export function generateCommitmentExtract(data: CommitmentExtractData): string {
   const contractor = data.contractorName?.trim() || DEFAULT_EXTRACT_CONTRACTOR
   const objectDesc = data.demand?.name?.trim() || '-'
   const expenseNatureCode = resolveExpenseNatureCode(data.expenseNature)
-  const workProgram = data.workProgram?.trim() || DEFAULT_EXTRACT_WORK_PROGRAM
-  const ptres = data.ptres?.trim() || DEFAULT_EXTRACT_PTRES
+
+  const budget = resolveDemandBudgetCodes(data.demand)
+  const workProgram = data.workProgram?.trim() || budget.workProgram
+  const ptres = data.ptres?.trim() || budget.ptres
 
   const supplierName = data.supplier?.company_name?.trim() || '-'
   const rawCnpj = data.supplier?.cnpj?.trim() || ''

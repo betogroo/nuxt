@@ -212,5 +212,49 @@ describe('commitmentExtract', () => {
       expect(combined).toContain('Nota de empenho: 2026NE00386')
       expect(combined).toContain('Nota de empenho: 2026NE00388')
     })
+
+    it('resolves official permanent codes for permanent demands', () => {
+      const extract = generateCommitmentExtract({
+        commitmentNumber: '2026NE00999',
+        issueDate: '2026-11-20',
+        totalAmount: 15000,
+        demand: {
+          contract_number: '10/2026',
+          name: 'Equipamentos de Informática',
+          process_number: '058.00199999/2026-99',
+          type: 'permanent',
+        },
+        supplier: {
+          company_name: 'TECH COMÉRCIO LTDA',
+          cnpj: '11.222.333/0001-44',
+        },
+      })
+
+      expect(extract).toContain('Programa de trabalho: 06181181862960000')
+      expect(extract).toContain('PTRES: 180211')
+    })
+
+    it('resolves custom budget codes when demand has custom overrides', () => {
+      const extract = generateCommitmentExtract({
+        commitmentNumber: '2026NE00888',
+        issueDate: '2026-11-21',
+        totalAmount: 5000,
+        demand: {
+          contract_number: '11/2026',
+          name: 'Material Especial',
+          process_number: '058.00188888/2026-88',
+          type: 'consumption',
+          work_program: '06181189999990000',
+          ptres: '180299',
+        },
+        supplier: {
+          company_name: 'ESPECIAL LTDA',
+          cnpj: '99.888.777/0001-66',
+        },
+      })
+
+      expect(extract).toContain('Programa de trabalho: 06181189999990000')
+      expect(extract).toContain('PTRES: 180299')
+    })
   })
 })

@@ -43,6 +43,7 @@
   import { downloadDemandFolderBatch } from '~/utils/demandFolderBatch'
   import { downloadDemandCatalogCsv } from '~/utils/demandCatalogCsv'
   import { downloadDemandFinancialDocsCsv } from '~/utils/demandFinancialDocsCsv'
+  import { resolveDemandBudgetCodes, DEMAND_BUDGET_DEFAULTS } from '~/constants/demand-budget'
   import { useRowSelection } from '~/composables/useRowSelection'
   import {
     type DemandTab,
@@ -114,6 +115,8 @@
     id_pca: '',
     contract_number: '',
     siafem_number: '',
+    work_program: '',
+    ptres: '',
   })
 
   const [epName, epNameProps] = epDefine('name')
@@ -123,6 +126,10 @@
   const [epIdPca, epIdPcaProps] = epDefine('id_pca')
   const [epContract, epContractProps] = epDefine('contract_number')
   const [epSiafem, epSiafemProps] = epDefine('siafem_number')
+  const [epWorkProgram, epWorkProgramProps] = epDefine('work_program')
+  const [epPtres, epPtresProps] = epDefine('ptres')
+
+  const resolvedBudgetCodes = computed(() => resolveDemandBudgetCodes(demand.value))
 
   const editPlanningModal = useModal({})
 
@@ -138,6 +145,8 @@
           id_pca: demand.value.id_pca || '',
           contract_number: demand.value.contract_number ? String(demand.value.contract_number) : '',
           siafem_number: demand.value.siafem_number || '',
+          work_program: demand.value.work_program || '',
+          ptres: demand.value.ptres || '',
         },
       })
       editPlanningModal.open()
@@ -156,6 +165,8 @@
           id_pca: string | null
           contract_number: string | null
           siafem_number: string | null
+          work_program: string | null
+          ptres: string | null
         } = {
           name: values.name,
           type: values.type,
@@ -163,6 +174,8 @@
           id_pca: values.id_pca || null,
           contract_number: values.contract_number || null,
           siafem_number: values.siafem_number || null,
+          work_program: values.work_program ? values.work_program.trim() : null,
+          ptres: values.ptres ? values.ptres.trim() : null,
         }
         if (profile.value?.role === ROLES.ADMIN && values.internal_process_number) {
           payload.internal_process_number = values.internal_process_number.trim()
@@ -1564,6 +1577,10 @@
                 {{ demand.type === 'consumption' ? 'Consumo' : 'Permanente' }}
               </UiChip>
             </div>
+            <div v-if="demand" class="d-flex align-center ga-1" title="PTRES SIAFEM">
+              <span class="text-grey font-weight-medium">PTRES:</span>
+              <span class="font-weight-bold">{{ resolvedBudgetCodes.ptres }}</span>
+            </div>
             <div
               class="d-flex align-center ga-1"
               style="cursor: pointer"
@@ -1772,6 +1789,36 @@
                   <div class="text-caption text-grey">Nº SIAFEM</div>
                   <div class="text-body-1 font-weight-medium">
                     {{ demand?.siafem_number || '-' }}
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">Programa de Trabalho</div>
+                  <div class="text-body-1 font-weight-medium d-flex align-center ga-1">
+                    <span>{{ resolvedBudgetCodes.workProgram }}</span>
+                    <UiChip
+                      v-if="demand?.work_program"
+                      color="warning"
+                      size="xs"
+                      title="Código personalizado (exceção)"
+                      variant="soft"
+                    >
+                      Exceção
+                    </UiChip>
+                  </div>
+                </UiCol>
+                <UiCol cols="12" md="4" sm="6">
+                  <div class="text-caption text-grey">PTRES</div>
+                  <div class="text-body-1 font-weight-medium d-flex align-center ga-1">
+                    <span>{{ resolvedBudgetCodes.ptres }}</span>
+                    <UiChip
+                      v-if="demand?.ptres"
+                      color="warning"
+                      size="xs"
+                      title="Código personalizado (exceção)"
+                      variant="soft"
+                    >
+                      Exceção
+                    </UiChip>
                   </div>
                 </UiCol>
                 <UiCol cols="12">
@@ -3533,6 +3580,37 @@
         label="Nº SIAFEM"
         placeholder="Ex: 2026NE000123 ou número SIAFEM"
       />
+
+      <UiRow dense>
+        <UiCol cols="12" sm="8">
+          <UiInput
+            v-model="epWorkProgram"
+            v-bind="epWorkProgramProps"
+            :error-messages="epErrors.work_program"
+            :hint="`Opcional. Padrão (${epType === 'permanent' ? 'Permanente' : 'Consumo'}): ${epType === 'permanent' ? DEMAND_BUDGET_DEFAULTS.permanent.workProgram : DEMAND_BUDGET_DEFAULTS.consumption.workProgram}`"
+            label="Programa de Trabalho"
+            :placeholder="
+              epType === 'permanent'
+                ? DEMAND_BUDGET_DEFAULTS.permanent.workProgram
+                : DEMAND_BUDGET_DEFAULTS.consumption.workProgram
+            "
+          />
+        </UiCol>
+        <UiCol cols="12" sm="4">
+          <UiInput
+            v-model="epPtres"
+            v-bind="epPtresProps"
+            :error-messages="epErrors.ptres"
+            :hint="`Opcional. Padrão: ${epType === 'permanent' ? DEMAND_BUDGET_DEFAULTS.permanent.ptres : DEMAND_BUDGET_DEFAULTS.consumption.ptres}`"
+            label="PTRES"
+            :placeholder="
+              epType === 'permanent'
+                ? DEMAND_BUDGET_DEFAULTS.permanent.ptres
+                : DEMAND_BUDGET_DEFAULTS.consumption.ptres
+            "
+          />
+        </UiCol>
+      </UiRow>
 
       <template #actions>
         <UiButton

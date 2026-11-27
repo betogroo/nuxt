@@ -69,4 +69,30 @@ describe('demandFormSchema', () => {
       expect(issue?.message).toContain('AAAA-XXXX')
     }
   })
+
+  it('validates and trims optional work_program and ptres when provided', () => {
+    const data = {
+      name: 'Demanda Orçamentária',
+      type: 'consumption' as const,
+      work_program: '  06181180149890000  ',
+      ptres: '  180205  ',
+    }
+    const result = demandFormSchema.safeParse(data)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.work_program).toBe('06181180149890000')
+      expect(result.data.ptres).toBe('180205')
+    }
+  })
+
+  it('allows null or empty work_program and ptres', () => {
+    const data = {
+      name: 'Demanda Padrão',
+      type: 'permanent' as const,
+      work_program: null,
+      ptres: '',
+    }
+    const result = demandFormSchema.safeParse(data)
+    expect(result.success).toBe(true)
+  })
 })

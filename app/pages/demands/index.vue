@@ -4,6 +4,7 @@
   import type { IconName } from '~/components/ui/icons'
   import { useZodForm } from '~/composables/useZodForm'
   import { demandFormSchema } from '~/schemas/forms/demand'
+  import { resolveDemandBudgetCodes, DEMAND_BUDGET_DEFAULTS } from '~/constants/demand-budget'
   import { formatDate, formatDemandType } from '~/utils/formatters'
   import {
     type DemandStatus,
@@ -238,6 +239,8 @@
     id_pca: '',
     contract_number: '',
     siafem_number: '',
+    work_program: '',
+    ptres: '',
     is_historical: false,
     status: 'planning',
     dispute_date: '',
@@ -252,6 +255,8 @@
   const [idPca, idPcaProps] = defineField('id_pca')
   const [contractNumber, contractNumberProps] = defineField('contract_number')
   const [siafemNumber, siafemNumberProps] = defineField('siafem_number')
+  const [workProgram, workProgramProps] = defineField('work_program')
+  const [ptres, ptresProps] = defineField('ptres')
   const [isHistorical, isHistoricalProps] = defineField('is_historical')
   const [demandStatusInput, demandStatusInputProps] = defineField('status')
   const [disputeDateInput, disputeDateInputProps] = defineField('dispute_date')
@@ -274,6 +279,8 @@
           id_pca: item.id_pca || '',
           contract_number: item.contract_number ? String(item.contract_number) : '',
           siafem_number: item.siafem_number || '',
+          work_program: item.work_program || '',
+          ptres: item.ptres || '',
           is_historical: Boolean(item.is_historical),
           status: item.status || 'planning',
           dispute_date: item.dispute_date ? String(item.dispute_date).split('T')[0] : '',
@@ -292,6 +299,8 @@
           id_pca: '',
           contract_number: '',
           siafem_number: '',
+          work_program: '',
+          ptres: '',
           is_historical: false,
           status: 'planning',
           dispute_date: '',
@@ -323,6 +332,8 @@
         id_pca: string | null
         contract_number: string | null
         siafem_number: string | null
+        work_program: string | null
+        ptres: string | null
         is_historical: boolean
         status?: DemandStatus
         dispute_date?: string | null
@@ -335,6 +346,8 @@
         id_pca: values.id_pca || null,
         contract_number: values.contract_number ? String(values.contract_number) : null,
         siafem_number: values.siafem_number || null,
+        work_program: values.work_program ? values.work_program.trim() : null,
+        ptres: values.ptres ? values.ptres.trim() : null,
         is_historical: Boolean(values.is_historical),
       }
 
@@ -754,14 +767,19 @@
         </template>
 
         <template #item-type="{ item }">
-          <UiChip
-            :color="item.type === 'consumption' ? 'info' : 'warning'"
-            label
-            size="sm"
-            variant="soft"
-          >
-            {{ formatDemandType(item.type) }}
-          </UiChip>
+          <div class="d-flex flex-column align-start">
+            <UiChip
+              :color="item.type === 'consumption' ? 'info' : 'warning'"
+              label
+              size="sm"
+              variant="soft"
+            >
+              {{ formatDemandType(item.type) }}
+            </UiChip>
+            <span class="text-caption text-medium-emphasis mt-1">
+              PTRES: {{ resolveDemandBudgetCodes(item).ptres }}
+            </span>
+          </div>
         </template>
 
         <template #item-status="{ item }">
@@ -978,6 +996,37 @@
         label="Nº SIAFEM"
         placeholder="Ex: 2026NE000123 ou número SIAFEM"
       />
+
+      <UiRow dense>
+        <UiCol cols="12" sm="8">
+          <UiInput
+            v-model="workProgram"
+            v-bind="workProgramProps"
+            :error-messages="errors.work_program"
+            :hint="`Opcional. Padrão (${type === 'permanent' ? 'Permanente' : 'Consumo'}): ${type === 'permanent' ? DEMAND_BUDGET_DEFAULTS.permanent.workProgram : DEMAND_BUDGET_DEFAULTS.consumption.workProgram}`"
+            label="Programa de Trabalho"
+            :placeholder="
+              type === 'permanent'
+                ? DEMAND_BUDGET_DEFAULTS.permanent.workProgram
+                : DEMAND_BUDGET_DEFAULTS.consumption.workProgram
+            "
+          />
+        </UiCol>
+        <UiCol cols="12" sm="4">
+          <UiInput
+            v-model="ptres"
+            v-bind="ptresProps"
+            :error-messages="errors.ptres"
+            :hint="`Opcional. Padrão: ${type === 'permanent' ? DEMAND_BUDGET_DEFAULTS.permanent.ptres : DEMAND_BUDGET_DEFAULTS.consumption.ptres}`"
+            label="PTRES"
+            :placeholder="
+              type === 'permanent'
+                ? DEMAND_BUDGET_DEFAULTS.permanent.ptres
+                : DEMAND_BUDGET_DEFAULTS.consumption.ptres
+            "
+          />
+        </UiCol>
+      </UiRow>
 
       <template #actions>
         <UiButton :disabled="modal.isSaving.value" variant="ghost" @click="modal.close">

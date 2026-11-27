@@ -26,6 +26,7 @@ import {
   formatDemandType,
 } from '~/utils/formatters'
 import { formatDemandStatus } from '~/utils/demandStatus'
+import { resolveDemandBudgetCodes } from '~/constants/demand-budget'
 
 export interface DisputeReportDemandInfo {
   id: string
@@ -42,6 +43,8 @@ export interface DisputeReportDemandInfo {
   offerOpeningDate: string
   idPca: string
   siafemNumber: string
+  workProgram: string
+  ptres: string
 }
 
 export interface DisputeReportWinnerSupplier {
@@ -164,6 +167,7 @@ export function generateDisputeReportData(
 ): DisputeReportData {
   const demandId = demand?.id || ''
   const demandName = demand?.name || 'Demanda'
+  const budget = resolveDemandBudgetCodes(demand)
 
   const demandInfo: DisputeReportDemandInfo = {
     id: demandId,
@@ -180,6 +184,8 @@ export function generateDisputeReportData(
     offerOpeningDate: formatDateTime(demand?.offer_opening_date),
     idPca: demand?.id_pca || '-',
     siafemNumber: demand?.siafem_number || '-',
+    workProgram: budget.workProgram,
+    ptres: budget.ptres,
   }
 
   if (!items || items.length === 0) {
@@ -396,6 +402,12 @@ export function buildDisputeReportCsv(reportData: DisputeReportData): string {
     [escapeCsvField('Nº SIAFEM:'), escapeCsvField(reportData.demand.siafemNumber)].join(';'),
   )
   lines.push([escapeCsvField('Tipo:'), escapeCsvField(reportData.demand.typeLabel)].join(';'))
+  lines.push(
+    [escapeCsvField('Programa de Trabalho:'), escapeCsvField(reportData.demand.workProgram)].join(
+      ';',
+    ),
+  )
+  lines.push([escapeCsvField('PTRES:'), escapeCsvField(reportData.demand.ptres)].join(';'))
   lines.push([escapeCsvField('Status:'), escapeCsvField(reportData.demand.statusLabel)].join(';'))
   lines.push('') // Blank line
 
@@ -826,6 +838,8 @@ export function buildDisputeReportHtml(reportData: DisputeReportData): string {
       <div><div class="label">Abertura Ofertas</div><div class="value">${escapeHtml(demand.offerOpeningDate)}</div></div>
       <div><div class="label">PCA</div><div class="value">${escapeHtml(demand.idPca)}</div></div>
       <div><div class="label">Nº SIAFEM</div><div class="value">${escapeHtml(demand.siafemNumber)}</div></div>
+      <div><div class="label">Prog. Trabalho</div><div class="value">${escapeHtml(demand.workProgram)}</div></div>
+      <div><div class="label">PTRES</div><div class="value">${escapeHtml(demand.ptres)}</div></div>
       <div><div class="label">Total Homologado</div><div class="value text-success" style="font-weight: 700;">${formatCurrency(reportData.grandTotalValorFinal)}</div></div>
     </div>
   </div>
@@ -1113,6 +1127,12 @@ export async function buildDisputeReportPdfDoc(reportData: DisputeReportData): P
         reportData.demand.idPca || '-',
         'Nº SIAFEM:',
         reportData.demand.siafemNumber || '-',
+      ],
+      [
+        'Prog. Trabalho:',
+        reportData.demand.workProgram || '-',
+        'PTRES:',
+        reportData.demand.ptres || '-',
       ],
     ],
   })

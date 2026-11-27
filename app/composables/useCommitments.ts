@@ -29,6 +29,9 @@ export type CommitmentRow = Database['public']['Tables']['demand_commitments']['
     internal_process_number: string | null
     process_number: string | null
     status: Database['public']['Enums']['demand_status']
+    type?: Database['public']['Enums']['demand_type'] | null
+    work_program?: string | null
+    ptres?: string | null
     bidding_notice_number?: string | null
     contract_number?: string | null
     dispute_date?: string | null
@@ -139,7 +142,7 @@ export const useCommitments = () => {
         supabase
           .from('demand_commitments')
           .select(
-            '*, demands(id, name, internal_process_number, process_number, status, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
+            '*, demands(id, name, internal_process_number, process_number, status, type, work_program, ptres, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
           )
           .order('commitment_number', { ascending: true }),
         supabase
@@ -196,7 +199,7 @@ export const useCommitments = () => {
     const { data, error } = await supabase
       .from('demand_commitments')
       .select(
-        '*, demands(id, name, internal_process_number, process_number, status, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
+        '*, demands(id, name, internal_process_number, process_number, status, type, work_program, ptres, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
       )
       .eq('demand_id', demandId)
       .order('commitment_number', { ascending: true })
@@ -214,7 +217,7 @@ export const useCommitments = () => {
     const { data: commitmentData, error: commitmentErr } = await supabase
       .from('demand_commitments')
       .select(
-        '*, demands(id, name, internal_process_number, process_number, status, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
+        '*, demands(id, name, internal_process_number, process_number, status, type, work_program, ptres, bidding_notice_number, contract_number, dispute_date, created_at), suppliers(id, company_name, cnpj, is_simples_optant), expense_natures(id, name), demand_commitment_liquidations(*)',
       )
       .eq('commitment_number', normalized)
       .maybeSingle()

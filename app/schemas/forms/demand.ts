@@ -17,6 +17,8 @@ export const demandFormSchema = z.object({
   id_pca: z.string().trim().nullable().optional(),
   contract_number: z.string().trim().nullable().optional(),
   siafem_number: z.string().trim().nullable().optional(),
+  work_program: z.string().trim().nullable().optional().or(z.literal('')),
+  ptres: z.string().trim().nullable().optional().or(z.literal('')),
   is_historical: z.boolean().default(false),
   status: z
     .enum(['planning', 'quotation', 'bidding_notice', 'dispute', 'homologation', 'completed'])
