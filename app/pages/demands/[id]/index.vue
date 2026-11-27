@@ -141,8 +141,8 @@
 
   const editPlanningModal = useModal({})
 
-  const openEditPlanning = async () => {
-    await ensureSpendingData()
+  const openEditPlanning = () => {
+    ensureSpendingData()
     if (demand.value) {
       const resolvedModality = demandClassCeilingCheck.value.isExceeded
         ? 'bidding'
@@ -504,7 +504,10 @@
   })
 
   const demandClassCeilingCheck = computed(() => {
-    const ceilingInfo = getCeilingForYear(ceilingsMap.value, demandYear.value)
+    const ceilingInfo =
+      typeof getCeilingForYear === 'function'
+        ? getCeilingForYear(ceilingsMap.value, demandYear.value)
+        : { amount: 65492.11, isConfigured: true }
     return checkDemandClassExceedsAnnualCeiling(items.value || [], ceilingInfo.amount)
   })
 

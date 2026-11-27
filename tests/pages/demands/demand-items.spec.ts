@@ -69,7 +69,8 @@ const getFutureDate = (daysAhead: number): string => {
 }
 
 mockNuxtImport('useSystemSettings', () => () => ({
-  fetchProductClassAnnualCeilings: vi.fn().mockResolvedValue([]),
+  fetchProductClassAnnualCeilings: vi.fn().mockResolvedValue({ '2026': 65492.11 }),
+  getCeilingForYear: vi.fn().mockReturnValue({ amount: 65492.11, isConfigured: true }),
 }))
 mockNuxtImport('useDemandReports', () => () => ({
   fetchDemandsForClassSpending: vi.fn().mockResolvedValue([]),

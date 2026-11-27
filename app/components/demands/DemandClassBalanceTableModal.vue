@@ -1,11 +1,8 @@
 <script setup lang="ts">
   import { ref, computed, watch } from 'vue'
   import { useCopyToClipboard } from '~/composables/useCopyToClipboard'
-  import {
-    useDemandReports,
-    resolveDemandYear,
-    type DemandWithClassProductsRow,
-  } from '~/composables/useDemandReports'
+  import { useDemandReports, type DemandWithClassProductsRow } from '~/composables/useDemandReports'
+  import { resolveDemandYear } from '~/utils/demandYear'
   import type { DemandRow } from '~/composables/useDemands'
   import { useSystemSettings } from '~/composables/useSystemSettings'
   import { DEFAULT_CLASS_CEILING_2026 } from '~/schemas/forms/system-settings'

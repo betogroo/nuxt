@@ -1,8 +1,8 @@
 import {
   hasItemCommitmentIssued,
-  resolveDemandYear,
   type DemandWithClassProductsRow,
 } from '~/composables/useDemandReports'
+import { resolveDemandYear } from '~/utils/demandYear'
 import { getItemDisputeResult } from '~/utils/bids'
 import type { DemandTermsItem } from '~/utils/demandTermsOfReferenceTable'
 import { formatCurrency } from '~/utils/formatters'
