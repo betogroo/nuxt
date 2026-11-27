@@ -181,7 +181,7 @@
                 v-else
                 color="teal"
                 data-testid="btn-hub-open-bid-intervals"
-                prepend-icon="copy"
+                prepend-icon="timer"
                 size="sm"
                 variant="solid"
                 @click="handleOpenBidIntervals"

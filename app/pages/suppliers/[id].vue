@@ -165,6 +165,7 @@
           v-if="supplier"
           :color="supplier.is_active ? 'warning' : 'success'"
           :loading="isTogglingStatus"
+          :prepend-icon="supplier.is_active ? 'lock' : 'check'"
           size="sm"
           variant="soft"
           @click="handleToggleStatus"

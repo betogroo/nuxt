@@ -12,6 +12,17 @@ describe('components/ui/icons', () => {
       expect(iconMap.arrowRight).toBe('mdi-arrow-right')
     })
 
+    it('maps receipt and extract to universally supported mdi-receipt', () => {
+      expect(iconMap.receipt).toBe('mdi-receipt')
+      expect(iconMap.extract).toBe('mdi-receipt')
+    })
+
+    it('maps table, timer and warning to valid mdi icons', () => {
+      expect(iconMap.table).toBe('mdi-table-large')
+      expect(iconMap.timer).toBe('mdi-timer-outline')
+      expect(iconMap.warning).toBe('mdi-alert')
+    })
+
     it('contains valid mdi mappings for demands dashboard KPI cards', () => {
       const demandKpiIcons = ['recordsList', 'clipboardClock', 'balance', 'check'] as const
       for (const icon of demandKpiIcons) {

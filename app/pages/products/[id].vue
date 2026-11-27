@@ -763,6 +763,7 @@
           v-if="isAdmin"
           :color="product.is_active ? 'warning' : 'success'"
           :loading="isTogglingStatus"
+          :prepend-icon="product.is_active ? 'lock' : 'check'"
           size="sm"
           variant="soft"
           @click="handleToggleStatus"
