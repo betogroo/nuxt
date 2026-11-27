@@ -103,6 +103,69 @@ describe('useDemands & Dashboard Summary', () => {
     expect(queryChain.or).toHaveBeenCalledWith(
       'name.ilike.%2026-0001%,process_number.ilike.%2026-0001%,internal_process_number.ilike.%2026-0001%',
     )
+    expect(queryChain.order).toHaveBeenCalledWith('internal_process_number', {
+      ascending: false,
+      nullsFirst: false,
+    })
+    expect(queryChain.order).toHaveBeenCalledWith('created_at', { ascending: false })
+  })
+
+  it('fetchDemands applies yearFilter when provided', async () => {
+    const queryChain = {
+      is: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockReturnThis(),
+      or: vi.fn().mockReturnThis(),
+      then: (resolve: (val: { data: unknown[]; count: number; error: null }) => void) =>
+        resolve({ data: [], count: 0, error: null }),
+    }
+    const mockSelect = vi.fn().mockReturnValue(queryChain)
+    mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+    const { fetchDemands } = useDemands()
+    await fetchDemands(1, 10, null, null, null, false, 2026)
+
+    expect(queryChain.or).toHaveBeenCalledWith(
+      'internal_process_number.ilike.2026-%,and(internal_process_number.is.null,created_at.gte.2026-01-01T00:00:00.000Z,created_at.lte.2026-12-31T23:59:59.999Z)',
+    )
+  })
+
+  it('fetchDemandYears queries distinct years and returns them sorted descending', async () => {
+    const mockIs = vi.fn().mockResolvedValue({
+      data: [
+        {
+          internal_process_number: '2026-0001',
+          dispute_date: null,
+          created_at: '2026-01-01T00:00:00Z',
+        },
+        {
+          internal_process_number: null,
+          dispute_date: '2025-05-10T12:00:00Z',
+          created_at: '2024-01-01T00:00:00Z',
+        },
+        {
+          internal_process_number: '2024-0010',
+          dispute_date: null,
+          created_at: '2024-02-01T00:00:00Z',
+        },
+        {
+          internal_process_number: '2026-0002',
+          dispute_date: null,
+          created_at: '2026-03-01T00:00:00Z',
+        },
+      ],
+      error: null,
+    })
+    const mockSelect = vi.fn().mockReturnValue({ is: mockIs })
+    mockSupabase.from.mockReturnValue({ select: mockSelect })
+
+    const { fetchDemandYears } = useDemands()
+    const years = await fetchDemandYears()
+
+    expect(mockSupabase.from).toHaveBeenCalledWith('demands')
+    expect(mockSelect).toHaveBeenCalledWith('internal_process_number, dispute_date, created_at')
+    expect(mockIs).toHaveBeenCalledWith('deleted_at', null)
+    expect(years).toEqual([2026, 2025, 2024])
   })
 
   it('fetchDemands applies neq status completed when hideCompleted is true', async () => {

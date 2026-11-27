@@ -1,5 +1,6 @@
 import type { Database } from '~/types/database.types'
 import type { DemandStatus } from '~/utils/demandStatus'
+import { resolveDemandYear } from '~/utils/demandYear'
 
 export type DemandRow = Database['public']['Tables']['demands']['Row'] & {
   profiles?: { name: string | null } | null
@@ -95,6 +96,7 @@ export const useDemands = () => {
     searchQuery?: string | null,
     typeFilter?: DemandType | string | null,
     hideCompleted?: boolean,
+    yearFilter?: number | string | null,
   ) => {
     const from = (currentPage - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
@@ -105,6 +107,7 @@ export const useDemands = () => {
         count: 'exact',
       })
       .is('deleted_at', null)
+      .order('internal_process_number', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .range(from, to)
 
@@ -126,6 +129,15 @@ export const useDemands = () => {
 
     if (typeFilter === 'consumption' || typeFilter === 'permanent') {
       query = query.eq('type', typeFilter)
+    }
+
+    if (yearFilter) {
+      const yr = String(yearFilter).trim()
+      const startOfYear = `${yr}-01-01T00:00:00.000Z`
+      const endOfYear = `${yr}-12-31T23:59:59.999Z`
+      query = query.or(
+        `internal_process_number.ilike.${yr}-%,and(internal_process_number.is.null,created_at.gte.${startOfYear},created_at.lte.${endOfYear})`,
+      )
     }
 
     const trimmedSearch = searchQuery?.trim()
@@ -312,8 +324,31 @@ export const useDemands = () => {
     )
   }
 
+  const fetchDemandYears = async (): Promise<number[]> => {
+    const { data, error } = await supabase
+      .from('demands')
+      .select('internal_process_number, dispute_date, created_at')
+      .is('deleted_at', null)
+
+    if (error) {
+      console.error(error)
+      throw error
+    }
+
+    const yearsSet = new Set<number>()
+    for (const row of data || []) {
+      const yr = resolveDemandYear(row)
+      if (Number.isInteger(yr) && yr >= 1990 && yr <= 2100) {
+        yearsSet.add(yr)
+      }
+    }
+
+    return Array.from(yearsSet).sort((a, b) => b - a)
+  }
+
   return {
     fetchDemands,
+    fetchDemandYears,
     fetchDemandDashboardSummary,
     fetchDemandById,
     fetchDemandResponsibles,

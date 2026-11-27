@@ -30,8 +30,14 @@
   const { isAdmin, canEditDemand, canDeleteDemand } = usePermissions()
   const toast = useToast()
 
-  const { fetchDemands, fetchDemandDashboardSummary, createDemand, updateDemand, deleteDemand } =
-    useDemands()
+  const {
+    fetchDemands,
+    fetchDemandYears,
+    fetchDemandDashboardSummary,
+    createDemand,
+    updateDemand,
+    deleteDemand,
+  } = useDemands()
   const route = useRoute()
   const router = useRouter()
 
@@ -39,6 +45,7 @@
   const statusFilter = ref<string | null>((route.query.filter as string) || null)
   const typeFilter = ref<string | null>(null)
   const searchQuery = ref('')
+  const yearFilter = ref<number | null>(route.query.year ? Number(route.query.year) : null)
   const hideCompleted = ref<boolean>(route.query.hide_completed === 'true')
 
   watch(hideCompleted, (val) => {
@@ -50,6 +57,16 @@
       }
     } else {
       delete currentQuery.hide_completed
+    }
+    router.replace({ query: currentQuery })
+  })
+
+  watch(yearFilter, (val) => {
+    const currentQuery = { ...route.query }
+    if (val != null) {
+      currentQuery.year = String(val)
+    } else {
+      delete currentQuery.year
     }
     router.replace({ query: currentQuery })
   })
@@ -85,6 +102,21 @@
 
   const summary = computed(() => dashboardSummaryData.value || createEmptyDemandDashboardSummary())
 
+  const { data: availableYears, refresh: refreshYears } = useAsyncData(
+    'demand-years',
+    () => fetchDemandYears(),
+    {
+      default: () => [],
+    },
+  )
+
+  const yearOptions = computed(() => {
+    return (availableYears.value || []).map((yr) => ({
+      title: String(yr),
+      value: yr,
+    }))
+  })
+
   const {
     data: demands,
     pending,
@@ -99,26 +131,31 @@
         searchQuery.value,
         typeFilter.value,
         hideCompleted.value,
+        yearFilter.value,
       )
       totalItems.value = result.count
       return result.data
     },
     {
-      watch: [currentPage, statusFilter, typeFilter, searchQuery, hideCompleted],
+      watch: [currentPage, statusFilter, typeFilter, searchQuery, hideCompleted, yearFilter],
     },
   )
 
   const refresh = async () => {
-    await Promise.all([refreshList(), refreshSummary()])
+    await Promise.all([refreshList(), refreshSummary(), refreshYears()])
   }
 
-  watch([statusFilter, typeFilter, searchQuery, hideCompleted], () => {
+  watch([statusFilter, typeFilter, searchQuery, hideCompleted, yearFilter], () => {
     resetPage()
   })
 
   const hasActiveFilters = computed(() => {
     return Boolean(
-      statusFilter.value || typeFilter.value || searchQuery.value.trim() || hideCompleted.value,
+      statusFilter.value ||
+      typeFilter.value ||
+      searchQuery.value.trim() ||
+      hideCompleted.value ||
+      yearFilter.value != null,
     )
   })
 
@@ -126,6 +163,7 @@
     statusFilter.value = null
     typeFilter.value = null
     searchQuery.value = ''
+    yearFilter.value = null
     hideCompleted.value = false
   }
 
@@ -680,6 +718,20 @@
             rounded="lg"
             size="sm"
             style="min-width: 220px; max-width: 280px"
+            variant="outline"
+          />
+          <UiSelect
+            v-model="yearFilter"
+            clearable
+            data-testid="select-year-filter"
+            hide-details
+            item-title="title"
+            item-value="value"
+            :items="yearOptions"
+            label="Ano"
+            rounded="lg"
+            size="sm"
+            style="min-width: 110px; max-width: 140px"
             variant="outline"
           />
           <UiSelect
